@@ -1,0 +1,28 @@
+# Node
+node_modules/
+npm-debug.log*
+yarn-error.log
+
+# Build
+dist/
+build/
+temp/
+
+# Env
+.env
+.env.*
+
+# Editor
+.vscode/
+.idea/
+*.swp
+
+# Logs
+*.log
+
+# OS / Misc
+.DS_Store
+Thumbs.db
+
+# Docker
+*.pid
