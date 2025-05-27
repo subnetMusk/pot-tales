@@ -1,0 +1,29 @@
+{
+  "id": "iniziale",
+  "assets": [
+    {
+      "key": "background",
+      "type": "image",
+      "url": "bg_intro.png"
+    },
+    {
+      "key": "torch_white",
+      "type": "image",
+      "url": "torch_white.png"
+    }
+  ],
+  "objects": [
+    {
+      "type": "static",
+      "sprite": "background",
+      "x": 0,
+      "y": 0
+    },
+    {
+      "type": "item",
+      "sprite": "torch_white",
+      "x": 300,
+      "y": 200
+    }
+  ]
+}

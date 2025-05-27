@@ -1,0 +1,37 @@
+version: "3.9"
+
+services:
+  server:
+    container_name: phaser-server
+    build:
+      context: .
+      dockerfile: Dockerfile.server
+    working_dir: /app/server
+    ports:
+      - "3000:3000"
+    env_file:
+      - .env
+    volumes:
+      - ./server:/app/server
+    command: npm run dev
+
+  sandbox-client:
+    build:
+      context: .
+      dockerfile: Dockerfile.sandbox
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./sandbox-client:/app
+    command: ["npx", "vite", "--host"]
+
+  client:
+    container_name: game-client
+    build:
+      context: .
+      dockerfile: Dockerfile.client
+    working_dir: /app/client
+    ports:
+      - "8080:80"
+    depends_on:
+      - server
