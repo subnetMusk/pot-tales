@@ -1,94 +1,102 @@
-
 # Phaser Game Project – Architettura Sandbox + Server
 
-## Panoramica
+## 🧭 Panoramica
 
-Questa repository è progettata per supportare lo sviluppo di un videogioco in HTML5 basato su Phaser, con una solida infrastruttura backend costruita in Node.js tramite Express. Il progetto include un ambiente sandbox per testare dinamicamente scene e meccaniche, un client di gioco reale per la distribuzione e un sistema centralizzato di gestione di asset e scene sul server.
+Questa repository supporta lo sviluppo di un videogioco in HTML5 basato su **Phaser**, con una struttura **client-server modulare**, pensata per sviluppo, test e distribuzione. Include:
+- un **ambiente sandbox** per test dinamico delle scene
+- un **client reale** minimale che carica scene e asset dal server
+- un **server centralizzato** che gestisce scene, stato, asset e logica narrativa
 
-## Struttura del progetto
+## 🗂️ Struttura del progetto
 
 ```
 phaser-game-project/
-├── client/                   → Client principale del gioco (Phaser + Vite)
-│   ├── scenes/               → Scene caricate dinamicamente dal server
-│   ├── scripts/              → Logica TypeScript del gioco
-│   ├── assets/               → Asset temporanei solo per sviluppo
-│   ├── public/               → HTML statico e entrypoint
-│   ├── vite.config.ts        → Configurazione Vite per build e dev
+├── client/                   → Client di gioco reale (Phaser + Vite)
+│   ├── public/               → HTML statico e asset non sensibili
+│   ├── scripts/              → Logica TS condivisa (es. ApiClient)
+│   ├── scene/                → Scena corrente + asset ricevuti dal server
+│   │   └── assets/           → Asset sensibili validati dal backend
+│   ├── vite.config.ts        → Configurazione Vite
 │   └── package.json
 │
-├── sandbox-client/           → Interfaccia per test sandbox via browser
-│   ├── ui/                   → UI di sviluppo per scegliere scena, mock stato
-│   ├── scripts/              → Codice Phaser per test rapido
+├── sandbox-client/           → Interfaccia dev sandbox (Phaser + Vite)
+│   ├── public/               → HTML base
+│   ├── sandbox/              → UI, scripts e scene per simulare stato
+│   │   ├── scripts/          → Logica Phaser sandbox
+│   │   └── scenes/           → Scene dev configurabili manualmente
 │   ├── vite.config.ts
 │   └── package.json
 │
 ├── server/                   → Backend Node.js (Express)
-│   ├── controllers/          → Route API: scene, interazioni, pickup, minigiochi
+│   ├── controllers/          → Route API: scene, trigger, minigiochi
 │   ├── scenes/               → Scene base (.scene.base.json)
 │   ├── assets/               → Asset ufficiali: sprites, tiled, video, audio
-│   ├── filters/              → Motore per la trasformazione dinamica delle scene
-│   ├── models/               → Stato delle sessioni, inventario, flag
-│   ├── index.js              → Entrypoint Express
+│   ├── filters/              → Trasformazione dinamica delle scene
+│   ├── models/               → Stato sessione, inventario, flag
+│   ├── index.js              → Entrypoint del server
 │   └── package.json
 │
-├── docker-compose.yml        → Orchestrazione Docker: server, client, sandbox
-├── Dockerfile.client         → Container per build e deploy client (nginx)
-├── Dockerfile.sandbox        → Container dev per ambiente sandbox
-├── Dockerfile.server         → Container backend Node.js
-├── .env                      → Configurazioni ambiente: porte, modalità, path
+├── docker-compose.yml        → Orchestrazione dei container
+├── Dockerfile.client         → Build client reale con NGINX
+├── Dockerfile.sandbox        → Dev server sandbox con Vite
+├── Dockerfile.server         → Server Express con asset statici
+├── .env                      → Configurazione ambiente
 └── README.md                 → Documentazione del progetto
 ```
 
-## Logica di sviluppo
+## 🧠 Logica di sviluppo
 
-Le scene e gli asset vengono salvati **solo** sul server, nelle directory `server/scenes` e `server/assets`. Il server espone due modalità principali per accedervi:
+Le scene e gli asset sono salvati **solo sul server**, nelle cartelle:
+- `server/scenes/` → descrizione logica delle scene
+- `server/assets/` → file validati: PNG, JSON, Tiled, video, ecc.
 
-### Modalità Sandbox (`/api/sandbox/scene/:id`)
-Questa modalità è pensata per gli sviluppatori. Permette di:
-- accedere a qualsiasi scena direttamente, senza restrizioni
-- simulare uno stato arbitrario del giocatore (oggetti raccolti, minigiochi completati)
-- ricevere le scene con nomi di asset in chiaro
-- bypassare completamente la logica narrativa e di sessione
-- testare la generazione condizionale e i trigger degli oggetti
+Il server fornisce due modalità:
 
-### Modalità Giocatore Reale (`/api/scene/:id`)
-Questa modalità rappresenta il comportamento finale in produzione. Il server:
-- autentica la sessione
-- filtra gli oggetti visibili nella scena in base allo stato della partita
-- offusca i riferimenti agli asset (es. torch_white.png → 4f91a.png)
-- restituisce solo ciò che è sbloccato o previsto
-- rifiuta l’accesso non autorizzato a scene non raggiungibili
+### 🎮 Modalità Giocatore Reale (`/api/scene/:id`)
+- Autenticazione sessione
+- Filtraggio oggetti in base allo stato (oggetti raccolti, eventi)
+- Offuscamento asset (es. `torch_white.png` → `4f91a.png`)
+- Accesso negato a scene non sbloccate
 
-## Flusso di lavoro per lo sviluppo
+### 🧪 Modalità Sandbox (`/api/sandbox/scene/:id`)
+- Accesso a tutte le scene senza blocchi
+- Stato arbitrario simulabile (flag, inventario, minigiochi)
+- Asset non offuscati
+- Test rapido di trigger, eventi, condizioni
 
-1. Le scene vengono create in Phaser Editor e salvate direttamente in `server/scenes/`
-2. Gli asset ufficiali (sprite, tiled, video) vengono copiati in `server/assets/`
-3. Il `sandbox-client` viene utilizzato per testare le scene in tempo reale, simulando inventario e stato
-4. Una volta validata una scena, si collega alla logica di filtraggio lato server
-5. Il client di gioco finale carica solo scene tramite `/api/scene/:id`, con comportamento controllato
+## 🔁 Flusso di lavoro
 
-## Deployment in produzione
+1. Le scene vengono progettate in Phaser Editor e salvate in `server/scenes/`
+2. Gli asset associati vengono copiati in `server/assets/`
+3. Gli sviluppatori usano `sandbox-client` per testare le scene in tempo reale
+4. Una volta validata, la scena viene usata dal client reale (`client/`)
+5. Il server filtra dinamicamente la scena a seconda dello stato del giocatore
 
-Nel deployment:
-- il `sandbox-client` non viene incluso (o viene disattivato via `.env`)
-- solo il client reale viene buildato con Vite (`vite build`) e servito via NGINX
-- il server mantiene tutta la logica narrativa, lo stato e il routing API
-- gli asset vengono offuscati e serviti tramite endpoint protetti
+## 🚀 Deployment
 
-## Sicurezza e manutenibilità
+- Solo il client reale viene buildato (`vite build`) e servito da NGINX
+- Il `sandbox-client` viene escluso in produzione
+- Il server esegue la logica di sessione, accesso, filtraggio e asset
+- Tutti i file sensibili sono accessibili solo tramite route protette
 
-- I nomi dei file asset vengono offuscati in produzione per impedire l’accesso diretto
-- Le scene sono filtrate dinamicamente in base allo stato reale della sessione
-- La modalità sandbox è abilitata solo in sviluppo e può essere disattivata
-- Il codice per la trasformazione delle scene è centralizzato e condiviso tra sandbox e client reale
+## 🔐 Sicurezza
+
+- Gli asset sono offuscati in produzione
+- Il server decide cosa mostrare al client in base allo stato della sessione
+- La sandbox è disponibile solo in sviluppo (`ENABLE_SANDBOX=true`)
+- La logica di filtraggio è centralizzata in `filters/`
 
 ---
 
-## Per iniziare
+## ▶️ Avvio rapido
 
-1. Clona la repository
-2. Passa al branch `develop`
-3. Avvia l'ambiente con `docker compose up --build`
-4. Accedi al sandbox client per testare le scene in tempo reale
+```bash
+git clone <repo>
+cd phaser-game-project
+docker compose up --build
+```
 
+Poi visita:
+- **http://localhost:8080** → client reale
+- **http://localhost:5173** → sandbox client
+- **http://localhost:3000/api/scene/iniziale** → scena test
