@@ -9,8 +9,8 @@ build/
 temp/
 
 # Env
-.env
-.env.*
+# .env
+#.env.*
 
 # Editor
 .vscode/

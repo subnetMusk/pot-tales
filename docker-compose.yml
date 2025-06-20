@@ -14,6 +14,8 @@ services:
     volumes:
       - ./server:/app/server
     command: npm run dev
+    depends_on:
+      - mongodb
 
   sandbox-client:
     build:
@@ -36,3 +38,16 @@ services:
       - "8080:80"
     depends_on:
       - server
+      
+  mongodb:
+    image: mongo
+    container_name: mongodb
+    restart: unless-stopped
+    env_file: .env
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo-data:/data/db
+
+volumes:
+  mongo-data:
