@@ -1,17 +1,14 @@
 # Usa immagine base Node.js LTS
 FROM node:20
 
-# Crea e imposta la working directory
-WORKDIR /app/server
+# Imposta la cartella di lavoro
+WORKDIR /app
 
 # Copia i file package.json e package-lock.json
 COPY server/package*.json ./
 
 # Installa le dipendenze (anche dev)
 RUN npm install
-
-# Copia tutto il codice del server
-COPY server/ .
 
 # Espone la porta del server (definita anche in .env)
 EXPOSE 3000

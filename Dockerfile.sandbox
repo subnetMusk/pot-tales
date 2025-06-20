@@ -1,8 +1,6 @@
 FROM node:20
 
-WORKDIR /app
-
-COPY sandbox-client/ .
+COPY sandbox-client/package*.json .
 
 # Installazione forzata di vite@4.4.9 come devDependency + tutte le dipendenze
 RUN npm install vite@4.4.9 --save-dev && npm install
