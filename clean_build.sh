@@ -7,11 +7,6 @@ rm -rf server/node_modules server/package-lock.json
 rm -rf client/node_modules client/package-lock.json
 rm -rf sandbox/node_modules sandbox/package-lock.json
 
-echo "📦 Reinstallo le dipendenze in locale…"
-(cd server && npm install)
-(cd client && npm install)
-(cd sandbox && npm install)
-
 echo "🛑 Arresto e rimozione di container, network e volumi anonimi…"
 docker compose down --volumes --remove-orphans
 

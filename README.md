@@ -1,102 +1,78 @@
-# Phaser Game Project – Architettura Sandbox + Server
+# Phaser Game Project – Architettura Dockerizzata
 
-## 🧭 Panoramica
-
-Questa repository supporta lo sviluppo di un videogioco in HTML5 basato su **Phaser**, con una struttura **client-server modulare**, pensata per sviluppo, test e distribuzione. Include:
-- un **ambiente sandbox** per test dinamico delle scene
-- un **client reale** minimale che carica scene e asset dal server
-- un **server centralizzato** che gestisce scene, stato, asset e logica narrativa
+## 🧭 Descrizione
+Videogioco HTML5 sviluppato con **Phaser 3**, asset creati in **Aseprite** e mappe progettate in **Tiled Map Editor**, containerizzato in un’architettura **client-sandbox-server** e orchestrato tramite **Docker Compose** con **NGINX** come reverse proxy.
 
 ## 🗂️ Struttura del progetto
-
 ```
 phaser-game-project/
-├── client/                   → Client di gioco reale (Phaser + Vite)
-│   ├── public/               → HTML statico e asset non sensibili
-│   ├── scripts/              → Logica TS condivisa (es. ApiClient)
-│   ├── scene/                → Scena corrente + asset ricevuti dal server
-│   │   └── assets/           → Asset sensibili validati dal backend
-│   ├── vite.config.ts        → Configurazione Vite
+├── client/                   
+│   ├── public/               # HTML statico (index.html) e asset non sensibili
+│   ├── src/                  # Codice front-end (TypeScript)
+│   │   ├── assets/           # Sprite, audio, mappe
+│   │   ├── items/            # Definizioni di oggetti/collezionabili
+│   │   ├── network/          # Comunicazione col server via HTTP/WebSocket
+│   │   ├── scenes/           # Scene Phaser (menu, livelli, game over…)
+│   │   └── main.ts           # Entry point
 │   └── package.json
 │
-├── sandbox-client/           → Interfaccia dev sandbox (Phaser + Vite)
-│   ├── public/               → HTML base
-│   ├── sandbox/              → UI, scripts e scene per simulare stato
-│   │   ├── scripts/          → Logica Phaser sandbox
-│   │   └── scenes/           → Scene dev configurabili manualmente
-│   ├── vite.config.ts
+├── sandbox/                  
+│   ├── public/               # Risorse temporanee per test rapido
+│   │   ├── sb-resources/     # Risorse specifiche per la ui di sandbox
+│   │   └── scripts/          # Scripts per il funzionamento di sandbox
+│   ├── src/                  # Front-end semplificato per sviluppo veloce
+│   ├── vite.config.ts        # Configurazione Vite per live reload
+│   ├── Dockerfile            # Container isolato per sandbox
+│   ├── package.json
+│   └── .env                  # Variabili ambiente per sandbox
+│
+├── server/                   
+│   ├── config/               # Configurazioni generali (ESLint, ambiente)
+│   ├── public/               # Endpoint statici (se necessari)
+│   ├── src/                  # Codice backend (Node.js + Express)
+│   │   ├── db/               # Query al db
+│   │   ├── models/           # Schemi dati
+│   │   ├── routes/           # Endpoint server
+│   │   ├── services/         # 
+│   │   ├── utils/            # 
+│   │   └── main.ts           # Entry point del server
+│   ├── Dockerfile            # Container per backend
+│   ├── tsconfig.json
 │   └── package.json
 │
-├── server/                   → Backend Node.js (Express)
-│   ├── controllers/          → Route API: scene, trigger, minigiochi
-│   ├── scenes/               → Scene base (.scene.base.json)
-│   ├── assets/               → Asset ufficiali: sprites, tiled, video, audio
-│   ├── filters/              → Trasformazione dinamica delle scene
-│   ├── models/               → Stato sessione, inventario, flag
-│   ├── index.js              → Entrypoint del server
-│   └── package.json
+├── proxy/                    
+│   ├── nginx.dev.conf        # Config NGINX per sviluppo
+│   ├── nginx.prod.conf       # Config NGINX per produzione
+│   └── certs/                # Certificati .pem
 │
-├── docker-compose.yml        → Orchestrazione dei container
-├── Dockerfile.client         → Build client reale con NGINX
-├── Dockerfile.sandbox        → Dev server sandbox con Vite
-├── Dockerfile.server         → Server Express con asset statici
-├── .env                      → Configurazione ambiente
-└── README.md                 → Documentazione del progetto
+├── docker/                   
+├── docker-compose.yml        # Orchestrazione di client, sandbox, server e proxy
+├── .env                      # Variabili ambiente (da copiare e personalizzare da .env.example)
+├── .gitignore                
+└── README.md                 
 ```
 
-## 🧠 Logica di sviluppo
+## 🚀 Avvio del progetto
+1. **Clona** la repository e spostati nella cartella:
+   ```bash
+   git clone https://…/phaser-game-project.git
+   cd phaser-game-project
+   ```
+2. **Copia** `.env.example` in `.env` e definisci le variabili (come porte e chiavi API).
+3. **Avvia** tutto con Docker Compose:
+   ```bash
+   docker-compose up --build
+   ```
+4. **Accedi**:
+   - `http://localhost`: client “reale”
+   - `http://localhost/sandbox/`: sandbox per sviluppo rapido
+   - `http://localhost/api/health`: health-check del server
 
-Le scene e gli asset sono salvati **solo sul server**, nelle cartelle:
-- `server/scenes/` → descrizione logica delle scene
-- `server/assets/` → file validati: PNG, JSON, Tiled, video, ecc.
+## 🔧 Scelte architetturali
+- **Separazione Client/Sandbox**: il sandbox fornisce live-reload e iterazione veloce senza ricostruire l’intero container di produzione.
+- **Containerizzazione**: garantisce consistenza tra ambienti di sviluppo e produzione.
+- **NGINX come proxy**: un’unica entry point per routing dev vs prod e gestione di certificati SSL in produzione.
+- **Modularità**: client, sandbox e server isolati migliorano la manutenibilità e permettono team dedicati per frontend e backend.
+- **Asset Pipeline**: Aseprite per creare sprite di qualità e Tiled per mappe tile-based, integrati direttamente in Phaser.
 
-Il server fornisce due modalità:
-
-### 🎮 Modalità Giocatore Reale (`/api/scene/:id`)
-- Autenticazione sessione
-- Filtraggio oggetti in base allo stato (oggetti raccolti, eventi)
-- Offuscamento asset (es. `torch_white.png` → `4f91a.png`)
-- Accesso negato a scene non sbloccate
-
-### 🧪 Modalità Sandbox (`/api/sandbox/scene/:id`)
-- Accesso a tutte le scene senza blocchi
-- Stato arbitrario simulabile (flag, inventario, minigiochi)
-- Asset non offuscati
-- Test rapido di trigger, eventi, condizioni
-
-## 🔁 Flusso di lavoro
-
-1. Le scene vengono progettate in Phaser Editor e salvate in `server/scenes/`
-2. Gli asset associati vengono copiati in `server/assets/`
-3. Gli sviluppatori usano `sandbox-client` per testare le scene in tempo reale
-4. Una volta validata, la scena viene usata dal client reale (`client/`)
-5. Il server filtra dinamicamente la scena a seconda dello stato del giocatore
-
-## 🚀 Deployment
-
-- Solo il client reale viene buildato (`vite build`) e servito da NGINX
-- Il `sandbox-client` viene escluso in produzione
-- Il server esegue la logica di sessione, accesso, filtraggio e asset
-- Tutti i file sensibili sono accessibili solo tramite route protette
-
-## 🔐 Sicurezza
-
-- Gli asset sono offuscati in produzione
-- Il server decide cosa mostrare al client in base allo stato della sessione
-- La sandbox è disponibile solo in sviluppo (`ENABLE_SANDBOX=true`)
-- La logica di filtraggio è centralizzata in `filters/`
-
----
-
-## ▶️ Avvio rapido
-
-```bash
-git clone <repo>
-cd phaser-game-project
-docker compose up --build
-```
-
-Poi visita:
-- **http://localhost:8080** → client reale
-- **http://localhost:5173** → sandbox client
-- **http://localhost:3000/api/scene/iniziale** → scena test
+Buon sviluppo! 🎮✨
