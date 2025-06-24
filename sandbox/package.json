@@ -1,10 +1,9 @@
 {
-  "name": "phaser-client",
+  "name": "phaser-sandbox",
   "version": "1.0.0",
   "type": "module",
   "scripts": {
-    "build": "vite build",
-    "preview": "vite preview"
+    "dev": "vite --config vite.config.ts"
   },
   "dependencies": {
     "phaser": "^3.60.0",

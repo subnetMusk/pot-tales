@@ -1,0 +1,15 @@
+<!-- server/public/consent.html -->
+<!DOCTYPE html>
+<html lang="it">
+<head><meta charset="UTF-8"><title>Consenso Cookie</title></head>
+<body>
+  <button id="accept">Accetta cookie</button>
+  <script>
+    document.getElementById('accept').onclick = async () => {
+      const res = await fetch('/api/session', { method: 'POST' });
+      const { sid } = await res.json();
+      document.body.innerHTML = `<p>Ho salvato il cookie ${sid} nel DB</p>`;
+    };
+  </script>
+</body>
+</html>

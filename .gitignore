@@ -23,6 +23,16 @@ temp/
 # OS / Misc
 .DS_Store
 Thumbs.db
+.MACOSX
 
 # Docker
 *.pid
+
+# non tracciare mai i certificati reali
+proxy/certs/*.pem
+# ma salva il placeholder per tenere la cartella nel repo
+!proxy/certs/.gitkeep
+
+
+docker/volumes/mongodb/*
+!docker/volumes/mongodb/.gitkeep

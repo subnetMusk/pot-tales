@@ -1,53 +1,72 @@
 version: "3.9"
 
 services:
-  server:
-    container_name: phaser-server
-    build:
-      context: .
-      dockerfile: Dockerfile.server
-    working_dir: /app/server
+  proxy:
+    image: nginx:alpine
+    container_name: proxy
     ports:
-      - "3000:3000"
+      - "80:80"
     env_file:
-      - .env
+      - docker/env/.env
     volumes:
-      - ./server:/app/server
-    command: npm run dev
-    depends_on:
-      - mongodb
-
-  sandbox-client:
-    build:
-      context: .
-      dockerfile: Dockerfile.sandbox
-    ports:
-      - "5173:5173"
-    volumes:
-      - ./sandbox-client:/app
-    working_dir: /app
-    command: ["npx", "vite", "--host"]
-
-  client:
-    container_name: game-client
-    build:
-      context: .
-      dockerfile: Dockerfile.client
-    working_dir: /app/client
-    ports:
-      - "8080:80"
+      - ${NGINX_CONFIG}:/etc/nginx/nginx.conf:ro
+      - ./proxy/certs:/etc/nginx/certs:ro
+      - ./docker/volumes/proxy-logs:/var/log/nginx:delegated
     depends_on:
       - server
-      
-  mongodb:
-    image: mongo
-    container_name: mongodb
-    restart: unless-stopped
-    env_file: .env
-    ports:
-      - "27017:27017"
-    volumes:
-      - mongo-data:/data/db
+      - sandbox
+      - client
 
-volumes:
-  mongo-data:
+  server:
+    build:
+      context: ./server
+      dockerfile: Dockerfile
+    container_name: server
+    env_file:
+      - docker/env/.env
+    environment:
+      - NODE_ENV=${NODE_ENV:-development}
+      - PORT=${PORT:-3000}
+      - MONGO_URI=${MONGO_URI}
+      - SESSION_SECRET=${SESSION_SECRET}
+    volumes:
+      - ./server/public:/app/public:ro
+      - ./server:/app:delegated
+    expose:
+      - "3000"
+    depends_on:
+      - db
+
+  sandbox:
+    build: ./sandbox
+    container_name: sandbox
+    env_file:
+      - docker/env/.env
+    expose:
+      - "5173"
+    volumes:
+      - ./sandbox/public:/app/public:delegated
+      - ./sandbox/package.json:/app/package.json:ro
+      - ./sandbox/package-lock.json:/app/package-lock.json:ro
+      - ./sandbox/vite.config.ts:/app/vite.config.ts:ro
+      - ./client/src:/app/src:delegated
+    command: npm run dev
+    depends_on:
+      - server
+
+  client:
+    build: ./client
+    container_name: client
+    expose:
+      - "80"
+    depends_on:
+      - server
+
+  db:
+    image: mongo:latest
+    container_name: db
+    expose:
+      - "27017"
+    volumes:
+      - ./docker/volumes/mongodb:/data/db:delegated
+      - ./docker/init-db:/docker-entrypoint-initdb.d:ro
