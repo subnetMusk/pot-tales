@@ -74,5 +74,3 @@ phaser-game-project/
 - **NGINX come proxy**: un’unica entry point per routing dev vs prod e gestione di certificati SSL in produzione.
 - **Modularità**: client, sandbox e server isolati migliorano la manutenibilità e permettono team dedicati per frontend e backend.
 - **Asset Pipeline**: Aseprite per creare sprite di qualità e Tiled per mappe tile-based, integrati direttamente in Phaser.
-
-Buon sviluppo! 🎮✨
