@@ -1,15 +1,68 @@
-<!-- server/public/consent.html -->
 <!DOCTYPE html>
 <html lang="it">
-<head><meta charset="UTF-8"><title>Consenso Cookie</title></head>
+<head>
+  <meta charset="UTF-8">
+  <title>Consenso Cookie</title>
+</head>
 <body>
-  <button id="accept">Accetta cookie</button>
+  <div id="app">
+    <button id="accept">Accetta cookie</button>
+  </div>
+
   <script>
-    document.getElementById('accept').onclick = async () => {
-      const res = await fetch('/api/session', { method: 'POST' });
-      const { sid } = await res.json();
-      document.body.innerHTML = `<p>Ho salvato il cookie ${sid} nel DB</p>`;
-    };
+    (async () => {
+      const appEl = document.getElementById('app');
+      const btn   = document.getElementById('accept');
+      if (!appEl || !btn) {
+        console.error('Container o bottone non trovati');
+        return;
+      }
+
+      btn.addEventListener('click', async () => {
+        // 1) verifica se c'è già sessione
+        const already = await fetch('/auth/validate', {
+          credentials: 'include'
+        }).then(r => r.ok).catch(() => false);
+
+        if (!already) {
+          // 2) crea sessione
+          const res = await fetch('/auth/session', {
+            method: 'POST',
+            credentials: 'include'
+          });
+          if (!res.ok) {
+            return alert('Errore creazione sessione');
+          }
+        }
+
+        // 3) carica il menu e inietta nel DOM
+        try {
+          const menuResp = await fetch('/content/menu', {
+            credentials: 'include'
+          });
+          if (!menuResp.ok) {
+            throw new Error(`Menu fetch fallito: ${menuResp.status}`);
+          }
+          const text = await menuResp.text();
+          const parsed = new DOMParser().parseFromString(text, 'text/html');
+          appEl.innerHTML = parsed.body.innerHTML;
+
+          // 4) esegui eventuali <script> inline o con src
+          for (const old of parsed.body.querySelectorAll('script')) {
+            const s = document.createElement('script');
+            for (const { name, value } of Array.from(old.attributes)) {
+              s.setAttribute(name, value);
+            }
+            if (!old.src) s.textContent = old.textContent;
+            document.body.appendChild(s);
+            document.body.removeChild(s);
+          }
+        } catch (err) {
+          console.error(err);
+          appEl.innerHTML = `<p style="color:red">Errore caricamento menu: ${err.message}</p>`;
+        }
+      });
+    })();
   </script>
 </body>
 </html>

@@ -4,8 +4,15 @@
   "main": "dist/main.js",
   "scripts": {
     "build": "tsc",
-    "start": "npm run build && node dist/main.js",
-    "dev": "nodemon --watch src --ext ts --exec \"npm run build && node dist/main.js\""
+    "start": "node -r module-alias/register dist/main.js",
+    "dev": "ts-node-dev --respawn --transpile-only -r tsconfig-paths/register src/main.ts"
+  },
+  "_moduleAliases": {
+    "@models": "dist/models",
+    "@routes": "dist/routes",
+    "@repositories": "dist/repositories",
+    "@middleware": "dist/middleware",
+    "@services": "dist/services"
   },
   "dependencies": {
     "config": "^3.3.9",
@@ -13,6 +20,7 @@
     "cors": "^2.8.5",
     "dotenv": "^16.3.1",
     "express": "^4.19.2",
+    "module-alias": "^2.2.3",
     "mongodb": "^4.1.0",
     "mongoose": "^7.0.3",
     "uuid": "^11.1.0"
@@ -21,6 +29,8 @@
     "@types/express": "^5.0.3",
     "@types/node": "^24.0.4",
     "nodemon": "^2.0.22",
+    "ts-node-dev": "^2.0.0",
+    "tsconfig-paths": "^4.2.0",
     "typescript": "^5.2.2"
   }
 }

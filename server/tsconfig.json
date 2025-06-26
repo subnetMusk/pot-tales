@@ -9,7 +9,15 @@
     "skipLibCheck": true,
     "resolveJsonModule": true,
     "sourceMap": true,
-    "lib": ["ES2020"]
+    "lib": ["ES2020"],
+    "baseUrl": ".",        
+    "paths": {
+      "@models/*":      ["src/models/*"],
+      "@services/*": ["src/services/*"],
+      "@routes/*":      ["src/routes/*"],
+      "@repositories/*": ["src/repositories/*"],
+      "@middleware/*": ["src/middleware/*"]
+    }
   },
   "include": ["src/**/*"],
   "exclude": ["node_modules", "dist"]

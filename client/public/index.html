@@ -1,38 +1,11 @@
 <!DOCTYPE html>
 <html lang="it">
 <head>
-  <meta charset="UTF-8" />
-  <title>Accetta Cookie</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1.0">
+  <title>My Phaser Game</title>
 </head>
 <body>
-  <div id="app">
-    <button id="btn-accept" style="display:none">Accetta cookie</button>
-    <div id="message"></div>
-  </div>
-
-  <script>
-    async function init() {
-      // 1) controllo stato
-      const r = await fetch('/consent/check');
-      const { hasConsented } = await r.json();
-
-      if (!hasConsented) {
-        const btn = document.getElementById('btn-accept');
-        btn.style.display = 'inline';
-        btn.onclick = async () => {
-          // 2) POST per ottenere e settare il cookie
-          const p = await fetch('/consent', { method: 'POST' });
-          const { sid } = await p.json();
-          document.getElementById('message')
-            .innerText = `ho salvato il cookie ${sid} nel db`;
-        };
-      } else {
-        document.getElementById('message')
-          .innerText = 'Cookie già accettato precedentemente';
-      }
-    }
-
-    window.addEventListener('DOMContentLoaded', init);
-  </script>
+  <div id="app"></div>
 </body>
 </html>

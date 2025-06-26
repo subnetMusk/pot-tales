@@ -3,55 +3,6 @@
 ## 🧭 Descrizione
 Videogioco HTML5 sviluppato con **Phaser 3**, asset creati in **Aseprite** e mappe progettate in **Tiled Map Editor**, containerizzato in un’architettura **client-sandbox-server** e orchestrato tramite **Docker Compose** con **NGINX** come reverse proxy.
 
-## 🗂️ Struttura del progetto
-```
-phaser-game-project/
-├── client/                   
-│   ├── public/               # HTML statico (index.html) e asset non sensibili
-│   ├── src/                  # Codice front-end (TypeScript)
-│   │   ├── assets/           # Sprite, audio, mappe
-│   │   ├── items/            # Definizioni di oggetti/collezionabili
-│   │   ├── network/          # Comunicazione col server via HTTP/WebSocket
-│   │   ├── scenes/           # Scene Phaser (menu, livelli, game over…)
-│   │   └── main.ts           # Entry point
-│   └── package.json
-│
-├── sandbox/                  
-│   ├── public/               # Risorse temporanee per test rapido
-│   │   ├── sb-resources/     # Risorse specifiche per la ui di sandbox
-│   │   └── scripts/          # Scripts per il funzionamento di sandbox
-│   ├── src/                  # Front-end semplificato per sviluppo veloce
-│   ├── vite.config.ts        # Configurazione Vite per live reload
-│   ├── Dockerfile            # Container isolato per sandbox
-│   ├── package.json
-│   └── .env                  # Variabili ambiente per sandbox
-│
-├── server/                   
-│   ├── config/               # Configurazioni generali (ESLint, ambiente)
-│   ├── public/               # Endpoint statici (se necessari)
-│   ├── src/                  # Codice backend (Node.js + Express)
-│   │   ├── db/               # Query al db
-│   │   ├── models/           # Schemi dati
-│   │   ├── routes/           # Endpoint server
-│   │   ├── services/         # 
-│   │   ├── utils/            # 
-│   │   └── main.ts           # Entry point del server
-│   ├── Dockerfile            # Container per backend
-│   ├── tsconfig.json
-│   └── package.json
-│
-├── proxy/                    
-│   ├── nginx.dev.conf        # Config NGINX per sviluppo
-│   ├── nginx.prod.conf       # Config NGINX per produzione
-│   └── certs/                # Certificati .pem
-│
-├── docker/                   
-├── docker-compose.yml        # Orchestrazione di client, sandbox, server e proxy
-├── .env                      # Variabili ambiente (da copiare e personalizzare da .env.example)
-├── .gitignore                
-└── README.md                 
-```
-
 ## 🚀 Avvio del progetto
 1. **Clona** la repository e spostati nella cartella:
    ```bash
