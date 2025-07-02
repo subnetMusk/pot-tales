@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Sandbox</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      display: flex;
+      font-family: sans-serif;
+    }
+    #game-container {
+      flex: 3;
+      background-color: #000;
+    }
+    #log-panel {
+      flex: 1;
+      background-color: #1e1e1e;
+      color: #eee;
+      overflow-y: auto;
+      padding: 0.5rem;
+    }
+  </style>
+  <script type="module" src="/main.ts"></script>
+</head>
+<body>
+  <div id="game-container"></div>
+  <div id="log-panel"><strong>Debug log:</strong><br /></div>
+</body>
+</html>

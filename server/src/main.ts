@@ -9,6 +9,8 @@ import authRouter    from '@routes/auth';
 import apiRouter     from '@routes/api';
 import contentRouter from '@routes/content'; // Assicurati di avere questo router
 
+import sandboxRouter from '@routes/sandbox';
+
 const app = express();
 const PORT = process.env.PORT || 3000;
 
@@ -21,6 +23,11 @@ app.use('/static', express.static(path.resolve(__dirname, '../public')));
 app.use('/auth', authRouter);
 app.use('/api', apiRouter);
 app.use('/content', contentRouter);
+
+if(process.env.NODE_ENV === 'development') {
+  // 2.1) Dev UI per debug (opzionale)
+  app.use('/sandbox', sandboxRouter);
+}
 
 // 3) Serve tutto il resto via GET /
 //    – se sessione valida → manda menu.html

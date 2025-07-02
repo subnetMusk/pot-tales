@@ -1,0 +1,57 @@
+version: "3.9"
+
+services:
+  proxy:
+    image: nginx:alpine
+    container_name: proxy
+    ports:
+      - "80:80"
+    env_file:
+      - docker/env/.env
+    volumes:
+      - ${NGINX_CONFIG}:/etc/nginx/nginx.conf:ro
+      - ./proxy/certs:/etc/nginx/certs:ro
+      - ./proxy/proxy_params:/etc/nginx/proxy_params:ro
+
+      - ./docker/volumes/proxy-logs:/var/log/nginx:delegated
+
+      - ./client/dist:/var/www/client:ro
+    depends_on:
+      - server
+      - client
+
+  server:
+    build:
+      context: ./server
+      dockerfile: Dockerfile
+    container_name: server
+    env_file:
+      - docker/env/.env
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - MONGO_URI=${MONGO_URI}
+    volumes:
+      - ./server/public:/app/public:ro
+      - ./server:/app:delegated
+    expose:
+      - "3000"
+    depends_on:
+      - db
+
+  client:
+    build: ./client
+    container_name: client
+    expose:
+      - "80"
+    depends_on:
+      - server
+
+  db:
+    image: mongo:latest
+    container_name: db
+    expose:
+      - "27017"
+    volumes:
+      - ./docker/volumes/mongodb:/data/db:delegated
+      - ./docker/init-db:/docker-entrypoint-initdb.d:ro

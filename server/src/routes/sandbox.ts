@@ -1,6 +1,7 @@
 import express, { Router, Request, Response } from 'express';  // ← aggiunto express
 import path from 'path';
 import { v4 as uuid } from 'uuid';
+import mongoose from 'mongoose';
 
 interface SceneData {
   objects: any[];
@@ -9,6 +10,24 @@ interface SceneData {
 const sceneStore = new Map<string, SceneData>();
 
 const router = Router();
+
+
+// DUMP DEL DB
+router.get('/dump', async (_req, res) => {
+  try {
+    const collections = await mongoose.connection.db.listCollections().toArray();
+    const result: Record<string, any[]> = {};
+
+    for (const { name } of collections) {
+      const docs = await mongoose.connection.db.collection(name).find({}).toArray();
+      result[name] = docs;
+    }
+
+    res.json(result);
+  } catch (err) {
+    res.status(500).json({ error: 'Dump failed', details: err });
+  }
+});
 
 // 1) Dashboard dev UI
 router.get('/dashboard', (_req, res) => {
