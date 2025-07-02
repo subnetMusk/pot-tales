@@ -4,7 +4,7 @@ set -euo pipefail
 echo "🗑️ Rimuovo node_modules e lockfile in tutte le cartelle del progetto…"
 rm -rf server/dist
 rm -rf server/node_modules server/package-lock.json
-rm -rf client/node_modules client/package-lock.json
+rm -rf client/dist client/node_modules client/package-lock.json
 rm -rf sandbox/node_modules sandbox/package-lock.json
 
 echo "📦 Reinstallo le dipendenze in locale…"

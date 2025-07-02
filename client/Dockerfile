@@ -11,6 +11,7 @@ RUN npm ci
 # Copia sorgenti e asset pubblici
 COPY public ./public
 COPY src ./src
+COPY index.html .
 
 # Genera la build ottimizzata in /app/dist
 RUN npm run build

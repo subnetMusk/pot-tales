@@ -15,8 +15,8 @@ services:
 
       - ./docker/volumes/proxy-logs:/var/log/nginx:delegated
 
-      - ./client/public:/var/www/client:ro
-      - ./sandbox/public:/var/www/sandbox:ro
+      - ./client/dist:/var/www/client:ro
+      - ./sandbox/dist:/var/www/sandbox:ro
     depends_on:
       - server
       - sandbox

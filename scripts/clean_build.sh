@@ -1,11 +1,15 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-echo "🗑️ Rimuovo node_modules e lockfile in tutte le cartelle del progetto…"
+echo "🗑️ Rimuovo node_modules e dist in tutte le cartelle del progetto…"
 rm -rf server/dist
-rm -rf server/node_modules server/package-lock.json
-rm -rf client/node_modules client/package-lock.json
-rm -rf sandbox/node_modules sandbox/package-lock.json
+rm -rf client/dist
+rm -rf sandbox/dist
+
+rm -rf server/node_modules
+rm -rf client/node_modules
+rm -rf sandbox/node_modules
+
 
 echo "🛑 Arresto e rimozione di container, network e volumi anonimi…"
 docker compose down --volumes --remove-orphans
