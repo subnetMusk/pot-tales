@@ -1,9 +1,25 @@
 version: "3.9"
 
+networks:
+  internal_net:
+    name: internal_net
+    internal: true
+
+  proxy_net:
+    name: proxy_net
+    driver: bridge
+
+  frontend_net:
+    name: frontend_net
+    driver: bridge
+
 services:
   proxy:
     image: nginx:alpine
     container_name: proxy
+    networks:
+      - proxy_net
+      - frontend_net
     ports:
       - "80:80"
     env_file:
@@ -25,6 +41,9 @@ services:
       context: ./server
       dockerfile: Dockerfile
     container_name: server
+    networks:
+      - internal_net
+      - proxy_net
     env_file:
       - docker/env/.env
     environment:
@@ -42,6 +61,8 @@ services:
   client:
     build: ./client
     container_name: client
+    networks:
+      - frontend_net
     expose:
       - "80"
     depends_on:
@@ -50,6 +71,8 @@ services:
   db:
     image: mongo:latest
     container_name: db
+    networks:
+      - internal_net
     expose:
       - "27017"
     volumes:

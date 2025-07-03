@@ -1,11 +1,27 @@
 version: "3.9"
 
+networks:
+  internal_net:
+    name: internal_net
+    internal: true
+
+  proxy_net:
+    name: proxy_net
+    driver: bridge
+
+  frontend_net:
+    name: frontend_net
+    driver: bridge
+
 services:
   proxy:
     image: nginx:alpine
     container_name: proxy
     ports:
       - "80:80"
+    networks:
+      - proxy_net
+      - frontend_net
     env_file:
       - docker/env/.env
     volumes:
@@ -27,6 +43,9 @@ services:
       context: ./server
       dockerfile: Dockerfile
     container_name: server
+    networks:
+      - internal_net
+      - proxy_net
     env_file:
       - docker/env/.env
     environment:
@@ -44,16 +63,27 @@ services:
   sandbox:
     build: ./sandbox
     container_name: sandbox
+    networks:
+      - frontend_net
     env_file:
       - docker/env/.env
     expose:
       - "5173"
     volumes:
+      # Statiche della sandbox (es. dashboard.html)
       - ./sandbox/public:/app/public:delegated
+
+      # Statiche del client (es. menu.html, consent.html)
+      - ./client/public:/app/client-public:delegated
+
+      # Config e sorgenti
+      - ./sandbox/src:/app/src:delegated
+      - ./client/src:/app/client-src:delegated
+
+      # Configurazioni
       - ./sandbox/package.json:/app/package.json:ro
       - ./sandbox/package-lock.json:/app/package-lock.json:ro
       - ./sandbox/vite.config.ts:/app/vite.config.ts:ro
-      - ./client/src:/app/src:delegated
     command: npm run dev
     depends_on:
       - server
@@ -61,6 +91,8 @@ services:
   client:
     build: ./client
     container_name: client
+    networks:
+      - frontend_net
     expose:
       - "80"
     depends_on:
@@ -71,6 +103,8 @@ services:
     container_name: db
     expose:
       - "27017"
+    networks:
+      - internal_net
     volumes:
       - ./docker/volumes/mongodb:/data/db:delegated
       - ./docker/init-db:/docker-entrypoint-initdb.d:ro
