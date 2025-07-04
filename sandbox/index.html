@@ -17,7 +17,7 @@
       align-items: center;
     }
 
-    #wrapper {
+    #sandbox-wrapper {
       display: flex;
       width: 90vw;
       height: 90vh;
@@ -33,7 +33,7 @@
       overflow-y: auto;
     }
 
-    #game-container {
+    #wrapper {
       flex: 3;
       background-color: #000;
       position: relative;
@@ -45,11 +45,11 @@
   <script type="module" src="/src/main.ts"></script>
 </head>
 <body>
-  <div id="wrapper">
+  <div id="sandbox-wrapper">
     <div id="dashboard-panel">
       <!-- qui viene iniettata la dashboard -->
     </div>
-    <div id="game-container"></div>
+    <div id="wrapper"></div>
   </div>
 </body>
 </html>

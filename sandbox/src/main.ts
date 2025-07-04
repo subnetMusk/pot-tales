@@ -1,8 +1,8 @@
-const wrapper = document.getElementById("game-container");
+const wrapper = document.getElementById("wrapper");
 const panel = document.getElementById("dashboard-panel");
 
 if (!wrapper || !panel) {
-  throw new Error("Elemento DOM mancante (#game-container o #dashboard-panel)");
+  throw new Error("Elemento DOM mancante (#wrapper o #dashboard-panel)");
 }
 
 // Inietta HTML e riesegue eventuali script JS inclusi
@@ -103,7 +103,7 @@ async function fetchScene(id: string): Promise<void> {
 
   const hasSession = await checkSession();
   if (!hasSession) {
-    await injectAndExecute("/sandbox/static/pages-client/consent.html");
+    await injectAndExecute("/static/pages/consent.html");
   } else {
-    await injectAndExecute("/sandbox/static/pages-client/menu.html");  }
+    await injectAndExecute("/static/pages/menu.html");  }
 })();

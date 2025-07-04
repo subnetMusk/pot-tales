@@ -33,6 +33,7 @@ services:
 
       - ./client/dist:/var/www/client:ro
       - ./sandbox/dist:/var/www/sandbox:ro
+      
     depends_on:
       - server
       - sandbox
@@ -70,17 +71,6 @@ services:
     expose:
       - "5173"
     volumes:
-      # Statiche della sandbox (es. dashboard.html)
-      - ./sandbox/public:/app/public:delegated
-
-      # Statiche del client (es. menu.html, consent.html)
-      - ./client/public:/app/client-public:delegated
-
-      # Config e sorgenti
-      - ./sandbox/src:/app/src:delegated
-      - ./client/src:/app/client-src:delegated
-
-      # Configurazioni
       - ./sandbox/package.json:/app/package.json:ro
       - ./sandbox/package-lock.json:/app/package-lock.json:ro
       - ./sandbox/vite.config.ts:/app/vite.config.ts:ro
