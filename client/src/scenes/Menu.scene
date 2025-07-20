@@ -1,0 +1,42 @@
+{
+    "id": "0176a608-6ca5-4541-ba0d-750b92a3d813",
+    "sceneType": "SCENE",
+    "settings": {
+        "preloadPackFiles": [],
+        "createMethodName": "editorCreate",
+        "sceneKey": "Menu",
+        "compilerOutputLanguage": "TYPE_SCRIPT"
+    },
+    "displayList": [
+        {
+            "type": "Rectangle",
+            "id": "212906bf-af42-4fd1-bca2-572ce7f12351",
+            "label": "play_button",
+            "displayName": "Play Button",
+            "scope": "CLASS",
+            "x": 400,
+            "y": 300,
+            "isFilled": true,
+            "width": 250,
+            "height": 50
+        },
+        {
+            "type": "Text",
+            "id": "740b6b0c-8a36-4dc3-9451-5be9043034c2",
+            "label": "Play",
+            "x": 363.5,
+            "y": 285,
+            "text": "Play",
+            "fontSize": "30px",
+            "color": "#000000",
+            "stroke": "#000000"
+        }
+    ],
+    "plainObjects": [],
+    "meta": {
+        "app": "Phaser Editor - Scene Editor",
+        "url": "https://phaser.io/editor",
+        "contentType": "phasereditor2d.core.scene.SceneContentType",
+        "version": 5
+    }
+}

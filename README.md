@@ -42,6 +42,12 @@ Questo script:
 - Ricostruisce le immagini
 - Avvia `docker-compose.prod.yml`
 
+Per aggiornare velocemente i file lato client senza dover ricostruire tutte le immagini, esuguire lo script: 
+
+```bash
+./scripts/update_client.sh
+```
+
 ---
 
 ## 🧹 Pulizia

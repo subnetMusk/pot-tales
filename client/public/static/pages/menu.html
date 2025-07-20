@@ -1,33 +1,9 @@
-<style>
-@font-face {
-    font-family: 'pixelify-sans';
-    src: url('temp/Pixelify_Sans/static/PixelifySans-Regular.ttf') format('truetype');
-}
-
-section {
-    font-size: xx-large;
-}
-</style>
-
 <section id="main-menu">
   <h1>🎮 Menu Principale</h1>
-  <img src="client-assets/temp/Button_sample.png" alt="">
   <ul>
-    <li><button id="start-game">Inizia Partita</button></li>
+    <li><button id="start-game" onclick = "startGame()">Inizia Partita</button></li>
     <li><button>Galleria</button></li>
     <li><button>Opzioni</button></li>
     <li><button>Scoreboard</button></li>
   </ul>
 </section>
-
-<script type="module">
-  document.getElementById("start-game")?.addEventListener("click", async () => {
-    try {
-      const wrapper = document.getElementById("wrapper");
-      const menu = await fetch("/static/pages/gay.html").then(r => r.text());
-      wrapper.innerHTML = menu;
-    } catch (err) {
-      alert("Errore durante il consenso: " + err);
-    }
-  });
-</script>

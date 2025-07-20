@@ -8,32 +8,28 @@ if (!wrapper) {
 async function injectAndExecute(path: string): Promise<void> {
   try {
     const res = await fetch(path, { credentials: "include" });
+
     if (!res.ok) {
       throw new Error(`Errore ${res.status} caricando ${path}`);
     }
 
-    const html = await res.text();
-    const temp = document.createElement("div");
-    temp.innerHTML = html;
+    const injectHtml = await res.text();
+    wrapper.innerHTML = injectHtml;
 
-    // Estrai e rimuovi gli script prima di iniettare l'HTML
-    const scripts = Array.from(temp.querySelectorAll("script"));
-    scripts.forEach(script => script.remove());
+    // Trova tutti i tag script e li esegue (iniettare HTML non esegue automaticamente il codice)
+    const scripts = wrapper.querySelectorAll('script');
+    scripts.forEach(oldScript => {
+      const newScript = document.createElement('script');
 
-    wrapper.innerHTML = temp.innerHTML;
-
-    // Ricrea e reinserisci gli script
-    for (const oldScript of scripts) {
-      const newScript = document.createElement("script");
-      if (oldScript.type) newScript.type = oldScript.type;
-      if (oldScript.src) {
-        newScript.src = oldScript.src;
-        newScript.async = oldScript.async;
-      } else {
-        newScript.textContent = oldScript.textContent;
+      for (const attr of oldScript.attributes) {
+        newScript.setAttribute(attr.name, attr.value);
       }
-      wrapper.appendChild(newScript);
-    }
+
+      if (oldScript.src) newScript.src = oldScript.src;
+      else newScript.textContent = oldScript.textContent;
+
+      document.body.appendChild(newScript);
+    });
 
   } catch (err) {
     console.error("Errore in injectAndExecute:", err);
@@ -55,9 +51,19 @@ async function checkSession(): Promise<boolean> {
 (async () => {
   const hasSession = await checkSession();
 
-  if (!hasSession) {
-    await injectAndExecute("/static/pages/consent.html");
-  } else {
+  if (hasSession) {
     await injectAndExecute("/static/pages/menu.html");
+  } else {
+    await injectAndExecute("/static/pages/consent.html");
   }
 })();
+
+async function startGame() {
+  await injectAndExecute('static/pages/game.html');
+  import('./loader.ts').then(() => {});
+}
+
+// Esporta le funzione per poterle usare in altri moduli 
+// serve per evitare errori dati dalla rinominazione di file e funzioni
+window.injectAndExecute = injectAndExecute;
+window.startGame = startGame;

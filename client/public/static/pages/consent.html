@@ -4,8 +4,7 @@
   <button id="accept-cookies">Accetto</button>
 </section>
 
-<script type="module">
-    
+<script>
   document.getElementById("accept-cookies")?.addEventListener("click", async () => {
     try {
       const res = await fetch("/auth/session", {
@@ -14,14 +13,10 @@
         credentials: "include",
         body: JSON.stringify({ consentGiven: true })
       });
+      
+      if (res.ok) injectAndExecute("/static/pages/menu.html");
+      else throw new Error("Errore nella creazione della sessione");
 
-      if (!res.ok) {
-        throw new Error("Errore nella creazione della sessione");
-      }
-
-      const wrapper = document.getElementById("wrapper");
-      const menu = await fetch("/static/pages/menu.html").then(r => r.text());
-      wrapper.innerHTML = menu;
     } catch (err) {
       alert("Errore durante il consenso: " + err);
     }
