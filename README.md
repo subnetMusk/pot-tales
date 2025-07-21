@@ -21,7 +21,7 @@ Per avviare tutti i servizi in ambiente di sviluppo (con sandbox attivo):
 Questo script:
 - Rimuove `node_modules` e file di lock
 - Reinstalla tutte le dipendenze
-- Builda `client` e `sandbox`
+- Builda `frontend` e `sandbox`
 - Ricostruisce tutte le immagini
 - Avvia `docker-compose.dev.yml`
 
@@ -38,14 +38,14 @@ Per eseguire il progetto in produzione (senza sandbox):
 Questo script:
 - Rimuove `node_modules` e file di lock
 - Reinstalla le dipendenze
-- Builda `client` (output in `dist/`)
+- Builda `frontend` (output in `dist/`)
 - Ricostruisce le immagini
 - Avvia `docker-compose.prod.yml`
 
-Per aggiornare velocemente i file lato client senza dover ricostruire tutte le immagini, esuguire lo script: 
+Per aggiornare velocemente i file lato frontend senza dover ricostruire tutte le immagini, esuguire lo script: 
 
 ```bash
-./scripts/update_client.sh
+./scripts/update_frontend.sh
 ```
 
 ---

@@ -11,10 +11,10 @@ export default ({ mode }) => {
     resolve: {
       alias: {
         '@': path.resolve(__dirname, 'src'),
-        '@scenes': path.resolve(__dirname, '../client/src/scenes'),
-        '@items': path.resolve(__dirname, '../client/src/items'),
-        '@network': path.resolve(__dirname, '../client/src/network'),
-        '@assets': path.resolve(__dirname, '../client/src/assets'),
+        '@scenes': path.resolve(__dirname, '../frontend/src/scenes'),
+        '@items': path.resolve(__dirname, '../frontend/src/items'),
+        '@network': path.resolve(__dirname, '../frontend/src/network'),
+        '@assets': path.resolve(__dirname, '../frontend/src/assets'),
       },
     },
 

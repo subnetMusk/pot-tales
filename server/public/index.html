@@ -30,7 +30,7 @@
         const parsed = new DOMParser().parseFromString(htmlText, 'text/html');
         appEl.innerHTML = parsed.body.innerHTML;
       } catch (err) {
-        console.error('Errore bootstrap client:', err);
+        console.error('Errore bootstrap frontend:', err);
         appEl.innerHTML = `<div style="color:red; padding:20px;"><h2>Errore</h2><pre>${err.message}</pre></div>`;
       }
     })();

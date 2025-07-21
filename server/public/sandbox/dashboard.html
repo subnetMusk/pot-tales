@@ -30,7 +30,7 @@
       });
       if (!res.ok) return alert('Errore creazione scena');
       const { sceneId } = await res.json();
-      // Redirect al client “wrapper” con sceneId in query
+      // Redirect al frontend “wrapper” con sceneId in query
       window.location.href = `/?sceneId=${sceneId}`;
     });
   </script>

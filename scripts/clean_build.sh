@@ -3,11 +3,11 @@ set -euo pipefail
 
 echo "🗑️ Rimuovo node_modules e dist in tutte le cartelle del progetto…"
 rm -rf server/dist
-rm -rf client/dist
+rm -rf frontend/dist
 rm -rf sandbox/dist
 
 rm -rf server/node_modules
-rm -rf client/node_modules
+rm -rf frontend/node_modules
 rm -rf sandbox/node_modules
 
 

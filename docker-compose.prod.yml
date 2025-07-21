@@ -31,10 +31,10 @@ services:
 
       - ./docker/volumes/proxy-logs:/var/log/nginx:delegated
 
-      - ./client/dist:/var/www/client:ro
+      - ./frontend/dist:/var/www/frontend:ro
     depends_on:
       - server
-      - client
+      - frontend
 
   server:
     build:
@@ -58,9 +58,9 @@ services:
     depends_on:
       - db
 
-  client:
-    build: ./client
-    container_name: client
+  frontend:
+    build: ./frontend
+    container_name: frontend
     networks:
       - frontend_net
     expose:

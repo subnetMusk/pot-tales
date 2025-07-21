@@ -4,16 +4,16 @@ set -euo pipefail
 echo "🗑️ Rimuovo node_modules e lockfile in tutte le cartelle del progetto…"
 rm -rf server/dist
 rm -rf server/node_modules server/package-lock.json
-rm -rf client/dist client/node_modules client/package-lock.json
+rm -rf frontend/dist frontend/node_modules frontend/package-lock.json
 rm -rf sandbox/node_modules sandbox/package-lock.json
 
 echo "📦 Reinstallo le dipendenze in locale…"
 (cd server && npm install)
-(cd client && npm install)
+(cd frontend && npm install)
 (cd sandbox && npm install)
 
-echo "⚙️ Build del client per la produzione…"
-(cd client && npm run build)
+echo "⚙️ Build del frontend per la produzione…"
+(cd frontend && npm run build)
 
 echo "🛑 Arresto e rimozione di container, network e volumi anonimi…"
 docker compose -f docker-compose.prod.yml down --volumes --remove-orphans

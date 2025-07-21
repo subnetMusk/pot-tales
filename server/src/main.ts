@@ -57,7 +57,7 @@ app.use(
 );
 
 // 5) Fallback per SPA “deep link” (opzionale)
-//    Se avrai future rotte client-side che devono puntare a /, puoi lasciare:
+//    Se avrai future rotte frontend-side che devono puntare a /, puoi lasciare:
 // app.get('*', (_req, res) => {
 //   res.sendFile(path.resolve(__dirname, '../public/index.html'));
 // });

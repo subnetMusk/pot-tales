@@ -60,7 +60,7 @@ async function checkSession(): Promise<boolean> {
 
 async function startGame() {
   await injectAndExecute('static/pages/game.html');
-  import('./loader.ts').then(() => {});
+  import('./loader.js').then(() => {});
 }
 
 // Esporta le funzione per poterle usare in altri moduli 
