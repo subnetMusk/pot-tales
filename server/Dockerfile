@@ -1,22 +1,36 @@
-# Usa un’immagine Node.js leggera basata su Alpine
-FROM node:18-alpine
+###############################################################################
+# Costruisce un binario statico per produzione e include Air per il dev hot-reload
+###############################################################################
 
-# Imposta la cartella di lavoro all’interno del container
-WORKDIR /app
+# --- build stage: cross-compile e installazione di Air per hot-reload ----
+FROM --platform=$BUILDPLATFORM golang:1.22-alpine AS builder
+ARG TARGETOS
+ARG TARGETARCH
 
-# Copia i manifest delle dipendenze e il file di configurazione TypeScript
-# così da sfruttare la cache di Docker quando cambiano solo i sorgenti
-COPY package*.json tsconfig.json ./
+# Imposta la working directory per il build
+WORKDIR /src
 
-# Installa le dipendenze in modo deterministico usando il lockfile
-RUN npm ci
+# Copia i file mod e installa le dipendenze in cache e Air nel GOPATH
+COPY go.mod go.sum .
+RUN --mount=type=cache,target=/go/pkg/mod \
+    go mod download && \
+    go install github.com/cosmtrek/air@v1.52.0
 
-# Copia il codice dell’applicazione
-COPY src ./src
-COPY config ./config
+# Aggiunge la directory Go bin al PATH in modo che 'air' sia disponibile
+ENV PATH="/go/bin:${PATH}"
 
-# Espone la porta su cui il server ascolta
+# Copia tutto il codice e compila il binario statico
+COPY . .
+RUN CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH \
+    go build -o /server .
+
+# --- runtime stage: immagine leggera per produzione ----------------------
+FROM --platform=$TARGETPLATFORM alpine:3.20
+
+# Copia il binario compilato dal builder
+COPY --from=builder /server /server
+
+# Definisce la porta e il comando di avvio
+ENV PORT=3000
 EXPOSE 3000
-
-# Comando di default: avvia il server in modalità sviluppo con live-reload
-CMD ["npm", "run", "dev"]
+ENTRYPOINT ["/server"]
