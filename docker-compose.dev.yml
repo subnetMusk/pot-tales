@@ -1,48 +1,71 @@
+###############################################################################
+# docker-compose.dev.yml
+# Environment : development
+# Purpose     : Orchestrates proxy, back-end, databases, front-end layers and
+#               development dashboards in one Docker host.
+###############################################################################
+
 version: "3.9"
 
+############################
+# NETWORK DEFINITIONS
+############################
 networks:
-  internal_net:
+  internal_net:               # Private network for DB ↔ back-end ↔ dashboards
     name: internal_net
     internal: true
 
-  proxy_net:
+  proxy_net:                  # Proxy ↔ back-end
     name: proxy_net
     driver: bridge
 
-  frontend_net:
+  frontend_net:               # Proxy ↔ front-end (static & sandbox)
     name: frontend_net
     driver: bridge
 
+############################
+# SERVICE DEFINITIONS
+############################
 services:
+  #---------------------------------------------------------------------------
+  # Reverse-proxy (Nginx Proxy Manager) – SSL termination & virtual hosts
+  #---------------------------------------------------------------------------
   proxy:
-    image: nginx:alpine
-    container_name: proxy
-    ports:
-      - "80:80"
-    networks:
-      - proxy_net
-      - frontend_net
-    env_file:
-      - docker/env/.env
-    volumes:
-      - ${NGINX_CONFIG}:/etc/nginx/nginx.conf:ro
-      - ./proxy/certs:/etc/nginx/certs:ro
-      - ./proxy/proxy_params:/etc/nginx/proxy_params:ro
+      image: jc21/nginx-proxy-manager:2
+      container_name: nginx-proxy-manager
+      restart: unless-stopped
+      ports:
+        - "80:80"
+        - "443:443"
+        - "18081:81"
+      networks:
+        - proxy_net
+        - frontend_net
+      environment:
+        - DB_SQLITE_FILE=/data/database.sqlite
 
-      - ./docker/volumes/proxy-logs:/var/log/nginx:delegated
+      # ⬇︎  PERSISTENTI su disco sorgente ───────────────────────
+      volumes:
+        # Configurazione UI / login / host
+        - ./docker/volumes/npm_data:/data
+        # Certificati Let’s Encrypt
+        - ./docker/volumes/npm_letsencrypt:/etc/letsencrypt
+        # Asset statici prodotti dalle build
+        - ./frontend/dist:/var/www/frontend:ro
+        - ./sandbox/dist:/var/www/sandbox:ro
+      depends_on:
+        - server
+        - sandbox
+        - frontend
 
-      - ./frontend/dist:/var/www/frontend:ro
-      - ./sandbox/dist:/var/www/sandbox:ro
-      
-    depends_on:
-      - server
-      - sandbox
-      - frontend
-
+  #---------------------------------------------------------------------------
+  # Back-end API (Go) – business logic
+  #---------------------------------------------------------------------------
   server:
     build:
       context: ./server
       dockerfile: Dockerfile
+      target: builder  # usa il builder stage con Air già installato
     container_name: server
     networks:
       - internal_net
@@ -50,44 +73,37 @@ services:
     env_file:
       - docker/env/.env
     environment:
-      - NODE_ENV=development
-      - PORT=3000
-      - MONGO_URI=${MONGO_URI}
+      - REDIS_URL=${REDIS_URL}
+      - SESSION_TTL_MIN=${SESSION_TTL_MIN}
     volumes:
-      - ./server/public:/app/public:ro
-      - ./server:/app:delegated
+      - ./server:/src:delegated      # codice sorgente montato in /src (WORKDIR del builder)
+      - ./comms:/src/comms:ro        # JSON contracts in sola lettura
     expose:
       - "3000"
+    command: air                    # avvia Air per hot-reload su file .go
     depends_on:
       - db
+      - redis
 
-  sandbox:
-    build: ./sandbox
-    container_name: sandbox
-    networks:
-      - frontend_net
-    env_file:
-      - docker/env/.env
-    expose:
-      - "5173"
+
+  #---------------------------------------------------------------------------
+  # Redis 6 (ACL enabled) – in-memory store
+  #---------------------------------------------------------------------------
+  redis:
+    image: redis:alpine
+    container_name: redis
+    command: ["redis-server", "/usr/local/etc/redis/redis.conf"]  # loads ACL
     volumes:
-      - ./sandbox/package.json:/app/package.json:ro
-      - ./sandbox/package-lock.json:/app/package-lock.json:ro
-      - ./sandbox/vite.config.ts:/app/vite.config.ts:ro
-    command: npm run dev
-    depends_on:
-      - server
-
-  frontend:
-    build: ./frontend
-    container_name: frontend
-    networks:
-      - frontend_net
+      - ./docker/redis/redis.conf:/usr/local/etc/redis/redis.conf:ro
+      - ./docker/redis/users.acl:/usr/local/etc/redis/users.acl:ro
     expose:
-      - "80"
-    depends_on:
-      - server
+      - "6379"
+    networks:
+      - internal_net
 
+  #---------------------------------------------------------------------------
+  # MongoDB database – persistent data
+  #---------------------------------------------------------------------------
   db:
     image: mongo:latest
     container_name: db
@@ -96,5 +112,83 @@ services:
     networks:
       - internal_net
     volumes:
-      - ./docker/volumes/mongodb:/data/db:delegated
-      - ./docker/init-db:/docker-entrypoint-initdb.d:ro
+      - ./docker/volumes/mongodb:/data/db:delegated              # database files
+      - ./docker/init-db:/docker-entrypoint-initdb.d:ro          # init scripts
+
+  #---------------------------------------------------------------------------
+  # MongoDB Web UI (mongo-express)
+  #---------------------------------------------------------------------------
+  mongo-ui:
+    image: mongo-express:latest
+    container_name: mongo-express
+    restart: unless-stopped
+    environment:
+      - ME_CONFIG_MONGODB_SERVER=db
+    networks:
+      - internal_net
+    depends_on:
+      - db
+    ports:
+      - "18082:8081"                     # http://localhost:8081
+
+  #---------------------------------------------------------------------------
+  # Redis Web UI (redis-commander)
+  #---------------------------------------------------------------------------
+  redis-ui:
+    image: rediscommander/redis-commander:latest
+    platform: linux/amd64
+    restart: unless-stopped
+    environment:
+      - REDIS_HOSTS=local:redis:6379
+    networks:
+      - internal_net
+    depends_on:
+      - redis
+    ports:
+      - "18083:8081"                     # http://localhost:8082
+
+  #---------------------------------------------------------------------------
+  # Sandbox front-end (Vite dev server)
+  #---------------------------------------------------------------------------
+  sandbox:
+    build: ./sandbox
+    container_name: sandbox
+    networks:
+      - frontend_net
+    env_file:
+      - docker/env/.env
+    expose:
+      - "5173"                          # Vite development port
+    volumes:
+      - ./sandbox/package.json:/app/package.json:ro
+      - ./sandbox/package-lock.json:/app/package-lock.json:ro
+      - ./sandbox/vite.config.ts:/app/vite.config.ts:ro
+    command: npm run dev
+    depends_on:
+      - server
+
+  #---------------------------------------------------------------------------
+  # Production-build front-end (static files served by Nginx in proxy)
+  #---------------------------------------------------------------------------
+  frontend:
+    build: ./frontend
+    container_name: frontend
+    networks:
+      - frontend_net
+    env_file:
+      - docker/env/.env
+    environment:
+      - REDIS_FE_URL=${REDIS_FE_URL}     # redis://frontend:<pass>@redis:6379/0
+    expose:
+      - "80"                            # Routed by proxy
+    depends_on:
+      - server
+    volumes:
+      - ./comms:/app/comms:ro           # Shared JSON contracts
+
+############################
+# VOLUME DEFINITIONS
+############################
+volumes:
+  npm_data: {}                          # Nginx Proxy Manager configuration
+  npm_letsencrypt: {}                   # Let’s Encrypt certificates

@@ -1,32 +1,65 @@
 #!/usr/bin/env bash
+###############################################################################
+# scripts/dev-rebuild.sh
+# Full “clean-slate” rebuild for development.
+# Every run simulates the very first execution on a brand-new machine:
+#   1. Wipe JS artefacts (dist, node_modules, lockfiles)
+#   2. Re-install JS dependencies
+#   3. Fetch / update Go modules inside a disposable container
+#   4. Build static bundles
+#   5. Purge *all* Docker data (containers, images, volumes, cache)
+#   6. Rebuild every image from scratch and start the stack
+###############################################################################
 set -euo pipefail
 
-echo "🗑️ Rimuovo node_modules e lockfile in tutte le cartelle del progetto…"
-rm -rf server/dist
-rm -rf server/node_modules server/package-lock.json
-rm -rf frontend/dist frontend/node_modules frontend/package-lock.json
-rm -rf sandbox/dist sandbox/node_modules sandbox/package-lock.json
+_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
-echo "📦 Reinstallo le dipendenze in locale…"
-(cd server && npm install)
-(cd frontend && npm install)
-(cd sandbox && npm install)
+# 1 ────────────────────────────────────────────────────────────────────────────
+echo "🗑️  Removing JS artefacts…"
+rm -rf "$_ROOT"/frontend/dist  "$_ROOT"/sandbox/dist
+rm -rf "$_ROOT"/frontend/node_modules  "$_ROOT"/frontend/package-lock.json
+rm -rf "$_ROOT"/sandbox/node_modules   "$_ROOT"/sandbox/package-lock.json
+rm -rf "$_ROOT"/server/dist || true
 
-echo "⚙️ Build del frontend e della sandbox (DEV)…"
-(cd frontend && npm run build)
-(cd sandbox && npm run build)
+# 2 ────────────────────────────────────────────────────────────────────────────
+echo "📦 Installing JS dependencies…"
+( cd "$_ROOT/frontend" && npm install )
+( cd "$_ROOT/sandbox"  && npm install )
 
-echo "🛑 Arresto e rimozione di container, network e volumi anonimi…"
-docker compose -f docker-compose.dev.yml down --volumes --remove-orphans
+# 3 ────────────────────────────────────────────────────────────────────────────
+# Inside a disposable Golang container:
+#   • go get -u <modules>@latest  ensures valid, existing versions
+#   • go mod tidy                 cleans & resolves go.mod/go.sum
+#   • go mod download             populates the module cache layer
+echo "⬇️  Downloading / updating Go modules (Docker)…"
+docker run --rm \
+  -v "$_ROOT/server":/go/src/app \
+  -w /go/src/app \
+  golang:1.22 sh -c '
+    set -e
+    echo "🔄  go get latest stable deps…"
+    go get -u github.com/redis/go-redis/v9@latest \
+             github.com/santhosh-tekuri/jsonschema/v5@latest
+    echo "🧹  go mod tidy…"
+    go mod tidy
+    echo "⬇️  go mod download (cache)…"
+    go mod download
+  '
 
-echo "🗑️  Pulizia delle risorse inutilizzate (immagini, volumi, reti)…"
+# 4 ────────────────────────────────────────────────────────────────────────────
+echo "⚙️  Building front-end bundles…"
+( cd "$_ROOT/frontend" && npm run build )
+( cd "$_ROOT/sandbox"  && npm run build )
+
+# 5 ────────────────────────────────────────────────────────────────────────────
+echo "🛑  Halting and PURGING Docker resources…"
+docker compose -f "$_ROOT/docker-compose.dev.yml" down --rmi all --volumes --remove-orphans
 docker system prune -af --volumes
-
-echo "🧹 Pulizia cache builder Docker…"
 docker builder prune --all --force
 
-echo "🔨 Ricostruzione delle immagini senza cache (DEV)…"
-docker compose -f docker-compose.dev.yml build --no-cache
+# 6 ────────────────────────────────────────────────────────────────────────────
+echo "🔨  Rebuilding images from scratch…"
+docker compose -f "$_ROOT/docker-compose.dev.yml" build --no-cache
 
-echo "🚀 Avvio dei servizi in background (DEV)…"
-docker compose -f docker-compose.dev.yml up
+echo "🚀  Starting services (DEV)…"
+docker compose -f "$_ROOT/docker-compose.dev.yml" up -d
