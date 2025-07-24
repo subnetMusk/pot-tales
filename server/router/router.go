@@ -1,6 +1,9 @@
 // ===================================================
 // router/router.go
 // ===================================================
+// Monta i router per le funzionalità del server.
+// ===================================================
+
 package router
 
 import (
@@ -11,7 +14,7 @@ import (
 	"github.com/gorilla/mux"
 	"go.mongodb.org/mongo-driver/mongo"
 
-	"progetti_innovativi/server/middleware"
+	"github.com/subnetMusk/progetti_innovativi/server/middleware"
 )
 
 // New returns a mux.Router with global validation middleware

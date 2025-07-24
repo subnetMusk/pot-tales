@@ -15,7 +15,7 @@ Questo progetto utilizza Docker Compose per orchestrare i servizi in ambiente di
 Per avviare tutti i servizi in ambiente di sviluppo (con sandbox attivo):
 
 ```bash
-./scripts/dev-rebuild.sh
+./scripts/dev-reinstall.sh
 ```
 
 Questo script:

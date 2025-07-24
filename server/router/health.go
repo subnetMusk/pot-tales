@@ -2,7 +2,8 @@
 // router/health.go   (path segment: "health")
 // ===================================================
 // GET /health  → {"server":true,"redis":bool,"mongodb":bool}
-// ---------------------------------------------------
+// ===================================================
+
 package router
 
 import (

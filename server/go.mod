@@ -3,7 +3,7 @@
 // ===================================================
 // Module declaration and runtime dependencies.
 // ---------------------------------------------------
-module progetti_innovativi/server
+module github.com/subnetMusk/progetti_innovativi/server
 
 go 1.22
 

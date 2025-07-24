@@ -1,6 +1,10 @@
 // ===================================================
 // server/main.go
 // ===================================================
+// Main entry point for the server application.
+// Initializes MongoDB and Redis clients, sets up the router,
+// and starts the HTTP server.
+// ======================================================
 package main
 
 import (
@@ -14,8 +18,8 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 
-	"progetti_innovativi/server/middleware"
-	"progetti_innovativi/server/router"
+	"github.com/subnetMusk/progetti_innovativi/server/middleware"
+	"github.com/subnetMusk/progetti_innovativi/server/router"
 )
 
 func getenv(k, d string) string {
@@ -29,7 +33,7 @@ func main() {
 	port      := getenv("PORT", "3000")
 	mongoURI  := getenv("MONGO_URI", "mongodb://db:27017")
 	redisURL  := getenv("REDIS_URL", "redis://redis:6379")
-	schemaDir := getenv("SCHEMA_DIR", "/app/comms")
+	schemaDirServer := getenv("SCHEMA_DIR_SERVER", "/src/comms/server")
 	ttlMin    := getenv("SESSION_TTL_MIN", "30")
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
@@ -43,7 +47,7 @@ func main() {
 	redisClient := redis.NewClient(redisOpt)
 	if err := redisClient.Ping(ctx).Err(); err != nil { log.Fatalf("redis ping: %v", err) }
 
-	val := middleware.MustNew(schemaDir)
+	val := middleware.MustNew(schemaDirServer)
 
 	r := router.New(mongoClient, redisClient, val, ttlMin)
 

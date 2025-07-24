@@ -1,102 +1,126 @@
-// ===================================================
+// =========================================================
 // router/auth.go   (path segment: "auth")
-// ===================================================
-// • POST /auth/session   → create new session
-// • GET  /auth/validate  → check session state
-// ---------------------------------------------------
+// =========================================================
+// POST /auth/session  → {"token":string,"expires":string}
+// GET /auth/validate  → {"state":"active"|"absent"}
+// =========================================================
+
 package router
 
 import (
-	"encoding/json"
-	"net/http"
-	"time"
+    "net/http"
+    "time"
 
-	"github.com/google/uuid"
-	"github.com/redis/go-redis/v9"
-	"github.com/gorilla/mux"
-	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/mongo"
+    "github.com/google/uuid"
+    "github.com/gorilla/mux"
+    "github.com/redis/go-redis/v9"
+    "go.mongodb.org/mongo-driver/mongo"
+
+    "github.com/subnetMusk/progetti_innovativi/server/helpers"
+	"github.com/subnetMusk/progetti_innovativi/server/models"
 )
 
-type sessionDoc struct {
-	ID        string    `bson:"_id"`
-	CreatedAt time.Time `bson:"created_at"`
-	ExpiresAt time.Time `bson:"expires_at"`
-	Active    bool      `bson:"active"`
-}
-
+// authSvc incapsula la logica di accesso a MongoDB e Redis per le sessioni.
 type authSvc struct {
-	col *mongo.Collection
-	rdb *redis.Client
-	ttl time.Duration
+    col *mongo.Collection
+    rdb *redis.Client
+    ttl time.Duration
 }
 
+// registerAuth registra gli endpoint per l’autenticazione.
 func registerAuth(r *mux.Router, m *mongo.Client, rd *redis.Client, ttl time.Duration) {
-	svc := &authSvc{
-		col: m.Database("app").Collection("sessions"),
-		rdb: rd,
-		ttl: ttl,
-	}
-	r.HandleFunc("/session", svc.create).Methods(http.MethodPost)
-	r.HandleFunc("/validate", svc.validate).Methods(http.MethodGet)
+    svc := &authSvc{
+        col: m.Database("app").Collection("sessions"),
+        rdb: rd,
+        ttl: ttl,
+    }
+    r.HandleFunc("/session", svc.create).Methods(http.MethodPost)
+    r.HandleFunc("/validate", svc.validate).Methods(http.MethodGet)
 }
 
-// POST /auth/session
+// create gestisce POST /auth/session: crea una nuova sessione.
 func (a *authSvc) create(w http.ResponseWriter, r *http.Request) {
-	if _, err := r.Cookie("session_token"); err == nil {
-		http.Error(w, "session already exists", http.StatusBadRequest)
-		return
-	}
-	token := uuid.NewString()
-	now := time.Now()
+    // Rifiuta se esiste già un cookie di sessione
+    if _, err := r.Cookie("session_token"); err == nil {
+		// PER IL MOMENTO RIMUOVIAMO IL COOKIE ESISTENTE E NE CREIAMO UNO NUOVO
 
-	doc := sessionDoc{
-		ID:        token,
-		CreatedAt: now,
-		ExpiresAt: now.Add(a.ttl),
-		Active:    true,
-	}
-	if _, err := a.col.InsertOne(r.Context(), doc); err != nil {
-		http.Error(w, "mongo error", http.StatusInternalServerError)
-		return
-	}
-	if err := a.rdb.Set(r.Context(), "sess:"+token, "1", a.ttl).Err(); err != nil {
-		http.Error(w, "redis error", http.StatusInternalServerError)
-		return
+		// TODO: quando avremmo differenziato l'accettazione dei cookies dalla presenza effettiva di una sessione,
+		// potremmo restituire 409 Conflict invece di eliminare il cookie.
+		helpers.DeleteCookies(w, r, "session_token")
 	}
 
-	http.SetCookie(w, &http.Cookie{
-		Name:     "session_token",
-		Value:    token,
-		Path:     "/",
-		Expires:  doc.ExpiresAt,
-		HttpOnly: true,
-		SameSite: http.SameSiteLaxMode,
-	})
-	w.WriteHeader(http.StatusCreated)
-	json.NewEncoder(w).Encode(map[string]any{
-		"token":   token,
-		"expires": doc.ExpiresAt.Format(time.RFC3339),
-	})
+    token := uuid.NewString()
+    now := time.Now()
+    doc := models.SessionDoc {
+        ID:        token,
+        CreatedAt: now,
+        ExpiresAt: now.Add(a.ttl),
+        Active:    true,
+    }
+
+    // Inserisce il documento in MongoDB
+    if _, err := a.col.InsertOne(r.Context(), doc); err != nil {
+        helpers.WriteJSON(w, http.StatusInternalServerError, map[string]string{"error": "mongo error"})
+        return
+    }
+
+    // Popola la cache in Redis
+    if err := a.rdb.Set(r.Context(), "sess:"+token, "1", a.ttl).Err(); err != nil {
+        helpers.WriteJSON(w, http.StatusInternalServerError, map[string]string{"error": "redis error"})
+        return
+    }
+
+    // Imposta il cookie HTTP-only sul client
+    http.SetCookie(w, &http.Cookie{
+        Name:     "session_token",
+        Value:    token,
+        Path:     "/",
+        Expires:  doc.ExpiresAt,
+        HttpOnly: true,
+        SameSite: http.SameSiteLaxMode,
+    })
+
+    // Restituisce 201 Created con token e scadenza
+    helpers.WriteJSON(w, http.StatusCreated, map[string]any{
+        "token":   token,
+        "expires": doc.ExpiresAt.Format(time.RFC3339),
+    })
 }
 
-// GET /auth/validate
+// validate gestisce GET /auth/validate: verifica lo stato della sessione,
+// utilizza helpers.DeleteCookies per rimuovere cookie invalidi e aggiorna Redis.
 func (a *authSvc) validate(w http.ResponseWriter, r *http.Request) {
-	cookie, err := r.Cookie("session_token")
-	if err != nil {
-		json.NewEncoder(w).Encode(map[string]string{"state": "absent"})
-		return
-	}
-	ctx := r.Context()
-	_, redisErr := a.rdb.Get(ctx, "sess:"+cookie.Value).Result()
-	mongoErr := a.col.FindOne(ctx, bson.M{"_id": cookie.Value}).Err()
+    token, err := helpers.ExtractToken(r)
+    if err != nil {
+        helpers.DeleteCookies(w, r, "session_token")
+        helpers.WriteJSON(w, http.StatusUnauthorized, map[string]string{"state": "absent"})
+        return
+    }
 
-	switch {
-	case redisErr == nil && mongoErr == nil:
-		json.NewEncoder(w).Encode(map[string]string{"state": "active"})
-	case redisErr != nil && mongoErr == nil:
-		json.NewEncoder(w).Encode(map[string]string{"state": "inactive"})
-	default:
-		json.NewEncoder(w).Encode(map[string]string{"state": "absent"})
-	}
+    ctx := r.Context()
+
+    // Redis
+    _, redisErr := a.rdb.Get(ctx, "sess:"+token).Result()
+    // Mongo
+    doc, mongoErr := helpers.LoadSession(ctx, a.col, token)
+
+    switch {
+    case redisErr == nil && mongoErr == nil:
+        _ = helpers.RefreshRedis(ctx, a.rdb, token, a.ttl)
+        helpers.WriteJSON(w, http.StatusOK, map[string]string{"state": "active"})
+
+    case redisErr != nil && mongoErr == nil:
+        remaining := time.Until(doc.ExpiresAt)
+        if remaining <= 0 {
+            helpers.DeleteCookies(w, r, "session_token")
+            helpers.WriteJSON(w, http.StatusUnauthorized, map[string]string{"state": "absent"})
+            return
+        }
+        _ = helpers.RefreshRedis(ctx, a.rdb, token, remaining)
+        helpers.WriteJSON(w, http.StatusOK, map[string]string{"state": "active"})
+
+    default:
+        helpers.DeleteCookies(w, r, "session_token")
+        helpers.WriteJSON(w, http.StatusUnauthorized, map[string]string{"state": "absent"})
+    }
 }
