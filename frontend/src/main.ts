@@ -52,7 +52,7 @@ async function checkSession(): Promise<boolean> {
   const hasSession = await checkSession();
 
   if (hasSession) {
-    await injectAndExecute("/static/pages/menu.html");
+    startGame();
   } else {
     await injectAndExecute("/static/pages/consent.html");
   }

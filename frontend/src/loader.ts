@@ -9,7 +9,6 @@ class Boot extends Phaser.Scene {
 		const { default: Preload } = await import("./scenes/Preload");
 		this.scene.add("Preload", Preload, true);
 		this.scene.stop("Boot");
-		console.log("Boot scene created, loading Preload scene.");
 	}
 }
 

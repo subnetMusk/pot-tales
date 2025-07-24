@@ -14,7 +14,7 @@
         body: JSON.stringify({ consentGiven: true })
       });
       
-      if (res.ok) injectAndExecute("/static/pages/menu.html");
+      if (res.ok) startGame();
       else throw new Error("Errore nella creazione della sessione");
 
     } catch (err) {
