@@ -12,7 +12,7 @@ rm -rf sandbox/node_modules
 
 
 echo "🛑 Arresto e rimozione di container, network e volumi anonimi…"
-docker compose down --volumes --remove-orphans
+docker compose -f docker-compose.dev.yml down --volumes --remove-orphans
 
 echo "🗑️  Pulizia delle risorse inutilizzate (immagini, volumi, reti)…"
 docker system prune -af --volumes
