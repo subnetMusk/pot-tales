@@ -35,7 +35,7 @@ echo "📦 Installing JS dependencies…"
 # 3 ────────────────────────────────────────────────────────────────────────────
 # Dentro un container Golang usa GOPRIVATE per rispettare il modulo privato
 echo "⬇️  Downloading / updating Go modules (Docker)…"
-docker run --rm \
+MSYS_NO_PATHCONV=1 docker run --rm \
   -e GOPRIVATE=$GOPRIVATE \
   -v "$_ROOT/server":/go/src/app \
   -w /go/src/app \
