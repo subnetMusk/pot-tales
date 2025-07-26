@@ -62,7 +62,8 @@ class Menu extends Phaser.Scene {
 		play_button.on('pointerup', () => {
 			play_button.setFillStyle();
 			play.setStyle({ "color": "#e7ff39" });
-			window.location.href = "/static/pages/gay.html";
+			// Carica la scena Scene1
+			this.scene.start("Scene1");
 		});
 		play_button.on('pointerout', () => {
 			play_button.setFillStyle();
