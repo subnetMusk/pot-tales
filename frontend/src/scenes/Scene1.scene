@@ -2,7 +2,9 @@
     "id": "1f2817f8-8a03-42fc-a0a4-2e3c800b1329",
     "sceneType": "SCENE",
     "settings": {
-        "preloadPackFiles": [],
+        "preloadPackFiles": [
+            "progetti_innovativi/frontend/public/assets/sprite/sprites.json"
+        ],
         "createMethodName": "editorCreate",
         "sceneKey": "Scene1",
         "compilerOutputLanguage": "TYPE_SCRIPT",
@@ -11,13 +13,29 @@
     },
     "displayList": [
         {
-            "type": "Text",
-            "id": "fee195e7-9db6-49e0-841e-c5a77d6b34b4",
-            "label": "text_1",
-            "x": 516,
-            "y": 318,
-            "text": "scena 1",
-            "fontSize": "72px"
+            "type": "Image",
+            "id": "d6288a3d-99df-48b6-89de-cc14d41457ce",
+            "label": "player",
+            "displayName": "player",
+            "texture": {
+                "key": "MC00"
+            },
+            "x": 204,
+            "y": 542,
+            "scaleX": 5,
+            "scaleY": 5
+        }, 
+        {
+            "type": "Image",
+            "id": "0152f593-8836-4aa6-adb1-8000df110fdc",
+            "label": "bG",
+            "texture": {
+                "key": "BG"
+            },
+            "scaleX": 0.835,
+            "scaleY": 0.7067954613128317,
+            "originX": 0,
+            "originY": 0
         }
     ],
     "plainObjects": [],
