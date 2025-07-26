@@ -1,4 +1,5 @@
 import Phaser from "phaser";
+import Scene1 from "./scenes/Scene1";
 
 class Boot extends Phaser.Scene {
 	constructor() {
@@ -25,7 +26,7 @@ const game = new Phaser.Game({
 		default: 'arcade',
 		arcade: {}
 	},
-	scene: [Boot]
+	scene: [Boot, Scene1]
 });
 
 game.scene.start("Boot");

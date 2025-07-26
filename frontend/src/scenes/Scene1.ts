@@ -1,4 +1,3 @@
-
 // You can write more code here
 
 /* START OF COMPILED CODE */
@@ -38,3 +37,4 @@ class Scene1 extends Phaser.Scene {
 /* END OF COMPILED CODE */
 
 // You can write more code here
+export default Scene1;
