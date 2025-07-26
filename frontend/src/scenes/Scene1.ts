@@ -13,10 +13,12 @@ update(time: number) {
 	if (!keyboard) return;
 	const right = keyboard.addKey('RIGHT');
 	const left = keyboard.addKey('LEFT');
+	const aKey = keyboard.addKey('A');
+	const dKey = keyboard.addKey('D');
 	const change = 20;
 
 	// Movimento "scattoso" ogni 100ms
-	if (right.isDown || left.isDown) {
+	if (right.isDown || left.isDown || aKey.isDown || dKey.isDown) {
 		if (time - this.lastMoveTime > 100) {
 			// Alterna la texture ad ogni step
 			if (this.lastStep) {
@@ -26,20 +28,26 @@ update(time: number) {
 			}
 			this.lastStep = !this.lastStep;
 
-			if (right.isDown) {
+			if (right.isDown || dKey.isDown) {
 				if (!this.isFacingRight) {
 					this.player.scaleX *= -1;
 					this.isFacingRight = true;
 				}
 				this.player.x += change;
 			}
-			if (left.isDown) {
+			if (left.isDown || aKey.isDown) {
 				if (this.isFacingRight) {
 					this.player.scaleX *= -1;
 					this.isFacingRight = false;
 				}
-				this.player.x -= change;
+				if (this.player.x - change > 55) {
+					this.player.x -= change;
+				} else {
+					this.player.x = 55;
+				}
 			}
+			// Stampa la posizione dopo il movimento
+			console.log('Player x:', this.player.x);
 			this.lastMoveTime = time;
 		}
 	} else {
@@ -60,6 +68,7 @@ update(time: number) {
 	preload(): void {
 		this.load.pack("pack", "/assets/sprite/sprites.json");
 		this.load.image("BG", "/assets/images/BG.png");
+		this.load.image("Menu", "/assets/images/Menu.png");
 	}
 
 	editorCreate(): void {
@@ -68,6 +77,16 @@ update(time: number) {
 		bG.scaleX = 0.835;
 		bG.scaleY = 0.7067954613128317;
 		bG.setOrigin(0, 0);
+
+		// Menu
+		const menu = this.add.image(25, 22, "Menu");
+		menu.scaleX = 1.2;
+		menu.scaleY = 1;
+		menu.setOrigin(0, 0);
+		menu.setInteractive({ useHandCursor: true });
+		menu.on('pointerdown', () => {
+			this.scene.start('Menu');
+		});
 
 		// player
 		this.player = this.add.image(204, 552, "MC00");
