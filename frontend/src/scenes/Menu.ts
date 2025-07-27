@@ -63,7 +63,7 @@ class Menu extends Phaser.Scene {
 			play_button.setFillStyle();
 			play.setStyle({ "color": "#e7ff39" });
 			// Carica la scena Scene1
-			this.scene.start("Scene1");
+			this.scene.start("Scene_1");
 		});
 		play_button.on('pointerout', () => {
 			play_button.setFillStyle();

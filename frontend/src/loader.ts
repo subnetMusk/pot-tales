@@ -1,5 +1,5 @@
 import Phaser from "phaser";
-import Scene1 from "./scenes/Scene1";
+import Scene1 from "./scenes/Scene_1";
 
 class Boot extends Phaser.Scene {
 	constructor() {

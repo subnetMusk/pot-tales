@@ -1,0 +1,36 @@
+{
+    "id": "47bcdfa2-56ec-4ae0-930d-09fc8b06a6a2",
+    "sceneType": "SCENE",
+    "settings": {
+        "preloadPackFiles": [
+            "progetti_innovativi/frontend/src/assets/sprites/Sprite-pack.json"
+        ],
+        "createMethodName": "editorCreate",
+        "sceneKey": "Scene_1",
+        "compilerOutputLanguage": "TYPE_SCRIPT",
+        "borderWidth": 1280,
+        "borderHeight": 720
+    },
+    "displayList": [
+        {
+            "type": "Sprite",
+            "id": "950283ff-508d-48b5-a074-8d881a1b69ae",
+            "label": "player",
+            "displayName": "player",
+            "texture": {
+                "key": "backPlayer_S"
+            },
+            "x": 650,
+            "y": 374,
+            "scaleX": 2,
+            "scaleY": 2
+        }
+    ],
+    "plainObjects": [],
+    "meta": {
+        "app": "Phaser Editor - Scene Editor",
+        "url": "https://phaser.io/editor",
+        "contentType": "phasereditor2d.core.scene.SceneContentType",
+        "version": 5
+    }
+}
