@@ -3,7 +3,8 @@
     "sceneType": "SCENE",
     "settings": {
         "preloadPackFiles": [
-            "progetti_innovativi/frontend/src/assets/sprites/Sprite-pack.json"
+            "progetti_innovativi/frontend/public/assets/images/Images.json",
+            "progetti_innovativi/frontend/public/assets/sprite/Sprite-pack.json"
         ],
         "createMethodName": "editorCreate",
         "sceneKey": "Scene_1",
@@ -12,6 +13,18 @@
         "borderHeight": 720
     },
     "displayList": [
+        {
+            "type": "Image",
+            "id": "6e530788-25d6-40b4-a3de-33cd27704537",
+            "label": "fondale",
+            "texture": {
+                "key": "Fondale"
+            },
+            "x": 1123,
+            "y": 731,
+            "scaleX": 3,
+            "scaleY": 3
+        },
         {
             "type": "Sprite",
             "id": "950283ff-508d-48b5-a074-8d881a1b69ae",

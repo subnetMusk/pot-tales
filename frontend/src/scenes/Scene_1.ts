@@ -1,121 +1,109 @@
-// @ts-nocheck
-// You can write more code here
-
-/* START OF COMPILED CODE */
-
 class Scene_1 extends Phaser.Scene {
 
-	constructor() {
-		super("Scene_1");
+    player?: Phaser.GameObjects.Sprite;
+    fondale?: Phaser.GameObjects.Image;
+    lastMoveTime: number = 0;
+    lastStep: boolean = false;
+    lastDirection: 'front' | 'back' | 'side' = 'back';
+    stepValue: number = 30;
+    playerCenterX: number = 640;
+    playerCenterY: number = 360;
 
-		/* START-USER-CTR-CODE */
-		// Write your code here.
-		// Modifiche da fare, nel preload:
-		// this.load.pack("Sprite-pack", "/assets/sprite/Sprite-pack.json");
-		/* END-USER-CTR-CODE */
-	}
+    constructor() {
+        super("Scene_1");
+    }
 
-	preload(): void {
-		this.load.pack("Sprite-pack", "/assets/sprite/Sprite-pack.json");
-	}
+    preload(): void {
+        this.load.pack("Images", "/assets/images/Images.json");
+        this.load.pack("Sprite-pack", "/assets/sprite/Sprite-pack.json");
+    }
 
-	editorCreate(): void {
+    editorCreate(): void {
+        // fondale
+        const fondale = this.add.image(1123, 731, "Fondale");
+        fondale.scaleX = 3;
+        fondale.scaleY = 3;
 
-		// player
-		const player = this.add.sprite(640, 360, "backPlayer_S");
-		player.scaleX = 2;
-		player.scaleY = 2;
+        // player
+        const player = this.add.sprite(this.playerCenterX, this.playerCenterY, "backPlayer_S");
+        player.scaleX = 4;
+        player.scaleY = 4;
 
-		this.events.emit("scene-awake");
-	}
+        this.events.emit("scene-awake");
+    }
 
-	/* START-USER-CODE */
+    create() {
+        this.editorCreate();
+        this.player = this.children.getByName('player') as Phaser.GameObjects.Sprite || undefined;
+        if (!this.player) {
+            this.player = this.children.list.find(obj => obj instanceof Phaser.GameObjects.Sprite) as Phaser.GameObjects.Sprite;
+        }
+        this.fondale = this.children.list.find(obj => obj instanceof Phaser.GameObjects.Image && obj.texture.key === 'Fondale') as Phaser.GameObjects.Image;
+    }
 
-	// Write your code here
-
-player?: Phaser.GameObjects.Sprite;
-direction: 'front' | 'back' | 'side' = 'back';
-lastStep: boolean = false;
-lastMoveTime: number = 0;
-
-	create() {
-		this.editorCreate();
-		// Salvo il riferimento al player per l'update
-		this.player = this.children.getByName('player') as Phaser.GameObjects.Sprite || undefined;
-		if (!this.player) {
-			// fallback: cerca il primo sprite
-			this.player = this.children.list.find(obj => obj instanceof Phaser.GameObjects.Sprite) as Phaser.GameObjects.Sprite;
-		}
-	}
-
-update(time: number) {
-	const keyboard = this.input.keyboard;
-	if (!keyboard || !this.player) return;
-	const wKey = keyboard.addKey('W');
-	const sKey = keyboard.addKey('S');
-	const aKey = keyboard.addKey('A');
-	const dKey = keyboard.addKey('D');
-	let moving = false;
-	let newDirection = this.direction;
-
-	// Movimento scattoso ogni 100ms
-	if (wKey.isDown) {
-		newDirection = 'front';
-		moving = true;
-	} else if (sKey.isDown) {
-		newDirection = 'back';
-		moving = true;
-	} else if (aKey.isDown) {
-		newDirection = 'side';
-		this.player.setFlipX(false);
-		moving = true;
-	} else if (dKey.isDown) {
-		newDirection = 'side';
-		this.player.setFlipX(true);
-		moving = true;
-	}
-
-	if (moving && time - this.lastMoveTime > 100) {
-		this.lastMoveTime = time;
-		this.direction = newDirection;
-		if (newDirection === 'front') {
-			this.player.y -= 10;
-			// Alterna R/L
-			const step = this.lastStep ? 'R' : 'L';
-			this.player.setTexture(`backPlayer_${step}`);
-			this.lastStep = !this.lastStep;
-		} else if (newDirection === 'back') {
-			this.player.y += 10;
-			// Alterna R/L
-			const step = this.lastStep ? 'R' : 'L';
-			this.player.setTexture(`frontPlayer_${step}`);
-			this.lastStep = !this.lastStep;
-		} else if (newDirection === 'side') {
-			// Alterna M/S
-			const step = this.lastStep ? 'M' : 'S';
-			this.player.setTexture(`sidePlayer_${step}`);
-			this.lastStep = !this.lastStep;
-			// Movimento orizzontale
-			if (aKey.isDown) {
-				this.player.x -= 10;
-			}
-			if (dKey.isDown) {
-				this.player.x += 10;
-			}
-		}
-	} else if (!moving) {
-		// Personaggio fermo: texture stop
-		if (this.direction === 'front') {
-			this.player.setTexture('backPlayer_S');
-		} else if (this.direction === 'back') {
-			this.player.setTexture('frontPlayer_S');
-		} else if (this.direction === 'side') {
-			this.player.setTexture('sidePlayer_S');
-		}
-	}
-}
-
-	/* END-USER-CODE */
+    update(time: number) {
+        if (this.player && this.fondale) {
+            console.log(`Player: x=${this.player.x}, y=${this.player.y} | Fondale: x=${this.fondale.x}, y=${this.fondale.y}`);
+        }
+        const keyboard = this.input.keyboard;
+        if (!keyboard || !this.fondale) return;
+        const wKey = keyboard.addKey('W');
+        const sKey = keyboard.addKey('S');
+        const aKey = keyboard.addKey('A');
+        const dKey = keyboard.addKey('D');
+        if (!this.player) return;
+        let moving = false;
+        let direction: 'front' | 'back' | 'side' = this.lastDirection;
+        if (wKey.isDown) {
+            direction = 'front';
+            moving = true;
+        } else if (sKey.isDown) {
+            direction = 'back';
+            moving = true;
+        } else if (aKey.isDown) {
+            direction = 'side';
+            this.player.setFlipX(false);
+            moving = true;
+        } else if (dKey.isDown) {
+            direction = 'side';
+            this.player.setFlipX(true);
+            moving = true;
+        }
+        if (time - this.lastMoveTime > 100 && moving) {
+            this.lastMoveTime = time;
+            this.lastDirection = direction;
+            if (direction === 'front') {
+                this.fondale.y += this.stepValue;
+                const step = this.lastStep ? 'R' : 'L';
+                this.player.setTexture(`backPlayer_${step}`);
+                this.lastStep = !this.lastStep;
+            } else if (direction === 'back') {
+                this.fondale.y -= this.stepValue;
+                const step = this.lastStep ? 'R' : 'L';
+                this.player.setTexture(`frontPlayer_${step}`);
+                this.lastStep = !this.lastStep;
+            } else if (direction === 'side') {
+                const step = this.lastStep ? 'M' : 'S';
+                this.player.setTexture(`sidePlayer_${step}`);
+                this.lastStep = !this.lastStep;
+                if (aKey.isDown) {
+                    this.fondale.x += this.stepValue;
+                }
+                if (dKey.isDown) {
+                    this.fondale.x -= this.stepValue;
+                }
+            }
+        } else if (!moving) {
+            // Personaggio fermo: texture stop
+            if (this.lastDirection === 'front') {
+                this.player.setTexture('backPlayer_S');
+            } else if (this.lastDirection === 'back') {
+                this.player.setTexture('frontPlayer_S');
+            } else if (this.lastDirection === 'side') {
+                this.player.setTexture('sidePlayer_S');
+            }
+        }
+    }
 }
 
 /* END OF COMPILED CODE */
