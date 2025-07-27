@@ -12,7 +12,7 @@ class Scene_1 extends Phaser.Scene {
 		/* 
 
 		Modificare i json
-		frontend/public/assets
+		frontend/public/assets/
 		/assets/
 
 		PATH di phaser
@@ -30,7 +30,6 @@ class Scene_1 extends Phaser.Scene {
 	}
 
 	preload(): void {
-
 		this.load.pack("Sprite-pack", "/assets/sprite/Sprite-pack.json");
 		this.load.pack("images", "/assets/images/images.json");
 	}
@@ -60,26 +59,36 @@ class Scene_1 extends Phaser.Scene {
 	lastStep: boolean = false;
 	direction: 'front' | 'back' | 'side' = 'back';
 	stepValue: number = 50;
-	centerX: number = 640; // Limite sinistro
-	centerY: number = 360; // Limite destro
+
+	//Dati scena
+	sceneWidth: number = 0;
+	sceneHeight: number = 0;
+	FondaleWidth: number = 0;
+	FondaleHeight: number = 0;
+	playerBoundingBox: number = 60;
 
 	//Limiti movimento mappa
 	leftMapLimit: number = 0; // Limite sinistro
-	rightMapLimit: number = -1792; // Limite destro
+	rightMapLimit: number = -(this.FondaleWidth - this.sceneWidth); // Limite destro
 	upMapLimit: number = 0; // Limite superiore
-	downMapLimit: number = -2352; // Limite inferiore
+	downMapLimit: number = -(this.FondaleHeight - this.sceneHeight); // Limite inferiore
 
 	//Limiti movimento giocatore
-	leftPlayerLimit: number = 60; // Limite sinistro
-	rightPlayerLimit: number = 1220; // Limite destro
-	upPlayerLimit: number = 60; // Limite superiore
-	downPlayerLimit: number = 660; // Limite inferiore
+	leftPlayerLimit: number = this.playerBoundingBox; // Limite sinistro
+	rightPlayerLimit: number = this.sceneWidth - this.playerBoundingBox; // Limite destro
+	upPlayerLimit: number = this.playerBoundingBox; // Limite superiore
+	downPlayerLimit: number = this.sceneHeight - this.playerBoundingBox; // Limite inferiore
 
 	create() {
 		this.editorCreate();
 		// Salvo riferimenti agli oggetti
 		this.player = this.children.list.find(obj => obj instanceof Phaser.GameObjects.Sprite) as Phaser.GameObjects.Sprite;
 		this.fondale = this.children.list.find(obj => obj instanceof Phaser.GameObjects.Image && obj.texture.key === 'Fondale') as Phaser.GameObjects.Image;
+		// Ora posso accedere a scale e dimensioni
+		this.sceneWidth = this.scale.width;
+		this.sceneHeight = this.scale.height;
+		this.FondaleWidth = this.fondale.width * this.fondale.scaleX;
+		this.FondaleHeight = this.fondale.height * this.fondale.scaleY;
 	}
 
 	update(time: number) {
@@ -112,35 +121,39 @@ class Scene_1 extends Phaser.Scene {
 			this.lastMoveTime = time;
 			this.direction = newDirection;
 			if (newDirection === 'front') {
-				if (this.fondale.y + this.stepValue > 0) {
+				if (this.fondale.y + this.stepValue > 0) {	// Limite superiore
 					this.fondale.y = 0;
-				} else {
+				} else {									//Movimento	front	
 					this.fondale.y += this.stepValue;
 				}
-				const step = this.lastStep ? 'R' : 'L';
+				const step = this.lastStep ? 'R' : 'L';			//Switch delle texture R-L
 				this.player.setTexture(`backPlayer_${step}`);
 				this.lastStep = !this.lastStep;
 			} else if (newDirection === 'back') {
-				if (this.fondale.y - this.stepValue > -2352) { // Limite inferiore
-					this.fondale.y -= this.stepValue;					//Movimento
-				}	
-				const step = this.lastStep ? 'R' : 'L';
+				if (this.fondale.y - this.stepValue > -2352) {
+					this.fondale.y -= this.stepValue;				//Movimento back
+				} else { 											// Limite inferiore
+					this.fondale.y = -2352;
+				}
+				const step = this.lastStep ? 'R' : 'L';			//Switch delle texture R-L
 				this.player.setTexture(`frontPlayer_${step}`);
 				this.lastStep = !this.lastStep;
 			} else if (newDirection === 'side') {
-				const step = this.lastStep ? 'M' : 'S';
+				const step = this.lastStep ? 'M' : 'S';	        //Switch delle texture M-S
 				this.player.setTexture(`sidePlayer_${step}`);
 				this.lastStep = !this.lastStep;
 				if (aKey.isDown) {
-					if (this.fondale.x + this.stepValue > 0) {
+					if (this.fondale.x + this.stepValue > 0) { 			// Limite sinistro
 						this.fondale.x = 0;
-					} else {
+					} else {										//Movimento sinistro
 						this.fondale.x += this.stepValue;
 					}
 				}	
 				if (dKey.isDown) {
-					if (this.fondale.x - this.stepValue > -1792) { // Limite destro
-						this.fondale.x -= this.stepValue;					//Movimento
+					if (this.fondale.x - this.stepValue > -1792) {
+						this.fondale.x -= this.stepValue;					//Movimento destro
+					} else { 											// Limite destro
+						this.fondale.x = -1792;
 					}
 				}
 			}
