@@ -4,7 +4,7 @@
     "settings": {
         "preloadPackFiles": [
             "progetti_innovativi/frontend/public/assets/sprite/Sprite-pack.json",
-            "progetti_innovativi/frontend/public/assets/images/Images.json"
+            "progetti_innovativi/frontend/public/assets/images/images.json"
         ],
         "createMethodName": "editorCreate",
         "sceneKey": "Scene_1",
@@ -20,10 +20,11 @@
             "texture": {
                 "key": "Fondale"
             },
-            "x": 1123,
-            "y": 731,
+            "y": -2327,
             "scaleX": 3,
-            "scaleY": 3
+            "scaleY": 3,
+            "originX": 0,
+            "originY": 0
         },
         {
             "type": "Sprite",
@@ -35,8 +36,8 @@
             },
             "x": 650,
             "y": 374,
-            "scaleX": 3,
-            "scaleY": 3
+            "scaleX": 5,
+            "scaleY": 5
         }
     ],
     "plainObjects": [],

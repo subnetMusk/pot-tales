@@ -12,8 +12,8 @@ class Scene_1 extends Phaser.Scene {
 		/* 
 
 		Modificare i json
-		frontend/public/assets/...
-		/assets/...
+		frontend/public/assets
+		/assets/
 
 		PATH di phaser
 
@@ -31,21 +31,22 @@ class Scene_1 extends Phaser.Scene {
 
 	preload(): void {
 
-		this.load.pack("Images", "/assets/images/Images.json");
 		this.load.pack("Sprite-pack", "/assets/sprite/Sprite-pack.json");
+		this.load.pack("images", "/assets/images/images.json");
 	}
 
 	editorCreate(): void {
 
 		// fondale
-		const fondale = this.add.image(1123, 731, "Fondale");
+		const fondale = this.add.image(0, -2327, "Fondale");
 		fondale.scaleX = 3;
 		fondale.scaleY = 3;
+		fondale.setOrigin(0, 0);
 
 		// player
 		const player = this.add.sprite(650, 374, "backPlayer_S");
-		player.scaleX = 3;
-		player.scaleY = 3;
+		player.scaleX = 5;
+		player.scaleY = 5;
 
 		this.events.emit("scene-awake");
 	}
@@ -53,13 +54,26 @@ class Scene_1 extends Phaser.Scene {
 	/* START-USER-CODE */
 
 	// Write your code here
-
 	fondale?: Phaser.GameObjects.Image;
 	player?: Phaser.GameObjects.Sprite;
 	lastMoveTime: number = 0;
 	lastStep: boolean = false;
 	direction: 'front' | 'back' | 'side' = 'back';
-	stepValue: number = 10;
+	stepValue: number = 50;
+	centerX: number = 640; // Limite sinistro
+	centerY: number = 360; // Limite destro
+
+	//Limiti movimento mappa
+	leftMapLimit: number = 0; // Limite sinistro
+	rightMapLimit: number = -1792; // Limite destro
+	upMapLimit: number = 0; // Limite superiore
+	downMapLimit: number = -2352; // Limite inferiore
+
+	//Limiti movimento giocatore
+	leftPlayerLimit: number = 60; // Limite sinistro
+	rightPlayerLimit: number = 1220; // Limite destro
+	upPlayerLimit: number = 60; // Limite superiore
+	downPlayerLimit: number = 660; // Limite inferiore
 
 	create() {
 		this.editorCreate();
@@ -79,17 +93,17 @@ class Scene_1 extends Phaser.Scene {
 		let newDirection: 'front' | 'back' | 'side' = this.direction;
 		// Direzione e flip
 		if (wKey.isDown) {
-			newDirection = 'front';
+			newDirection = 'front';		//W
 			moving = true;
 		} else if (sKey.isDown) {
-			newDirection = 'back';
+			newDirection = 'back';		//S
 			moving = true;
 		} else if (aKey.isDown) {
-			newDirection = 'side';
+			newDirection = 'side';		//A
 			this.player.setFlipX(false);
 			moving = true;
 		} else if (dKey.isDown) {
-			newDirection = 'side';
+			newDirection = 'side';		//D
 			this.player.setFlipX(true);
 			moving = true;
 		}
@@ -98,12 +112,18 @@ class Scene_1 extends Phaser.Scene {
 			this.lastMoveTime = time;
 			this.direction = newDirection;
 			if (newDirection === 'front') {
-				this.fondale.y += this.stepValue;
+				if (this.fondale.y + this.stepValue > 0) {
+					this.fondale.y = 0;
+				} else {
+					this.fondale.y += this.stepValue;
+				}
 				const step = this.lastStep ? 'R' : 'L';
 				this.player.setTexture(`backPlayer_${step}`);
 				this.lastStep = !this.lastStep;
 			} else if (newDirection === 'back') {
-				this.fondale.y -= this.stepValue;
+				if (this.fondale.y - this.stepValue > -2352) { // Limite inferiore
+					this.fondale.y -= this.stepValue;					//Movimento
+				}	
 				const step = this.lastStep ? 'R' : 'L';
 				this.player.setTexture(`frontPlayer_${step}`);
 				this.lastStep = !this.lastStep;
@@ -112,12 +132,20 @@ class Scene_1 extends Phaser.Scene {
 				this.player.setTexture(`sidePlayer_${step}`);
 				this.lastStep = !this.lastStep;
 				if (aKey.isDown) {
-					this.fondale.x += this.stepValue;
-				}
+					if (this.fondale.x + this.stepValue > 0) {
+						this.fondale.x = 0;
+					} else {
+						this.fondale.x += this.stepValue;
+					}
+				}	
 				if (dKey.isDown) {
-					this.fondale.x -= this.stepValue;
+					if (this.fondale.x - this.stepValue > -1792) { // Limite destro
+						this.fondale.x -= this.stepValue;					//Movimento
+					}
 				}
 			}
+			console.log(`Fondale: x=${this.fondale.x}, y=${this.fondale.y}`);
+			console.log(`Player: x=${this.player.x}, y=${this.player.y}`);
 		} else if (!moving) {
 			// Personaggio fermo: texture stop
 			if (this.direction === 'front') {
