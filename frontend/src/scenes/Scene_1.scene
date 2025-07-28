@@ -4,7 +4,8 @@
     "settings": {
         "preloadPackFiles": [
             "progetti_innovativi/frontend/public/assets/sprite/Sprite-pack.json",
-            "progetti_innovativi/frontend/public/assets/images/images.json"
+            "progetti_innovativi/frontend/public/assets/images/images.json",
+            "progetti_innovativi/frontend/public/assets/fonts/Pixelify_Sans/Font-pack.json"
         ],
         "createMethodName": "editorCreate",
         "sceneKey": "Scene_1",
@@ -14,17 +15,37 @@
     },
     "displayList": [
         {
-            "type": "Image",
-            "id": "6e530788-25d6-40b4-a3de-33cd27704537",
-            "label": "fondale",
-            "texture": {
-                "key": "Fondale"
-            },
-            "y": -2327,
-            "scaleX": 3,
-            "scaleY": 3,
-            "originX": 0,
-            "originY": 0
+            "type": "Container",
+            "id": "40f6753b-b321-4e43-9d86-82e66652be55",
+            "label": "Backgorund",
+            "y": -148,
+            "list": [
+                {
+                    "type": "Image",
+                    "id": "6e530788-25d6-40b4-a3de-33cd27704537",
+                    "label": "fondale",
+                    "texture": {
+                        "key": "Fondale"
+                    },
+                    "scaleX": 3,
+                    "scaleY": 3,
+                    "originX": 0,
+                    "originY": 0
+                },
+                {
+                    "type": "Image",
+                    "id": "4ea2e164-3323-49ea-949f-a2d48968684e",
+                    "label": "sideQuest",
+                    "displayName": "Falò",
+                    "texture": {
+                        "key": "SideQuest"
+                    },
+                    "x": 1991,
+                    "y": 1031,
+                    "scaleX": 3,
+                    "scaleY": 3
+                }
+            ]
         },
         {
             "type": "Sprite",
@@ -38,6 +59,34 @@
             "y": 374,
             "scaleX": 5,
             "scaleY": 5
+        },
+        {
+            "type": "Image",
+            "id": "80ed9465-57ef-44fa-b06f-2b04ec52d483",
+            "label": "mASK",
+            "texture": {
+                "key": "MASK"
+            },
+            "originX": 0,
+            "originY": 0,
+            "alpha": 0.7,
+            "alphaTopLeft": 0.7,
+            "alphaTopRight": 0.7,
+            "alphaBottomLeft": 0.7,
+            "alphaBottomRight": 0.7
+        },
+        {
+            "type": "Text",
+            "id": "94ffba2a-bc34-4ec9-b8e4-961cf9b8d5f3",
+            "label": "Info_text",
+            "displayName": "Interazioni",
+            "scope": "PUBLIC",
+            "x": 640,
+            "y": 650,
+            "originX": 0.5,
+            "text": "Inizia la quest",
+            "fontFamily": "PixelifySans-VariableFont_wght",
+            "fontSize": "32px"
         }
     ],
     "plainObjects": [],

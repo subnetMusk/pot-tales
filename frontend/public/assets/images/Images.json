@@ -5,6 +5,16 @@
                 "url": "/assets/images/Fondale.png",
                 "type": "image",
                 "key": "Fondale"
+            },
+            {
+                "url": "/assets/images/MASK.png",
+                "type": "image",
+                "key": "MASK"
+            },
+            {
+                "url": "/assets/images/SideQuest.png",
+                "type": "image",
+                "key": "SideQuest"
             }
         ]
     },

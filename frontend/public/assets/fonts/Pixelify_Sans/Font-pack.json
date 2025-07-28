@@ -1,0 +1,21 @@
+{
+    "section1": {
+        "files": [
+            {
+                "url": "/assets/fonts/Pixelify_Sans/PixelifySans-VariableFont_wght.ttf",
+                "format": "truetype",
+                "descriptors": {},
+                "type": "font",
+                "key": "PixelifySans-VariableFont_wght"
+            }
+        ]
+    },
+    "meta": {
+        "app": "Phaser Editor 2D - Asset Pack Editor",
+        "contentType": "phasereditor2d.pack.core.AssetContentType",
+        "url": "https://phasereditor2d.com",
+        "version": 2,
+        "showAllFilesInBlocks": false,
+        "visible": true
+    }
+}
