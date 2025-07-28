@@ -1,4 +1,3 @@
-
 // You can write more code here
 
 /* START OF COMPILED CODE */
@@ -78,6 +77,7 @@ class Scene_1 extends Phaser.Scene {
 	rightPlayerLimit: number = this.sceneWidth - this.playerBoundingBox; // Limite destro
 	upPlayerLimit: number = this.playerBoundingBox; // Limite superiore
 	downPlayerLimit: number = this.sceneHeight - this.playerBoundingBox; // Limite inferiore
+	lastKeyPressed: 'W' | 'A' | 'S' | 'D' | null = null; // Ultimo tasto premuto
 
 	create() {
 		this.editorCreate();
@@ -89,6 +89,16 @@ class Scene_1 extends Phaser.Scene {
 		this.sceneHeight = this.scale.height;
 		this.FondaleWidth = this.fondale.width * this.fondale.scaleX;
 		this.FondaleHeight = this.fondale.height * this.fondale.scaleY;
+
+		// Listener per aggiornare l'ultimo tasto premuto
+		if (this.input.keyboard) {
+			this.input.keyboard.on('keydown', (event: KeyboardEvent) => {
+				const key = event.key.toUpperCase();
+				if (['W', 'A', 'S', 'D'].includes(key)) {
+					this.lastKeyPressed = key as 'W' | 'A' | 'S' | 'D';
+				}
+			});
+		}
 	}
 
 	update(time: number) {
@@ -100,23 +110,24 @@ class Scene_1 extends Phaser.Scene {
 		const dKey = keyboard.addKey('D');
 		let moving = false;
 		let newDirection: 'front' | 'back' | 'side' = this.direction;
-		// Direzione e flip
-		if (wKey.isDown) {
-			newDirection = 'front';		//W
+
+		// Usa l'ultimo tasto premuto per determinare la direzione
+		if (this.lastKeyPressed === 'W' && wKey.isDown) {
+			newDirection = 'front';
 			moving = true;
-		} else if (sKey.isDown) {
-			newDirection = 'back';		//S
+		} else if (this.lastKeyPressed === 'S' && sKey.isDown) {
+			newDirection = 'back';
 			moving = true;
-		} else if (aKey.isDown) {
-			newDirection = 'side';		//A
+		} else if (this.lastKeyPressed === 'A' && aKey.isDown) {
+			newDirection = 'side';
 			this.player.setFlipX(false);
 			moving = true;
-		} else if (dKey.isDown) {
-			newDirection = 'side';		//D
+		} else if (this.lastKeyPressed === 'D' && dKey.isDown) {
+			newDirection = 'side';
 			this.player.setFlipX(true);
 			moving = true;
 		}
-		// Movimento scattoso ogni 100ms
+		
 		if (moving && time - this.lastMoveTime > 100) {
 			this.lastMoveTime = time;
 			this.direction = newDirection;
