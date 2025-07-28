@@ -39,35 +39,55 @@ class Scene_1 extends Phaser.Scene {
 
 	editorCreate(): void {
 
-		// Backgorund
-		const backgorund = this.add.container(0, -148);
+		// Background
+		const background = this.add.container(0, -148);
 
 		// fondale
 		const fondale = this.add.image(0, 0, "Fondale");
 		fondale.scaleX = 3;
 		fondale.scaleY = 3;
 		fondale.setOrigin(0, 0);
-		backgorund.add(fondale);
+		background.add(fondale);
 
 		// sideQuest
 		const sideQuest = this.add.image(1991, 1031, "SideQuest");
 		sideQuest.scaleX = 3;
 		sideQuest.scaleY = 3;
-		backgorund.add(sideQuest);
+		background.add(sideQuest);
+
+		// Obstacles
+		const obstacles = this.add.container(0, 148);
+		background.add(obstacles);
+
+		// Ostacolo_0
+		const ostacolo_0 = this.add.rectangle(901, 892, 800, 400);
+		ostacolo_0.isStroked = true;
+		obstacles.add(ostacolo_0);
+
+		// Ostacolo_1
+		const ostacolo_1 = this.add.rectangle(1209, 197, 800, 500);
+		ostacolo_1.isStroked = true;
+		obstacles.add(ostacolo_1);
+
+		// Ostacolo_2
+		const ostacolo_2 = this.add.rectangle(98, 241, 800, 400);
+		ostacolo_2.isStroked = true;
+		obstacles.add(ostacolo_2);
 
 		// player
-		const player = this.add.sprite(650, 374, "backPlayer_S");
+		const player = this.add.sprite(640, 360, "backPlayer_S");
 		player.scaleX = 5;
 		player.scaleY = 5;
 
-		// mASK
-		const mASK = this.add.image(0, 0, "MASK");
-		mASK.setOrigin(0, 0);
-		mASK.alpha = 0.7;
-		mASK.alphaTopLeft = 0.7;
-		mASK.alphaTopRight = 0.7;
-		mASK.alphaBottomLeft = 0.7;
-		mASK.alphaBottomRight = 0.7;
+		// Light
+		const light = this.add.image(0, 0, "MASK");
+		light.setOrigin(0, 0);
+		light.visible = false;
+		light.alpha = 0.7;
+		light.alphaTopLeft = 0.7;
+		light.alphaTopRight = 0.7;
+		light.alphaBottomLeft = 0.7;
+		light.alphaBottomRight = 0.7;
 
 		// Info_text
 		const info_text = this.add.text(640, 650, "", {});
@@ -88,7 +108,8 @@ class Scene_1 extends Phaser.Scene {
 	fondale?: Phaser.GameObjects.Image;
 	player?: Phaser.GameObjects.Sprite;
 	sideQuest?: Phaser.GameObjects.Image;
-	backgorund?: Phaser.GameObjects.Container; // <--- aggiungi questa variabile
+	obstacles: Phaser.GameObjects.Rectangle[] = [];
+	background?: Phaser.GameObjects.Container; // <--- aggiungi questa variabile
 	lastMoveTime: number = 0;
 	lastStep: boolean = false;
 	direction: 'front' | 'back' | 'side' = 'back';
@@ -117,10 +138,10 @@ class Scene_1 extends Phaser.Scene {
 	create() {
 		this.editorCreate();
 		// Salvo riferimenti agli oggetti
-		this.backgorund = this.children.list.find(obj => obj instanceof Phaser.GameObjects.Container) as Phaser.GameObjects.Container;
-		if (this.backgorund) {
-			this.fondale = this.backgorund.list.find(obj => obj instanceof Phaser.GameObjects.Image && obj.texture.key === 'Fondale') as Phaser.GameObjects.Image;
-			this.sideQuest = this.backgorund.list.find(obj => obj instanceof Phaser.GameObjects.Image && obj.texture.key === 'SideQuest') as Phaser.GameObjects.Image;
+		this.background = this.children.list.find(obj => obj instanceof Phaser.GameObjects.Container) as Phaser.GameObjects.Container;
+		if (this.background) {
+			this.fondale = this.background.list.find(obj => obj instanceof Phaser.GameObjects.Image && obj.texture.key === 'Fondale') as Phaser.GameObjects.Image;
+			this.sideQuest = this.background.list.find(obj => obj instanceof Phaser.GameObjects.Image && obj.texture.key === 'SideQuest') as Phaser.GameObjects.Image;
 		}
 		this.player = this.children.list.find(obj => obj instanceof Phaser.GameObjects.Sprite) as Phaser.GameObjects.Sprite;
 		// Ora posso accedere a scale e dimensioni
@@ -139,11 +160,23 @@ class Scene_1 extends Phaser.Scene {
 				}
 			});
 		}
+		if (this.background) {
+			// Prendi tutti i rettangoli (ostacoli) dal container "obstacles"
+			const obstaclesContainer = this.background.list.find(obj =>
+				obj instanceof Phaser.GameObjects.Container
+			) as Phaser.GameObjects.Container | undefined;
+
+			if (obstaclesContainer) {
+				this.obstacles = obstaclesContainer.list.filter(obj =>
+					obj instanceof Phaser.GameObjects.Rectangle
+				) as Phaser.GameObjects.Rectangle[];
+			}
+		}
 	}
 
 	update(time: number) {
 		const keyboard = this.input.keyboard;
-		if (!keyboard || !this.player || !this.fondale || !this.backgorund) return;
+		if (!keyboard || !this.player || !this.fondale || !this.background) return;
 		const wKey = keyboard.addKey('W');
 		const sKey = keyboard.addKey('S');
 		const aKey = keyboard.addKey('A');
@@ -172,43 +205,51 @@ class Scene_1 extends Phaser.Scene {
 			this.lastMoveTime = time;
 			this.direction = newDirection;
 			if (newDirection === 'front') {
-				if (this.backgorund.y + this.stepValue > 0) {	// Limite superiore
-					this.backgorund.y = 0;
-				} else {									//Movimento	front	
-					this.backgorund.y += this.stepValue;
-				}
-				const step = this.lastStep ? 'R' : 'L';			//Switch delle texture R-L
+				// Switch texture R-L anche per W
+				const step = this.lastStep ? 'R' : 'L';
 				this.player.setTexture(`backPlayer_${step}`);
 				this.lastStep = !this.lastStep;
-			} else if (newDirection === 'back') {
-				if (this.backgorund.y - this.stepValue > -2352) {
-					this.backgorund.y -= this.stepValue;				//Movimento back
-				} else { 											// Limite inferiore
-					this.backgorund.y = -2352;
+				if (!this.isTouchingUp()) {
+					if (this.background.y + this.stepValue > 0) { // Limite superiore
+						this.background.y = 0;
+					} else { //Movimento front
+						this.background.y += this.stepValue;
+					}
 				}
-				const step = this.lastStep ? 'R' : 'L';			//Switch delle texture R-L
+			} else if (newDirection === 'back') {
+				// Switch texture R-L anche per S
+				const step = this.lastStep ? 'R' : 'L';
 				this.player.setTexture(`frontPlayer_${step}`);
 				this.lastStep = !this.lastStep;
+				if (!this.isTouchingDown()) {
+					if (this.background.y - this.stepValue > -2352) {
+						this.background.y -= this.stepValue; //Movimento back
+					} else { // Limite inferiore
+						this.background.y = -2352;
+					}
+				}
 			} else if (newDirection === 'side') {
 				const step = this.lastStep ? 'M' : 'S';	        //Switch delle texture M-S
 				this.player.setTexture(`sidePlayer_${step}`);
 				this.lastStep = !this.lastStep;
 				if (aKey.isDown) {
-					if (this.backgorund.x + this.stepValue > 0) { 			// Limite sinistro
-						this.backgorund.x = 0;
+					if (this.isTouchingLeft()) return;
+					if (this.background.x + this.stepValue > 0) { 			// Limite sinistro
+						this.background.x = 0;
 					} else {										//Movimento sinistro
-						this.backgorund.x += this.stepValue;
+						this.background.x += this.stepValue;
 					}
 				}	
 				if (dKey.isDown) {
-					if (this.backgorund.x - this.stepValue > -1792) {
-						this.backgorund.x -= this.stepValue;					//Movimento destro
+					if (this.isTouchingRight()) return;
+					if (this.background.x - this.stepValue > -1792) {
+						this.background.x -= this.stepValue;					//Movimento destro
 					} else { 											// Limite destro
-						this.backgorund.x = -1792;
+						this.background.x = -1792;
 					}
 				}
 			}
-			console.log(`Backgorund: x=${this.backgorund.x}, y=${this.backgorund.y}`);
+			console.log(`background: x=${this.background.x}, y=${this.background.y}`);
 			console.log(`Player: x=${this.player.x}, y=${this.player.y}`);
 			if (this.player && this.sideQuest) {
 				const playerBounds = this.player.getBounds();
@@ -232,7 +273,61 @@ class Scene_1 extends Phaser.Scene {
 			}
 		}
 	}
+	isTouchingRight(): boolean {
+		if (!this.player || !this.obstacles) return false;
+		const playerBounds = this.player.getBounds();
+		return this.obstacles.some(obstacle => {
+			const obsBounds = obstacle.getBounds();
+			return (
+				playerBounds.right >= obsBounds.left &&
+				playerBounds.left < obsBounds.left &&
+				playerBounds.bottom > obsBounds.top &&
+				playerBounds.top < obsBounds.bottom
+			);
+		});
+	}
 
+	isTouchingLeft(): boolean {
+		if (!this.player || !this.obstacles) return false;
+		const playerBounds = this.player.getBounds();
+		return this.obstacles.some(obstacle => {
+			const obsBounds = obstacle.getBounds();
+			return (
+				playerBounds.left <= obsBounds.right &&
+				playerBounds.right > obsBounds.right &&
+				playerBounds.bottom > obsBounds.top &&
+				playerBounds.top < obsBounds.bottom
+			);
+		});
+	}
+
+	isTouchingUp(): boolean {
+		if (!this.player || !this.obstacles) return false;
+		const playerBounds = this.player.getBounds();
+		return this.obstacles.some(obstacle => {
+			const obsBounds = obstacle.getBounds();
+			return (
+				playerBounds.top <= obsBounds.bottom &&
+				playerBounds.bottom > obsBounds.bottom &&
+				playerBounds.right > obsBounds.left &&
+				playerBounds.left < obsBounds.right
+			);
+		});
+	}
+
+	isTouchingDown(): boolean {
+		if (!this.player || !this.obstacles) return false;
+		const playerBounds = this.player.getBounds();
+		return this.obstacles.some(obstacle => {
+			const obsBounds = obstacle.getBounds();
+			return (
+				playerBounds.bottom >= obsBounds.top &&
+				playerBounds.top < obsBounds.top &&
+				playerBounds.right > obsBounds.left &&
+				playerBounds.left < obsBounds.right
+			);
+		});
+	}
 	/* END-USER-CODE */
 }
 

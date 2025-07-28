@@ -17,7 +17,7 @@
         {
             "type": "Container",
             "id": "40f6753b-b321-4e43-9d86-82e66652be55",
-            "label": "Backgorund",
+            "label": "Background",
             "y": -148,
             "list": [
                 {
@@ -44,6 +44,45 @@
                     "y": 1031,
                     "scaleX": 3,
                     "scaleY": 3
+                },
+                {
+                    "type": "Container",
+                    "id": "ad4e4ad3-87ff-4ed8-96e5-678d3d309e9a",
+                    "label": "Obstacles",
+                    "y": 148,
+                    "allowAppendChildren": true,
+                    "list": [
+                        {
+                            "type": "Rectangle",
+                            "id": "a1a97ca9-ba36-4c1e-8718-4a2e3893f630",
+                            "label": "Ostacolo_0",
+                            "x": 901,
+                            "y": 892,
+                            "isStroked": true,
+                            "width": 800,
+                            "height": 400
+                        },
+                        {
+                            "type": "Rectangle",
+                            "id": "e92b271c-4121-4399-8e09-8e0e0def73b5",
+                            "label": "Ostacolo_1",
+                            "x": 1209,
+                            "y": 197,
+                            "isStroked": true,
+                            "width": 800,
+                            "height": 500
+                        },
+                        {
+                            "type": "Rectangle",
+                            "id": "911643d6-7ec5-4404-8020-b777c03faa97",
+                            "label": "Ostacolo_2",
+                            "x": 98,
+                            "y": 241,
+                            "isStroked": true,
+                            "width": 800,
+                            "height": 400
+                        }
+                    ]
                 }
             ]
         },
@@ -55,20 +94,21 @@
             "texture": {
                 "key": "backPlayer_S"
             },
-            "x": 650,
-            "y": 374,
+            "x": 640,
+            "y": 360,
             "scaleX": 5,
             "scaleY": 5
         },
         {
             "type": "Image",
             "id": "80ed9465-57ef-44fa-b06f-2b04ec52d483",
-            "label": "mASK",
+            "label": "Light",
             "texture": {
                 "key": "MASK"
             },
             "originX": 0,
             "originY": 0,
+            "visible": false,
             "alpha": 0.7,
             "alphaTopLeft": 0.7,
             "alphaTopRight": 0.7,
