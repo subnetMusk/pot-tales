@@ -18,12 +18,14 @@
             "type": "Container",
             "id": "40f6753b-b321-4e43-9d86-82e66652be55",
             "label": "Background",
+            "scope": "CLASS",
             "y": -148,
             "list": [
                 {
                     "type": "Image",
                     "id": "6e530788-25d6-40b4-a3de-33cd27704537",
                     "label": "fondale",
+                    "scope": "CLASS",
                     "texture": {
                         "key": "Fondale"
                     },
@@ -33,22 +35,10 @@
                     "originY": 0
                 },
                 {
-                    "type": "Image",
-                    "id": "4ea2e164-3323-49ea-949f-a2d48968684e",
-                    "label": "sideQuest",
-                    "displayName": "Falò",
-                    "texture": {
-                        "key": "SideQuest"
-                    },
-                    "x": 1991,
-                    "y": 1031,
-                    "scaleX": 3,
-                    "scaleY": 3
-                },
-                {
                     "type": "Container",
                     "id": "ad4e4ad3-87ff-4ed8-96e5-678d3d309e9a",
                     "label": "Obstacles",
+                    "scope": "CLASS",
                     "y": 148,
                     "allowAppendChildren": true,
                     "list": [
@@ -56,8 +46,14 @@
                             "type": "Rectangle",
                             "id": "a1a97ca9-ba36-4c1e-8718-4a2e3893f630",
                             "label": "Ostacolo_0",
-                            "x": 901,
-                            "y": 892,
+                            "scope": "CLASS",
+                            "x": 560,
+                            "y": 663,
+                            "scaleX": 1.152138881613354,
+                            "scaleY": 1.2232234537535815,
+                            "originX": 0,
+                            "originY": 0,
+                            "lineWidth": 2,
                             "isStroked": true,
                             "width": 800,
                             "height": 400
@@ -66,8 +62,13 @@
                             "type": "Rectangle",
                             "id": "e92b271c-4121-4399-8e09-8e0e0def73b5",
                             "label": "Ostacolo_1",
-                            "x": 1209,
-                            "y": 197,
+                            "scope": "CLASS",
+                            "x": 793,
+                            "y": -10,
+                            "scaleX": 1.0835440374130454,
+                            "originX": 0,
+                            "originY": 0,
+                            "lineWidth": 2,
                             "isStroked": true,
                             "width": 800,
                             "height": 500
@@ -76,11 +77,134 @@
                             "type": "Rectangle",
                             "id": "911643d6-7ec5-4404-8020-b777c03faa97",
                             "label": "Ostacolo_2",
-                            "x": 98,
-                            "y": 241,
+                            "scope": "CLASS",
+                            "x": -6,
+                            "y": -66,
+                            "scaleX": 0.7018596031901114,
+                            "scaleY": 2.021394161978518,
+                            "originX": 0,
+                            "originY": 0,
+                            "lineWidth": 2,
                             "isStroked": true,
                             "width": 800,
                             "height": 400
+                        },
+                        {
+                            "type": "Rectangle",
+                            "id": "3a476cb3-4bd5-4b30-90d7-77dce5b06003",
+                            "label": "Ostacolo",
+                            "scope": "CLASS",
+                            "x": 1627,
+                            "y": 680,
+                            "scaleX": 0.3391755660663689,
+                            "scaleY": 0.7465534498933816,
+                            "originX": 0,
+                            "originY": 0,
+                            "lineWidth": 2,
+                            "isStroked": true,
+                            "width": 800,
+                            "height": 400
+                        },
+                        {
+                            "type": "Rectangle",
+                            "id": "5e56c6d7-c417-442a-bc76-613a2acffaa4",
+                            "label": "Ostacolo_3",
+                            "scope": "CLASS",
+                            "x": 1780,
+                            "y": 178,
+                            "scaleX": 0.5977387089791966,
+                            "scaleY": 1.6766664667490716,
+                            "originX": 0,
+                            "originY": 0,
+                            "lineWidth": 2,
+                            "isStroked": true,
+                            "width": 800,
+                            "height": 400
+                        },
+                        {
+                            "type": "Rectangle",
+                            "id": "50ffed4e-21e6-498e-b83c-08bb0fb35b55",
+                            "label": "Ostacolo_4",
+                            "scope": "CLASS",
+                            "x": 1158,
+                            "y": 1143,
+                            "scaleX": 1.8693172323746494,
+                            "scaleY": 0.3833269990194569,
+                            "originX": 0,
+                            "originY": 0,
+                            "lineWidth": 2,
+                            "isStroked": true,
+                            "width": 800,
+                            "height": 400
+                        },
+                        {
+                            "type": "Rectangle",
+                            "id": "f312f319-388c-406b-b897-5db951b9a3d7",
+                            "label": "Ostacolo_5",
+                            "scope": "CLASS",
+                            "x": 2426,
+                            "y": 785,
+                            "scaleX": 0.37100567763509396,
+                            "scaleY": 1.137346906579483,
+                            "originX": 0,
+                            "originY": 0,
+                            "lineWidth": 2,
+                            "isStroked": true,
+                            "width": 800,
+                            "height": 400
+                        },
+                        {
+                            "type": "Rectangle",
+                            "id": "d1b27b47-cf0c-477a-8206-5d6d62738024",
+                            "label": "Ostacolo_6",
+                            "scope": "CLASS",
+                            "x": 2235,
+                            "y": 320,
+                            "scaleX": 1.0334725060451,
+                            "scaleY": 0.7214967342645326,
+                            "originX": 0,
+                            "originY": 0,
+                            "lineWidth": 2,
+                            "isStroked": true,
+                            "width": 800,
+                            "height": 400
+                        }
+                    ]
+                },
+                {
+                    "type": "Container",
+                    "id": "abea25df-8850-48e7-8bde-d522386df2a9",
+                    "label": "Quests",
+                    "scope": "CLASS",
+                    "y": 148,
+                    "list": [
+                        {
+                            "type": "Image",
+                            "id": "4ea2e164-3323-49ea-949f-a2d48968684e",
+                            "label": "sideQuest_0",
+                            "displayName": "Falò0",
+                            "scope": "CLASS",
+                            "texture": {
+                                "key": "SideQuest"
+                            },
+                            "x": 1720,
+                            "y": 327,
+                            "scaleX": 3,
+                            "scaleY": 3
+                        },
+                        {
+                            "type": "Image",
+                            "id": "f9394f8f-e25c-4bd1-9ef6-8486a4c17887",
+                            "label": "sideQuest_1",
+                            "displayName": "Falò1",
+                            "scope": "CLASS",
+                            "texture": {
+                                "key": "SideQuest"
+                            },
+                            "x": 2104,
+                            "y": 910,
+                            "scaleX": 3,
+                            "scaleY": 3
                         }
                     ]
                 }
@@ -91,6 +215,7 @@
             "id": "950283ff-508d-48b5-a074-8d881a1b69ae",
             "label": "player",
             "displayName": "player",
+            "scope": "PUBLIC",
             "texture": {
                 "key": "backPlayer_S"
             },
@@ -103,12 +228,12 @@
             "type": "Image",
             "id": "80ed9465-57ef-44fa-b06f-2b04ec52d483",
             "label": "Light",
+            "scope": "CLASS",
             "texture": {
                 "key": "MASK"
             },
             "originX": 0,
             "originY": 0,
-            "visible": false,
             "alpha": 0.7,
             "alphaTopLeft": 0.7,
             "alphaTopRight": 0.7,
@@ -120,13 +245,29 @@
             "id": "94ffba2a-bc34-4ec9-b8e4-961cf9b8d5f3",
             "label": "Info_text",
             "displayName": "Interazioni",
-            "scope": "PUBLIC",
+            "scope": "CLASS",
             "x": 640,
             "y": 650,
             "originX": 0.5,
+            "visible": false,
             "text": "Inizia la quest",
             "fontFamily": "PixelifySans-VariableFont_wght",
             "fontSize": "32px"
+        },
+        {
+            "type": "Rectangle",
+            "id": "85252342-e950-435d-a77a-5e887fdc5e1d",
+            "label": "Interaction",
+            "displayName": "Piedi",
+            "scope": "CLASS",
+            "x": 640,
+            "y": 410,
+            "scaleX": 0.46035682784591125,
+            "scaleY": 0.2520342360865992,
+            "lineWidth": 5,
+            "isStroked": true,
+            "width": 128,
+            "height": 128
         }
     ],
     "plainObjects": [],
