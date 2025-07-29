@@ -187,8 +187,8 @@
                             "texture": {
                                 "key": "SideQuest"
                             },
-                            "x": 1720,
-                            "y": 327,
+                            "x": 1724,
+                            "y": 285,
                             "scaleX": 3,
                             "scaleY": 3
                         },
@@ -201,8 +201,8 @@
                             "texture": {
                                 "key": "SideQuest"
                             },
-                            "x": 2104,
-                            "y": 910,
+                            "x": 2034,
+                            "y": 917,
                             "scaleX": 3,
                             "scaleY": 3
                         }

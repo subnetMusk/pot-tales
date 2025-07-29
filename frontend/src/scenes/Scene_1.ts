@@ -45,9 +45,9 @@ class Scene_1 extends Phaser.Scene {
 
 	preload(): void {
 
-		this.load.pack("Sprite-pack", "/assets/sprite/Sprite-pack.json");
-		this.load.pack("images", "/assets/images/images.json");
-		this.load.pack("Font-pack", "/assets/fonts/Pixelify_Sans/Font-pack.json");
+		this.load.pack("Sprite-pack", "frontend/public/assets/sprite/Sprite-pack.json");
+		this.load.pack("images", "frontend/public/assets/images/images.json");
+		this.load.pack("Font-pack", "frontend/public/assets/fonts/Pixelify_Sans/Font-pack.json");
 	}
 
 	editorCreate(): void {
@@ -142,13 +142,13 @@ class Scene_1 extends Phaser.Scene {
 		background.add(quests);
 
 		// sideQuest_0
-		const sideQuest_0 = this.add.image(1720, 327, "SideQuest");
+		const sideQuest_0 = this.add.image(1724, 285, "SideQuest");
 		sideQuest_0.scaleX = 3;
 		sideQuest_0.scaleY = 3;
 		quests.add(sideQuest_0);
 
 		// sideQuest_1
-		const sideQuest_1 = this.add.image(2104, 910, "SideQuest");
+		const sideQuest_1 = this.add.image(2034, 917, "SideQuest");
 		sideQuest_1.scaleX = 3;
 		sideQuest_1.scaleY = 3;
 		quests.add(sideQuest_1);
@@ -278,8 +278,8 @@ class Scene_1 extends Phaser.Scene {
 
 	// Array di messaggi associati alle quest
 	questMessagesArray: string[] = [
-		"Ricicla il denaro",
-		"Riesuma il cadavere"
+		"Ricicla il denaro della mafia",
+		"Trova il cadavere"
 	];
 	questMessages: Map<Phaser.GameObjects.Image, string> = new Map();
 
@@ -290,6 +290,10 @@ class Scene_1 extends Phaser.Scene {
 				const key = event.key.toUpperCase();
 				if (['W', 'A', 'S', 'D'].includes(key)) {
 					this.pressedKeys.add(key as 'W'|'A'|'S'|'D');
+				}
+				// Listener per il tasto ESC - torna al menu
+				if (event.key === 'Escape') {
+					this.scene.start("Menu");
 				}
 			});
 			this.input.keyboard.on('keyup', (event: KeyboardEvent) => {
