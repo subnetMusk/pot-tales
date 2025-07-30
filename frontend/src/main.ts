@@ -1,3 +1,28 @@
+// ===================================================
+// frontend/src/main.ts
+// ===================================================
+// Main entry point with APM RUM monitoring
+// ===================================================
+
+// Initialize APM RUM monitoring FIRST
+import apm from './apm-rum-config.js'
+
+// Expose APM agent globally for debugging and console access
+if (typeof window !== 'undefined') {
+  (window as any).apm = apm;
+  (window as any).elasticApm = apm;
+}
+
+// Log APM initialization with proper type handling
+const env = (import.meta as any).env || {};
+console.log('🔍 APM RUM Agent initialized:', {
+  serviceName: env.VITE_ELASTIC_APM_RUM_SERVICE_NAME || 'frontend-app',
+  serverUrl: env.VITE_ELASTIC_APM_RUM_SERVER_URL || 'http://apm.localhost',
+  environment: env.VITE_ELASTIC_APM_ENVIRONMENT || 'development',
+  apmAgent: !!apm,
+  globallyExposed: !!((window as any).apm && (window as any).elasticApm)
+})
+
 const wrapper = document.getElementById("wrapper");
 
 if (!wrapper) {
@@ -65,5 +90,6 @@ async function startGame() {
 
 // Esporta le funzione per poterle usare in altri moduli 
 // serve per evitare errori dati dalla rinominazione di file e funzioni
-window.injectAndExecute = injectAndExecute;
-window.startGame = startGame;
+// Global exports for browser access
+(window as any).injectAndExecute = injectAndExecute;
+(window as any).startGame = startGame;

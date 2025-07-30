@@ -56,10 +56,21 @@ echo "⚙️  Building front-end bundles…"
 ( cd "$_ROOT/sandbox"  && npm run build )
 
 # 5 ────────────────────────────────────────────────────────────────────────────
-echo "🛑  Halting and PURGING Docker resources…"
-docker compose -f "$_ROOT/docker-compose.dev.yml" down --rmi all --volumes --remove-orphans
-docker system prune -af --volumes
+echo "🛑  Halting Docker services and cleaning up..."
+docker compose -f "$_ROOT/docker-compose.dev.yml" down --remove-orphans
+
+echo "🧹  Cleaning Docker images and cache (preserving persistent data)..."
+# Remove only images and build cache, but preserve bound volumes (our persistent data)
+docker system prune -af
 docker builder prune --all --force
+
+# Note: We explicitly DO NOT use --volumes flag to preserve:
+# - Kibana configurations and dashboards in docker/volumes/kibana/
+# - Elasticsearch indices and Fleet settings in docker/volumes/logs/esdata/
+# - MongoDB data in docker/volumes/mongodb/
+# - NGINX Proxy Manager configs in docker/volumes/npm_data/
+# - Redis ACL configurations in docker/redis/
+# - Elastic Agent configurations in docker/volumes/elastic-agent/
 
 # 6 ────────────────────────────────────────────────────────────────────────────
 echo "🔨  Rebuilding images from scratch…"
