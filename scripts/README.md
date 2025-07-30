@@ -1,8 +1,325 @@
-# Scripts Directory
+# Scripts Documentation
 
-This directory contains utility scripts for managing the Docker Compose development environment.
+Questa directory contiene tutti gli script di automazione per il deployment, manutenzione e gestione dell'infrastruttura di gioco.
 
-## Available Scripts
+## 📋 Indice Scripts
+
+### **🚀 Deployment Scripts**
+- [`dev-reinstall.sh`](#dev-reinstallsh) - Setup completo ambiente sviluppo
+- [`prod-rebuild.sh`](#prod-rebuildsh) - Deploy produzione ottimizzato
+- [`update_frontend.sh`](#update_frontendsh) - Aggiornamento rapido frontend
+- [`update_sandbox.sh`](#update_sandboxsh) - Aggiornamento ambiente test
+
+### **🧹 Maintenance Scripts**
+- [`clean_build.sh`](#clean_buildsh) - Pulizia build artifacts
+- [`check-persistent-config.sh`](#check-persistent-configsh) - Verifica configurazioni
+
+### **🔧 Utility Scripts**
+- [`json_structure.py`](#json_structurepy) - Analisi struttura project
+
+---
+
+## 🚀 Deployment Scripts
+
+### `dev-reinstall.sh`
+
+**Scopo**: Setup completo ambiente di sviluppo con hot-reload e debugging
+
+**Operazioni eseguite**:
+1. **Cleanup completo**:
+   - Arresta tutti i container attivi
+   - Rimuove container, volumi anonimi e network
+   - Pulisce cache Docker
+
+2. **Reinstallazione dipendenze**:
+   - Rimuove `node_modules` e lock files
+   - Reinstalla npm dependencies per frontend e sandbox
+   - Aggiorna package vulnerabilities
+
+3. **Build sviluppo**:
+   - Build frontend in modalità development
+   - Configurazione sandbox con hot-reload
+   - Setup variabili ambiente per development
+
+4. **Avvio servizi**:
+   - Start `docker-compose.dev.yml`
+   - Configurazione network per development
+   - Inizializzazione database con dati di test
+
+**Dipendenze Environment**:
+```bash
+NODE_ENV=development          # Modalità sviluppo
+VITE_PORT=5173               # Porta dev server
+ELASTICSEARCH_PASSWORD       # Accesso monitoring
+KIBANA_SYSTEM_PASSWORD      # Dashboard sviluppo
+```
+
+**Utilizzo**:
+```bash
+./scripts/dev-reinstall.sh
+```
+
+**Tempo esecuzione**: ~3-5 minuti
+**Output**: Tutti i servizi attivi con hot-reload abilitato
+
+---
+
+### `prod-rebuild.sh`
+
+**Scopo**: Deploy produzione con ottimizzazioni performance e sicurezza
+
+**Operazioni eseguite**:
+1. **Production cleanup**:
+   - Stop servizi esistenti
+   - Backup database prima della ricostruzione
+   - Cleanup risorse non necessarie
+
+2. **Build ottimizzato**:
+   - Frontend build con tree-shaking e minification
+   - Asset optimization (immagini, fonts)
+   - Bundle splitting per performance
+
+3. **Deploy produzione**:
+   - Start `docker-compose.prod.yml`
+   - Configurazione SSL e security headers
+   - Health check tutti i servizi
+
+**Dipendenze Environment**:
+```bash
+NODE_ENV=production          # Modalità produzione
+ELASTICSEARCH_PASSWORD       # Monitoring produzione
+APM_SECRET_TOKEN            # Performance monitoring
+PROXY_ADMIN_PORT            # Gestione proxy
+```
+
+**Utilizzo**:
+```bash
+./scripts/prod-rebuild.sh
+```
+
+**Tempo esecuzione**: ~4-7 minuti
+**Output**: Stack produzione ottimizzato e monitorato
+
+---
+
+### `update_frontend.sh`
+
+**Scopo**: Aggiornamento rapido solo frontend senza rebuild completo
+
+**Operazioni eseguite**:
+1. **Frontend rebuild**:
+   - Rebuild solo container frontend
+   - Preserva stato database e cache
+   - Mantiene sessioni utente attive
+
+2. **Hot swap**:
+   - Stop/start solo container frontend
+   - Zero downtime per altri servizi
+   - Sync immediato nuovi asset
+
+**Dipendenze Environment**:
+```bash
+VITE_API_SERVER             # Backend endpoint
+ELASTIC_APM_RUM_SERVER_URL  # Performance tracking
+```
+
+**Utilizzo**:
+```bash
+./scripts/update_frontend.sh
+```
+
+**Tempo esecuzione**: ~30-60 secondi
+**Output**: Frontend aggiornato con zero downtime backend
+
+---
+
+### `update_sandbox.sh`
+
+**Scopo**: Aggiornamento ambiente test isolato
+
+**Operazioni eseguite**:
+1. **Sandbox refresh**:
+   - Rebuild container sandbox
+   - Reset dati di test
+   - Configurazione networking isolato
+
+**Utilizzo**:
+```bash
+./scripts/update_sandbox.sh
+```
+
+---
+
+## 🧹 Maintenance Scripts
+
+### `clean_build.sh`
+
+**Scopo**: Pulizia build artifacts e cache per troubleshooting
+
+**Operazioni eseguite**:
+1. **Build cleanup**:
+   - Rimuove directory `dist/` e `build/`
+   - Pulisce `node_modules`
+   - Reset Docker build cache
+
+2. **Cache cleanup**:
+   - Pulisce cache npm
+   - Reset cache Vite
+   - Cleanup cache Docker layers
+
+**Utilizzo**:
+```bash
+./scripts/clean_build.sh
+```
+
+**Quando utilizzare**:
+- Errori di build inspiegabili
+- Inconsistenze tra ambienti
+- Preparazione rilasci clean
+
+---
+
+### `check-persistent-config.sh`
+
+**Scopo**: Verifica integrità configurazioni persistenti dopo deployment
+
+**Operazioni eseguite**:
+1. **Environment verification**:
+   - Controlla file `.env` e `docker/env/.env`
+   - Verifica configurazioni Elasticsearch/Kibana
+   - Valida token APM e credenziali
+
+2. **Services health check**:
+   - Verifica connettività database
+   - Check status Elasticsearch cluster
+   - Valida configurazioni proxy
+
+3. **Persistent data verification**:
+   - Controlla volumi Docker
+   - Verifica backup configurations
+   - Valida integrità database
+
+**Controlli eseguiti** (51 totali):
+- ✅ **Environment Files**: `.env`, `docker/env/.env`
+- ✅ **NGINX Proxy Manager**: Configurazioni SSL e domini
+- ✅ **Elasticsearch**: Data integrity e cluster health
+- ✅ **Kibana**: Configurazioni dashboard e index patterns
+- ✅ **APM Server**: Token validation e connectivity
+- ✅ **Elastic Agent**: System monitoring configuration
+- ✅ **Fluent Bit**: Log aggregation e parsing rules
+- ✅ **MongoDB**: Data persistence e backup status
+- ✅ **Redis**: ACL configuration e performance
+- ✅ **Frontend Configuration**: APM integration e environment
+- ✅ **Docker Compose**: Service definitions e networking
+
+**Output esempio**:
+```
+📊 Check Results:
+   Total Checks: 51
+   ✅ Passed: 47
+   ❌ Failed: 0
+   ⚠️  Warnings: 4
+
+🎉 All persistent configurations are intact!
+```
+
+**Utilizzo**:
+```bash
+./scripts/check-persistent-config.sh
+```
+
+**Dipendenze Environment**:
+```bash
+ELASTICSEARCH_USERNAME       # Accesso cluster
+ELASTICSEARCH_PASSWORD       # Validazione connessione
+APM_SECRET_TOKEN            # Verifica APM integration
+KIBANA_SYSTEM_PASSWORD      # Dashboard access
+```
+
+---
+
+## 🔧 Utility Scripts
+
+### `json_structure.py`
+
+**Scopo**: Analisi struttura progetto e dipendenze
+
+**Operazioni eseguite**:
+1. **Project analysis**:
+   - Scansione directory structure
+   - Analisi dipendenze package.json
+   - Report configurazioni Docker
+
+**Utilizzo**:
+```bash
+python scripts/json_structure.py
+```
+
+---
+
+## 🛠️ Script Development Guidelines
+
+### **Convenzioni**
+- Tutti gli script bash includono error handling
+- Output colorato per feedback utente
+- Logging operazioni critiche
+- Rollback automatico in caso di failure
+
+### **Environment Dependencies**
+Ogni script dipende da variabili specifiche in `.env`:
+
+```bash
+# Variabili comuni a tutti gli script
+ELASTICSEARCH_PASSWORD       # Accesso monitoring
+KIBANA_SYSTEM_PASSWORD      # Dashboard access
+APM_SECRET_TOKEN            # Performance tracking
+PROXY_ADMIN_PORT           # Proxy management
+
+# NPM Registry authentication
+NPM_EMAIL                   # npm login credentials
+NPM_PASSWORD               # npm access token/password
+
+# Development specific
+NODE_ENV=development
+VITE_PORT=5173
+
+# Production specific  
+NODE_ENV=production
+SSL_ENABLED=true
+```
+
+### **Error Handling**
+Tutti gli script implementano:
+- Controllo prerequisiti (Docker, Node.js)
+- Validation variabili ambiente
+- Cleanup automatico in caso di errore
+- Log dettagliati per debugging
+
+### **Performance Optimization**
+- Build parallelizzati dove possibile
+- Cache intelligente per speed up
+- Health check non-blocking
+- Cleanup risorse automatico
+
+---
+
+## 📊 Script Monitoring
+
+Ogni script può essere monitorato tramite:
+
+1. **Log output**: Tutti gli script generano log strutturati
+2. **Exit codes**: Codici di uscita standardizzati per automation
+3. **Metrics**: Performance timing per ogni operazione
+4. **Health checks**: Validation automatica post-execution
+
+Per monitoring automatico:
+```bash
+# Esecuzione con logging
+./scripts/dev-reinstall.sh 2>&1 | tee deployment.log
+
+# Check exit code
+echo $? # 0 = success, >0 = error
+```
 
 ### `dev-reinstall.sh`
 **Full development environment reinstall from scratch**
@@ -55,3 +372,117 @@ This directory contains utility scripts for managing the Docker Compose developm
 🔧 **Configuration Sync**: Always ensure both `.env` files (root and `docker/env/.env`) remain synchronized.
 
 🚀 **Quick Start**: For new developers, run `./scripts/check-persistent-config.sh` first to verify the environment, then `./scripts/dev-reinstall.sh` for a complete setup.
+
+---
+
+## 📚 Development Guidelines
+
+**⚠️ Per le complete best practices di sviluppo, architettura e deployment consultare:**
+**[📖 GAME_ARCHITECTURE.md](../GAME_ARCHITECTURE.md)**
+
+Il documento centralizza:
+- 🏗️ **Architettura & Design Patterns** 
+- 💻 **Frontend/Backend Best Practices**
+- 🔒 **Security & Schema Validation**
+- 📊 **Monitoring & Analytics Setup**
+- ⚡ **Performance Optimization**
+- 🧪 **Testing Strategies**
+- 🚀 **Deployment & CI/CD**
+
+### **Quick Reference - Essential Commands**
+
+**Development Environment**:
+```bash
+./scripts/dev-reinstall.sh           # Full environment setup
+./scripts/check-persistent-config.sh # Verify configuration
+./scripts/update_frontend.sh         # Quick frontend update
+```
+
+**Performance Monitoring**:
+```bash
+# Check game performance
+curl http://localhost/health
+curl http://kibana.localhost/api/status
+
+# Monitor real-time logs  
+docker logs server --tail 50 -f     # API server
+docker logs frontend --tail 50 -f   # Frontend build
+docker logs fluent-bit --tail 20 -f # Log aggregation
+```
+
+**Production Deployment**:
+```bash
+./scripts/prod-rebuild.sh           # Full production build
+# Uses docker-compose.prod.yml (excludes sandbox)
+```
+
+### **Schema Validation System**
+
+Il sistema di validazione automatica (`comms/server/public/`) garantisce:
+- **Route Whitelisting**: Solo endpoint con schema JSON sono accessibili
+- **Request Validation**: Validazione automatica body contro schema
+- **Security by Default**: Rotte non schemate vengono bloccate
+- **GDPR Compliance**: Validazione consent obbligatoria
+
+
+### **Monitoring & Analytics Integration**
+
+**Frontend Analytics** (esempio eventi essenziali):
+```typescript
+// Level progression tracking
+analytics.logEvent('level_completed', {
+  level: 3, completion_time: 45.2, score: 1250, deaths: 2
+});
+
+// Performance monitoring
+analytics.logEvent('performance_issue', {
+  issue_type: 'low_fps', fps: 28, level: 5
+});
+
+// Achievement tracking
+analytics.logEvent('achievement_unlocked', {
+  achievement_id: 'speed_runner', level: 3
+});
+```
+
+**Backend Structured Logging**:
+```go
+// APM tracking obbligatorio per nuovi endpoint
+func (h *GameHandler) SaveProgress(ctx context.Context, req *SaveProgressRequest) error {
+    span, ctx := apm.StartSpan(ctx, "game.save_progress", "business_logic")
+    defer span.End()
+    
+    // Structured logging con context
+    logger.WithFields(logrus.Fields{
+        "player_id": req.PlayerID,
+        "level": req.Level,
+        "operation": "save_progress",
+    }).Info("Processing progress save")
+    
+    return h.gameService.SaveProgress(ctx, req)
+}
+```
+
+### **Critical Development Requirements**
+
+1. **Testing Strategy**:
+   - ✅ Unit tests per game logic
+   - ✅ Integration tests per API endpoints  
+   - ✅ Performance validation (FPS ≥50, API <100ms)
+   - ✅ Schema validation testing
+
+2. **Monitoring Requirements**:
+   - ✅ APM tracing per tutti i nuovi endpoint
+   - ✅ Analytics events per interazioni utente significative
+   - ✅ Performance metrics tracking
+   - ✅ Error tracking e logging strutturato
+
+3. **Deployment Checklist**:
+   - ✅ Performance benchmarks rispettati
+   - ✅ Test su frontend reale (non solo sandbox) 
+   - ✅ APM tracking configurato e verificato
+   - ✅ Analytics events validati in Kibana
+   - ✅ Schema validation aggiornata
+   - ✅ Health checks funzionanti
+
+**🔗 Per dettagli completi su implementazione, esempi di codice e troubleshooting consultare [GAME_ARCHITECTURE.md](../GAME_ARCHITECTURE.md)**

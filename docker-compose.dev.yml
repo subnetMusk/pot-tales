@@ -240,12 +240,16 @@ services:
   fluent-bit:
     image: fluent/fluent-bit:2.2
     container_name: fluent-bit
+    environment:
+      - ELASTICSEARCH_USERNAME=${ELASTICSEARCH_USERNAME}
+      - ELASTICSEARCH_PASSWORD=${ELASTICSEARCH_PASSWORD}
     volumes:
       - ./docker/volumes/fluent-bit:/fluent-bit/etc:ro
       - /var/lib/docker/containers:/var/lib/docker/containers:ro
       - /var/log:/var/log:ro
       - ./docker/volumes/npm_data/logs:/fluent-bit/npm_logs:ro
       - ./docker/volumes/fluent-bit-db:/fluent-bit/db
+      - /var/run/docker.sock:/var/run/docker.sock:ro
     depends_on:
       - elasticsearch
     networks:
