@@ -278,6 +278,48 @@ Accesso controllato tramite ACL:
 - Cache availability testing
 - APM agent connectivity
 
+### **Production Data Management**
+
+**Pre-Production Cleanup**:
+Prima del deployment produzione, eseguire pulizia sicura e intelligente:
+
+```bash
+# Backup automatico delle dashboard personalizzate
+./scripts/kibana-dashboard-manager.sh export
+
+# Pulizia selettiva preservando tutte le configurazioni
+./scripts/cleanup.sh --production
+```
+
+**Sistema di Pulizia Centralizzato**:
+Il nuovo `cleanup.sh` offre modalità multiple con backup automatici:
+- `--production`: Pulizia selettiva per deployment (preserva configurazioni)
+- `--dev`: Pulizia completa per sviluppo
+- `--soft`: Solo cache e build artifacts
+- `--full`: Pulizia totale con conferma esplicita
+
+**Dati Rimossi** (solo sviluppo/testing):
+- `docker/volumes/mongodb/*` - Database giocatori di sviluppo
+- `docker/volumes/logs/esdata/*` - Indici Elasticsearch di sviluppo
+- `docker/volumes/logs/mongodb/*` - Log MongoDB di sviluppo
+- `docker/volumes/fluent-bit-db/*.db*` - Cache log processing
+
+**Sempre Preservato**:
+- `docker/volumes/npm_data/` - Configurazioni proxy e domini
+- `docker/volumes/npm_letsencrypt/` - Certificati SSL
+- `docker/volumes/fluent-bit/` - Configurazione log aggregation
+- `docker/volumes/kibana/config/` - Configurazione Kibana
+- Dashboard Kibana (con backup automatico)
+- `.env` files - Variabili ambiente
+
+**Workflow Deployment**:
+1. **Dashboard Backup**: `./scripts/kibana-dashboard-manager.sh export`
+2. **Data Cleanup**: `./scripts/cleanup.sh --production`
+3. **Config Verification**: `./scripts/check-persistent-config.sh`
+4. **Production Deploy**: `./scripts/prod-rebuild.sh`
+
+> 📖 **Documentazione Completa**: [Sistema di Pulizia Centralizzato](scripts/CLEANUP_SYSTEM.md)
+
 ---
 
 ## 📚 Development Workflow

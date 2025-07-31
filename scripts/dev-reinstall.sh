@@ -1,4 +1,5 @@
-#!/usr/bin/env bash
+#!/# Full "clean-slate" rebuild for development.
+# Uses the new centralized cleanup script and rebuilds everything from scratch.env bash
 ###############################################################################
 # scripts/dev-reinstall.sh
 # Full “clean-slate” rebuild for development.
@@ -13,68 +14,77 @@
 set -euo pipefail
 
 _ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+cd "$_ROOT"
 
-# 0 ────────────────────────────────────────────────────────────────────────────
-# Configura GOPRIVATE per assicurare che i moduli del progetto privato
-# non passino attraverso proxy.golang.org né sum.golang.org
+# Configura GOPRIVATE per moduli privati
 export GOPRIVATE=github.com/subnetMusk/progetti_innovativi/server
 
-# 1 ────────────────────────────────────────────────────────────────────────────
-echo "🗑️  Removing JS artefacts…"
-rm -rf "$_ROOT/frontend/dist"  "$_ROOT/sandbox/dist"
-rm -rf "$_ROOT/frontend/node_modules"  "$_ROOT/frontend/package-lock.json"
-rm -rf "$_ROOT/sandbox/node_modules"   "$_ROOT/sandbox/package-lock.json"
-# Il progetto Go non produce una cartella dist in locale, quindi la rimozione è opzionale:
-rm -rf "$_ROOT/server/dist" || true
+echo "� === DEV REINSTALL - Ricostruzione Completa Sviluppo ==="
+echo ""
 
-# 2 ────────────────────────────────────────────────────────────────────────────
-echo "📦 Installing JS dependencies…"
-( cd "$_ROOT/frontend" && npm install )
-( cd "$_ROOT/sandbox"  && npm install )
+# 1. Pulizia completa usando il nuovo script centralizzato
+echo "🧹 Esecuzione pulizia completa..."
+./scripts/cleanup.sh --dev
 
-# 3 ────────────────────────────────────────────────────────────────────────────
-# Dentro un container Golang usa GOPRIVATE per rispettare il modulo privato
-echo "⬇️  Downloading / updating Go modules (Docker)…"
-MSYS_NO_PATHCONV=1 docker run --rm \
-  -e GOPRIVATE=$GOPRIVATE \
-  -v "$_ROOT/server":/go/src/app \
-  -w /go/src/app \
-  golang:1.22 sh -c '
-    set -e
-    echo "🔄  go get latest stable deps…"
-    go get -u github.com/redis/go-redis/v9@latest \
-             github.com/santhosh-tekuri/jsonschema/v5@latest
-    echo "🧹  go mod tidy…"
-    go mod tidy
-    echo "⬇️  go mod download (cache)…"
-    go mod download
-  '
+# 2. Reinstallazione dipendenze JavaScript
+echo ""
+echo "📦 Reinstallazione dipendenze JavaScript..."
 
-# 4 ────────────────────────────────────────────────────────────────────────────
-echo "⚙️  Building front-end bundles…"
-( cd "$_ROOT/frontend" && npm run build )
-( cd "$_ROOT/sandbox"  && npm run build )
+# Frontend
+if [ -d "frontend" ]; then
+    echo "   🔧 Frontend..."
+    cd "$_ROOT/frontend"
+    npm install
+    npm run build
+    cd "$_ROOT"
+    echo "   ✅ Frontend build completato"
+fi
 
-# 5 ────────────────────────────────────────────────────────────────────────────
-echo "🛑  Halting Docker services and cleaning up..."
-docker compose -f "$_ROOT/docker-compose.dev.yml" down --remove-orphans
+# Sandbox  
+if [ -d "sandbox" ]; then
+    echo "   🔧 Sandbox..."
+    cd "$_ROOT/sandbox"
+    npm install
+    npm run build
+    cd "$_ROOT"
+    echo "   ✅ Sandbox build completato"
+fi
 
-echo "🧹  Cleaning Docker images and cache (preserving persistent data)..."
-# Remove only images and build cache, but preserve bound volumes (our persistent data)
-docker system prune -af
-docker builder prune --all --force
+# 3. Aggiornamento moduli Go nel container
+echo ""
+echo "🐹 Aggiornamento moduli Go..."
+if [ -d "server" ] && [ -f "server/go.mod" ]; then
+    # Uso un container temporaneo per go mod tidy rispettando GOPRIVATE
+    MSYS_NO_PATHCONV=1 docker run --rm \
+        -e GOPRIVATE="$GOPRIVATE" \
+        -v "$_ROOT/server":/go/src/app \
+        -w /go/src/app \
+        golang:1.22 sh -c '
+            set -e
+            echo "🔄 go get latest stable deps..."
+            go get -u github.com/redis/go-redis/v9@latest \
+                     github.com/santhosh-tekuri/jsonschema/v5@latest
+            echo "🧹 go mod tidy..."
+            go mod tidy
+            echo "⬇️ go mod download (cache)..."
+            go mod download
+        '
+    echo "   ✅ Moduli Go aggiornati"
+else
+    echo "   ⚠️  Directory server/go.mod non trovata"
+fi
 
-# Note: We explicitly DO NOT use --volumes flag to preserve:
-# - Kibana configurations and dashboards in docker/volumes/kibana/
-# - Elasticsearch indices and Fleet settings in docker/volumes/logs/esdata/
-# - MongoDB data in docker/volumes/mongodb/
-# - NGINX Proxy Manager configs in docker/volumes/npm_data/
-# - Redis ACL configurations in docker/redis/
-# - Elastic Agent configurations in docker/volumes/elastic-agent/
+# 4. Ricostruzione stack Docker
+echo ""
+echo "🐳 Ricostruzione stack Docker..."
 
-# 6 ────────────────────────────────────────────────────────────────────────────
-echo "🔨  Rebuilding images from scratch…"
-docker compose -f "$_ROOT/docker-compose.dev.yml" build --no-cache
+# Build da zero senza cache
+echo "   🔨 Build immagini da zero..."
+docker compose -f docker-compose.dev.yml build --no-cache --parallel
 
-echo "🚀  Starting services (DEV)…"
-docker compose -f "$_ROOT/docker-compose.dev.yml" up -d
+# 5. Avvio stack
+echo ""
+echo "🚀 Avvio stack di sviluppo..."
+docker compose -f docker-compose.dev.yml up -d
+
+echo "✅ Dev reinstall terminato."

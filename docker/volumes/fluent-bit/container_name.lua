@@ -1,85 +1,146 @@
+-- container_name.lua
+-- Enhanced container identification and metadata enrichment
+-- Extracts container information from Docker log paths and content
+
 function extract_container_info(tag, timestamp, record)
-    -- Map common container IDs to service names
+    local new_record = record
+    local container_id = ""
+    local service_name = "unknown"
+    
+    -- Enhanced container service mapping
     local container_services = {
-        ["nginx-proxy-manager"] = "proxy",
-        ["elasticsearch"] = "elasticsearch", 
-        ["kibana"] = "kibana",
-        ["apm-server"] = "apm-server",
-        ["elastic-agent"] = "elastic-agent",
-        ["fluent-bit"] = "fluent-bit",
-        ["db"] = "mongodb",
-        ["redis"] = "redis",
-        ["frontend"] = "frontend",
-        ["server"] = "server",
-        ["sandbox"] = "sandbox",
-        ["mongo-express"] = "mongo-ui",
-        ["redis-commander"] = "redis-ui"
+        ["nginx-proxy-manager"] = {name = "proxy", category = "infrastructure"},
+        ["elasticsearch"] = {name = "elasticsearch", category = "logging"}, 
+        ["kibana"] = {name = "kibana", category = "logging"},
+        ["apm-server"] = {name = "apm-server", category = "monitoring"},
+        ["elastic-agent"] = {name = "elastic-agent", category = "monitoring"},
+        ["fluent-bit"] = {name = "fluent-bit", category = "logging"},
+        ["db"] = {name = "mongodb", category = "database"},
+        ["redis"] = {name = "redis", category = "cache"},
+        ["frontend"] = {name = "frontend", category = "application"},
+        ["server"] = {name = "server", category = "application"},
+        ["sandbox"] = {name = "sandbox", category = "development"},
+        ["mongo-express"] = {name = "mongo-ui", category = "management"},
+        ["redis-commander"] = {name = "redis-ui", category = "management"}
     }
     
-    -- Extract container ID from log file path
-    local container_id = ""
-    if record["_FILENAME"] then
-        container_id = string.match(record["_FILENAME"], "/var/lib/docker/containers/([^/]+)/")
+    -- Extract container ID from file path
+    if new_record["_FILENAME"] then
+        container_id = string.match(new_record["_FILENAME"], "/var/lib/docker/containers/([^/]+)/")
         if container_id then
-            -- Truncate to 12 chars like Docker does
-            container_id = string.sub(container_id, 1, 12)
-            record["container_id"] = container_id
+            container_id = string.sub(container_id, 1, 12)  -- Standard Docker short ID
+            new_record["container_id"] = container_id
         end
     end
     
-    -- Get container name from tag (docker.var.lib.docker.containers.CONTAINERID.CONTAINERID-json.log)
-    local service_name = "unknown"
-    if tag then
-        -- Try to extract from tag pattern
-        local tag_parts = {}
-        for part in string.gmatch(tag, "[^.]+") do
-            table.insert(tag_parts, part)
-        end
+    -- Enhanced service detection from log content
+    if new_record["log"] then
+        local log_content = new_record["log"]
         
-        -- Look for container ID in tag
-        if #tag_parts >= 6 then
-            local potential_id = tag_parts[6]
-            if potential_id and #potential_id >= 12 then
-                container_id = string.sub(potential_id, 1, 12)
-                record["container_id"] = container_id
-            end
-        end
-    end
-    
-    -- Try to guess service from log content
-    if record["log"] then
-        local log_content = record["log"]
-        
-        -- Check for specific service patterns in logs
-        if string.find(log_content, "elasticsearch") or string.find(log_content, "ES_JAVA_OPTS") then
+        -- Elasticsearch patterns
+        if string.find(log_content, "elasticsearch") or 
+           string.find(log_content, "ES_JAVA_OPTS") or
+           string.find(log_content, "cluster%.name") or
+           string.find(log_content, "node%.name") then
             service_name = "elasticsearch"
-        elseif string.find(log_content, "kibana") then
+            
+        -- Kibana patterns  
+        elseif string.find(log_content, "kibana") or
+               string.find(log_content, "Kibana") then
             service_name = "kibana"
-        elseif string.find(log_content, "apm%-server") or string.find(log_content, "APM Server") then
+            
+        -- APM Server patterns
+        elseif string.find(log_content, "apm%-server") or 
+               string.find(log_content, "APM Server") or
+               string.find(log_content, "apm%.enabled") then
             service_name = "apm-server"
-        elseif string.find(log_content, "nginx") or string.find(log_content, "proxy") then
+            
+        -- NGINX Proxy Manager patterns
+        elseif string.find(log_content, "nginx") or 
+               string.find(log_content, "proxy%-manager") or
+               string.find(log_content, "certbot") then
             service_name = "proxy"
-        elseif string.find(log_content, "mongo") or string.find(log_content, "database") then
+            
+        -- MongoDB patterns
+        elseif string.find(log_content, "mongod") or 
+               string.find(log_content, "MongoDB") or
+               string.find(log_content, "database") or
+               string.find(log_content, "mongo%-express") then
             service_name = "mongodb"
-        elseif string.find(log_content, "redis") then
+            
+        -- Redis patterns
+        elseif string.find(log_content, "redis%-server") or
+               string.find(log_content, "Redis") or
+               string.find(log_content, "redis%-commander") then
             service_name = "redis"
-        elseif string.find(log_content, "frontend") or string.find(log_content, "vite") then
+            
+        -- Frontend patterns (Vite, game frontend)
+        elseif string.find(log_content, "vite") or
+               string.find(log_content, "Local:%s+http") or
+               string.find(log_content, "ready in") then
             service_name = "frontend"
-        elseif string.find(log_content, "server") or string.find(log_content, "gin") or string.find(log_content, "go") then
+            
+        -- Backend Go server patterns
+        elseif string.find(log_content, "gin%.Mode") or
+               string.find(log_content, "Listening and serving") or
+               string.find(log_content, "main%.go") then
             service_name = "server"
+            
+        -- Sandbox patterns
         elseif string.find(log_content, "sandbox") then
             service_name = "sandbox"
-        elseif string.find(log_content, "fluent%-bit") then
+            
+        -- Fluent Bit patterns
+        elseif string.find(log_content, "fluent%-bit") or
+               string.find(log_content, "Fluent Bit") then
             service_name = "fluent-bit"
-        elseif string.find(log_content, "elastic%-agent") then
+            
+        -- Elastic Agent patterns
+        elseif string.find(log_content, "elastic%-agent") or
+               string.find(log_content, "Elastic Agent") then
             service_name = "elastic-agent"
         end
     end
     
-    -- Set the extracted information
-    record["container_name"] = service_name
-    record["service_name"] = service_name
-    record["container_short_id"] = container_id or "unknown"
+    -- Get service metadata
+    local service_info = container_services[service_name] or {name = service_name, category = "unknown"}
     
-    return 1, timestamp, record
+    -- Set enriched metadata
+    new_record["container_name"] = service_name
+    new_record["service_name"] = service_info.name
+    new_record["service_category"] = service_info.category
+    new_record["container_short_id"] = container_id or "unknown"
+    
+    -- Add environment context
+    new_record["environment"] = "development"  -- Could be made configurable
+    new_record["log_processor"] = "fluent-bit"
+    new_record["processed_at"] = os.date("!%Y-%m-%dT%H:%M:%SZ")
+    
+    -- Add log level detection
+    if new_record["log"] then
+        new_record["detected_level"] = detect_log_level(new_record["log"])
+    end
+    
+    return 1, timestamp, new_record
+end
+
+function detect_log_level(log_content)
+    local content_lower = string.lower(log_content)
+    
+    if string.find(content_lower, "error") or 
+       string.find(content_lower, "failed") or
+       string.find(content_lower, "exception") then
+        return "error"
+    elseif string.find(content_lower, "warn") or
+           string.find(content_lower, "warning") then
+        return "warning"
+    elseif string.find(content_lower, "debug") then
+        return "debug"
+    elseif string.find(content_lower, "info") or
+           string.find(content_lower, "starting") or
+           string.find(content_lower, "ready") then
+        return "info"
+    else
+        return "unknown"
+    end
 end

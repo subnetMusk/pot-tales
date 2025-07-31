@@ -10,9 +10,12 @@ Questa directory contiene tutti gli script di automazione per il deployment, man
 - [`update_frontend.sh`](#update_frontendsh) - Aggiornamento rapido frontend
 - [`update_sandbox.sh`](#update_sandboxsh) - Aggiornamento ambiente test
 
-### **🧹 Maintenance Scripts**
-- [`clean_build.sh`](#clean_buildsh) - Pulizia build artifacts
+### **🧹 Sistema di Pulizia Centralizzato**
+- [`cleanup.sh`](#cleanupsh) - Script di pulizia intelligente con modalità multiple
+- [`kibana-dashboard-manager.sh`](#kibana-dashboard-managersh) - Gestione backup dashboard
 - [`check-persistent-config.sh`](#check-persistent-configsh) - Verifica configurazioni
+
+> 📖 **Documentazione Completa**: [Sistema di Pulizia Centralizzato](CLEANUP_SYSTEM.md)
 
 ### **🔧 Utility Scripts**
 - [`json_structure.py`](#json_structurepy) - Analisi struttura project
@@ -150,32 +153,81 @@ ELASTIC_APM_RUM_SERVER_URL  # Performance tracking
 
 ---
 
-## 🧹 Maintenance Scripts
+## 🧹 Sistema di Pulizia e Manutenzione
 
-### `clean_build.sh`
+Il sistema di pulizia è stato centralizzato nello script `cleanup.sh` che offre modalità multiple per diversi scenari.
 
-**Scopo**: Pulizia build artifacts e cache per troubleshooting
+Vedere [Sistema di Pulizia Centralizzato](CLEANUP_SYSTEM.md) per la documentazione completa.
 
-**Operazioni eseguite**:
-1. **Build cleanup**:
-   - Rimuove directory `dist/` e `build/`
-   - Pulisce `node_modules`
-   - Reset Docker build cache
+- Preparazione rilasci clean
 
-2. **Cache cleanup**:
-   - Pulisce cache npm
-   - Reset cache Vite
-   - Cleanup cache Docker layers
+---
 
-**Utilizzo**:
+### `cleanup.sh`
+
+**Scopo**: Sistema di pulizia centralizzato e intelligente con modalità multiple
+
+**Modalità Disponibili**:
+
+#### `--dev` (Modalità Sviluppo - Default)
+Pulizia completa per ambiente di sviluppo:
+- Backup automatico configurazioni critiche
+- Rimozione container e volumi Docker
+- Pulizia artifacts di build (node_modules, dist, cache)
+- Preserva configurazioni essenziali
+
+#### `--production` (Modalità Produzione)
+Pulizia selettiva per deployment produzione:
+- Backup automatico prima della pulizia
+- Rimozione solo dati di sviluppo
+- Preserva TUTTE le configurazioni
+- Verifica integrità post-pulizia
+
+#### `--soft` (Modalità Leggera)
+Pulizia conservativa:
+- Solo cache e build artifacts
+- Preserva dati e configurazioni
+- Ideale per pulizie quotidiane
+
+#### `--full` (Modalità Completa - ATTENZIONE!)
+Pulizia totale con conferma esplicita:
+- Cancella TUTTO comprese configurazioni
+- Richiede digitare 'DELETE_ALL'
+- Backup automatico prima della distruzione
+
+**Uso**:
 ```bash
-./scripts/clean_build.sh
+./scripts/cleanup.sh --dev          # Pulizia sviluppo (default)
+./scripts/cleanup.sh --production   # Pulizia per produzione
+./scripts/cleanup.sh --soft         # Solo cache
+./scripts/cleanup.sh --full         # TUTTO (attenzione!)
+./scripts/cleanup.sh --help         # Mostra help
 ```
 
-**Quando utilizzare**:
-- Errori di build inspiegabili
-- Inconsistenze tra ambienti
-- Preparazione rilasci clean
+**Caratteristiche**:
+- ✅ **Backup automatico** configurazioni critiche
+- ✅ **Protezione intelligente** certificati SSL, NGINX, Kibana
+- ✅ **Output colorato** e informativo
+- ✅ **Verifica integrità** post-operazione
+- ✅ **Modalità multiple** per ogni scenario
+
+### `kibana-dashboard-manager.sh`
+
+**Scopo**: Gestione completa backup e ripristino dashboard Kibana personalizzate
+
+**Operazioni**:
+- **Export**: Esporta tutte le dashboard correnti
+- **Import**: Importa dashboard da file backup
+- **List**: Lista backup disponibili
+- **Protect**: Configura protezione negli script di pulizia
+
+**Uso**:
+```bash
+./scripts/kibana-dashboard-manager.sh export
+./scripts/kibana-dashboard-manager.sh import dashboard-backup.ndjson
+./scripts/kibana-dashboard-manager.sh import-latest
+./scripts/kibana-dashboard-manager.sh list
+```
 
 ---
 
@@ -355,10 +407,12 @@ echo $? # 0 = success, >0 = error
 - Faster than full reinstall
 - Use when only Docker configuration changes
 
-### `clean_build.sh`
-**Build cleanup utility**
-- Removes build artifacts
-- Cleans temporary files
+### Script di Pulizia Centralizzato
+Per tutte le operazioni di pulizia utilizzare il [Sistema di Pulizia Centralizzato](CLEANUP_SYSTEM.md):
+- `./scripts/cleanup.sh --dev` - Pulizia completa sviluppo
+- `./scripts/cleanup.sh --production` - Pulizia selettiva produzione  
+- `./scripts/cleanup.sh --soft` - Solo cache e artifacts
+- `./scripts/kibana-dashboard-manager.sh` - Gestione dashboard
 
 ### `update_frontend.sh` / `update_sandbox.sh`
 **Individual service updates**
@@ -396,6 +450,21 @@ Il documento centralizza:
 ./scripts/dev-reinstall.sh           # Full environment setup
 ./scripts/check-persistent-config.sh # Verify configuration
 ./scripts/update_frontend.sh         # Quick frontend update
+./scripts/cleanup.sh --soft          # Light cleanup (cache only)
+```
+
+**Production Deployment**:
+```bash
+./scripts/kibana-dashboard-manager.sh export    # Backup dashboards
+./scripts/cleanup.sh --production               # Clean development data
+./scripts/check-persistent-config.sh            # Verify configurations
+./scripts/prod-rebuild.sh                       # Deploy production
+```
+
+**Maintenance**:
+```bash
+./scripts/cleanup.sh --dev          # Full development cleanup
+./scripts/kibana-dashboard-manager.sh list      # List dashboard backups
 ```
 
 **Performance Monitoring**:

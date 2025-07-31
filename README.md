@@ -2,6 +2,8 @@
 
 Questo progetto implementa un'infrastruttura completa per lo sviluppo e deployment di un gioco HTML5 singleplayer, con un'architettura di microservizi che include monitoring, logging e gestione utenti avanzata.
 
+> 🆕 **Sistema di Pulizia Aggiornato**: Il progetto ora utilizza un [Sistema di Pulizia Centralizzato](scripts/CLEANUP_SYSTEM.md) intelligente con backup automatici e modalità multiple. I vecchi script `production-cleanup.sh` e `clean_build.sh` sono stati sostituiti da `cleanup.sh` più potente e sicuro.
+
 ## 🎮 Architettura del Sistema
 
 ### **Game Frontend**
@@ -59,6 +61,23 @@ Questo script:
 
 ## 🚀 Produzione
 
+### **Pulizia Pre-Produzione**
+
+⚠️ **Prima del deployment produzione**, esegui la pulizia selettiva dei dati di sviluppo:
+
+```bash
+./scripts/cleanup.sh --production
+```
+
+Questo comando:
+- **Backup automatico** di tutte le configurazioni critiche
+- **Rimuove solo dati di sviluppo**: Database giocatori, log, cache di testing
+- **Preserva tutto il resto**: Domini, SSL, configurazioni servizi, dashboard Kibana
+- **Verifica integrità** configurazioni dopo la pulizia
+- **Output dettagliato** con conferme di sicurezza
+
+### **Deployment Produzione**
+
 Per il deployment in produzione:
 
 ```bash
@@ -72,7 +91,16 @@ Questo script:
 - Configura monitoring completo per analytics
 - Ottimizza performance per carico multi-utente
 
+**Workflow completo produzione**:
+1. `./scripts/cleanup.sh --production` - Pulizia selettiva dati sviluppo
+2. `./scripts/check-persistent-config.sh` - Verifica configurazioni
+3. `./scripts/prod-rebuild.sh` - Deploy ottimizzato
+
+> 💡 **Nuovo Sistema**: Usa il [Sistema di Pulizia Centralizzato](scripts/CLEANUP_SYSTEM.md) per gestione avanzata e backup automatici
+
 **Nota**: Lo script utilizza la configurazione produzione che esclude il sandbox di sviluppo e include ottimizzazioni specifiche per performance.
+
+### **Aggiornamenti Rapidi**
 
 Aggiornamenti rapidi frontend in produzione:
 
