@@ -24,6 +24,7 @@ class Preload extends Phaser.Scene {
 		// loader_bg
 		const loader_bg = this.add.rectangle(640, 360, 400, 40);
 		loader_bg.isFilled = true;
+		loader_bg.fillColor = 15792383;
 
 		// loader
 		const loader = this.add.rectangle(640, 360, 390, 30);
@@ -31,9 +32,9 @@ class Preload extends Phaser.Scene {
 		loader.fillColor = 10883584;
 
 		// Loading
-		const loading = this.add.text(549.5, 305, "", {});
+		const loading = this.add.text(574, 305, "", {});
 		loading.text = "Loading...";
-		loading.setStyle({ "fontSize": "30px" });
+		loading.setStyle({ "color": "#f0f8ff", "fontFamily": "PixelifySans-VariableFont_wght", "fontSize": "30px" });
 
 		this.loader_bg = loader_bg;
 		this.loader = loader;
@@ -57,8 +58,7 @@ class Preload extends Phaser.Scene {
 			this.loader.width = width * value;
 		});
 
-		this.load.pack("Sprite-pack", "frontend/public/assets/images/icons-pack.json");
-		this.load.pack("Font-pack", "frontend/public/assets/fonts/Pixelify_Sans/Font-pack.json");
+		this.load.pack("Icons-pack", "frontend/public/assets/images/icons-pack.json");
 	}
 
 	async create() {

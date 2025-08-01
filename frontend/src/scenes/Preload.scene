@@ -32,6 +32,7 @@
             "x": 640,
             "y": 360,
             "isFilled": true,
+            "fillColor": "#f0f8ff",
             "width": 400,
             "height": 40
         },
@@ -53,10 +54,12 @@
             "id": "c831e2c9-60e0-4771-b0d7-47cd8418b605",
             "label": "Loading",
             "displayName": "Loading",
-            "x": 549.5,
+            "x": 574,
             "y": 305,
             "text": "Loading...",
-            "fontSize": "30px"
+            "fontFamily": "PixelifySans-VariableFont_wght",
+            "fontSize": "30px",
+            "color": "#f0f8ff"
         }
     ],
     "plainObjects": [],

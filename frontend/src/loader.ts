@@ -5,7 +5,11 @@ class Boot extends Phaser.Scene {
 	constructor() {
 		super("Boot");
 	}
-	preload() {}
+	
+	preload() {
+		this.load.pack("Font-pack", "frontend/public/assets/fonts/Pixelify_Sans/Font-pack.json");
+	}
+
 	async create() {
 		const { default: Preload } = await import("./scenes/Preload");
 		this.scene.add("Preload", Preload, true);
