@@ -15,19 +15,25 @@ class Preload extends Phaser.Scene {
 
 	editorCreate(): void {
 
+		// bg_filter
+		const bg_filter = this.add.rectangle(640, 360, 1280, 720);
+		bg_filter.alpha = 0.4;
+		bg_filter.isFilled = true;
+		bg_filter.fillColor = 0;
+
 		// loader_bg
-		const loader_bg = this.add.rectangle(400, 300, 200, 20);
+		const loader_bg = this.add.rectangle(640, 360, 400, 40);
 		loader_bg.isFilled = true;
 
 		// loader
-		const loader = this.add.rectangle(400, 300, 198, 18);
+		const loader = this.add.rectangle(640, 360, 390, 30);
 		loader.isFilled = true;
 		loader.fillColor = 10883584;
 
 		// Loading
-		const loading = this.add.text(345.5, 268, "", {});
+		const loading = this.add.text(549.5, 305, "", {});
 		loading.text = "Loading...";
-		loading.setStyle({ "fontSize": "18px" });
+		loading.setStyle({ "fontSize": "30px" });
 
 		this.loader_bg = loader_bg;
 		this.loader = loader;
@@ -50,6 +56,9 @@ class Preload extends Phaser.Scene {
 
 			this.loader.width = width * value;
 		});
+
+		this.load.pack("Sprite-pack", "frontend/public/assets/images/icons-pack.json");
+		this.load.pack("Font-pack", "frontend/public/assets/fonts/Pixelify_Sans/Font-pack.json");
 	}
 
 	async create() {

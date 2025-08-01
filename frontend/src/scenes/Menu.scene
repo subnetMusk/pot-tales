@@ -11,85 +11,166 @@
     },
     "displayList": [
         {
+            "type": "Image",
+            "id": "ba9363a1-fa1c-4797-b1e4-141847cb7d5c",
+            "label": "tunnel",
+            "displayName": "Background",
+            "scope": "CLASS",
+            "texture": {
+                "key": "tunnel_1",
+                "frame": 0
+            },
+            "x": 640,
+            "y": 360,
+            "scaleX": 20.01,
+            "scaleY": 20.1
+        },
+        {
+            "type": "Rectangle",
+            "id": "7f507dfb-9796-43ff-985c-d54bdfcde864",
+            "label": "bg_filter",
+            "displayName": "Background Filter",
+            "x": 640,
+            "y": 360,
+            "alpha": 0.4,
+            "isFilled": true,
+            "fillColor": "#000000",
+            "width": 1280,
+            "height": 720
+        },
+        {
+            "type": "Image",
+            "id": "cd866935-4696-4d3d-aae6-65725956c783",
+            "label": "settings_icon",
+            "displayName": "Settings Icon",
+            "scope": "CLASS",
+            "texture": {
+                "key": "settings"
+            },
+            "x": 1182,
+            "y": 622,
+            "scaleX": 1.5,
+            "scaleY": 1.5
+        },
+        {
             "type": "Rectangle",
             "id": "212906bf-af42-4fd1-bca2-572ce7f12351",
             "label": "Leaderboard_button",
             "displayName": "Leader button",
             "scope": "CLASS",
             "x": 640,
-            "y": 360,
-            "strokeColor": "#e7ff39",
+            "y": 470,
+            "strokeColor": "#f0f8ff",
             "lineWidth": 2,
             "isStroked": true,
             "width": 450,
-            "height": 50
+            "height": 90
         },
         {
             "type": "Text",
             "id": "740b6b0c-8a36-4dc3-9451-5be9043034c2",
             "label": "Leaderboard",
             "x": 640,
-            "y": 360,
+            "y": 470,
             "originX": 0.5,
             "originY": 0.5,
             "text": "Leaderboard",
+            "align": "center",
+            "fontFamily": "PixelifySans-VariableFont_wght",
             "fontSize": "30px",
-            "color": "#e7ff39",
+            "color": "#f0f8ff",
             "stroke": "#000000"
+        },
+        {
+            "type": "Image",
+            "id": "bc85f77b-dc3d-4dae-9f9d-b66d0324f959",
+            "label": "leaderboard",
+            "displayName": "Leaderboard Icon",
+            "texture": {
+                "key": "leaderboard"
+            },
+            "x": 500,
+            "y": 470
         },
         {
             "type": "Rectangle",
             "id": "535588e3-c367-4778-98bb-8733913aa93a",
             "label": "Play_button",
-            "displayName": "Play_button",
+            "displayName": "Play Button",
             "scope": "CLASS",
             "x": 640,
-            "y": 260,
-            "strokeColor": "#e7ff39",
+            "y": 250,
+            "strokeColor": "#f0f8ff",
             "lineWidth": 2,
             "isStroked": true,
             "width": 450,
-            "height": 50
+            "height": 90
         },
         {
             "type": "Text",
             "id": "8708ef72-5d1c-459d-b92b-f6b0d081107a",
             "label": "Play",
             "x": 640,
-            "y": 260,
+            "y": 250,
             "originX": 0.5,
             "originY": 0.5,
             "text": "Play",
+            "align": "center",
+            "fontFamily": "PixelifySans-VariableFont_wght",
             "fontSize": "30px",
-            "color": "#e7ff39",
+            "color": "#f0f8ff",
             "stroke": "#000000"
+        },
+        {
+            "type": "Image",
+            "id": "e065471f-2932-46be-a680-9c78c2f4d977",
+            "label": "play_icon",
+            "displayName": "Play Icon",
+            "texture": {
+                "key": "play"
+            },
+            "x": 500,
+            "y": 250
         },
         {
             "type": "Rectangle",
             "id": "e077216e-4bdd-4ed4-bab7-6374c06c558f",
-            "label": "Settings_button",
-            "displayName": "Settings button",
+            "label": "Gallery_button",
+            "displayName": "Gallery Button",
             "scope": "CLASS",
             "x": 640,
-            "y": 460,
-            "strokeColor": "#e7ff39",
+            "y": 360,
+            "strokeColor": "#f0f8ff",
             "lineWidth": 2,
             "isStroked": true,
             "width": 450,
-            "height": 50
+            "height": 90
         },
         {
             "type": "Text",
             "id": "c0363a2e-c739-419e-91b2-36bac29f920e",
-            "label": "Settings",
+            "label": "Gallery",
             "x": 640,
-            "y": 460,
+            "y": 360,
             "originX": 0.5,
             "originY": 0.5,
-            "text": "Settings",
+            "text": "Gallery",
+            "align": "center",
+            "fontFamily": "PixelifySans-VariableFont_wght",
             "fontSize": "30px",
-            "color": "#e7ff39",
+            "color": "#f0f8ff",
             "stroke": "#000000"
+        },
+        {
+            "type": "Image",
+            "id": "3970b748-5627-497f-8a17-e511a5dc2595",
+            "label": "gallery_icon",
+            "displayName": "Gallery Icon",
+            "texture": {
+                "key": "gallery"
+            },
+            "x": 500,
+            "y": 359
         }
     ],
     "plainObjects": [],

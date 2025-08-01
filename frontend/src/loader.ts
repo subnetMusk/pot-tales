@@ -26,7 +26,8 @@ const game = new Phaser.Game({
 		default: 'arcade',
 		arcade: {}
 	},
-	scene: [Boot, Scene1]
+	scene: [Boot, Scene1],
+	pixelArt: true
 });
 
 game.scene.start("Boot");

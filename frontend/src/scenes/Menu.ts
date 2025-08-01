@@ -15,98 +15,81 @@ class Menu extends Phaser.Scene {
 
 	editorCreate(): void {
 
+		// tunnel
+		const tunnel = this.add.image(640, 360, "tunnel_1", 0);
+		tunnel.scaleX = 20.01;
+		tunnel.scaleY = 20.1;
+
+		// bg_filter
+		const bg_filter = this.add.rectangle(640, 360, 1280, 720);
+		bg_filter.alpha = 0.4;
+		bg_filter.isFilled = true;
+		bg_filter.fillColor = 0;
+
+		// settings_icon
+		const settings_icon = this.add.image(1182, 622, "settings");
+		settings_icon.scaleX = 1.5;
+		settings_icon.scaleY = 1.5;
+
 		// Leaderboard_button
-		const leaderboard_button = this.add.rectangle(640, 360, 450, 50);
+		const leaderboard_button = this.add.rectangle(640, 470, 450, 90);
 		leaderboard_button.isStroked = true;
-		leaderboard_button.strokeColor = 15204153;
+		leaderboard_button.strokeColor = 15792383;
 		leaderboard_button.lineWidth = 2;
-		leaderboard_button.setInteractive();
 
 		// Leaderboard
-		const leaderboard = this.add.text(640, 360, "", {});
+		const leaderboard = this.add.text(640, 470, "", {});
 		leaderboard.setOrigin(0.5, 0.5);
 		leaderboard.text = "Leaderboard";
-		leaderboard.setStyle({ "color": "#e7ff39", "fontSize": "30px", "stroke": "#000000" });
+		leaderboard.setStyle({ "align": "center", "color": "#f0f8ff", "fontFamily": "PixelifySans-VariableFont_wght", "fontSize": "30px", "stroke": "#000000" });
 
-		leaderboard_button.on('pointerdown', () => {
-			leaderboard_button.setFillStyle(0x9ca52b);
-			leaderboard.setStyle({ "color": "#bfcf2a" });
-		});
-		leaderboard_button.on('pointerup', () => {
-			leaderboard_button.setFillStyle();
-			leaderboard.setStyle({ "color": "#e7ff39" });
-			window.location.href = "/static/pages/gay.html";
-		});
-		leaderboard_button.on('pointerout', () => {
-			leaderboard_button.setFillStyle();
-			leaderboard.setStyle({ "color": "#e7ff39" });
-		});
+		// leaderboard
+		this.add.image(500, 470, "leaderboard");
 
 		// Play_button
-		const play_button = this.add.rectangle(640, 260, 450, 50);
+		const play_button = this.add.rectangle(640, 250, 450, 90);
 		play_button.isStroked = true;
-		play_button.strokeColor = 15204153;
+		play_button.strokeColor = 15792383;
 		play_button.lineWidth = 2;
-		play_button.setInteractive();
 
 		// Play
-		const play = this.add.text(640, 260, "", {});
+		const play = this.add.text(640, 250, "", {});
 		play.setOrigin(0.5, 0.5);
 		play.text = "Play";
-		play.setStyle({ "color": "#e7ff39", "fontSize": "30px", "stroke": "#000000" });
+		play.setStyle({ "align": "center", "color": "#f0f8ff", "fontFamily": "PixelifySans-VariableFont_wght", "fontSize": "30px", "stroke": "#000000" });
 
-		play_button.on('pointerdown', () => {
-			play_button.setFillStyle(0x9ca52b);
-			play.setStyle({ "color": "#bfcf2a" });
-		});
-		play_button.on('pointerup', () => {
-			play_button.setFillStyle();
-			play.setStyle({ "color": "#e7ff39" });
-			// Carica la scena Scene1
-			this.scene.start("Scene_1");
-		});
-		play_button.on('pointerout', () => {
-			play_button.setFillStyle();
-			play.setStyle({ "color": "#e7ff39" });
-		});
+		// play_icon
+		this.add.image(500, 250, "play");
 
-		// Settings_button
-		const settings_button = this.add.rectangle(640, 460, 450, 50);
-		settings_button.isStroked = true;
-		settings_button.strokeColor = 15204153;
-		settings_button.lineWidth = 2;
-		settings_button.setInteractive();
+		// Gallery_button
+		const gallery_button = this.add.rectangle(640, 360, 450, 90);
+		gallery_button.isStroked = true;
+		gallery_button.strokeColor = 15792383;
+		gallery_button.lineWidth = 2;
 
-		// Settings
-		const settings = this.add.text(640, 460, "", {});
-		settings.setOrigin(0.5, 0.5);
-		settings.text = "Settings";
-		settings.setStyle({ "color": "#e7ff39", "fontSize": "30px", "stroke": "#000000" });
+		// Gallery
+		const gallery = this.add.text(640, 360, "", {});
+		gallery.setOrigin(0.5, 0.5);
+		gallery.text = "Gallery";
+		gallery.setStyle({ "align": "center", "color": "#f0f8ff", "fontFamily": "PixelifySans-VariableFont_wght", "fontSize": "30px", "stroke": "#000000" });
 
-		settings_button.on('pointerdown', () => {
-			settings_button.setFillStyle(0x9ca52b);
-			settings.setStyle({ "color": "#bfcf2a" });
-		});
-		settings_button.on('pointerup', () => {
-			settings_button.setFillStyle();
-			settings.setStyle({ "color": "#e7ff39" });
-			window.location.href = "/static/pages/gay.html";
-		});
-		settings_button.on('pointerout', () => {
-			settings_button.setFillStyle();
-			settings.setStyle({ "color": "#e7ff39" });
-		});
+		// gallery_icon
+		this.add.image(500, 359, "gallery");
 
+		this.tunnel = tunnel;
+		this.settings_icon = settings_icon;
 		this.leaderboard_button = leaderboard_button;
 		this.play_button = play_button;
-		this.settings_button = settings_button;
+		this.gallery_button = gallery_button;
 
 		this.events.emit("scene-awake");
 	}
 
+	private tunnel!: Phaser.GameObjects.Image;
+	private settings_icon!: Phaser.GameObjects.Image;
 	private leaderboard_button!: Phaser.GameObjects.Rectangle;
 	private play_button!: Phaser.GameObjects.Rectangle;
-	private settings_button!: Phaser.GameObjects.Rectangle;
+	private gallery_button!: Phaser.GameObjects.Rectangle;
 
 	/* START-USER-CODE */
 
@@ -114,6 +97,52 @@ class Menu extends Phaser.Scene {
 
 	create() {
 		this.editorCreate();
+
+		// init tunnel animation
+		if (!this.anims.exists('tunnel_spin')) {
+			this.anims.create({
+				key: 'tunnel_spin',
+				frames: this.anims.generateFrameNumbers('tunnel_1', { start: 0, end: 11 }),
+				frameRate: 9,
+				repeat: -1
+			});
+		}
+
+		const { x, y, scaleX, scaleY } = this.tunnel;
+		this.tunnel.destroy();
+		const tunnelAnim = this.add.sprite(x, y, 'tunnel_1').setScale(scaleX, scaleY);
+		tunnelAnim.play('tunnel_spin');
+		this.children.sendToBack(tunnelAnim);
+
+		// add click events
+		this.leaderboard_button.setInteractive();
+		this.play_button.setInteractive();
+		this.gallery_button.setInteractive();
+		this.settings_icon.setInteractive();
+
+		this.play_button.on('pointerdown', () => {this.play_button.setStrokeStyle(4, 0x70bcff);});
+		this.leaderboard_button.on('pointerdown', () => {this.leaderboard_button.setStrokeStyle(4, 0x70bcff);});
+		this.gallery_button.on('pointerdown', () => {this.gallery_button.setStrokeStyle(4, 0x70bcff);});
+		this.settings_icon.on('pointerdown', () => {this.settings_icon.setTint(0x70bcff);});
+
+		this.play_button.on('pointerup', () => {this.scene.start("Scene_1");});
+		this.leaderboard_button.on('pointerup', () => {window.location.href = "/static/pages/gay.html";});
+		this.gallery_button.on('pointerup', () => {window.location.href = "/static/pages/gay.html";});
+		this.settings_icon.on('pointerup', () => {window.location.href = "/static/pages/gay.html";});
+
+		// add hover effects
+		this.leaderboard_button.on('pointerover', () => {this.leaderboard_button.setStrokeStyle(4, 0x70bcff);});
+		this.leaderboard_button.on('pointerout', () => {this.leaderboard_button.setStrokeStyle(2, 0xf0f8ff);});
+
+		this.play_button.on('pointerover', () => {this.play_button.setStrokeStyle(4, 0x70bcff);});
+		this.play_button.on('pointerout', () => {this.play_button.setStrokeStyle(2, 0xf0f8ff);});
+
+		this.gallery_button.on('pointerover', () => {this.gallery_button.setStrokeStyle(4, 0x70bcff);});
+		this.gallery_button.on('pointerout', () => {this.gallery_button.setStrokeStyle(2, 0xf0f8ff);});
+
+		this.settings_icon.on('pointerover', () => {this.settings_icon.setTint(0x70bcff);});
+		this.settings_icon.on('pointerout', () => {this.settings_icon.clearTint();});
+
 	}
 
 	/* END-USER-CODE */

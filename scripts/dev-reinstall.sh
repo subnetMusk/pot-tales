@@ -1,4 +1,5 @@
-#!/# Full "clean-slate" rebuild for development.
+#!/usr/bin/env bash
+# Full "clean-slate" rebuild for development.
 # Uses the new centralized cleanup script and rebuilds everything from scratch.env bash
 ###############################################################################
 # scripts/dev-reinstall.sh
