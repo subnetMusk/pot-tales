@@ -37,10 +37,8 @@ proxy/certs/*.pem
 docker/volumes/mongodb/*
 !docker/volumes/mongodb/.gitkeep
 
-
-
-
-
+docker/volumes/logs/*
+!docker/volumes/logs/.gitkeep
 
 # non cancellatela pls
 Icon?

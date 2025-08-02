@@ -1,18 +1,18 @@
 // You can write more code here
 /*
 Dettagli:
-- Sprite del giocatore: 60x60 pixel
-- Lo schermo è 1280x720 pixel
-- Nella mappa lasciare almeno 640 pixel in orizzontale e 360 in verticale dai bordi
-- Per limitare il movimento bisogna mettere dei rettangoli nel contenitore "Obstacles"
-- I minigiochi sono delle immagini nel contenitore "Quests"
-- Le sprite di movimento sono :
+- Sprite del giocatore: 128x128 pixel (una volta fatta, passare la scala da 5 ad 1)
+- Lo schermo è 1280x720 pixel. Manca da fare il fullscreen e il tasto per il menu (dopo sarà anche da salvare stato del gioco e blablabla)
+- Nella mappa lasciare almeno 640 pixel in orizzontale e 360 in verticale dai bordi (Se si mantiene la scala del fondale a 1). In generale lo spazio da lasciare è #pixel/(2*scala)
+- Per limitare il movimento bisogna mettere dei rettangoli nel contenitore "Obstacles", se ci tenete a mettere altre forme va implementato l'overlap.
+- I minigiochi sono delle immagini nel contenitore "Quests", ocio all'ordine perché ognuno ha un messaggio (e in futuro una scena/gioco) associato.
+- Le sprite del giocatore sono:
   - backPlayer_{Stato}: culo del giocatore, gli stati sono S (Stop), R (Passo destro), L (Passo sinistro)
   - frontPlayer_{Stato}: pipo del giocatore, gli stati sono S (Stop), R (Passo destro), L (Passo sinistro)
   - sidePlayer_{Stato}: lato del giocatore, gli stati sono S (Stop), M (Movimento)
   - Il programma dopo le alterna da solo.
 - Per ora le quest mostrano solo un testo, basta modificare leggermente il codice e mettere il file con il minigioco corrispondente.
-- Per debug, mettere debug = true, per vedere gli ostacoli e il rettangolo di interazione con lo stroke rosso (e alcuni dati).
+- So che questa cosa è un 'grazie al cazzo', però per il debug basta mettere la variabile debug = true, fa vedere gli ostacoli e il rettangolo di interazione con lo stroke rosso (e alcuni dati in console).
 */
 /* START OF COMPILED CODE */
 
