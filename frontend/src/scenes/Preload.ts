@@ -1,5 +1,4 @@
-
-// You can write more code here
+import { applyTranslations } from "../utils";
 
 /* START OF COMPILED CODE */
 
@@ -33,6 +32,7 @@ class Preload extends Phaser.Scene {
 
 		// Loading
 		const loading = this.add.text(574, 305, "", {});
+		loading.name = "Loading";
 		loading.text = "Loading...";
 		loading.setStyle({ "color": "#f0f8ff", "fontFamily": "PixelifySans-VariableFont_wght", "fontSize": "30px" });
 
@@ -49,6 +49,9 @@ class Preload extends Phaser.Scene {
 
 	// Write your code here
 	preload() {
+		const lang = localStorage.getItem("lang") || "en";
+        this.load.json("preload_i18n", `assets/i18n/${lang}/Preload.json`);
+
 		this.editorCreate();
 
 		const width = this.loader.width;
@@ -62,6 +65,9 @@ class Preload extends Phaser.Scene {
 	}
 
 	async create() {
+		const i18n = this.cache.json.get("preload_i18n");
+		applyTranslations(this, i18n);
+
 		const { default: Menu } = await import("./Menu");
 		this.scene.add("Menu", Menu, true);
 		this.scene.stop("Preload");

@@ -1,4 +1,4 @@
-
+import { applyTranslations } from "../utils";
 // You can write more code here
 
 /* START OF COMPILED CODE */
@@ -39,6 +39,7 @@ class Menu extends Phaser.Scene {
 
 		// Leaderboard
 		const leaderboard = this.add.text(640, 470, "", {});
+		leaderboard.name = "Leaderboard";
 		leaderboard.setOrigin(0.5, 0.5);
 		leaderboard.text = "Leaderboard";
 		leaderboard.setStyle({ "align": "center", "color": "#f0f8ff", "fontFamily": "PixelifySans-VariableFont_wght", "fontSize": "30px", "stroke": "#000000" });
@@ -54,6 +55,7 @@ class Menu extends Phaser.Scene {
 
 		// Play
 		const play = this.add.text(640, 250, "", {});
+		play.name = "Play";
 		play.setOrigin(0.5, 0.5);
 		play.text = "Play";
 		play.setStyle({ "align": "center", "color": "#f0f8ff", "fontFamily": "PixelifySans-VariableFont_wght", "fontSize": "30px", "stroke": "#000000" });
@@ -69,6 +71,7 @@ class Menu extends Phaser.Scene {
 
 		// Gallery
 		const gallery = this.add.text(640, 360, "", {});
+		gallery.name = "Gallery";
 		gallery.setOrigin(0.5, 0.5);
 		gallery.text = "Gallery";
 		gallery.setStyle({ "align": "center", "color": "#f0f8ff", "fontFamily": "PixelifySans-VariableFont_wght", "fontSize": "30px", "stroke": "#000000" });
@@ -95,8 +98,17 @@ class Menu extends Phaser.Scene {
 
 	// Write your code here
 
+	preload(): void {
+        const lang = localStorage.getItem("lang") || "en";
+        this.load.json("menu_i18n", `assets/i18n/${lang}/Menu.json`);
+    }
+
 	create() {
 		this.editorCreate();
+
+		// Apply translations
+        const i18n = this.cache.json.get("menu_i18n");
+        applyTranslations(this, i18n);
 
 		// init tunnel animation
 		if (!this.anims.exists('tunnel_spin')) {

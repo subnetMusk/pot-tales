@@ -54,6 +54,7 @@
             "id": "c831e2c9-60e0-4771-b0d7-47cd8418b605",
             "label": "Loading",
             "displayName": "Loading",
+            "useGameObjectName": true,
             "x": 574,
             "y": 305,
             "text": "Loading...",

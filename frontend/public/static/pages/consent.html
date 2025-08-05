@@ -1,11 +1,53 @@
 <section id="consent-screen">
-  <h1>🍪 Consenso ai cookie</h1>
-  <p>Per offrirti un'esperienza migliore, utilizziamo cookie tecnici e analitici.</p>
+  <h1 id="consent-title">🍪 Consenso ai cookie</h1>
+  <p id="consent-desc">Per offrirti un'esperienza migliore, utilizziamo cookie tecnici e analitici.</p>
+  
   <button id="accept-cookies">Accetto</button>
+
+  <div id="lang-container">
+    <label for="lang-select" id="lang-label">Lingua:</label>
+    <select id="lang-select">
+      <option value="it">🇮🇹 Italiano</option>
+      <option value="en">🇬🇧 English</option>
+    </select>
+  </div>
 </section>
 
 <script>
+  const translations = {
+    it: {
+      title: "🍪 Consenso ai cookie",
+      desc: "Per offrirti un'esperienza migliore, utilizziamo cookie tecnici e analitici.",
+      label: "Lingua:",
+      button: "Accetto"
+    },
+    en: {
+      title: "🍪 Cookie Consent",
+      desc: "To offer you a better experience, we use technical and analytics cookies.",
+      label: "Language:",
+      button: "Accept"
+    }
+  };
+
+  function updateConsentLang(lang) {
+    document.getElementById("consent-title").textContent = translations[lang].title;
+    document.getElementById("consent-desc").textContent = translations[lang].desc;
+    document.getElementById("lang-label").textContent = translations[lang].label;
+    document.getElementById("accept-cookies").textContent = translations[lang].button;
+  }
+
+  const langSelect = document.getElementById("lang-select");
+  langSelect.addEventListener("change", () => {
+    updateConsentLang(langSelect.value);
+  });
+
+  // Set initial language
+  updateConsentLang(langSelect.value);
+
   document.getElementById("accept-cookies")?.addEventListener("click", async () => {
+    const lang = langSelect.value;
+    localStorage.setItem("lang", lang); // Save language choice
+
     try {
       const res = await fetch("/auth/session", {
         method: "POST",
