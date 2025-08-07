@@ -291,6 +291,8 @@ class Scene_1 extends Phaser.Scene {
 				}
 				// Listener per il tasto ESC - torna al menu
 				if (event.key === 'Escape') {
+					event.preventDefault(); // Previene il comportamento predefinito del tasto ESC
+					event.stopPropagation(); // Ferma la propagazione dell'evento
 					this.scene.start("Menu");
 				}
 			});
