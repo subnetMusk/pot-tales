@@ -38,7 +38,7 @@ Esempio per la versione italiana:
 
 ## Assegnazione dei nomi agli oggetti testo
 
-In Phaser Editor 2D, seleziona ogni oggetto testo e imposta la proprietà **Name** con la chiave corrispondente (es. `play`, `leaderboard`, ecc.) nel pannello delle proprietà. **Spuntare la casella GO Name**
+In Phaser Editor 2D, seleziona ogni oggetto testo e imposta la proprietà **Name** con la chiave corrispondente (es. `play`, `leaderboard`, ecc.) nel pannello delle proprietà. **Spuntare la casella GO Name.**
 
 
 ## Caricamento delle traduzioni nella scena
@@ -67,7 +67,7 @@ create() {
 
 La funzione `applyTranslations` cerca tutti gli oggetti testo per nome e aggiorna il loro contenuto con la traduzione corrispondente.
 
-** Importante: le chiavi sul json devono corrispontere ai nomi assegnati ai testi **
+**Importante: le chiavi sul json devono corrispontere ai nomi assegnati ai testi**
 
 ## Cambiare lingua
 

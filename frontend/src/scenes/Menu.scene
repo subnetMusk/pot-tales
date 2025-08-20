@@ -174,6 +174,21 @@
             },
             "x": 500,
             "y": 359
+        },
+        {
+            "type": "Image",
+            "id": "468e258c-422c-408e-b9b8-43637fbc6d7c",
+            "label": "fullscreen_icon",
+            "displayName": "Fullscreen Icon",
+            "scope": "CLASS",
+            "texture": {
+                "key": "fullscreen",
+                "frame": 1
+            },
+            "x": 1182,
+            "y": 98,
+            "scaleX": 1.5,
+            "scaleY": 1.5
         }
     ],
     "plainObjects": [],

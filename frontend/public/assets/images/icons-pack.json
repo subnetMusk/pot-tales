@@ -2,6 +2,19 @@
     "section1": {
         "files": [
             {
+                "url": "frontend/public/assets/images/fullscreen.png",
+                "frameConfig": {
+                    "frameWidth": 64,
+                    "frameHeight": 64,
+                    "startFrame": 0,
+                    "endFrame": -1,
+                    "spacing": 0,
+                    "margin": 0
+                },
+                "type": "spritesheet",
+                "key": "fullscreen"
+            },
+            {
                 "url": "frontend/public/assets/images/gallery.png",
                 "type": "image",
                 "key": "gallery"

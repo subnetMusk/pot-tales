@@ -79,11 +79,17 @@ class Menu extends Phaser.Scene {
 		// gallery_icon
 		this.add.image(500, 359, "gallery");
 
+		// fullscreen_icon
+		const fullscreen_icon = this.add.image(1182, 98, "fullscreen", 1);
+		fullscreen_icon.scaleX = 1.5;
+		fullscreen_icon.scaleY = 1.5;
+
 		this.tunnel = tunnel;
 		this.settings_icon = settings_icon;
 		this.leaderboard_button = leaderboard_button;
 		this.play_button = play_button;
 		this.gallery_button = gallery_button;
+		this.fullscreen_icon = fullscreen_icon;
 
 		this.events.emit("scene-awake");
 	}
@@ -93,6 +99,7 @@ class Menu extends Phaser.Scene {
 	private leaderboard_button!: Phaser.GameObjects.Rectangle;
 	private play_button!: Phaser.GameObjects.Rectangle;
 	private gallery_button!: Phaser.GameObjects.Rectangle;
+	private fullscreen_icon!: Phaser.GameObjects.Image;
 
 	/* START-USER-CODE */
 
@@ -131,16 +138,27 @@ class Menu extends Phaser.Scene {
 		this.play_button.setInteractive();
 		this.gallery_button.setInteractive();
 		this.settings_icon.setInteractive();
+		this.fullscreen_icon.setInteractive();
 
-		this.play_button.on('pointerdown', () => {this.play_button.setStrokeStyle(4, 0x70bcff);});
-		this.leaderboard_button.on('pointerdown', () => {this.leaderboard_button.setStrokeStyle(4, 0x70bcff);});
-		this.gallery_button.on('pointerdown', () => {this.gallery_button.setStrokeStyle(4, 0x70bcff);});
-		this.settings_icon.on('pointerdown', () => {this.settings_icon.setTint(0x70bcff);});
+		this.play_button.on('pointerdown', () => {this.play_button.setStrokeStyle(4, 0x00aaff);});
+		this.leaderboard_button.on('pointerdown', () => {this.leaderboard_button.setStrokeStyle(4, 0x00aaff);});
+		this.gallery_button.on('pointerdown', () => {this.gallery_button.setStrokeStyle(4, 0x00aaff);});
+		this.settings_icon.on('pointerdown', () => {this.settings_icon.setTint(0x00aaff);});
+		this.fullscreen_icon.on('pointerdown', () => {this.fullscreen_icon.setTint(0x00aaff);});
 
 		this.play_button.on('pointerup', () => {this.scene.start("Scene_1");});
 		this.leaderboard_button.on('pointerup', () => {window.location.href = "/static/pages/gay.html";});
 		this.gallery_button.on('pointerup', () => {window.location.href = "/static/pages/gay.html";});
 		this.settings_icon.on('pointerup', () => {window.location.href = "/static/pages/gay.html";});
+		this.fullscreen_icon.on('pointerup', () => {
+			if (this.scale.isFullscreen) {
+				this.fullscreen_icon.setFrame(1);
+				this.scale.stopFullscreen();
+			} else {
+				this.fullscreen_icon.setFrame(0);
+				this.scale.startFullscreen();
+			}
+		});
 
 		// add hover effects
 		this.leaderboard_button.on('pointerover', () => {this.leaderboard_button.setStrokeStyle(4, 0x70bcff);});
@@ -155,6 +173,8 @@ class Menu extends Phaser.Scene {
 		this.settings_icon.on('pointerover', () => {this.settings_icon.setTint(0x70bcff);});
 		this.settings_icon.on('pointerout', () => {this.settings_icon.clearTint();});
 
+		this.fullscreen_icon.on('pointerover', () => {this.fullscreen_icon.setTint(0x70bcff);});
+		this.fullscreen_icon.on('pointerout', () => {this.fullscreen_icon.clearTint();});
 	}
 
 	/* END-USER-CODE */
