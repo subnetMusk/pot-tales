@@ -30,7 +30,7 @@ const game = new Phaser.Game({
 		default: 'arcade',
 		arcade: {}
 	},
-	scene: [Boot, Scene1],
+	scene: [Boot],
 	pixelArt: true
 });
 

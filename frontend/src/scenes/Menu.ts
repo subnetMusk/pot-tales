@@ -1,4 +1,6 @@
 import { applyTranslations } from "../utils";
+import MenuBackground from "../items/UI/MenuBackground";
+import Settings from "./Settings";
 // You can write more code here
 
 /* START OF COMPILED CODE */
@@ -15,16 +17,9 @@ class Menu extends Phaser.Scene {
 
 	editorCreate(): void {
 
-		// tunnel
-		const tunnel = this.add.image(640, 360, "tunnel_1", 0);
-		tunnel.scaleX = 20.01;
-		tunnel.scaleY = 20.1;
-
-		// bg_filter
-		const bg_filter = this.add.rectangle(640, 360, 1280, 720);
-		bg_filter.alpha = 0.4;
-		bg_filter.isFilled = true;
-		bg_filter.fillColor = 0;
+		// menuBackground
+		const menuBackground = new MenuBackground(this, 520, 360);
+		this.add.existing(menuBackground);
 
 		// settings_icon
 		const settings_icon = this.add.image(1182, 622, "settings");
@@ -84,7 +79,6 @@ class Menu extends Phaser.Scene {
 		fullscreen_icon.scaleX = 1.5;
 		fullscreen_icon.scaleY = 1.5;
 
-		this.tunnel = tunnel;
 		this.settings_icon = settings_icon;
 		this.leaderboard_button = leaderboard_button;
 		this.play_button = play_button;
@@ -94,7 +88,6 @@ class Menu extends Phaser.Scene {
 		this.events.emit("scene-awake");
 	}
 
-	private tunnel!: Phaser.GameObjects.Image;
 	private settings_icon!: Phaser.GameObjects.Image;
 	private leaderboard_button!: Phaser.GameObjects.Rectangle;
 	private play_button!: Phaser.GameObjects.Rectangle;
@@ -105,7 +98,7 @@ class Menu extends Phaser.Scene {
 
 	// Write your code here
 
-	preload(): void {
+	async preload() {
         const lang = localStorage.getItem("lang") || "en";
         this.load.json("menu_i18n", `assets/i18n/${lang}/Menu.json`);
     }
@@ -116,22 +109,6 @@ class Menu extends Phaser.Scene {
 		// Apply translations
         const i18n = this.cache.json.get("menu_i18n");
         applyTranslations(this, i18n);
-
-		// init tunnel animation
-		if (!this.anims.exists('tunnel_spin')) {
-			this.anims.create({
-				key: 'tunnel_spin',
-				frames: this.anims.generateFrameNumbers('tunnel_1', { start: 0, end: 11 }),
-				frameRate: 9,
-				repeat: -1
-			});
-		}
-
-		const { x, y, scaleX, scaleY } = this.tunnel;
-		this.tunnel.destroy();
-		const tunnelAnim = this.add.sprite(x, y, 'tunnel_1').setScale(scaleX, scaleY);
-		tunnelAnim.play('tunnel_spin');
-		this.children.sendToBack(tunnelAnim);
 
 		// add click events
 		this.leaderboard_button.setInteractive();
@@ -147,9 +124,9 @@ class Menu extends Phaser.Scene {
 		this.fullscreen_icon.on('pointerdown', () => {this.fullscreen_icon.setTint(0x00aaff);});
 
 		this.play_button.on('pointerup', () => {this.scene.start("Scene_1");});
-		this.leaderboard_button.on('pointerup', () => {window.location.href = "/static/pages/gay.html";});
-		this.gallery_button.on('pointerup', () => {window.location.href = "/static/pages/gay.html";});
-		this.settings_icon.on('pointerup', () => {window.location.href = "/static/pages/gay.html";});
+		this.leaderboard_button.on('pointerup', () => {this.scene.start("Leaderboard");});
+		this.gallery_button.on('pointerup', () => {this.scene.start("Gallery");});
+		this.settings_icon.on('pointerup', () => {this.scene.start("Settings");});
 		this.fullscreen_icon.on('pointerup', () => {
 			if (this.scale.isFullscreen) {
 				this.fullscreen_icon.setFrame(1);

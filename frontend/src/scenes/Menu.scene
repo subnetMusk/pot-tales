@@ -11,32 +11,15 @@
     },
     "displayList": [
         {
-            "type": "Image",
-            "id": "ba9363a1-fa1c-4797-b1e4-141847cb7d5c",
-            "label": "tunnel",
-            "displayName": "Background",
-            "scope": "CLASS",
-            "texture": {
-                "key": "tunnel_1",
-                "frame": 0
-            },
-            "x": 640,
-            "y": 360,
-            "scaleX": 20.01,
-            "scaleY": 20.1
-        },
-        {
-            "type": "Rectangle",
-            "id": "7f507dfb-9796-43ff-985c-d54bdfcde864",
-            "label": "bg_filter",
-            "displayName": "Background Filter",
-            "x": 640,
-            "y": 360,
-            "alpha": 0.4,
-            "isFilled": true,
-            "fillColor": "#000000",
-            "width": 1280,
-            "height": 720
+            "prefabId": "b839e604-a177-4f6e-9a14-7bbc8c2c4576",
+            "id": "03b123d4-293e-442b-a610-27d9198b842c",
+            "unlock": [
+                "x",
+                "y"
+            ],
+            "label": "menuBackground",
+            "x": 520,
+            "y": 360
         },
         {
             "type": "Image",

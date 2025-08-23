@@ -2,6 +2,11 @@
     "section1": {
         "files": [
             {
+                "url": "frontend/public/assets/images/back.png",
+                "type": "image",
+                "key": "back"
+            },
+            {
                 "url": "frontend/public/assets/images/fullscreen.png",
                 "frameConfig": {
                     "frameWidth": 64,
