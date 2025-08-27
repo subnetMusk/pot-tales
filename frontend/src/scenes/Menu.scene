@@ -107,17 +107,6 @@
             "stroke": "#000000"
         },
         {
-            "type": "Image",
-            "id": "e065471f-2932-46be-a680-9c78c2f4d977",
-            "label": "play_icon",
-            "displayName": "Play Icon",
-            "texture": {
-                "key": "play"
-            },
-            "x": 500,
-            "y": 250
-        },
-        {
             "type": "Rectangle",
             "id": "e077216e-4bdd-4ed4-bab7-6374c06c558f",
             "label": "Gallery_button",
@@ -172,6 +161,18 @@
             "y": 98,
             "scaleX": 1.5,
             "scaleY": 1.5
+        },
+        {
+            "type": "Image",
+            "id": "5a78daa9-b4a5-48a5-87e9-b464c462cb75",
+            "label": "play_icon",
+            "displayName": "Play Icon",
+            "texture": {
+                "key": "play",
+                "frame": 0
+            },
+            "x": 500,
+            "y": 250
         }
     ],
     "plainObjects": [],

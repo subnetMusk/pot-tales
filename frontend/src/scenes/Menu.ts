@@ -55,9 +55,6 @@ class Menu extends Phaser.Scene {
 		play.text = "Play";
 		play.setStyle({ "align": "center", "color": "#f0f8ff", "fontFamily": "PixelifySans-VariableFont_wght", "fontSize": "30px", "stroke": "#000000" });
 
-		// play_icon
-		this.add.image(500, 250, "play");
-
 		// Gallery_button
 		const gallery_button = this.add.rectangle(640, 360, 450, 90);
 		gallery_button.isStroked = true;
@@ -78,6 +75,9 @@ class Menu extends Phaser.Scene {
 		const fullscreen_icon = this.add.image(1182, 98, "fullscreen", 1);
 		fullscreen_icon.scaleX = 1.5;
 		fullscreen_icon.scaleY = 1.5;
+
+		// play_icon
+		this.add.image(500, 250, "play", 0);
 
 		this.settings_icon = settings_icon;
 		this.leaderboard_button = leaderboard_button;

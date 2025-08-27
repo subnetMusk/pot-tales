@@ -1,7 +1,7 @@
 
 // You can write more code here
 import MenuBackground from "../items/UI/MenuBackground";
-import Back_button from "../items/UI/Back_button";
+import BackButton from "../items/UI/BackButton";
 /* START OF COMPILED CODE */
 
 class Leaderboard extends Phaser.Scene {
@@ -19,9 +19,9 @@ class Leaderboard extends Phaser.Scene {
 		// menuBackground
 		const menuBackground = new MenuBackground(this, 520, 360);
 		this.add.existing(menuBackground);
-		
+
 		// back_button
-		const back_button = new Back_button(this, 1182, 98);
+		const back_button = new BackButton(this, 1182, 98);
 		this.add.existing(back_button);
 		back_button.scaleX = 1.5;
 		back_button.scaleY = 1.5;
