@@ -47,32 +47,46 @@
                     "label": "skipButton",
                     "useGameObjectName": true,
                     "scope": "CLASS",
-                    "x": 1248,
-                    "y": 694,
+                    "x": 1151,
+                    "y": 647,
                     "text": "Skip",
-                    "fontFamily": "PixelifySans-VariableFont_wght"
+                    "fontFamily": "PixelifySans-VariableFont_wght",
+                    "fontSize": "24px"
+                },
+                {
+                    "type": "Image",
+                    "id": "8702450d-d169-451b-8886-f56b433d5d08",
+                    "label": "skipIcon",
+                    "displayName": "Spacebar Icon",
+                    "scope": "CLASS",
+                    "texture": {
+                        "key": "spacebar",
+                        "frame": 0
+                    },
+                    "x": 1231,
+                    "y": 659
                 },
                 {
                     "type": "Rectangle",
                     "id": "progress_bg",
                     "label": "progressBarBg",
                     "x": 640,
-                    "y": 715,
+                    "y": 705,
                     "isFilled": true,
                     "fillColor": "#222222",
                     "fillAlpha": 0.8,
                     "width": 1280,
-                    "height": 10
+                    "height": 30
                 },
                 {
                     "type": "Rectangle",
                     "id": "progress_bar",
                     "label": "progressBar",
                     "scope": "CLASS",
-                    "y": 710,
+                    "y": 705,
                     "isFilled": true,
                     "fillColor": "#a61200",
-                    "height": 10
+                    "height": 30
                 }
             ]
         }
@@ -92,7 +106,8 @@
                 "progress_bar",
                 "progress_bg",
                 "play_btn",
-                "skip_btn"
+                "skip_btn",
+                "8702450d-d169-451b-8886-f56b433d5d08"
             ]
         }
     ]

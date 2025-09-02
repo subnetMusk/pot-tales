@@ -19,86 +19,62 @@ class VideoPlayer extends Phaser.GameObjects.Container {
 		this.add(playButton);
 
 		// skipButton
-		const skipButton = scene.add.text(1248, 694, "", {});
+		const skipButton = scene.add.text(1151, 647, "", {});
 		skipButton.name = "skipButton";
 		skipButton.text = "Skip";
-		skipButton.setStyle({ "fontFamily": "PixelifySans-VariableFont_wght" });
+		skipButton.setStyle({ "fontFamily": "PixelifySans-VariableFont_wght", "fontSize": "24px" });
 		this.add(skipButton);
 
+		// skipIcon
+		const skipIcon = scene.add.image(1231, 659, "spacebar", 0);
+		this.add(skipIcon);
+
 		// progressBarBg
-		const progressBarBg = scene.add.rectangle(640, 715, 1280, 10);
+		const progressBarBg = scene.add.rectangle(640, 705, 1280, 30);
 		progressBarBg.isFilled = true;
 		progressBarBg.fillColor = 2236962;
 		progressBarBg.fillAlpha = 0.8;
 		this.add(progressBarBg);
 
 		// progressBar
-		const progressBar = scene.add.rectangle(0, 710, 0, 10);
+		const progressBar = scene.add.rectangle(0, 705, 0, 30);
 		progressBar.isFilled = true;
 		progressBar.fillColor = 10883584;
 		this.add(progressBar);
 
 		// lists
-		const uI = [progressBar, progressBarBg, playButton, skipButton];
+		const uI = [progressBar, progressBarBg, playButton, skipButton, skipIcon];
 
 		this.playButton = playButton;
 		this.skipButton = skipButton;
+		this.skipIcon = skipIcon;
 		this.progressBar = progressBar;
 		this.uI = uI;
 
 		/* START-USER-CTR-CODE */
 		// Write your code here.
 
-		// --- Custom UI logic ---
-		this.lastPointerMove = this.scene.time.now;
+        // --- Logica UI personalizzata ---
+        this.lastPointerMove = this.scene.time.now;
         this.uiVisible = true;
         this.fadeDuration = 300;
         this.hideDelay = 2000;
 
-        this.scene.input.on('pointermove', () => {
-            this.lastPointerMove = this.scene.time.now;
-            if (!this.uiVisible) this.fadeUI(true);
-        });
-
-        this.scene.events.on('update', () => {
-            if (this.uiVisible && this.scene.time.now - this.lastPointerMove > this.hideDelay && this.skipHoldStart === undefined) this.fadeUI(false);
-        });
-
-		playButton.setInteractive().on('pointerup', () => {
-            if (this.isPlaying()) this.pause();
-			else this.play();
-        });
-
-        // Space hold for skip
-        this.scene.input.keyboard.on('keydown-SPACE', () => {
-            if (!this.skipHoldStart) {
-                if (!this.uiVisible) this.fadeUI(true);
-
-                this.skipHoldStart = this.scene.time.now;
-            }
-        });
-
-        this.scene.input.keyboard.on('keyup-SPACE', () => {
-            this.lastPointerMove = this.scene.time.now;
-
-			this.skipHoldStart = undefined;
-        });
-
-        // Progress bar update
-        this.scene.events.on('update', this.updateProgressBar, this);
+        this.registerHandlers();
 
 		/* END-USER-CTR-CODE */
 	}
 
 	private playButton: Phaser.GameObjects.Image;
 	private skipButton: Phaser.GameObjects.Text;
+	private skipIcon: Phaser.GameObjects.Image;
 	private progressBar: Phaser.GameObjects.Rectangle;
 	private uI: Array<Phaser.GameObjects.Rectangle|Phaser.GameObjects.Image|Phaser.GameObjects.Text>;
 
 	/* START-USER-CODE */
 
 	// Write your code here.
-	private skipHoldStart?: number;
+    private skipHoldStart?: number;
 	private video?: Phaser.GameObjects.Video;
 
 	private lastPointerMove: number;
@@ -106,6 +82,7 @@ class VideoPlayer extends Phaser.GameObjects.Container {
     private fadeDuration: number;
     private hideDelay: number;
 
+    // Mostra o nascondi l'UI con una dissolvenza
 	private fadeUI(show: boolean) {
         this.uiVisible = show;
         this.uI.forEach(obj => {
@@ -118,7 +95,8 @@ class VideoPlayer extends Phaser.GameObjects.Container {
         });
     }
 
-	public play(): void {
+    // Avvia il video
+    public play(): void {
         if (this.video) {
             if (this.video.isPaused()) this.video.resume();
             else this.video.play();
@@ -127,15 +105,23 @@ class VideoPlayer extends Phaser.GameObjects.Container {
         this.playButton.setTexture("play", 1);
     }
 
+    // Metti in pausa il video
     public pause(): void {
         if (this.video) this.video.pause();
         this.playButton.setTexture("play", 0);
     }
 
+    // Controlla se il video è in riproduzione
     public isPlaying(): boolean {
         return !!this.video && this.video.isPlaying();
     }
 
+    /**
+     * Carica un file video nel player.
+     * @param filename - Il nome del file video da caricare (il video deve essere nella cartella /assets/videos/).
+     * @param x - La posizione x dove posizionare il video.
+     * @param y - La posizione y dove posizionare il video.
+     */
     public loadVideo(filename: string, x: number = 640, y: number = 360): void {
         if (this.video)this.video.destroy();
 
@@ -143,17 +129,43 @@ class VideoPlayer extends Phaser.GameObjects.Container {
         this.video = this.scene.add.video(x, y, undefined);
         this.video.loadURL(videoPath);
 		this.video.setLoop(false);
-        this.addAt(this.video, 0);
+        this.addAt(this.video, 1);
         this.playButton.setTexture("play", 1);
 
         this.video.once('complete', () => {this.scene.events.emit('video-ended', this.video?.texture.key);});
     }
 
-    public enableSkipButton(enable: boolean = true): void {
-        this.skipButton.visible = enable;
+    /**
+     * Ridimensiona il video in modalità preimpostate.
+     * @param mode - La modalità di ridimensionamento:
+     *   "fit"      - Imposta il video alla dimensione massima all'interno delle dimensioni della scena.
+     *   "original" - Imposta alla dimensione originale del video.
+     *   "fill"     - Riempi l'area della scena, può tagliare fuori sezioni del video.
+     * @param width - Larghezza target.
+     * @param height - Altezza target.
+     */
+    public resizeVideo(mode: string = "fill", width: number = 1280, height: number = 720): void {
+        if (this.video) {
+            if (mode === "fit") this.video.setDisplaySize(width, height);
+            else if (mode === "original") {
+                this.video.setDisplaySize(this.video.width, this.video.height);
+                this.video.setPosition(640, 360);
+                return;
+            } else if (mode === "fill") {
+                if(this.video.width > this.video.height) {
+                    const scale = height / this.video.height;
+                    this.video.setDisplaySize(this.video.width * scale, height);
+                } else {
+                    const scale = width / this.video.width;
+                    this.video.setDisplaySize(width, this.video.height * scale);
+                }
+            }
+        }
     }
 
-    private updateProgressBar(): void {
+    // Event Handlers
+
+    private updateProgressBar = () => {
         if (!this.video) return;
 
         const duration = this.video.getDuration();
@@ -161,8 +173,7 @@ class VideoPlayer extends Phaser.GameObjects.Container {
         const percent = duration > 0 ? current / duration : 0;
         this.progressBar.width = 1280 * percent;
 
-        // Handle skip by holding space
-        if (this.skipButton.visible && this.skipHoldStart !== undefined) {
+        if (this.skipHoldStart !== undefined) {
             const held = this.scene.time.now - this.skipHoldStart;
             if (held > 2000) {
                 this.video.setCurrentTime(this.video.getDuration());
@@ -173,11 +184,84 @@ class VideoPlayer extends Phaser.GameObjects.Container {
         }
     }
 
-    public resizeVideo(width: number = 1280, height: number = 720): void {
-        if (this.video) {
-            this.video.setDisplaySize(width, height);
-            this.video.setPosition(640, 360);
+    private handleSkipHoldStart = () => {
+        if (!this.skipHoldStart) {
+            if (!this.uiVisible) this.fadeUI(true);
+            this.skipIcon.setTexture("spacebar", 1);
+            this.skipHoldStart = this.scene.time.now;
         }
+    }
+
+    private handleSkipHoldEnd = () => {
+        this.lastPointerMove = this.scene.time.now;
+        this.skipIcon.setTexture("spacebar", 0);
+        this.skipHoldStart = undefined;
+    }
+
+    private pointerMoveHandler = () => {
+        this.lastPointerMove = this.scene.time.now;
+        if (!this.uiVisible) this.fadeUI(true);
+    };
+
+    private updateHandler = () => {
+        if (
+            this.uiVisible
+            && this.scene.time.now - this.lastPointerMove > this.hideDelay
+            && this.skipHoldStart === undefined
+        ) {
+            this.fadeUI(false);
+        }
+    };
+
+    private playButtonHandler = () => {
+        if (this.isPlaying()) this.pause();
+        else this.play();
+    };
+
+    private registerHandlers() {
+        this.scene.input.on('pointermove', this.pointerMoveHandler);
+        this.scene.events.on('update', this.updateHandler);
+
+        this.playButton.setInteractive().on('pointerup', this.playButtonHandler);
+
+        this.scene.input.keyboard.on('keydown-SPACE', this.handleSkipHoldStart);
+        this.scene.input.keyboard.on('keyup-SPACE', this.handleSkipHoldEnd);
+
+        this.skipButton.setInteractive().on('pointerdown', this.handleSkipHoldStart);
+        this.skipButton.on('pointerup', this.handleSkipHoldEnd);
+
+        this.skipIcon.setInteractive().on('pointerdown', this.handleSkipHoldStart);
+        this.skipIcon.on('pointerup', this.handleSkipHoldEnd);
+
+        this.scene.events.on('update', this.updateProgressBar, this);
+    }
+
+    private unregisterHandlers() {
+
+        this.playButton.off('pointerup', this.playButtonHandler);
+
+        this.skipButton.off('pointerdown', this.handleSkipHoldStart);
+        this.skipButton.off('pointerup', this.handleSkipHoldEnd);
+
+        this.skipIcon.off('pointerdown', this.handleSkipHoldStart);
+        this.skipIcon.off('pointerup', this.handleSkipHoldEnd);
+
+        if (!this.scene) return;
+
+        this.scene.input.off('pointermove', this.pointerMoveHandler);
+        this.scene.events.off('update', this.updateHandler);
+
+        this.scene.input.keyboard.off('keydown-SPACE', this.handleSkipHoldStart);
+        this.scene.input.keyboard.off('keyup-SPACE', this.handleSkipHoldEnd);
+
+        this.scene.events.off('update', this.updateProgressBar, this);
+    }
+
+    public override destroy(fromScene?: boolean): void {
+        this.unregisterHandlers();
+        if (this.video) this.video.destroy();
+
+        super.destroy(fromScene);
     }
 
 	/* END-USER-CODE */

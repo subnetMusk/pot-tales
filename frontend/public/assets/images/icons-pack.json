@@ -48,6 +48,19 @@
                 "key": "settings"
             },
             {
+                "url": "frontend/public/assets/images/spacebar.png",
+                "frameConfig": {
+                    "frameWidth": 64,
+                    "frameHeight": 64,
+                    "startFrame": 0,
+                    "endFrame": -1,
+                    "spacing": 0,
+                    "margin": 0
+                },
+                "type": "spritesheet",
+                "key": "spacebar"
+            },
+            {
                 "url": "frontend/public/assets/images/tunnel.png",
                 "frameConfig": {
                     "frameWidth": 64,
@@ -59,6 +72,11 @@
                 },
                 "type": "spritesheet",
                 "key": "tunnel_1"
+            },
+            {
+                "url": "frontend/public/assets/images/volume.png",
+                "type": "image",
+                "key": "volume"
             }
         ]
     },
