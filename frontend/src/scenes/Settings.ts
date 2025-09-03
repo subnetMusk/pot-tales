@@ -68,9 +68,35 @@ class Settings extends Phaser.Scene {
 		mainVolume.text = "Main Volume";
 		mainVolume.setStyle({ "align": "right", "fixedWidth": 300, "fontFamily": "PixelifySans-VariableFont_wght", "fontSize": "30px" });
 
+		// enButton
+		const enButton = this.add.rectangle(1166, 638, 150, 64);
+		enButton.isStroked = true;
+		enButton.strokeColor = 15792383;
+		enButton.lineWidth = 2;
+
+		// english
+		const english = this.add.text(1167, 638, "", {});
+		english.setOrigin(0.5, 0.5);
+		english.text = "English";
+		english.setStyle({ "align": "center", "fixedWidth": 128, "fontFamily": "PixelifySans-VariableFont_wght", "fontSize": "30px" });
+
+		// itButton
+		const itButton = this.add.rectangle(1006, 638, 150, 64);
+		itButton.isStroked = true;
+		itButton.strokeColor = 15792383;
+		itButton.lineWidth = 2;
+
+		// italian
+		const italian = this.add.text(1006, 638, "", {});
+		italian.setOrigin(0.5, 0.5);
+		italian.text = "Italiano";
+		italian.setStyle({ "align": "center", "fixedWidth": 128, "fontFamily": "PixelifySans-VariableFont_wght", "fontSize": "30px" });
+
 		this.sfxVolumeSlider = sfxVolumeSlider;
 		this.musicVolumeSlider = musicVolumeSlider;
 		this.mainVolumeSlider = mainVolumeSlider;
+		this.enButton = enButton;
+		this.itButton = itButton;
 
 		this.events.emit("scene-awake");
 	}
@@ -78,6 +104,8 @@ class Settings extends Phaser.Scene {
 	private sfxVolumeSlider!: VolumeBar;
 	private musicVolumeSlider!: VolumeBar;
 	private mainVolumeSlider!: VolumeBar;
+	private enButton!: Phaser.GameObjects.Rectangle;
+	private itButton!: Phaser.GameObjects.Rectangle;
 
 	/* START-USER-CODE */
 
@@ -92,6 +120,17 @@ class Settings extends Phaser.Scene {
 		this.editorCreate();
 		const i18n = this.cache.json.get("settings_i18n");
     	applyTranslations(this, i18n);
+
+		switch(localStorage.getItem("lang") || "en"){
+			case "en":
+				this.enButton.isFilled = true;
+				this.enButton.setFillStyle(0x70bcff);
+				break;
+			case "it":
+				this.itButton.isFilled = true;
+				this.itButton.setFillStyle(0x70bcff);
+				break;
+		}
 
 		const mainVolumeValue = Number(localStorage.getItem("mainVolume") ?? this.game.sound.volume);
 		const musicVolumeValue = Number(localStorage.getItem("musicVolume") ?? 1);
@@ -109,8 +148,38 @@ class Settings extends Phaser.Scene {
 		this.sfxVolumeSlider.init(sfxVolumeValue * 10, (value: number) => {
 			localStorage.setItem("sfxVolume", (value / 10).toString());
 		});
-	}
 
+		this.enButton.setInteractive();
+		this.itButton.setInteractive();
+
+		this.enButton.on('pointerdown', () => { this.enButton.setStrokeStyle(4, 0x00aaff); });
+		this.itButton.on('pointerdown', () => { this.itButton.setStrokeStyle(4, 0x00aaff); });
+
+		this.enButton.on('pointerover', () => { this.enButton.setStrokeStyle(4, 0x70bcff); });
+		this.itButton.on('pointerover', () => { this.itButton.setStrokeStyle(4, 0x70bcff); });
+
+		this.enButton.on('pointerout', () => { this.enButton.setStrokeStyle(2, 0xf0f8ff); });
+		this.itButton.on('pointerout', () => { this.itButton.setStrokeStyle(2, 0xf0f8ff); });
+
+
+		this.enButton.on("pointerup", () => {
+			if(localStorage.getItem("lang") !== "en") {
+				localStorage.setItem("lang", "en");
+				this.scene.restart();
+			}
+		});
+
+		this.itButton.on("pointerup", () => {
+			if(localStorage.getItem("lang") !== "it") {
+				localStorage.setItem("lang", "it");
+				this.scene.restart();
+			}
+		});
+
+		this.events.once("shutdown", () => {
+        	this.cache.json.remove("settings_i18n");
+    	});
+	}
 	/* END-USER-CODE */
 }
 

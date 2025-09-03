@@ -151,8 +151,11 @@ class Menu extends Phaser.Scene {
 
 		this.fullscreen_icon.on('pointerover', () => {this.fullscreen_icon.setTint(0x70bcff);});
 		this.fullscreen_icon.on('pointerout', () => {this.fullscreen_icon.clearTint();});
-	}
 
+		this.events.once("shutdown", () => {
+        	this.cache.json.remove("menu_i18n");
+    	});
+	}
 	/* END-USER-CODE */
 }
 

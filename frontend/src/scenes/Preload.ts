@@ -76,6 +76,10 @@ class Preload extends Phaser.Scene {
 		this.scene.add("Menu", ((await import("./Menu")).default), true);
 
 		this.scene.stop("Preload");
+
+		this.events.once("shutdown", () => {
+        	this.cache.json.remove("preload_i18n");
+    	});
 	}
 
 	/* END-USER-CODE */

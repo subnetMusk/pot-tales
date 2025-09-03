@@ -267,6 +267,8 @@ class VideoPlayer extends Phaser.GameObjects.Container {
         this.scene.input.keyboard.off('keyup-SPACE', this.handleSkipHoldEnd);
 
         this.scene.events.off('update', this.updateProgressBar, this);
+
+        this.scene.cache.json.remove("video_i18n");
     }
 
     public override destroy(fromScene?: boolean): void {
