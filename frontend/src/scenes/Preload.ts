@@ -31,10 +31,11 @@ class Preload extends Phaser.Scene {
 		loader.fillColor = 10883584;
 
 		// Loading
-		const loading = this.add.text(574, 305, "", {});
+		const loading = this.add.text(640, 320, "", {});
 		loading.name = "Loading";
+		loading.setOrigin(0.5, 0.5);
 		loading.text = "Loading...";
-		loading.setStyle({ "color": "#f0f8ff", "fontFamily": "PixelifySans-VariableFont_wght", "fontSize": "30px" });
+		loading.setStyle({ "align": "center", "color": "#f0f8ff", "fixedWidth": 200, "fontFamily": "PixelifySans-VariableFont_wght", "fontSize": "30px" });
 
 		this.loader_bg = loader_bg;
 		this.loader = loader;

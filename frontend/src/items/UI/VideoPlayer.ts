@@ -1,5 +1,5 @@
 // You can write more code here
-
+import { applyTranslations } from "../../utils";
 /* START OF COMPILED CODE */
 
 class VideoPlayer extends Phaser.GameObjects.Container {
@@ -18,12 +18,13 @@ class VideoPlayer extends Phaser.GameObjects.Container {
 		const playButton = scene.add.image(640, 360, "play", 0);
 		this.add(playButton);
 
-		// skipButton
-		const skipButton = scene.add.text(1151, 647, "", {});
-		skipButton.name = "skipButton";
-		skipButton.text = "Skip";
-		skipButton.setStyle({ "fontFamily": "PixelifySans-VariableFont_wght", "fontSize": "24px" });
-		this.add(skipButton);
+		// skip
+		const skip = scene.add.text(1149, 659, "", {});
+		skip.name = "skip";
+		skip.setOrigin(0.5, 0.5);
+		skip.text = "Skip";
+		skip.setStyle({ "align": "right", "fixedWidth": 100, "fontFamily": "PixelifySans-VariableFont_wght", "fontSize": "24px" });
+		this.add(skip);
 
 		// skipIcon
 		const skipIcon = scene.add.image(1231, 659, "spacebar", 0);
@@ -43,16 +44,24 @@ class VideoPlayer extends Phaser.GameObjects.Container {
 		this.add(progressBar);
 
 		// lists
-		const uI = [progressBar, progressBarBg, playButton, skipButton, skipIcon];
+		const uI = [progressBar, progressBarBg, playButton, skip, skipIcon];
 
 		this.playButton = playButton;
-		this.skipButton = skipButton;
+		this.skip = skip;
 		this.skipIcon = skipIcon;
 		this.progressBar = progressBar;
 		this.uI = uI;
 
 		/* START-USER-CTR-CODE */
 		// Write your code here.
+        const lang = localStorage.getItem("lang") || "en";
+        this.scene.load.json("video_i18n", `assets/i18n/${lang}/VideoPlayer.json`);
+        this.scene.load.once('filecomplete-json-video_i18n', () => {
+            const i18n = this.scene.cache.json.get("video_i18n");
+            console.log("Loaded video_i18n:", i18n);
+            if (i18n) applyTranslations(this, i18n);
+        });
+        this.scene.load.start();
 
         // --- Logica UI personalizzata ---
         this.lastPointerMove = this.scene.time.now;
@@ -66,7 +75,7 @@ class VideoPlayer extends Phaser.GameObjects.Container {
 	}
 
 	private playButton: Phaser.GameObjects.Image;
-	private skipButton: Phaser.GameObjects.Text;
+	private skip: Phaser.GameObjects.Text;
 	private skipIcon: Phaser.GameObjects.Image;
 	private progressBar: Phaser.GameObjects.Rectangle;
 	private uI: Array<Phaser.GameObjects.Rectangle|Phaser.GameObjects.Image|Phaser.GameObjects.Text>;
@@ -127,9 +136,12 @@ class VideoPlayer extends Phaser.GameObjects.Container {
 
         const videoPath = `/assets/videos/${filename}`;
         this.video = this.scene.add.video(x, y, undefined);
+
         this.video.loadURL(videoPath);
+        this.video.setVolume(this.scene.game.sound.volume);
 		this.video.setLoop(false);
         this.addAt(this.video, 1);
+
         this.playButton.setTexture("play", 1);
 
         this.video.once('complete', () => {this.scene.events.emit('video-ended', this.video?.texture.key);});
@@ -227,8 +239,8 @@ class VideoPlayer extends Phaser.GameObjects.Container {
         this.scene.input.keyboard.on('keydown-SPACE', this.handleSkipHoldStart);
         this.scene.input.keyboard.on('keyup-SPACE', this.handleSkipHoldEnd);
 
-        this.skipButton.setInteractive().on('pointerdown', this.handleSkipHoldStart);
-        this.skipButton.on('pointerup', this.handleSkipHoldEnd);
+        this.skip.setInteractive().on('pointerdown', this.handleSkipHoldStart);
+        this.skip.on('pointerup', this.handleSkipHoldEnd);
 
         this.skipIcon.setInteractive().on('pointerdown', this.handleSkipHoldStart);
         this.skipIcon.on('pointerup', this.handleSkipHoldEnd);
@@ -240,8 +252,8 @@ class VideoPlayer extends Phaser.GameObjects.Container {
 
         this.playButton.off('pointerup', this.playButtonHandler);
 
-        this.skipButton.off('pointerdown', this.handleSkipHoldStart);
-        this.skipButton.off('pointerup', this.handleSkipHoldEnd);
+        this.skip.off('pointerdown', this.handleSkipHoldStart);
+        this.skip.off('pointerup', this.handleSkipHoldEnd);
 
         this.skipIcon.off('pointerdown', this.handleSkipHoldStart);
         this.skipIcon.off('pointerup', this.handleSkipHoldEnd);

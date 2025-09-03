@@ -30,11 +30,104 @@
                 "scaleX",
                 "scaleY"
             ],
-            "label": "back_button",
+            "label": "backButton",
             "x": 1182,
             "y": 98,
             "scaleX": 1.5,
             "scaleY": 1.5
+        },
+        {
+            "prefabId": "dbaee912-664e-41be-ab33-968f861902a2",
+            "id": "b999cd69-6ce8-4ce7-997d-db6c84077dcd",
+            "unlock": [
+                "x",
+                "y",
+                "scaleX",
+                "scaleY"
+            ],
+            "label": "sfxVolumeSlider",
+            "scope": "CLASS",
+            "x": 640,
+            "y": 421,
+            "scaleX": 2,
+            "scaleY": 2
+        },
+        {
+            "type": "Text",
+            "id": "53a5efe2-7bed-4e65-bc72-61cdaca697dc",
+            "label": "sfxVolume",
+            "useGameObjectName": true,
+            "x": 465,
+            "y": 453,
+            "originX": 0.5,
+            "originY": 0.5,
+            "text": "Effects Volume",
+            "fixedWidth": 300,
+            "align": "right",
+            "fontFamily": "PixelifySans-VariableFont_wght",
+            "fontSize": "30px"
+        },
+        {
+            "prefabId": "dbaee912-664e-41be-ab33-968f861902a2",
+            "id": "83edbcad-5e5b-4c9d-b7c9-e98cdbf34dc4",
+            "unlock": [
+                "x",
+                "y",
+                "scaleX",
+                "scaleY"
+            ],
+            "label": "musicVolumeSlider",
+            "scope": "CLASS",
+            "x": 640,
+            "y": 346,
+            "scaleX": 2,
+            "scaleY": 2
+        },
+        {
+            "type": "Text",
+            "id": "398ff9f2-86a5-4cf6-b9dc-f5a4fa473b60",
+            "label": "musicVolume",
+            "useGameObjectName": true,
+            "x": 465,
+            "y": 378,
+            "originX": 0.5,
+            "originY": 0.5,
+            "text": "Music Volume",
+            "fixedWidth": 300,
+            "align": "right",
+            "fontFamily": "PixelifySans-VariableFont_wght",
+            "fontSize": "30px"
+        },
+        {
+            "prefabId": "dbaee912-664e-41be-ab33-968f861902a2",
+            "id": "851115c5-df27-454d-bc1c-f95819f063e2",
+            "unlock": [
+                "x",
+                "y",
+                "scaleX",
+                "scaleY"
+            ],
+            "label": "mainVolumeSlider",
+            "scope": "CLASS",
+            "x": 640,
+            "y": 271,
+            "scaleX": 2,
+            "scaleY": 2
+        },
+        {
+            "type": "Text",
+            "id": "aa014342-0f41-4a80-9716-77ca3d66b601",
+            "label": "mainVolume",
+            "useGameObjectName": true,
+            "x": 465,
+            "y": 303,
+            "originX": 0.5,
+            "originY": 0.5,
+            "text": "Main Volume",
+            "fixedWidth": 300,
+            "align": "right",
+            "fontFamily": "PixelifySans-VariableFont_wght",
+            "fontSize": "30px"
         }
     ],
     "plainObjects": [],

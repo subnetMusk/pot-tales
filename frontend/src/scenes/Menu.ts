@@ -1,6 +1,5 @@
 import { applyTranslations } from "../utils";
 import MenuBackground from "../items/UI/MenuBackground";
-import Settings from "./Settings";
 // You can write more code here
 
 /* START OF COMPILED CODE */
