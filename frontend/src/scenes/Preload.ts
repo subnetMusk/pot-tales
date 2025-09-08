@@ -69,11 +69,13 @@ class Preload extends Phaser.Scene {
 		const i18n = this.cache.json.get("preload_i18n");
 		applyTranslations(this, i18n);
 
+		this.scene.add("Menu", ((await import("./Menu")).default));
 		this.scene.add("Settings", (await import("./Settings")).default);
 		this.scene.add("Gallery", (await import("./Gallery")).default);
 		this.scene.add("Leaderboard", (await import("./Leaderboard")).default);
 		this.scene.add("Scene_1", (await import("./Scene_1")).default);
-		this.scene.add("Menu", ((await import("./Menu")).default), true);
+
+		this.scene.add("Intro", (await import("./Intro")).default, true);
 
 		this.scene.stop("Preload");
 

@@ -1,5 +1,4 @@
 import Phaser from "phaser";
-import Scene1 from "./scenes/Scene_1";
 
 class Boot extends Phaser.Scene {
 	constructor() {
@@ -11,6 +10,8 @@ class Boot extends Phaser.Scene {
 	}
 
 	async create() {
+		this.game.sound.volume = Number(localStorage.getItem("mainVolume") ?? "1");
+
 		const { default: Preload } = await import("./scenes/Preload");
 		this.scene.add("Preload", Preload, true);
 		this.scene.stop("Boot");

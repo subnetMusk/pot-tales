@@ -109,9 +109,9 @@ class VideoPlayer extends Phaser.GameObjects.Container {
         if (this.video) {
             if (this.video.isPaused()) this.video.resume();
             else this.video.play();
-        }
 
-        this.playButton.setTexture("play", 1);
+            if(this.video.isPlaying()) this.playButton.setTexture("play", 1);
+        }
     }
 
     // Metti in pausa il video
@@ -131,18 +131,20 @@ class VideoPlayer extends Phaser.GameObjects.Container {
      * @param x - La posizione x dove posizionare il video.
      * @param y - La posizione y dove posizionare il video.
      */
-    public loadVideo(filename: string, x: number = 640, y: number = 360): void {
+    public loadVideo(filename: string, mode: string = "original", x: number = 640, y: number = 360): void {
         if (this.video)this.video.destroy();
 
         const videoPath = `/assets/videos/${filename}`;
         this.video = this.scene.add.video(x, y, undefined);
 
         this.video.loadURL(videoPath);
+        if(mode !== "original") this.video.once('play', () => this.resizeVideo(mode));
+
         this.video.setVolume(this.scene.game.sound.volume);
 		this.video.setLoop(false);
         this.addAt(this.video, 1);
 
-        this.playButton.setTexture("play", 1);
+        this.playButton.setTexture("play", 0);
 
         this.video.once('complete', () => {this.scene.events.emit('video-ended', this.video?.texture.key);});
     }
@@ -150,26 +152,34 @@ class VideoPlayer extends Phaser.GameObjects.Container {
     /**
      * Ridimensiona il video in modalità preimpostate.
      * @param mode - La modalità di ridimensionamento:
-     *   "fit"      - Imposta il video alla dimensione massima all'interno delle dimensioni della scena.
      *   "original" - Imposta alla dimensione originale del video.
+     *   "fit"      - Adatta il video all'area della scena, mantenendo le proporzioni, possono esserci barre nere.
      *   "fill"     - Riempi l'area della scena, può tagliare fuori sezioni del video.
-     * @param width - Larghezza target.
-     * @param height - Altezza target.
+     * ! Se il video non è ancora caricato (viene caricato alla chiamata di play), questa funzione non avrà effetto.
      */
-    public resizeVideo(mode: string = "fill", width: number = 1280, height: number = 720): void {
+    public resizeVideo(mode: string = "fill"): void {
+        var width: number = this.scene.scale.width;
+        var height: number = this.scene.scale.height;
+
         if (this.video) {
-            if (mode === "fit") this.video.setDisplaySize(width, height);
-            else if (mode === "original") {
+            if (mode === "original") {
                 this.video.setDisplaySize(this.video.width, this.video.height);
                 this.video.setPosition(640, 360);
-                return;
-            } else if (mode === "fill") {
+            } else if (mode === "fit") {
                 if(this.video.width > this.video.height) {
                     const scale = height / this.video.height;
                     this.video.setDisplaySize(this.video.width * scale, height);
                 } else {
                     const scale = width / this.video.width;
                     this.video.setDisplaySize(width, this.video.height * scale);
+                }
+            } else if (mode === "fill") {
+                if(this.video.width > this.video.height) {
+                    const scale = width / this.video.width;
+                    this.video.setDisplaySize(width, this.video.height * scale);
+                } else {
+                    const scale = height / this.video.height;
+                    this.video.setDisplaySize(this.video.width * scale, height);
                 }
             }
         }
@@ -216,6 +226,7 @@ class VideoPlayer extends Phaser.GameObjects.Container {
     };
 
     private updateHandler = () => {
+        if (!this.scene) return;
         if (
             this.uiVisible
             && this.scene.time.now - this.lastPointerMove > this.hideDelay
@@ -236,8 +247,10 @@ class VideoPlayer extends Phaser.GameObjects.Container {
 
         this.playButton.setInteractive().on('pointerup', this.playButtonHandler);
 
-        this.scene.input.keyboard.on('keydown-SPACE', this.handleSkipHoldStart);
-        this.scene.input.keyboard.on('keyup-SPACE', this.handleSkipHoldEnd);
+        if (this.scene.input.keyboard) {
+            this.scene.input.keyboard.on('keydown-SPACE', this.handleSkipHoldStart);
+            this.scene.input.keyboard.on('keyup-SPACE', this.handleSkipHoldEnd);
+        }
 
         this.skip.setInteractive().on('pointerdown', this.handleSkipHoldStart);
         this.skip.on('pointerup', this.handleSkipHoldEnd);
@@ -263,8 +276,10 @@ class VideoPlayer extends Phaser.GameObjects.Container {
         this.scene.input.off('pointermove', this.pointerMoveHandler);
         this.scene.events.off('update', this.updateHandler);
 
-        this.scene.input.keyboard.off('keydown-SPACE', this.handleSkipHoldStart);
-        this.scene.input.keyboard.off('keyup-SPACE', this.handleSkipHoldEnd);
+        if (this.scene.input.keyboard) {
+            this.scene.input.keyboard.off('keydown-SPACE', this.handleSkipHoldStart);
+            this.scene.input.keyboard.off('keyup-SPACE', this.handleSkipHoldEnd);
+        }
 
         this.scene.events.off('update', this.updateProgressBar, this);
 

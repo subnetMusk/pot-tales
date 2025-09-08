@@ -1,14 +1,13 @@
 
 // You can write more code here
 import MenuBackground from "../items/UI/MenuBackground";
-import BackButton from "../items/UI/BackButton";
 import VideoPlayer from "../items/UI/VideoPlayer";
 /* START OF COMPILED CODE */
 
-class Gallery extends Phaser.Scene {
+class Intro extends Phaser.Scene {
 
 	constructor() {
-		super("Gallery");
+		super("Intro");
 
 		/* START-USER-CTR-CODE */
 		// Write your code here.
@@ -25,12 +24,6 @@ class Gallery extends Phaser.Scene {
 		const videoPlayer = new VideoPlayer(this, 0, 0);
 		this.add.existing(videoPlayer);
 
-		// back_button
-		const back_button = new BackButton(this, 1182, 98);
-		this.add.existing(back_button);
-		back_button.scaleX = 1.5;
-		back_button.scaleY = 1.5;
-
 		this.videoPlayer = videoPlayer;
 
 		this.events.emit("scene-awake");
@@ -45,9 +38,19 @@ class Gallery extends Phaser.Scene {
 	create() {
 		this.editorCreate();
 
-		this.videoPlayer.loadVideo("meatthezoo.mp4", "fit");
+		this.videoPlayer.loadVideo("intro.mp4", "fill");
 		this.videoPlayer.play();
-		this.events.on('video-ended', () => {this.videoPlayer.destroy();});
+		this.events.on('video-ended', () => {
+			this.tweens.add({
+				targets: this.videoPlayer,
+				alpha: 0,
+				duration: 1000,
+				onComplete: () => {
+					this.videoPlayer.destroy();
+					this.scene.start("Menu");
+				}
+			});
+		});
 	}
 
 	/* END-USER-CODE */
@@ -56,4 +59,4 @@ class Gallery extends Phaser.Scene {
 /* END OF COMPILED CODE */
 
 // You can write more code here
-export default Gallery;
+export default Intro;
