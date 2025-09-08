@@ -6,3 +6,21 @@ export function applyTranslations(parent: Phaser.Scene | Phaser.GameObjects.Cont
         }
     });
 }
+
+export function showElements(elements: Array<Phaser.GameObjects.GameObject>, show: boolean) {
+	elements.forEach(obj => {
+		if ("alpha" in obj) obj.alpha = show ? 1 : 0;
+	});
+}
+
+export function fadeElements(SceneObject: Array<Phaser.GameObjects.GameObject>, show: boolean, duration: number = 1000, onComplete?: () => void) {
+	SceneObject.forEach(obj => {
+		obj.scene.tweens.add({
+			targets: obj,
+			alpha: show ? 1 : 0,
+			duration: duration,
+			ease: 'Quad.easeInOut',
+			onComplete: onComplete
+		});
+	});
+}

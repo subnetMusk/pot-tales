@@ -1,5 +1,6 @@
 // You can write more code here
 import { applyTranslations } from "../../utils";
+import { fadeElements } from "../../utils";
 /* START OF COMPILED CODE */
 
 class VideoPlayer extends Phaser.GameObjects.Container {
@@ -90,19 +91,6 @@ class VideoPlayer extends Phaser.GameObjects.Container {
     private uiVisible: boolean;
     private fadeDuration: number;
     private hideDelay: number;
-
-    // Mostra o nascondi l'UI con una dissolvenza
-	private fadeUI(show: boolean) {
-        this.uiVisible = show;
-        this.uI.forEach(obj => {
-            this.scene.tweens.add({
-                targets: obj,
-                alpha: show ? 1 : 0,
-                duration: this.fadeDuration,
-                ease: 'Quad.easeInOut'
-            });
-        });
-    }
 
     // Avvia il video
     public play(): void {
@@ -208,7 +196,10 @@ class VideoPlayer extends Phaser.GameObjects.Container {
 
     private handleSkipHoldStart = () => {
         if (!this.skipHoldStart) {
-            if (!this.uiVisible) this.fadeUI(true);
+            if (!this.uiVisible) {
+                fadeElements(this.uI, true);
+                this.uiVisible = true;
+            }
             this.skipIcon.setTexture("spacebar", 1);
             this.skipHoldStart = this.scene.time.now;
         }
@@ -222,7 +213,10 @@ class VideoPlayer extends Phaser.GameObjects.Container {
 
     private pointerMoveHandler = () => {
         this.lastPointerMove = this.scene.time.now;
-        if (!this.uiVisible) this.fadeUI(true);
+        if (!this.uiVisible) {
+            fadeElements(this.uI, true);
+            this.uiVisible = true;
+        }
     };
 
     private updateHandler = () => {
@@ -232,7 +226,8 @@ class VideoPlayer extends Phaser.GameObjects.Container {
             && this.scene.time.now - this.lastPointerMove > this.hideDelay
             && this.skipHoldStart === undefined
         ) {
-            this.fadeUI(false);
+            fadeElements(this.uI, false);
+            this.uiVisible = false;
         }
     };
 

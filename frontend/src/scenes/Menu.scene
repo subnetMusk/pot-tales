@@ -68,7 +68,7 @@
         {
             "type": "Image",
             "id": "bc85f77b-dc3d-4dae-9f9d-b66d0324f959",
-            "label": "leaderboard",
+            "label": "leaderboard_icon",
             "displayName": "Leaderboard Icon",
             "texture": {
                 "key": "leaderboard"
@@ -181,5 +181,24 @@
         "url": "https://phaser.io/editor",
         "contentType": "phasereditor2d.core.scene.SceneContentType",
         "version": 5
-    }
+    },
+    "lists": [
+        {
+            "id": "54bf8ea5-be4b-4cf1-9c7a-8a646c4488e8",
+            "label": "UI",
+            "objectIds": [
+                "535588e3-c367-4778-98bb-8733913aa93a",
+                "5a78daa9-b4a5-48a5-87e9-b464c462cb75",
+                "468e258c-422c-408e-b9b8-43637fbc6d7c",
+                "3970b748-5627-497f-8a17-e511a5dc2595",
+                "c0363a2e-c739-419e-91b2-36bac29f920e",
+                "e077216e-4bdd-4ed4-bab7-6374c06c558f",
+                "8708ef72-5d1c-459d-b92b-f6b0d081107a",
+                "bc85f77b-dc3d-4dae-9f9d-b66d0324f959",
+                "740b6b0c-8a36-4dc3-9451-5be9043034c2",
+                "212906bf-af42-4fd1-bca2-572ce7f12351",
+                "cd866935-4696-4d3d-aae6-65725956c783"
+            ]
+        }
+    ]
 }

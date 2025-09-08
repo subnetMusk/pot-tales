@@ -1,4 +1,6 @@
 import { applyTranslations } from "../utils";
+import { showElements } from "../utils";
+import { fadeElements } from "../utils";
 import MenuBackground from "../items/UI/MenuBackground";
 // You can write more code here
 
@@ -38,8 +40,8 @@ class Menu extends Phaser.Scene {
 		leaderboard.text = "Leaderboard";
 		leaderboard.setStyle({ "align": "center", "color": "#f0f8ff", "fontFamily": "PixelifySans-VariableFont_wght", "fontSize": "30px", "stroke": "#000000" });
 
-		// leaderboard
-		this.add.image(500, 470, "leaderboard");
+		// leaderboard_icon
+		const leaderboard_icon = this.add.image(500, 470, "leaderboard");
 
 		// Play_button
 		const play_button = this.add.rectangle(640, 250, 450, 90);
@@ -68,7 +70,7 @@ class Menu extends Phaser.Scene {
 		gallery.setStyle({ "align": "center", "color": "#f0f8ff", "fontFamily": "PixelifySans-VariableFont_wght", "fontSize": "30px", "stroke": "#000000" });
 
 		// gallery_icon
-		this.add.image(500, 359, "gallery");
+		const gallery_icon = this.add.image(500, 359, "gallery");
 
 		// fullscreen_icon
 		const fullscreen_icon = this.add.image(1182, 98, "fullscreen", 1);
@@ -76,13 +78,17 @@ class Menu extends Phaser.Scene {
 		fullscreen_icon.scaleY = 1.5;
 
 		// play_icon
-		this.add.image(500, 250, "play", 0);
+		const play_icon = this.add.image(500, 250, "play", 0);
+
+		// lists
+		const uI = [play_button, play_icon, fullscreen_icon, gallery_icon, gallery, gallery_button, play, leaderboard_icon, leaderboard, leaderboard_button, settings_icon];
 
 		this.settings_icon = settings_icon;
 		this.leaderboard_button = leaderboard_button;
 		this.play_button = play_button;
 		this.gallery_button = gallery_button;
 		this.fullscreen_icon = fullscreen_icon;
+		this.uI = uI;
 
 		this.events.emit("scene-awake");
 	}
@@ -92,6 +98,7 @@ class Menu extends Phaser.Scene {
 	private play_button!: Phaser.GameObjects.Rectangle;
 	private gallery_button!: Phaser.GameObjects.Rectangle;
 	private fullscreen_icon!: Phaser.GameObjects.Image;
+	private uI!: Array<Phaser.GameObjects.Rectangle|Phaser.GameObjects.Image|Phaser.GameObjects.Text>;
 
 	/* START-USER-CODE */
 
@@ -102,8 +109,27 @@ class Menu extends Phaser.Scene {
         this.load.json("menu_i18n", `assets/i18n/${lang}/Menu.json`);
     }
 
-	create() {
+	async create() {
 		this.editorCreate();
+		showElements(this.uI, false);
+
+		// Riproduce il video introduttivo al primo accesso (si resetta aggiornando la pagina)
+		if(localStorage.getItem("playIntro") === "true") {
+			const { default: VideoPlayer } = await import("../items/UI/VideoPlayer");
+
+			const videoPlayer = new VideoPlayer(this, 0, 0);
+			this.add.existing(videoPlayer);
+
+			videoPlayer.loadVideo("intro.mp4", "fill");
+			videoPlayer.play();
+			this.events.on('video-ended', () => {
+				fadeElements([videoPlayer], false, 1000, () => {
+					videoPlayer.destroy();
+					localStorage.setItem("playIntro", "false");
+					fadeElements(this.uI, true);
+				});
+			});
+		} else fadeElements(this.uI, true);
 
 		// Apply translations
         const i18n = this.cache.json.get("menu_i18n");
@@ -122,7 +148,11 @@ class Menu extends Phaser.Scene {
 		this.settings_icon.on('pointerdown', () => {this.settings_icon.setTint(0x00aaff);});
 		this.fullscreen_icon.on('pointerdown', () => {this.fullscreen_icon.setTint(0x00aaff);});
 
-		this.play_button.on('pointerup', () => {this.scene.start("Scene_1");});
+		this.play_button.on('pointerup', () => {
+			fadeElements(this.uI, false, 1000, () => {
+				this.scene.start("Scene_1");
+			});
+		});
 		this.leaderboard_button.on('pointerup', () => {this.scene.start("Leaderboard");});
 		this.gallery_button.on('pointerup', () => {this.scene.start("Gallery");});
 		this.settings_icon.on('pointerup', () => {this.scene.start("Settings");});
