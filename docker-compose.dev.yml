@@ -1,4 +1,30 @@
 ############################
+# VERSION
+############################
+version: '3.8'
+
+############################
+# VOLUMES DEFINITIONS
+############################
+volumes:
+  certs:
+    driver: local
+  esdata01: 
+    driver: local
+  kibanadata:
+    driver: local
+  # mongoDB data persistence  
+  # mongodb:
+  #   driver: local
+
+  # Uncomment if using Fleet Server for more advanced Elastic Agent management
+  # fleetserverdata:
+  #   driver: local
+
+  npm_data: {}            # Proxy Manager SQLite config
+  npm_letsencrypt: {}     # SSL certs for domains
+
+############################
 # NETWORK DEFINITIONS
 ############################
 
@@ -42,12 +68,15 @@ services:
       - proxy_net
       - frontend_net
     environment:
-      - DB_SQLITE_FILE=${DB_SQLITE_FILE}
+      - DB_SQLITE_FILE=${DB_SQLITE_FILE}  # path within container to SQLite DB file for NPM for storing config of virtual hosts, users, etc.
     volumes:
-      - ./docker/volumes/npm_data:/data                       # persistent UI and config data
-      - ./docker/volumes/npm_letsencrypt:/etc/letsencrypt     # persistent SSL certificates
-      - ./frontend/dist:/var/www/frontend:ro                  # frontend build assets
-      - ./sandbox/dist:/var/www/sandbox:ro                    # sandbox build assets
+      # Redundant with volumes section 
+      # - ./docker/volumes/npm_data:/data                       # persistent UI and config data
+      # - ./docker/volumes/npm_letsencrypt:/etc/letsencrypt     # persistent SSL certificates
+      - npm_data:/data                                        # persistent UI and config data
+      - npm_letsencrypt:/etc/letsencrypt                       # persistent SSL certificates
+      - ./frontend/dist:/var/www/frontend:ro                  # frontend build assets mounted read-only in the container
+      - ./sandbox/dist:/var/www/sandbox:ro                    # sandbox build assets mounted read-only in the container
     depends_on:
       - server
       - sandbox
@@ -56,15 +85,15 @@ services:
   # Go backend API service
   server:
     build:
-      context: ./server
-      dockerfile: Dockerfile
-      target: builder
-    container_name: server
+      context: ./server           # build from server/ directory
+      dockerfile: Dockerfile      # use multi-stage Dockerfile
+      target: builder             # build the 'builder' stage, which includes dev tools
+    container_name: server    
     networks:
-      - internal_net
-      - proxy_net
+      - internal_net              # secure backend DB access
+      - proxy_net                 # allow NPM to proxy requests, in order to expose API to internet only through the proxy    
     env_file:
-      - docker/env/.env
+      - docker/env/.env           # load environment variables from file 
     environment:
       - REDIS_URL=${REDIS_URL}
       - SESSION_TTL_MIN=${SESSION_TTL_MIN}
@@ -73,27 +102,28 @@ services:
       - ELASTIC_APM_ENVIRONMENT=${ELASTIC_APM_ENVIRONMENT}
       - ELASTIC_APM_SECRET_TOKEN=${ELASTIC_APM_SECRET_TOKEN}
     volumes:
-      - ./server:/src:delegated
-      - ./comms:/src/comms:ro
+      - ./server:/src:delegated   # source code mounted with delegated option for better performance during development
+                                  # and also to allow hot-reloading with air, so when files change in host, they are updated in container
+      - ./comms:/src/comms:ro     # common types mounted read-only
     expose:
-      - "3000"  # internal API port (proxied)
-    command: air  # hot-reload tool
+      - "3000"                    # internal API port (proxied)
+    command: air                  # hot-reload tool
     depends_on:
       - db
       - redis
 
   # Redis in-memory database with ACL
   redis:
-    image: redis:alpine
+    image: redis:alpine                                                   # lightweight Alpine-based Redis image  
     container_name: redis
-    command: ["redis-server", "/usr/local/etc/redis/redis.conf"]
+    command: ["redis-server", "/usr/local/etc/redis/redis.conf"]          # start Redis with custom config file (enables ACL) 
     volumes:
-      - ./docker/redis/redis.conf:/usr/local/etc/redis/redis.conf:ro
-      - ./docker/redis/users.acl:/usr/local/etc/redis/users.acl:ro
+      - ./docker/redis/redis.conf:/usr/local/etc/redis/redis.conf:ro      # custom Redis config file mounted read-only
+      - ./docker/redis/users.acl:/usr/local/etc/redis/users.acl:ro        # custom Redis ACL file mounted read-only
     expose:
       - "6379"
     networks:
-      - internal_net
+      - internal_net            # only accessible by backend and other internal services
 
   # MongoDB database with init scripts and log bind
   db:
@@ -104,9 +134,10 @@ services:
     networks:
       - internal_net
     volumes:
-      - ./docker/volumes/mongodb:/data/db:delegated
-      - ./docker/init-db:/docker-entrypoint-initdb.d:ro
-      - ./docker/volumes/logs/mongodb:/var/log/mongodb
+    # - mongodb:/data/db                                        # named volume for MongoDB data persistence
+      - ./docker/volumes/mongodb:/data/db:delegated             # bind mount for easier access to DB files (e.g. for debugging)
+      - ./docker/init-db:/docker-entrypoint-initdb.d:ro         # initialization scripts, mounted read-only (atm empty)
+      - ./docker/volumes/logs/mongodb:/var/log/mongodb          # MongoDB logs can be destined in a specific host directory for easier access
 
   # MongoDB Web UI (mongo-express)
   mongo-ui:
@@ -280,11 +311,3 @@ services:
       - kibana
     networks:
       - internal_net
-
-############################
-# VOLUME DEFINITIONS
-############################
-volumes:
-  npm_data: {}            # Proxy Manager SQLite config
-  npm_letsencrypt: {}     # SSL certs for domains
-  esdata: {}              # Persistent data for Elasticsearch
