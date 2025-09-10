@@ -3,9 +3,9 @@ node_modules/
 npm-debug.log*
 yarn-error.log
 
-# Build
-dist/
-build/
+# Node build, in this way every directory (also in every subproject) named dist or build will be ignored
+**/dist/
+**/build/
 temp/
 
 # Env
@@ -24,8 +24,9 @@ temp/
 .DS_Store
 Thumbs.db
 .MACOSX
+Icon?
 
-# Docker
+# Docker, some services create these files
 *.pid
 
 # non tracciare mai i certificati reali
@@ -33,12 +34,42 @@ proxy/certs/*.pem
 # ma salva il placeholder per tenere la cartella nel repo
 !proxy/certs/.gitkeep
 
+# Avoiding tracking runtime files
+# ---- Elastic Agent (tieni solo config sorgente) ----
+docker/volumes/elastic-agent/*
+!docker/volumes/elastic-agent/elastic-agent.yml
 
+# ---- MongoDB (solo struttura) ----
 docker/volumes/mongodb/*
 !docker/volumes/mongodb/.gitkeep
 
+# ---- Elasticsearch data (indici reali) ----
 docker/volumes/logs/*
-!docker/volumes/logs/.gitkeep
+!docker/volumes/logs/**/.gitkeep
+!docker/volumes/logs/esdata/.gitkeep
 
-# non cancellatela pls
-Icon?
+# ---- Kibana (tieni solo kibana.yml, ignora data/cache) ----
+docker/volumes/kibana/*
+!docker/volumes/kibana/.gitkeep
+!docker/volumes/kibana/config/
+docker/volumes/kibana/config/*
+!docker/volumes/kibana/config/.gitkeep
+!docker/volumes/kibana/config/kibana.yml
+
+# ---- Fluent Bit (tieni solo config sorgente) ----
+docker/volumes/fluent-bit/*
+!docker/volumes/fluent-bit/.gitkeep
+!docker/volumes/fluent-bit/fluent-bit.conf
+!docker/volumes/fluent-bit/parsers.conf
+!docker/volumes/fluent-bit/*.lua
+
+# DB/buffer di Fluent Bit
+docker/volumes/fluent-bit-db/*
+!docker/volumes/fluent-bit-db/.gitkeep
+
+# ---- Nginx Proxy Manager (runtime: db, certs, log, config generati) ----
+docker/volumes/npm_data/*
+!docker/volumes/npm_data/.gitkeep
+
+docker/volumes/npm_letsencrypt/*
+!docker/volumes/npm_letsencrypt/.gitkeep
