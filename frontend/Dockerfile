@@ -2,6 +2,18 @@
 FROM node:18-alpine AS builder
 WORKDIR /app
 
+# --- Variabili di build per Vite (arrivano da docker-compose) ---
+ARG VITE_ELASTIC_APM_RUM_SERVER_URL
+ARG VITE_ELASTIC_APM_RUM_SERVICE_NAME
+ARG VITE_ELASTIC_APM_RUM_SECRET_TOKEN
+ARG VITE_ELASTIC_APM_ENVIRONMENT
+
+# Rendi gli ARG disponibili come ENV al processo di build (npm run build)
+ENV VITE_ELASTIC_APM_RUM_SERVER_URL=${VITE_ELASTIC_APM_RUM_SERVER_URL} \
+    VITE_ELASTIC_APM_RUM_SERVICE_NAME=${VITE_ELASTIC_APM_RUM_SERVICE_NAME} \
+    VITE_ELASTIC_APM_RUM_SECRET_TOKEN=${VITE_ELASTIC_APM_RUM_SECRET_TOKEN} \
+    VITE_ELASTIC_APM_ENVIRONMENT=${VITE_ELASTIC_APM_ENVIRONMENT}
+
 # Copia manifest delle dipendenze e config di Vite/TS per caching layer
 COPY package*.json vite.config.ts tsconfig.json ./
 

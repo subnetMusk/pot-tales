@@ -93,7 +93,7 @@ services:
       - internal_net              # secure backend DB access
       - proxy_net                 # allow NPM to proxy requests, in order to expose API to internet only through the proxy    
     env_file:
-      - docker/env/.env           # load environment variables from file 
+      - .env           # load environment variables from file 
     environment:
       - REDIS_URL=${REDIS_URL}
       - SESSION_TTL_MIN=${SESSION_TTL_MIN}
@@ -143,24 +143,24 @@ services:
   mongo-ui:
     image: mongo-express:latest
     container_name: mongo-express
-    restart: unless-stopped
+    restart: unless-stopped                                     # assure it restarts if the container crashes
     environment:
-      - ME_CONFIG_MONGODB_SERVER=${MONGODB_HOST}
+      - ME_CONFIG_MONGODB_SERVER=${MONGODB_HOST}                # MongoDB host (service name)
     networks:
-      - internal_net
-      - proxy_net
+      - internal_net                                            # so it can reach the DB
+      - proxy_net                                               # so NPM can proxy requests to it
     depends_on:
-      - db
+      - db                                                      # wait for DB to be ready before starting the UI
     expose:
-      - "8081"
+      - "8081"                                                  # internal port, only accessible through NPM proxy
 
   # Redis Web UI (redis-commander)
   redis-ui:
     image: rediscommander/redis-commander:latest
-    platform: linux/amd64
+    platform: linux/amd64                                       # force amd64 platform on Apple Silicon (M1/M2) Macs
     restart: unless-stopped
     environment:
-      - REDIS_HOSTS=${REDIS_UI_HOSTS}
+      - REDIS_HOSTS=${REDIS_UI_HOSTS}                           # comma-separated list of Redis hosts in the format name:host:port:db:username:password
     networks:
       - internal_net
       - proxy_net
@@ -174,15 +174,22 @@ services:
     build: ./sandbox
     container_name: sandbox
     networks:
-      - frontend_net
+      - frontend_net                                              # exposed to the frontend network so NPM can proxy requests to it
     env_file:
-      - docker/env/.env
+      - .env                                                      # load environment variables from file -> docker/env/.env is duplicate of .env in the root
+    # Uncomment to override defaults for development and having hot-reloading
+    # environment:
+    #   - CHOKIDAR_USEPOLLING=true                                # for file change detection on some systems (e.g. Docker Desktop on Mac/Windows) without reloading the whole container
+    #   - VITE_HOST=0.0.0.0                                       # to allow access from outside the container 
     expose:
-      - "5173"
+      - "5173"                                                    # Vite dev server port (exposed internally, proxied by NPM)
     volumes:
-      - ./sandbox/package.json:/app/package.json:ro
-      - ./sandbox/package-lock.json:/app/package-lock.json:ro
-      - ./sandbox/vite.config.ts:/app/vite.config.ts:ro
+      # Uncomment for having a full 
+      # - ./sandbox:/app:delegated                                   # source code mounted with delegated option for better performance during development
+      # - /app/node_modules                                         # to prevent overwriting node_modules in the container
+      - ./sandbox/package.json:/app/package.json:ro               # package.json mounted read-only     
+      - ./sandbox/package-lock.json:/app/package-lock.json:ro     # package-lock.json mounted read-only
+      - ./sandbox/vite.config.ts:/app/vite.config.ts:ro           # Vite config mounted read-only   
     command: npm run dev
     depends_on:
       - server
@@ -191,16 +198,19 @@ services:
   frontend:
     build: ./frontend
     container_name: frontend
+    args:
+      VITE_ELASTIC_APM_RUM_SERVER_URL: ${ELASTIC_APM_RUM_SERVER_URL}
+      VITE_ELASTIC_APM_RUM_SERVICE_NAME: ${ELASTIC_APM_RUM_SERVICE_NAME}
+      VITE_ELASTIC_APM_RUM_SECRET_TOKEN: ${ELASTIC_APM_RUM_SECRET_TOKEN}
+      VITE_ELASTIC_APM_ENVIRONMENT: ${ELASTIC_APM_ENVIRONMENT}
     networks:
       - frontend_net
     env_file:
-      - docker/env/.env
+      - .env                                                        # load environment variables from file -> docker/env/.env is duplicate of .env in the root    
     environment:
-      - REDIS_FE_URL=${REDIS_FE_URL}
-      - VITE_ELASTIC_APM_RUM_SERVER_URL=${ELASTIC_APM_RUM_SERVER_URL}
-      - VITE_ELASTIC_APM_RUM_SERVICE_NAME=${ELASTIC_APM_RUM_SERVICE_NAME}
-      - VITE_ELASTIC_APM_RUM_SECRET_TOKEN=${ELASTIC_APM_RUM_SECRET_TOKEN}
-      - VITE_ELASTIC_APM_ENVIRONMENT=${ELASTIC_APM_ENVIRONMENT}
+      # Removing REDIS_FE_URL as it's not used in the frontend, but in the backend. 
+      # This env variable will (probably) never be used in the frontend code.
+      # - REDIS_FE_URL=${REDIS_FE_URL}
     expose:
       - "80"
     depends_on:
