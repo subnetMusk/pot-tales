@@ -111,10 +111,6 @@ class Player extends Phaser.GameObjects.Container {
 
 			this.darkMask.x = this.player.x;
 			this.darkMask.y = this.player.y;
-
-			console.log("Sprite position: ", this.player.x, this.player.y);
-			console.log("Container position: ", this.x, this.y);
-			console.log("Camera position: ", this.scene.cameras.main.scrollX, this.scene.cameras.main.scrollY);
 		}
 	}
 

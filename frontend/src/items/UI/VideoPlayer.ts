@@ -54,12 +54,15 @@ class VideoPlayer extends Phaser.GameObjects.Container {
 		this.uI = uI;
 
 		/* START-USER-CTR-CODE */
-		// Write your code here.
+        this.skipFillOverlay = this.scene.add.graphics();
+        this.skipFillOverlay.setDepth(this.skipIcon.depth + 1);
+        this.skipFillOverlay.setMask(new Phaser.Display.Masks.BitmapMask(this.scene, this.skipIcon));
+        this.add(this.skipFillOverlay);
+
         const lang = localStorage.getItem("lang") || "en";
         this.scene.load.json("video_i18n", `assets/i18n/${lang}/VideoPlayer.json`);
         this.scene.load.once('filecomplete-json-video_i18n', () => {
             const i18n = this.scene.cache.json.get("video_i18n");
-            console.log("Loaded video_i18n:", i18n);
             if (i18n) applyTranslations(this, i18n);
         });
         this.scene.load.start();
@@ -85,6 +88,8 @@ class VideoPlayer extends Phaser.GameObjects.Container {
 
 	// Write your code here.
     private skipHoldStart?: number;
+    private skipFillOverlay: Phaser.GameObjects.Graphics;
+
 	private video?: Phaser.GameObjects.Video;
 
 	private lastPointerMove: number;
@@ -176,7 +181,7 @@ class VideoPlayer extends Phaser.GameObjects.Container {
     // Event Handlers
 
     private updateProgressBar = () => {
-        if (!this.video) return;
+        if (!this.scene || !this.video) return;
 
         const duration = this.video.getDuration();
         const current = this.video.getCurrentTime();
@@ -190,6 +195,15 @@ class VideoPlayer extends Phaser.GameObjects.Container {
             	this.pause();
                 this.skipHoldStart = undefined;
                 this.scene.events.emit('video-ended', this.video?.texture.key);
+            } else if(this.video.isPlaying()) {
+                this.skipFillOverlay.clear();
+                this.skipFillOverlay.fillStyle(0x64cfff, 0.5);
+                this.skipFillOverlay.fillRect(
+                    this.skipIcon.x - this.skipIcon.displayWidth / 2,
+                    this.skipIcon.y - this.skipIcon.displayHeight / 2,
+                    this.skipIcon.displayWidth,
+                    this.skipIcon.displayHeight * (2/5 + 1/3 * held / 2000)
+                );
             }
         }
     }
@@ -197,7 +211,7 @@ class VideoPlayer extends Phaser.GameObjects.Container {
     private handleSkipHoldStart = () => {
         if (!this.skipHoldStart) {
             if (!this.uiVisible) {
-                fadeElements(this.uI, true);
+                fadeElements(this.uI, true, this.fadeDuration);
                 this.uiVisible = true;
             }
             this.skipIcon.setTexture("spacebar", 1);
@@ -207,6 +221,8 @@ class VideoPlayer extends Phaser.GameObjects.Container {
 
     private handleSkipHoldEnd = () => {
         this.lastPointerMove = this.scene.time.now;
+
+        this.skipFillOverlay.clear();
         this.skipIcon.setTexture("spacebar", 0);
         this.skipHoldStart = undefined;
     }
@@ -214,7 +230,7 @@ class VideoPlayer extends Phaser.GameObjects.Container {
     private pointerMoveHandler = () => {
         this.lastPointerMove = this.scene.time.now;
         if (!this.uiVisible) {
-            fadeElements(this.uI, true);
+            fadeElements(this.uI, true, this.fadeDuration);
             this.uiVisible = true;
         }
     };
@@ -226,7 +242,7 @@ class VideoPlayer extends Phaser.GameObjects.Container {
             && this.scene.time.now - this.lastPointerMove > this.hideDelay
             && this.skipHoldStart === undefined
         ) {
-            fadeElements(this.uI, false);
+            fadeElements(this.uI, false, this.fadeDuration);
             this.uiVisible = false;
         }
     };
