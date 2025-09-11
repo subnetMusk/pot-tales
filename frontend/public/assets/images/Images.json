@@ -2,17 +2,17 @@
     "section1": {
         "files": [
             {
-                "url": "frontend/public/assets/images/Fondale.png",
+                "url": "frontend/public/assets/images/backgrounds/Fondale.png",
                 "type": "image",
                 "key": "Fondale"
             },
             {
-                "url": "frontend/public/assets/images/MASK.png",
+                "url": "frontend/public/assets/images/backgrounds/darkMask.png",
                 "type": "image",
                 "key": "MASK"
             },
             {
-                "url": "frontend/public/assets/images/SideQuest.png",
+                "url": "frontend/public/assets/images/items/SideQuest.png",
                 "type": "image",
                 "key": "SideQuest"
             }

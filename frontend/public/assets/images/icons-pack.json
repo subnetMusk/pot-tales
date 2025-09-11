@@ -2,12 +2,12 @@
     "section1": {
         "files": [
             {
-                "url": "frontend/public/assets/images/back.png",
+                "url": "frontend/public/assets/images/ui/back.png",
                 "type": "image",
                 "key": "back"
             },
             {
-                "url": "frontend/public/assets/images/fullscreen.png",
+                "url": "frontend/public/assets/images/ui/fullscreen.png",
                 "frameConfig": {
                     "frameWidth": 64,
                     "frameHeight": 64,
@@ -20,17 +20,17 @@
                 "key": "fullscreen"
             },
             {
-                "url": "frontend/public/assets/images/gallery.png",
+                "url": "frontend/public/assets/images/ui/gallery.png",
                 "type": "image",
                 "key": "gallery"
             },
             {
-                "url": "frontend/public/assets/images/leaderboard.png",
+                "url": "frontend/public/assets/images/ui/leaderboard.png",
                 "type": "image",
                 "key": "leaderboard"
             },
             {
-                "url": "frontend/public/assets/images/play.png",
+                "url": "frontend/public/assets/images/ui/play.png",
                 "frameConfig": {
                     "frameWidth": 64,
                     "frameHeight": 64,
@@ -43,12 +43,12 @@
                 "key": "play"
             },
             {
-                "url": "frontend/public/assets/images/settings.png",
+                "url": "frontend/public/assets/images/ui/settings.png",
                 "type": "image",
                 "key": "settings"
             },
             {
-                "url": "frontend/public/assets/images/spacebar.png",
+                "url": "frontend/public/assets/images/ui/spacebar.png",
                 "frameConfig": {
                     "frameWidth": 64,
                     "frameHeight": 64,
@@ -61,7 +61,7 @@
                 "key": "spacebar"
             },
             {
-                "url": "frontend/public/assets/images/tunnel.png",
+                "url": "frontend/public/assets/images/backgrounds/tunnel.png",
                 "frameConfig": {
                     "frameWidth": 64,
                     "frameHeight": 64,
@@ -74,7 +74,7 @@
                 "key": "tunnel_1"
             },
             {
-                "url": "frontend/public/assets/images/volume.png",
+                "url": "frontend/public/assets/images/ui/volume.png",
                 "type": "image",
                 "key": "volume"
             }

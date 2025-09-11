@@ -1,0 +1,54 @@
+{"section1":
+    {
+        "files":[
+            {
+                "url": "frontend/public/assets/images/characters/backPlayer_R.png",
+                "type": "image",
+                "key": "backPlayer_R"
+            },
+            {
+                "url": "frontend/public/assets/images/characters/backPlayer_S.png",
+                "type": "image",
+                "key": "backPlayer_S"
+            },
+            {
+                "url": "frontend/public/assets/images/characters/frontPlayer_L.png",
+                "type": "image",
+                "key": "frontPlayer_L"
+            },
+            {
+                "url": "frontend/public/assets/images/characters/frontPlayer_R.png",
+                "type": "image",
+                "key": "frontPlayer_R"
+            },
+            {
+                "url": "frontend/public/assets/images/characters/frontPlayer_S.png",
+                "type": "image",
+                "key": "frontPlayer_S"
+            },
+            {
+                "url": "frontend/public/assets/images/characters/sidePlayer_M.png",
+                "type": "image",
+                "key": "sidePlayer_M"
+            },
+            {
+                "url": "frontend/public/assets/images/characters/sidePlayer_S.png",
+                "type": "image",
+                "key": "sidePlayer_S"
+            },
+            {
+                "url": "frontend/public/assets/images/backgrounds/darkMask.png",
+                "type": "image",
+                "key": "darkMask"
+            }
+        ]
+    },
+    "meta":{
+        "app": "Phaser Editor 2D - Asset Pack Editor",
+        "contentType": "phasereditor2d.pack.core.AssetContentType",
+        "url": "https://phasereditor2d.com",
+        "version": 2,
+        "showAllFilesInBlocks": false,
+        "visible": true
+    }
+}

@@ -44,7 +44,7 @@ class Scene_1 extends Phaser.Scene {
 	}
 
 	preload(): void {
-		this.load.pack("Sprite-pack", "frontend/public/assets/sprite/Sprite-pack.json");
+		this.load.pack("Sprite-pack", "frontend/public/assets/images/Sprite-pack.json");
 		this.load.pack("images", "frontend/public/assets/images/images.json");
 	}
 

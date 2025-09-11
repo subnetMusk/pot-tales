@@ -39,10 +39,10 @@ async function injectAndExecute(path: string): Promise<void> {
     }
 
     const injectHtml = await res.text();
-    wrapper.innerHTML = injectHtml;
+    wrapper!.innerHTML = injectHtml;
 
     // Trova tutti i tag script e li esegue (iniettare HTML non esegue automaticamente il codice)
-    const scripts = wrapper.querySelectorAll('script');
+    const scripts = wrapper!.querySelectorAll('script');
     scripts.forEach(oldScript => {
       const newScript = document.createElement('script');
 
@@ -58,7 +58,7 @@ async function injectAndExecute(path: string): Promise<void> {
 
   } catch (err) {
     console.error("Errore in injectAndExecute:", err);
-    wrapper.innerHTML = `<p>Errore caricando contenuto: ${path}</p>`;
+    wrapper!.innerHTML = `<p>Errore caricando contenuto: ${path}</p>`;
   }
 }
 
