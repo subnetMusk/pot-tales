@@ -1,0 +1,88 @@
+{
+    "id": "75982252-69f9-4e60-8fd0-073f907a012c",
+    "sceneType": "SCENE",
+    "settings": {
+        "preloadPackFiles": [],
+        "createMethodName": "editorCreate",
+        "sceneKey": "Tutorial",
+        "compilerOutputLanguage": "TYPE_SCRIPT",
+        "borderWidth": 1280,
+        "borderHeight": 720
+    },
+    "displayList": [
+        {
+            "type": "Image",
+            "id": "6df8d94a-d77d-4397-8ffe-1a433cc51d43",
+            "label": "bgBL",
+            "texture": {
+                "key": "Background"
+            },
+            "x": 640,
+            "y": 360,
+            "originX": 1,
+            "originY": 0,
+            "flipX": true,
+            "flipY": true
+        },
+        {
+            "type": "Image",
+            "id": "e1ccc472-9a75-45e2-9e9d-7e3e539a5090",
+            "label": "bgBR",
+            "displayName": "Bottom Right",
+            "texture": {
+                "key": "Background"
+            },
+            "x": 640,
+            "y": 360,
+            "originX": 0,
+            "originY": 0,
+            "flipY": true
+        },
+        {
+            "type": "Image",
+            "id": "506ac20e-787b-4b71-9d67-d7f4e6d0d77e",
+            "label": "bgTR",
+            "displayName": "Top Right",
+            "texture": {
+                "key": "Background"
+            },
+            "x": 640,
+            "y": 360,
+            "originX": 0,
+            "originY": 1
+        },
+        {
+            "type": "Image",
+            "id": "76892490-b817-4b47-bac1-2cf118d3bb9e",
+            "label": "bgTL",
+            "displayName": "Top Left",
+            "texture": {
+                "key": "Background"
+            },
+            "x": 640,
+            "y": 360,
+            "originX": 1,
+            "originY": 1,
+            "flipX": true
+        },
+        {
+            "prefabId": "5a8935be-1a98-42a5-9cc4-bca49b9c51b2",
+            "id": "f497ff18-89ee-40ab-9e6a-a04b99aa6a37",
+            "unlock": [
+                "x",
+                "y"
+            ],
+            "label": "player",
+            "scope": "CLASS",
+            "x": 640,
+            "y": 360
+        }
+    ],
+    "plainObjects": [],
+    "meta": {
+        "app": "Phaser Editor - Scene Editor",
+        "url": "https://phaser.io/editor",
+        "contentType": "phasereditor2d.core.scene.SceneContentType",
+        "version": 5
+    }
+}
