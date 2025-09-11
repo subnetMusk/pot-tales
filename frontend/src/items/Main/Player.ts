@@ -48,6 +48,29 @@ class Player extends Phaser.GameObjects.Container {
 	private leftKey!: Phaser.Input.Keyboard.Key;
 
 	// Write your code here.
+	
+	// Metodi per controllare la darkMask
+	public showDarkMask(): void {
+		this.darkMask.setVisible(true);
+	}
+	
+	public hideDarkMask(): void {
+		this.darkMask.setVisible(false);
+	}
+	
+	public toggleDarkMask(): void {
+		this.darkMask.setVisible(!this.darkMask.visible);
+	}
+	
+	public isDarkMaskVisible(): boolean {
+		return this.darkMask.visible;
+	}
+	
+	// Metodo per cambiare l'opacità della darkMask
+	public setDarkMaskAlpha(alpha: number): void {
+		this.darkMask.setAlpha(alpha);
+	}
+	
 	private movePlayer() {
 		if(this.player.body !== null) {
 			var speed = this.speed;

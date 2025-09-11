@@ -5,6 +5,8 @@ import Player from "../items/Main/Player";
 
 class Tutorial extends Phaser.Scene {
 
+	
+	
 	constructor() {
 		super("Tutorial");
 
@@ -56,11 +58,53 @@ class Tutorial extends Phaser.Scene {
 
 	create() {
 		this.editorCreate();
-		this.cameras.main.setZoom(5);
+		this.cameras.main.setZoom(8);
 		this.cameras.main.startFollow(this.player.player, true, 1.0, 1.0, -this.player.x, -this.player.y);
 
-	}
 
+		// Add dark overlay everywhere
+		
+		const overlay = this.add.graphics();
+		overlay.fillStyle(0x000000, 0.9); // Black with 90% opacity
+		overlay.fillRect(0, 0, this.scale.width, this.scale.height);
+		overlay.setScrollFactor(0); // Keep overlay fixed to camera
+		overlay.setDepth(50); // Below spotlight but above background
+
+		// Create a spotlight effect - a circle where the dark overlay is removed
+		const spotlight = this.add.graphics();
+		spotlight.fillCircle(0, 0, 15); // Circle with radius 15 pixels
+		spotlight.setScrollFactor(0);
+		spotlight.setDepth(51);
+
+		// Create a mask from the spotlight circle
+		const mask = spotlight.createGeometryMask();
+		mask.setInvertAlpha(true); // Invert the mask so the circle is transparent
+
+		// Apply the mask to the overlay to create the spotlight effect
+		overlay.setMask(mask);
+
+		// spotlight follows player
+		// Make the spotlight follow the player
+		this.tweens.add({
+			targets: spotlight,
+			x: this.player.x,
+			y: this.player.y,
+			duration: 0,
+			repeat: -1,
+			onUpdate: () => {
+				spotlight.setPosition(this.player.x, this.player.y);
+			}
+		});
+
+		// Timer di 30 secondi
+		this.time.delayedCall(30000, () => {
+			// Codice da eseguire dopo 30 secondi
+			console.log("30 secondi sono passati!");
+		});
+
+		
+
+	}
 	/* END-USER-CODE */
 }
 
