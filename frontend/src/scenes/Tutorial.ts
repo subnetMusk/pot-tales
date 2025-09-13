@@ -6,8 +6,8 @@ import Player from "../items/Main/Player";
 
 class Tutorial extends Phaser.Scene {
 
-	
-	
+	/*bisogna controllare i bordi e fare la luce più carina   */
+
 	constructor() {
 		super("Tutorial");
 
@@ -51,6 +51,10 @@ class Tutorial extends Phaser.Scene {
 	private popupQueue: string[] = []; // Coda dei popup
 	private currentPopup: Phaser.GameObjects.Container | null = null; // Popup attualmente visibile
 	private isPopupActive: boolean = false; // Flag per sapere se c'è un popup attivo
+	private overlay!: Phaser.GameObjects.Graphics;
+	private spotlight!: Phaser.GameObjects.Graphics;
+	private targetLuce!: Phaser.GameObjects.Graphics;
+	private timer = false
 
 	/* START-USER-CODE */
 
@@ -61,22 +65,73 @@ class Tutorial extends Phaser.Scene {
 	}
 
 	create() {
+
 		this.editorCreate();
 		this.cameras.main.setZoom(5);
 		this.cameras.main.startFollow(this.player.player, true, 1.0, 1.0, -this.player.x, -this.player.y);
 
+		
 		this.createSpotlightEffect();
 
-		// Aggiungiamo i popup alla coda invece di crearli direttamente
+		// Aggiugiamo i popup alla coda 
 		this.queuePopup("Benvenuto!");
 		this.queuePopup("Usa le frecce direzionali per muoverti.");
-		this.queuePopup("Raccogli gli oggetti sparsi nella mappa.");
 		this.queuePopup("Buona fortuna!");
-		this.queuePopup("ghe sboro !!!");
 		
 		// Inizia la visualizzazione dei popup
 		this.showNextPopup();
+
+		this.avviaTimer();
+
+		this.events.on("timer-finished", () => {
+			// timer finito
+			console.log("Il timer è terminato!");
+			this.timer = true;
+			// Crea il pallino vicino al player
+			this.creaLuce(this.player.x +30, this.player.y+30);
+		});
+
+
 	}
+
+	//timer 
+	private avviaTimer() {
+		this.time.addEvent({
+			delay: 3000, // 30 secondi
+			callback: () => {
+				this.events.emit("timer-finished");
+			},
+			callbackScope: this // Importante: assicura che il callback abbia il giusto contesto
+		});
+	}
+
+	// Metodo update per controllare eventi
+	update() {
+
+		/*** sistemare coordinate e distanza  */
+
+
+		// Controlla se esiste un pallino da raggiungere
+		if (this.timer) {
+			// Calcola la distanza tra player e pallino
+			const distance = Phaser.Math.Distance.Between(this.player.x, this.player.y, this.targetLuce.x, this.targetLuce.y);
+
+			console.log(`Player: (${this.player.player.x}, ${this.player.player.y}), Pallino: (${this.targetLuce.x}, ${this.targetLuce.y}), Distanza: ${distance}	`);
+
+			// Se il player è abbastanza vicino (raggio di 4 pixel)
+			if (distance < 4) {
+				console.log("Player ha raggiunto il pallino!");
+				this.onPlayerReachedTarget();
+			}
+		}
+	}
+
+	// Evento quando il player raggiunge il target
+	private onPlayerReachedTarget() {
+		// passa alla prossima scena  
+		this.scene.start("Scene_1");
+	}
+
 
 	// Metodi per gestire la coda dei popup
 	
@@ -203,40 +258,64 @@ class Tutorial extends Phaser.Scene {
     return popup;
 	}
 
+	
+	private creaLuce(x: number, y: number) {
+		console.log(`Creando luce alle coordinate: ${x}, ${y}`);
+
+		// Crea semplicemente un cerchio visibile alle coordinate x,y 
+		const luce = this.add.graphics();
+		luce.fillStyle(0xff0000, 1); // Rosso
+		luce.fillCircle(0, 0, 2); 
+		luce.setPosition(x, y); 
+		luce.setDepth(100); // Depth altissimo
+
+		// Salva il riferimento per il controllo delle collisioni
+		this.targetLuce = luce;
+
+		console.log(`Pallino fisso nel mondo alle coordinate: ${x}, ${y}`);
+	}
+
+
+
+
 	// Funzione per creare l'effetto spotlight
 	private createSpotlightEffect() {
+
+		console.log("Creating spotlight effect");
 		// Add dark overlay everywhere
-		const overlay = this.add.graphics();
-		overlay.fillStyle(0x000000, 0.9); // Black with 90% opacity
-		overlay.fillRect(0, 0, this.scale.width, this.scale.height);
-		overlay.setScrollFactor(0); // Keep overlay fixed to camera
-		overlay.setDepth(50); // Below spotlight but above background
+		this.overlay = this.add.graphics();
+		this.overlay.fillStyle(0x000000, 0.9); // Black with 90% opacity
+		this.overlay.fillRect(0, 0, this.scale.width, this.scale.height);
+		this.overlay.setScrollFactor(0); // Keep overlay fixed to camera
+		this.overlay.setDepth(50); // Below spotlight but above background
 
 		// Create a spotlight effect - a circle where the dark overlay is removed
-		const spotlight = this.add.graphics();
-		spotlight.fillCircle(0, 0, 15); // Circle with radius 15 pixels
-		spotlight.setScrollFactor(0);
-		spotlight.setDepth(51);
+		this.spotlight = this.add.graphics();
+		this.spotlight.fillCircle(0, 0, 15); // Circle with radius 15 pixels
+		this.spotlight.setScrollFactor(0);
+		this.spotlight.setDepth(51);
 
-		// Create a mask from the spotlight circle
-		const mask = spotlight.createGeometryMask();
+		// Create a mask from the spotlight circle 
+		const mask = this.spotlight.createGeometryMask();
 		mask.setInvertAlpha(true); // Invert the mask so the circle is transparent
 
 		// Apply the mask to the overlay to create the spotlight effect
-		overlay.setMask(mask);
+		this.overlay.setMask(mask);
 
 		// Make the spotlight follow the player
 		this.tweens.add({
-			targets: spotlight,
+			targets: this.spotlight,
 			x: this.player.x,
 			y: this.player.y,
 			duration: 0,
 			repeat: -1,
 			onUpdate: () => {
-				spotlight.setPosition(this.player.x, this.player.y);
+				this.spotlight.setPosition(this.player.x, this.player.y);
 			}
 		});
 	}
+		
+	
 
 	/* END-USER-CODE */
 }
