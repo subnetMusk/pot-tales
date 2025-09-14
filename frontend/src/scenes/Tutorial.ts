@@ -106,9 +106,35 @@ class Tutorial extends Phaser.Scene {
 		});
 	}
 
+
+	
 	// Metodo update per controllare eventi
 	update() {
+
+		//gestione bordi
+		const bounds = {
+			xMin: -120,
+			xMax: 120,
+			yMin: -64,
+			yMax: 64
+		};
+		
+		if(this.player.player.x < bounds.xMin ) {
+			this.player.player.x = bounds.xMin+1;		
+		}
+		if(this.player.player.x > bounds.xMax ) {
+			this.player.player.x = bounds.xMax-1;
+		}
+		if(this.player.player.y < bounds.yMin ) {
+			this.player.player.y = bounds.yMin+1;
+		}
+		if(this.player.player.y > bounds.yMax ) {
+			this.player.player.y = bounds.yMax-1;
+		}
+
 		console.log(`Player position: x=${this.player.player.x}, y=${this.player.player.y}`);
+
+
 		// Controlla se esiste un pallino da raggiungere
 		if (this.timer) {
 			//quando il player raggiunge il pallino passa a scena 1
