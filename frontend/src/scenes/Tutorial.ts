@@ -66,6 +66,7 @@ class Tutorial extends Phaser.Scene {
 
 	create() {
 
+		/* capire come mettere camera ? se camera si muove sistemare bordi, se camera fissa sistemare il resto */ 
 		this.editorCreate();
 		this.cameras.main.setZoom(5);
 		this.cameras.main.startFollow(this.player.player, true, 1.0, 1.0, -this.player.x, -this.player.y);
@@ -88,7 +89,7 @@ class Tutorial extends Phaser.Scene {
 			console.log("Il timer è terminato!");
 			this.timer = true;
 			// Crea il pallino vicino al player
-			this.creaLuce(this.player.x +30, this.player.y+30);
+			this.creaLuce(640 + 10, 350 +10);
 		});
 
 
@@ -97,7 +98,7 @@ class Tutorial extends Phaser.Scene {
 	//timer 
 	private avviaTimer() {
 		this.time.addEvent({
-			delay: 3000, // 30 secondi
+			delay: 30000, // 30 secondi
 			callback: () => {
 				this.events.emit("timer-finished");
 			},
@@ -107,29 +108,15 @@ class Tutorial extends Phaser.Scene {
 
 	// Metodo update per controllare eventi
 	update() {
-
-		/*** sistemare coordinate e distanza  */
-
-
+		console.log(`Player position: x=${this.player.player.x}, y=${this.player.player.y}`);
 		// Controlla se esiste un pallino da raggiungere
 		if (this.timer) {
-			// Calcola la distanza tra player e pallino
-			const distance = Phaser.Math.Distance.Between(this.player.x, this.player.y, this.targetLuce.x, this.targetLuce.y);
-
-			console.log(`Player: (${this.player.player.x}, ${this.player.player.y}), Pallino: (${this.targetLuce.x}, ${this.targetLuce.y}), Distanza: ${distance}	`);
-
-			// Se il player è abbastanza vicino (raggio di 4 pixel)
-			if (distance < 4) {
+			//quando il player raggiunge il pallino passa a scena 1
+			if (this.player.player.x <= 10  && this.player.player.x >= -10 && this.player.player.y <= 10 && this.player.player.y >= -10	) {
 				console.log("Player ha raggiunto il pallino!");
-				this.onPlayerReachedTarget();
+				this.scene.start("Scene_1");
 			}
 		}
-	}
-
-	// Evento quando il player raggiunge il target
-	private onPlayerReachedTarget() {
-		// passa alla prossima scena  
-		this.scene.start("Scene_1");
 	}
 
 
@@ -292,8 +279,8 @@ class Tutorial extends Phaser.Scene {
 		// Create a spotlight effect - a circle where the dark overlay is removed
 		this.spotlight = this.add.graphics();
 		this.spotlight.fillCircle(0, 0, 15); // Circle with radius 15 pixels
-		this.spotlight.setScrollFactor(0);
 		this.spotlight.setDepth(51);
+		this.spotlight.setScrollFactor(0); // Keep spotlight fixed to camera
 
 		// Create a mask from the spotlight circle 
 		const mask = this.spotlight.createGeometryMask();
@@ -302,11 +289,11 @@ class Tutorial extends Phaser.Scene {
 		// Apply the mask to the overlay to create the spotlight effect
 		this.overlay.setMask(mask);
 
-		// Make the spotlight follow the player
+		// Make the spotlight follow the player - USA LE COORDINATE CORRETTE
 		this.tweens.add({
 			targets: this.spotlight,
-			x: this.player.x,
-			y: this.player.y,
+			x: this.player.player.x,
+			y: this.player.player.y,
 			duration: 0,
 			repeat: -1,
 			onUpdate: () => {

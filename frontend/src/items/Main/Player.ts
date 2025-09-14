@@ -111,8 +111,7 @@ class Player extends Phaser.GameObjects.Container {
 
 			this.darkMask.x = this.player.x;
 			this.darkMask.y = this.player.y;
-
-			console.log(this.player.x, this.player.y);
+			console.log(this.x,this.y);
 		}
 	}
 
