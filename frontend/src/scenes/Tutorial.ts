@@ -59,7 +59,7 @@ class Tutorial extends Phaser.Scene {
 
 	// Write your code here
 	preload() {
-		this.load.pack("Player-pack", "frontend/public/assets/images/player-pack.json");
+		this.load.pack("Player-pack", "frontend/public/assets/images/Sprite-pack.json");
 		this.load.pack("Tutorial-pack", "frontend/public/assets/images/tutorial-pack.json");
 	}
 

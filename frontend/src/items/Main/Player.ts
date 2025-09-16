@@ -69,17 +69,14 @@ class Player extends Phaser.GameObjects.Container {
 
 			// Se sto muovendo
 			if (moving) {
-				// posso fare lo step solo dopo stepDelay
 				if (time - this.lastMoveTime >= this.stepDelay) {
 					this.player.x += dx;
 					this.player.y += dy;
 
 					this.lastMoveTime = time;
-					this.updateMoveTexture();
-					this.lastStep = !this.lastStep;
+					this.updateMoveTexture(); // qui viene invertito lastStep
 				}
 			} else {
-				// Se non premo nulla metto la texture ferma
 				this.updateIdleTexture();
 			}
 		}
@@ -100,18 +97,18 @@ class Player extends Phaser.GameObjects.Container {
 	}
 
 	private updateMoveTexture() {
-		switch (this.direction) {	//Switch delle texture
-			case "front":
-				this.player.setTexture(this.lastStep ? "frontPlayer_L" : "frontPlayer_R");
-				break;
-			case "back":
-				this.player.setTexture(this.lastStep ? "backPlayer_L" : "backPlayer_R");
-				break;
-			case "side":
-				this.player.setTexture(this.lastStep ? "sidePlayer_M" : "sidePlayer_S");
-				break;
+		if (this.direction === "front") {
+			this.player.setTexture(this.lastStep ? "frontPlayer_L" : "frontPlayer_R");
+		} else if (this.direction === "back") {
+			this.player.setTexture(this.lastStep ? "backPlayer_L" : "backPlayer_R"); // CORRETTO
+		} else if (this.direction === "side") {
+			this.player.setTexture(this.lastStep ? "sidePlayer_M" : "sidePlayer_S");
 		}
+
+		// Invertiamo lastStep **solo qui**, dopo aver cambiato la texture
+		this.lastStep = !this.lastStep;
 	}
+
 }
 
 export default Player;
