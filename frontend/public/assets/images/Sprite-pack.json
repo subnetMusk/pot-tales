@@ -2,42 +2,42 @@
     "section1": {
         "files": [
             {
-                "url": "frontend/public/assets/images/characters/backPlayer_L.png",
+                "url": "frontend/public/assets/images/characters/small/backPlayer_L.png",
                 "type": "image",
                 "key": "backPlayer_L"
             },
             {
-                "url": "frontend/public/assets/images/characters/backPlayer_R.png",
+                "url": "frontend/public/assets/images/characters/small/backPlayer_R.png",
                 "type": "image",
                 "key": "backPlayer_R"
             },
             {
-                "url": "frontend/public/assets/images/characters/backPlayer_S.png",
+                "url": "frontend/public/assets/images/characters/small/backPlayer_S.png",
                 "type": "image",
                 "key": "backPlayer_S"
             },
             {
-                "url": "frontend/public/assets/images/characters/frontPlayer_L.png",
+                "url": "frontend/public/assets/images/characters/small/frontPlayer_L.png",
                 "type": "image",
                 "key": "frontPlayer_L"
             },
             {
-                "url": "frontend/public/assets/images/characters/frontPlayer_R.png",
+                "url": "frontend/public/assets/images/characters/small/frontPlayer_R.png",
                 "type": "image",
                 "key": "frontPlayer_R"
             },
             {
-                "url": "frontend/public/assets/images/characters/frontPlayer_S.png",
+                "url": "frontend/public/assets/images/characters/small/frontPlayer_S.png",
                 "type": "image",
                 "key": "frontPlayer_S"
             },
             {
-                "url": "frontend/public/assets/images/characters/sidePlayer_M.png",
+                "url": "frontend/public/assets/images/characters/small/sidePlayer_M.png",
                 "type": "image",
                 "key": "sidePlayer_M"
             },
             {
-                "url": "frontend/public/assets/images/characters/sidePlayer_S.png",
+                "url": "frontend/public/assets/images/characters/small/sidePlayer_S.png",
                 "type": "image",
                 "key": "sidePlayer_S"
             }

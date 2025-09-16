@@ -13,14 +13,14 @@ class Player extends Phaser.GameObjects.Container {
 		player.body.setSize(16, 16, false);
 		this.add(player);
 
-		// darkMask
-		const darkMask = scene.add.image(0, 0, "darkMask");
-		darkMask.scaleX = 0.25;
-		darkMask.scaleY = 0.25;
-		this.add(darkMask);
+		// darkMask - COMMENTATO
+		// const darkMask = scene.add.image(0, 0, "darkMask");
+		// darkMask.scaleX = 0.25;
+		// darkMask.scaleY = 0.25;
+		// this.add(darkMask);
 
 		this.player = player;
-		this.darkMask = darkMask;
+		// this.darkMask = darkMask;
 
 		/* START-USER-CTR-CODE */
 		// Write your code here.
@@ -37,7 +37,7 @@ class Player extends Phaser.GameObjects.Container {
 	}
 
 	public player: Phaser.Physics.Arcade.Sprite;
-	private darkMask: Phaser.GameObjects.Image;
+	// private darkMask: Phaser.GameObjects.Image; // COMMENTATO
 
 	/* START-USER-CODE */
 
@@ -49,7 +49,8 @@ class Player extends Phaser.GameObjects.Container {
 
 	// Write your code here.
 	
-	// Metodi per controllare la darkMask
+	// Metodi per controllare la darkMask - COMMENTATI
+	/*
 	public showDarkMask(): void {
 		this.darkMask.setVisible(true);
 	}
@@ -70,6 +71,7 @@ class Player extends Phaser.GameObjects.Container {
 	public setDarkMaskAlpha(alpha: number): void {
 		this.darkMask.setAlpha(alpha);
 	}
+	*/
 	
 	private movePlayer() {
 		if(this.player.body !== null) {
@@ -109,8 +111,10 @@ class Player extends Phaser.GameObjects.Container {
 
 			if(!verical_movement && !horizontal_movement) this.player.stop();
 
-			this.darkMask.x = this.player.x;
-			this.darkMask.y = this.player.y;		}
+			// darkMask positioning - COMMENTATO
+			// this.darkMask.x = this.player.x;
+			// this.darkMask.y = this.player.y;
+		}
 	}
 
 	/* END-USER-CODE */

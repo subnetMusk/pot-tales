@@ -65,7 +65,6 @@ class Tutorial extends Phaser.Scene {
 
 	create() {
 
-		/* capire come mettere camera ? se camera si muove sistemare bordi, se camera fissa sistemare il resto */ 
 		this.editorCreate();
 		this.cameras.main.setZoom(5);
 		this.cameras.main.startFollow(this.player.player, true, 1.0, 1.0, -this.player.x, -this.player.y);
@@ -99,7 +98,7 @@ class Tutorial extends Phaser.Scene {
 	//timer 
 	private avviaTimer() {
 		this.time.addEvent({
-			delay: 30000, // 30 secondi
+			delay: 10000, // impostare 30 secondi  dopo debug
 			callback: () => {
 				this.events.emit("timer-finished");
 			},
