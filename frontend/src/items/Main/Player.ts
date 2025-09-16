@@ -110,9 +110,7 @@ class Player extends Phaser.GameObjects.Container {
 			if(!verical_movement && !horizontal_movement) this.player.stop();
 
 			this.darkMask.x = this.player.x;
-			this.darkMask.y = this.player.y;
-			console.log(this.x,this.y);
-		}
+			this.darkMask.y = this.player.y;		}
 	}
 
 	/* END-USER-CODE */
