@@ -1,30 +1,16 @@
-
-// You can write more code here
-
-/* START OF COMPILED CODE */
-
 class Player extends Phaser.GameObjects.Container {
 
 	constructor(scene: Phaser.Scene, x?: number, y?: number) {
 		super(scene, x ?? 13, y ?? 8);
 
 		// player
-		const player = scene.physics.add.sprite(0, 0, "frontPlayer_L");
+		const player = scene.physics.add.sprite(0, 0, "frontPlayer_S");
 		player.body.setSize(16, 16, false);
 		this.add(player);
 
-		// darkMask - COMMENTATO
-		// const darkMask = scene.add.image(0, 0, "darkMask");
-		// darkMask.scaleX = 0.25;
-		// darkMask.scaleY = 0.25;
-		// this.add(darkMask);
-
 		this.player = player;
-		// this.darkMask = darkMask;
 
 		/* START-USER-CTR-CODE */
-		// Write your code here.
-
 		if (this.scene.input && this.scene.input.keyboard) {
 			this.rightKey = this.scene.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.RIGHT);
 			this.downKey = this.scene.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.DOWN);
@@ -32,95 +18,100 @@ class Player extends Phaser.GameObjects.Container {
 			this.leftKey = this.scene.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.LEFT);
 		}
 
-		this.scene.events.on('update', this.movePlayer, this);
+		this.scene.events.on("update", (time: number, delta: number) => this.movePlayer(time, delta), this);
 		/* END-USER-CTR-CODE */
 	}
 
 	public player: Phaser.Physics.Arcade.Sprite;
-	// private darkMask: Phaser.GameObjects.Image; // COMMENTATO
 
-	/* START-USER-CODE */
-
-	private speed: number = 50;
+	private stepSize: number = 16;					//grandezza del passo
+	private stepDelay: number = 200;				//attesa in ms tra i frame
+	//Input della tastiera
 	private rightKey!: Phaser.Input.Keyboard.Key;
 	private downKey!: Phaser.Input.Keyboard.Key;
 	private upKey!: Phaser.Input.Keyboard.Key;
 	private leftKey!: Phaser.Input.Keyboard.Key;
 
-	// Write your code here.
-	
-	// Metodi per controllare la darkMask - COMMENTATI
-	/*
-	public showDarkMask(): void {
-		this.darkMask.setVisible(true);
-	}
-	
-	public hideDarkMask(): void {
-		this.darkMask.setVisible(false);
-	}
-	
-	public toggleDarkMask(): void {
-		this.darkMask.setVisible(!this.darkMask.visible);
-	}
-	
-	public isDarkMaskVisible(): boolean {
-		return this.darkMask.visible;
-	}
-	
-	// Metodo per cambiare l'opacità della darkMask
-	public setDarkMaskAlpha(alpha: number): void {
-		this.darkMask.setAlpha(alpha);
-	}
-	*/
-	
-	private movePlayer() {
-		if(this.player.body !== null) {
-			var speed = this.speed;
+	lastMoveTime: number = 0;						//tempo dell'ultimo movimento (per l'effetto a bassi fps)
+	lastStep: boolean = false;						// Ultima textura usata
+	direction: 'front' | 'back' | 'side' = 'front';	// Direzione in cui sto guardando
 
-			var verical_movement = (this.downKey.isDown && this.upKey.isUp) || (this.downKey.isUp && this.upKey.isDown)
-			var horizontal_movement = (this.rightKey.isDown && this.leftKey.isUp) || (this.rightKey.isUp && this.leftKey.isDown)
+	//Funzione di movimento, 
+	private movePlayer(time: number, delta: number) {
+		if (this.player.body !== null) {
+			let dx = 0;
+			let dy = 0;
+			let moving = false;
 
-			if(verical_movement && horizontal_movement) speed = this.speed / Math.sqrt(2)
-
-			// TODO: include animations for the player
-			if(verical_movement) {
-				if(this.downKey.isDown){
-					this.player.body.velocity.y = speed
-					// this.player.play("player_move_down", true);
-				} else{
-					this.player.body.velocity.y = -speed
-					// this.player.play("player_move_up", true);
-				}
-			} else {
-				this.player.body.velocity.y = 0
+			// Input verticale
+			if (this.upKey.isDown && !this.downKey.isDown) {
+				dy = -this.stepSize;
+				this.direction = "back";
+				moving = true;
+			} else if (this.downKey.isDown && !this.upKey.isDown) {
+				dy = this.stepSize;
+				this.direction = "front";
+				moving = true;
 			}
 
-			if(horizontal_movement) {
-				if(this.rightKey.isDown){
-					this.player.body.velocity.x = speed
-					if(this.player.flipX) this.player.flipX = false;
-					// this.player.play("player_move_side", true);
-				} else{
-					this.player.body.velocity.x = -speed
-					if(!this.player.flipX) this.player.flipX = true;
-					// this.player.play("player_move_side", true);
-				}
-			} else {
-				this.player.body.velocity.x = 0;
+			// Input orizzontale
+			if (this.leftKey.isDown && !this.rightKey.isDown) {
+				dx = -this.stepSize;
+				this.direction = "side";
+				this.player.setFlipX(false);
+				moving = true;
+			} else if (this.rightKey.isDown && !this.leftKey.isDown) {
+				dx = this.stepSize;
+				this.direction = "side";
+				this.player.setFlipX(true);
+				moving = true;
 			}
 
-			if(!verical_movement && !horizontal_movement) this.player.stop();
+			// Se sto muovendo
+			if (moving) {
+				// posso fare lo step solo dopo stepDelay
+				if (time - this.lastMoveTime >= this.stepDelay) {
+					this.player.x += dx;
+					this.player.y += dy;
 
-			// darkMask positioning - COMMENTATO
-			// this.darkMask.x = this.player.x;
-			// this.darkMask.y = this.player.y;
+					this.lastMoveTime = time;
+					this.updateMoveTexture();
+					this.lastStep = !this.lastStep;
+				}
+			} else {
+				// Se non premo nulla metto la texture ferma
+				this.updateIdleTexture();
+			}
 		}
 	}
 
-	/* END-USER-CODE */
+	private updateIdleTexture() {
+		switch (this.direction) {		//Carico la texture in base alla direzione
+			case "front":
+				this.player.setTexture("frontPlayer_S");
+				break;
+			case "back":
+				this.player.setTexture("backPlayer_S");
+				break;
+			case "side":
+				this.player.setTexture("sidePlayer_S");
+				break;
+		}
+	}
+
+	private updateMoveTexture() {
+		switch (this.direction) {	//Switch delle texture
+			case "front":
+				this.player.setTexture(this.lastStep ? "frontPlayer_L" : "frontPlayer_R");
+				break;
+			case "back":
+				this.player.setTexture(this.lastStep ? "backPlayer_L" : "backPlayer_R");
+				break;
+			case "side":
+				this.player.setTexture(this.lastStep ? "sidePlayer_M" : "sidePlayer_S");
+				break;
+		}
+	}
 }
 
-/* END OF COMPILED CODE */
-
-// You can write more code here
 export default Player;
