@@ -1,26 +1,83 @@
-elasticsearch:
-  hosts: [ "http://elasticsearch:9200" ]
-  username: "kibana_system"
-  password: "eJL-r*4rNjRioOwWPEMT"
+# We set here other configuration that weren't set in the docker compose file environment variables
 
-server:
-  name: kibana
-  host: "0.0.0.0"
-  ssl:
-    enabled: false
-
-xpack:
-  encryptedSavedObjects:
-    encryptionKey: "anotherExtremelyExtremelySecureKeyThatIsLong!"
-
-  apm:
-    ui:
-      enabled: true
-    serviceMapEnabled: true
-
-  fleet:
-    agents:
-      enabled: true
-    packages:
-      - name: apm
-        version: latest
+# We need to activate the fleet feature in Kibana. This enable the "Fleet" menu in Kibana UI
+xpack.fleet.enabled: true
+# We need to tell the agents where to find Kibana. This gives the agents the possibility of enrolling themselves and downloading the policies
+xpack.fleet.agents.kibana.host: "http://kibana:5601"
+# We need to define the Fleet Server hosts that will be proposed to the agents when they will enroll
+xpack.fleet.fleetServerHosts:
+  - id: fs-internal # identifier of the Fleet Server
+    name: "Fleet Server (internal)" # name of the Fleet Server
+    is_default: true # set this Fleet Server as default
+    host_urls: ["http://fleet-server:8220"] # URL where the agents can reach the Fleet Server
+# Now we need to tell the agents where to send all the output data that they collect
+xpack.fleet.outputs:
+  - id: default-output
+    name: "Default Elasticsearch output"
+    type: elasticsearch # output type
+    hosts: ["https://es01:9200"]
+    is_default: true
+    is_default_monitoring: true # set this output as default for monitoring data
+    config: 
+      ssl:
+        certificate_authorities:
+          - /usr/share/elastic-agent/certs/ca/ca.crt
+# We need to install the necessary integrations for the agents
+xpack.fleet.packages:
+  - name: fleet_server # let an agent be a Fleet Server
+    version: latest
+  - name: system # system integration to collect system metrics and logs of the host where the agent is running
+    version: latest
+  - name: elastic_agent # Elastic Agent integration to collect agent's metrics and logs
+    version: latest
+  - name: apm # APM integration let an APM server be run by an agent
+    version: latest
+  - name: docker  # integration for container metrics, log input
+    version: latest
+# We are going to create 2 policies for the agents. So when the agents will enroll the fleet server, it will be able of assigning them policies
+# with the related integrations
+xpack.fleet.agentPolicies:
+  # First policy for the Fleet Server
+  - name: "Fleet Server-Policy"
+    id: "fleet-server-policy"
+    namespace: "default"
+    monitoring_enabled: ["logs", "metrics"] # the agent that will run as a fleet server will be able of sending logs and metrics. That will give us the possibilty of monitoring it
+    package_policies:
+      - name: "fleet_server-1" # gives the agent the possibility of coordinate all the agents
+        package: { name: "fleet_server" }
+      - name: "system-1" # collectss system metrics and logs 
+        package: { name: "system" }
+  - name: "APM-Policy"
+    id: "apm-policy"
+    namespace: "default"
+    monitoring_enabled: ["logs", "metrics"]
+    package_policies:
+      - name: "elastic_agent-1" # necessary for all the core components of the elastic agent
+        package: { name: "elastic_agent" }
+      - name: "apm-1" # run an APM server inside of the agent, which listens all the interfaces on port 8200
+        package: { name: "apm" }
+        inputs:
+          - type: "apm"
+            enabled: true
+            vars:
+              - name: "host"
+                value: "0.0.0.0:8200"
+              - name: "secret_token" # secret token used by all the agents to send datas
+                value: "${ELASTIC_APM_SECRET_TOKEN}"
+              - name: "ssl.enabled"
+                value: true
+              - name: "ssl.certificate"
+                value: "/usr/share/elastic-agent/certs/apm-agent/apm-agent.crt"
+              - name: "ssl.key"
+                value: "/usr/share/elastic-agent/certs/apm-agent/apm-agent.key"
+  - name: "Infra-Policy"
+    id: "infra-policy"
+    namespace: "default"
+    monitoring_enabled: [ "logs", "metrics" ]
+    package_policies:
+      - name: "elastic-agent-infra"
+        package: { name: "elastic_agent" }    # core agent
+      - name: "system_infra"
+        package: { name: "system" }       # system integration (Host CPU, mem, FS, ...)
+      - name: "docker-infra"
+        package: { name: "docker" }       # for the container metrics, runtime events 
