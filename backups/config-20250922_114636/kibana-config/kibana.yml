@@ -65,7 +65,7 @@ xpack.fleet.agentPolicies:
               - name: "secret_token" # secret token used by all the agents to send datas
                 value: "${ELASTIC_APM_SECRET_TOKEN}"
               - name: "ssl.enabled"
-                value: false
+                value: true
               - name: "ssl.certificate"
                 value: "/usr/share/elastic-agent/certs/apm-agent/apm-agent.crt"
               - name: "ssl.key"

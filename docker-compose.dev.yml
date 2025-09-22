@@ -103,10 +103,13 @@ services:
       - ELASTIC_APM_SERVICE_NAME=${ELASTIC_APM_SERVICE_NAME}
       - ELASTIC_APM_ENVIRONMENT=${ELASTIC_APM_ENVIRONMENT}
       - ELASTIC_APM_SECRET_TOKEN=${ELASTIC_APM_SECRET_TOKEN}
+
+
     volumes:
       - ./server:/src:delegated   # source code mounted with delegated option for better performance during development
                                   # and also to allow hot-reloading with air, so when files change in host, they are updated in container
       - ./comms:/src/comms:ro     # common types mounted read-only
+      - certs:/etc/elasticsearch/certs:ro  # mount the certs volume created by the setup service, to read the CA if needed
     expose:
       - "3000"                    # internal API port (proxied)
     command: air                  # hot-reload tool
@@ -144,13 +147,15 @@ services:
   # MongoDB Web UI (mongo-express)
   mongo-ui:
     image: mongo-express:latest
-    container_name: mongo-express
     restart: unless-stopped                                     # assure it restarts if the container crashes
     environment:
       - ME_CONFIG_MONGODB_SERVER=${MONGODB_HOST}                # MongoDB host (service name)
     networks:
-      - internal_net                                            # so it can reach the DB
-      - proxy_net                                               # so NPM can proxy requests to it
+      # Force internal_net and proxy_net alias,
+      internal_net:                                            # so it can reach the DB
+        aliases: [mongo-ui]
+      proxy_net:                                                # so NPM can proxy requests to it
+        aliases: [mongo-ui]                                     # so NPM can proxy requests to it
     depends_on:
       - db                                                      # wait for DB to be ready before starting the UI
     expose:
@@ -164,8 +169,10 @@ services:
     environment:
       - REDIS_HOSTS=${REDIS_UI_HOSTS}                           # comma-separated list of Redis hosts in the format name:host:port:db:username:password
     networks:
-      - internal_net
-      - proxy_net
+        internal_net:
+          aliases: [redis-ui]
+        proxy_net:
+          aliases: [redis-ui]
     depends_on:
       - redis
     expose:
@@ -198,90 +205,101 @@ services:
 
   # Production frontend build (served statically by NGINX)
   frontend:
-    build: ./frontend
+    build:
+      context: ./frontend
+      args:
+        VITE_ELASTIC_APM_RUM_SERVER_URL: ${ELASTIC_APM_RUM_SERVER_URL}
+        VITE_ELASTIC_APM_RUM_SERVICE_NAME: ${ELASTIC_APM_RUM_SERVICE_NAME}
+        VITE_ELASTIC_APM_RUM_SECRET_TOKEN: ${ELASTIC_APM_RUM_SECRET_TOKEN}
+        VITE_ELASTIC_APM_ENVIRONMENT: ${ELASTIC_APM_ENVIRONMENT}
     container_name: frontend
-    args:
-      VITE_ELASTIC_APM_RUM_SERVER_URL: ${ELASTIC_APM_RUM_SERVER_URL}
-      VITE_ELASTIC_APM_RUM_SERVICE_NAME: ${ELASTIC_APM_RUM_SERVICE_NAME}
-      VITE_ELASTIC_APM_RUM_SECRET_TOKEN: ${ELASTIC_APM_RUM_SECRET_TOKEN}
-      VITE_ELASTIC_APM_ENVIRONMENT: ${ELASTIC_APM_ENVIRONMENT}
     networks:
       - frontend_net
+      - proxy_net
     env_file:
-      - .env                                                        # load environment variables from file -> docker/env/.env is duplicate of .env in the root    
-    environment:
-      # Removing REDIS_FE_URL as it's not used in the frontend, but in the backend. 
-      # This env variable will (probably) never be used in the frontend code.
-      # - REDIS_FE_URL=${REDIS_FE_URL}
+      - .env
     expose:
       - "80"
     depends_on:
       - server
     volumes:
-      - ./comms:/app/comms:ro
+    - ./comms:/app/comms:ro
 
   # Setup certificates volume for use by other services
-  setup: 
-    # We use the Elasticsearch image to have access to the certutil tool to create certs for Elasticsearch and Kibana to enable secure TLS communication between them
+  setup:
     image: docker.elastic.co/elasticsearch/elasticsearch:${STACK_VERSION}
     container_name: setup-certs
     networks:
-      - internal_net                                                                # so it can reach Elasticsearch and Kibana if needed
+      - internal_net
     volumes:
-      - certs:/usr/share/elasticsearch/config/certs                                 # mount the certs volume to the Elasticsearch config dir to be used by ES and Kibana later. This is the directory where ES and Kibana expect to find the certs.        
-    user: "0"                                                                       # run as root to be able to set permissions on certs          
-    # The following command will:
-    # - check that ELASTIC_PASSWORD and KIBANA_PASSWORD env variables are set
-    # - create a CA if not already present
-    # - create certs for Elasticsearch and Kibana if not already present
-    # - set appropriate permissions on the certs
-    # - wait for Elasticsearch to be available
-    # - set the kibana_system user password in Elasticsearch, by calling the appropriate API endpoint as the superuser (elastic)
-    command: >
-      bash -c '
-        set -euo pipefail;
-        if [ x${ELASTIC_PASSWORD} == x ]; then
-          echo "Set the ELASTIC_PASSWORD environment variable in the .env file";
-          exit 1;
-        elif [ x${KIBANA_PASSWORD} == x ]; then
-          echo "Set the KIBANA_PASSWORD environment variable in the .env file";
-          exit 1;
-        fi;
+      - certs:/usr/share/elasticsearch/config/certs
+    user: "0"
+    command:
+      - bash
+      - -lc
+      - |
+        set -euo pipefail
+
+        if [ "x${ELASTIC_PASSWORD}" = "x" ]; then
+          echo "Set the ELASTIC_PASSWORD environment variable in the .env file"
+          exit 1
+        fi
+        if [ "x${KIBANA_PASSWORD}" = "x" ]; then
+          echo "Set the KIBANA_PASSWORD environment variable in the .env file"
+          exit 1
+        fi
+
         if [ ! -f config/certs/ca.zip ]; then
-          echo "Creating CA";
-          bin/elasticsearch-certutil ca --silent --pem -out config/certs/ca.zip;
-          unzip -o config/certs/ca.zip -d config/certs;
-        fi;
+          echo "Creating CA"
+          bin/elasticsearch-certutil ca --silent --pem -out config/certs/ca.zip
+          unzip -o config/certs/ca.zip -d config/certs
+        fi
+
         if [ ! -f config/certs/certs.zip ]; then
-          echo "Creating certs";
-          cat > config/certs/instances.yml <<EOF
-          instances:
-            - name: es01
-              dns: [ es01, localhost ]
-              ip:  [ 127.0.0.1 ]
-            - name: kibana
-              dns: [ kibana, localhost ]
-              ip:  [ 127.0.0.1 ]
-            - name: fleet-server
-              dns: [ fleet-server, localhost ]
-              ip: [ 127.0.0.1 ]
-            - name: apm-agent
-              dns: [ apm-agent, localhost ]
-              ip: [ 127.0.0.1 ]
-          EOF
-          bin/elasticsearch-certutil cert --silent --pem -out config/certs/certs.zip --in config/certs/instances.yml --ca-cert config/certs/ca/ca.crt --ca-key config/certs/ca/ca.key;
-          unzip -o config/certs/certs.zip -d config/certs;
-        fi;
+          echo "Creating certs"
+          cat > config/certs/instances.yml <<'EOF'
+        instances:
+          - name: es01
+            dns: [ es01, localhost ]
+            ip:  [ 127.0.0.1 ]
+          - name: kibana
+            dns: [ kibana, localhost ]
+            ip:  [ 127.0.0.1 ]
+          - name: fleet-server
+            dns: [ fleet-server, localhost ]
+            ip:  [ 127.0.0.1 ]
+          - name: apm-agent
+            dns: [ apm-agent, localhost ]
+            ip:  [ 127.0.0.1 ]
+        EOF
+          bin/elasticsearch-certutil cert --silent --pem \
+            -out config/certs/certs.zip \
+            --in config/certs/instances.yml \
+            --ca-cert config/certs/ca/ca.crt \
+            --ca-key  config/certs/ca/ca.key
+          unzip -o config/certs/certs.zip -d config/certs
+        fi
+
         echo "Setting file permissions"
-        chown -R root:root config/certs;
-        find config/certs -type d -exec chmod 750 \{\} \;;
-        find config/certs -type f -exec chmod 640 \{\} \;;
-        echo "Waiting for Elasticsearch availability";
-        until curl -s --cacert config/certs/ca/ca.crt https://es01:9200 | grep -q "missing authentication credentials"; do sleep 30; done;
-        echo "Setting kibana_system password";
-        until curl -s -X POST --cacert config/certs/ca/ca.crt -u "elastic:${ELASTIC_PASSWORD}" -H "Content-Type: application/json" https://es01:9200/_security/user/kibana_system/_password -d "{\"password\":\"${KIBANA_PASSWORD}\"}" | grep -q "^{}"; do sleep 10; done;
-        echo "All done!";
-      '
+        chown -R root:root config/certs
+        find config/certs -type d -exec chmod 750 {} \;
+        find config/certs -type f -exec chmod 640 {} \;
+
+        echo "Waiting for Elasticsearch availability"
+        until curl -s --cacert config/certs/ca/ca.crt https://es01:9200 | grep -q "missing authentication credentials"; do
+          sleep 30
+        done
+
+        echo "Setting kibana_system password"
+        until curl -s -X POST --cacert config/certs/ca/ca.crt \
+          -u "elastic:${ELASTIC_PASSWORD}" \
+          -H "Content-Type: application/json" \
+          https://es01:9200/_security/user/kibana_system/_password \
+          -d "{\"password\":\"${KIBANA_PASSWORD}\"}" | grep -q "^{}"; do
+          sleep 10
+        done
+
+        echo "All done!"
     healthcheck:
       test: ["CMD-SHELL", "[ -f config/certs/es01/es01.crt ]"]
       interval: 2s
@@ -292,7 +310,7 @@ services:
   es01: 
     depends_on:
       setup: 
-        condition: service_healthy
+        condition: service_started   # certs service, once that it has created the certs, can exit, so we wait for it to complete successfully, not just to be healthy beacuse it would always fail 
     container_name: es01
     image: docker.elastic.co/elasticsearch/elasticsearch:${STACK_VERSION}
     networks:
@@ -354,7 +372,7 @@ services:
       - certs:/usr/share/kibana/config/certs                    # mount the certs volume created by the setup service, to read the CA
       - kibanadata:/usr/share/kibana/data                       # volume with persistent Kibana data (e.g. saved objects, sessions, etc.)  
       - ./docker/volumes/kibana/config/kibana.yml:/usr/share/kibana/config/kibana.yml:ro # custom Kibana config file, mounted read-only  
-    ports:
+    expose:
       - ${KIBANA_PORT}:5601                                     # expose Kibana UI port to the host (proxied by NPM)
     environment:
       - SERVER_NAME=kibana                                      # set the server name and Kibana will in the URLs it generates
@@ -380,11 +398,12 @@ services:
     healthcheck:
       test: [
         "CMD-SHELL", 
-        "curl -I -s http://localhost:5601 | grep -q HTTP/1.1 302 Found",
+        "curl -sI http://localhost:5601 | awk 'NR==1{exit ($2==302)?0:1}'"      # checks for HTTP 302 response, which indicates Kibana is up
       ]
       interval: 10s
-      timeout: 10s
+      timeout: 5s
       retries: 120
+      start_period: 60s
     # Healthcheck with TLS enabled variant:
     # healthcheck:
     #   test: ["CMD-SHELL", "curl -I -s --cacert /usr/share/kibana/config/certs/ca/ca.crt https://localhost:5601 | grep -q 'HTTP/1.1 302 Found'"]
@@ -413,22 +432,28 @@ services:
       # - KIBANA_FLEET_SETUP=1
       - FLEET_ENROLL=1                   # enroll this agent as a Fleet Server, avoid it to be a standalone agent
       - KIBANA_HOST=http://kibana:5601      # URL of the Kibana instance to enroll with and get its configuration from
+      - KIBANA_FLEET_USERNAME=elastic
+      - KIBANA_FLEET_PASSWORD=${ELASTIC_PASSWORD}
       - FLEET_ENROLLMENT_TOKEN=${FLEET_ENROLLMENT_TOKEN} # enrollment token that assure a secure enrollment
       # Configuring the Fleet Server
       - FLEET_SERVER_ENABLE=true            # here the agent actually runs as a Fleet Server
       - FLEET_SERVER_POLICY_ID=fleet-server-policy # assign the Fleet Server policy created in kibana.yml to this agent
       - FLEET_SERVER_PORT=8220     # port where the Fleet Server will listen for connections from other agents
-      - FLEET_URL=http://fleet-server:8220        # URL that the fleet server will advertise to other agents to connect to it
+      - FLEET_URL=https://fleet-server:8220        # URL that the fleet server will advertise to other agents to connect to it
+      - FLEET_SERVER_CERT=/usr/share/elastic-agent/certs/fleet-server/fleet-server.crt
+      - FLEET_SERVER_CERT_KEY=/usr/share/elastic-agent/certs/fleet-server/fleet-server.key
       - ELASTIC_AGENT_TAGS=fleet-server,internal  # tags to identify this agent
       # Elasticsearch connection, which, beacuse it's TLS-enabled, requires the CA cert to verify the server cert and the host
-      - ELASTICSEARCH_HOSTS=${ELASTICSEARCH_HOSTS}              # Elasticsearch URL,
+      - ELASTICSEARCH_HOSTS=https://es01:9200              # Elasticsearch URL,
+      - FLEET_SERVER_ELASTICSEARCH_HOST=https://es01:9200     # Elasticsearch URL specific for Fleet Server backend
       - ELASTICSEARCH_CA=/usr/share/elastic-agent/certs/ca/ca.crt # path to CA cert to verify Elasticsearch server cert
+      - FLEET_SERVER_ELASTICSEARCH_CA=/usr/share/elastic-agent/certs/ca/ca.crt    # same thing of the previous one, but specific for Fleet Server
     expose: 
       - "8220"
     healthcheck:
       test: [
         "CMD-SHELL",                                                        # calls the status API endpoint and checks for HEALTHY 
-        "curl -sSf http://localhost:8220/api/status | grep -q 'HEALTHY'"    # sFsf: silent, show error, fail on HTTP errors
+        "curl -sSf --cacert /usr/share/elastic-agent/certs/ca/ca.crt https://localhost:8220/api/status | grep -q 'HEALTHY'"    # sFsf: silent, show error, fail on HTTP errors
       ]
       interval: 10s
       timeout: 10s 
@@ -448,13 +473,15 @@ services:
     restart: unless-stopped
     networks: 
       - internal_net
+      - proxy_net       # if we want NPM to be able to proxy requests to the APM server
     expose: 
       - "8200"
     volumes:
       - certs:/usr/share/elastic-agent/certs:ro
     environment:
       - FLEET_ENROLL=1          # tell the agent to enroll with Fleet 
-      - FLEET_URL=http://fleet-server:8220
+      - FLEET_URL=https://fleet-server:8220
+      - FLEET_CA=/usr/share/elastic-agent/certs/ca/ca.crt
       - FLEET_ENROLLMENT_TOKEN=${FLEET_ENROLLMENT_TOKEN_APM} # enrollment token generated in Kibana UI
       - ELASTICSEARCH_CA=/usr/share/elastic-agent/certs/ca/ca.crt              # Elasticsearch URL,
       - ELASTIC_AGENT_TAGS=apm,internal 
@@ -499,7 +526,7 @@ services:
     user: root
     environment:
       - FLEET_ENROLL=1            # activate the enroll mod 
-      - FLEET_URL=http://fleet-server:8220
+      - FLEET_URL=https://fleet-server:8220
       - FLEET_ENROLLMENT_TOKEN=${FLEET_ENROLLMENT_TOKEN_INFRA}
       - ELASTICSEARCH_CA=/usr/share/elastic-agent/certs/ca/ca.crt
       - ELASTIC_AGENT_TAGS=infra,internal           # used fot filtering
@@ -512,6 +539,7 @@ services:
     image: fluent/fluent-bit:2.2
     container_name: fluent-bit
     restart: unless-stopped
+    user: root
     networks:
       - internal_net
     environment:
@@ -529,3 +557,4 @@ services:
       - ./docker/volumes/fluent-bit-db:/fluent-bit/db
       # Metadata 
       - /var/run/docker.sock:/var/run/docker.sock:ro
+      - npm_data:/npm_data:ro
