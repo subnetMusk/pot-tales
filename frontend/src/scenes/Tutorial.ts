@@ -54,7 +54,7 @@ class Tutorial extends Phaser.Scene {
 	private spotlight!: Phaser.GameObjects.Graphics;
 	private targetLuce!: Phaser.GameObjects.Graphics;
 	private timer = false
-	private temp = 2000; // tempo di attesa
+	private temp = 20000; // tempo di attesa
 
 	/* START-USER-CODE */
 
@@ -77,9 +77,10 @@ class Tutorial extends Phaser.Scene {
 		this.popupManager = new PopupManager(this);
 
 		// Aggiugiamo i popup alla coda 
-		this.popupManager.queuePopup("Benvenuto!");
-		this.popupManager.queuePopup("Usa le frecce direzionali per muoverti.");
-		this.popupManager.queuePopup("Buona fortuna!");
+		this.popupManager.queuePopup("ohoh, è così scuro qui dentro...");
+		this.popupManager.queuePopup("forse hai la torcia scarica..");
+		this.popupManager.queuePopup("cerca delle pile nuove..");
+		this.popupManager.queuePopup("(usa le frecce per muoverti)");
 		
 		// Inizia la visualizzazione dei popup
 		this.popupManager.showNextPopup();
@@ -99,7 +100,7 @@ class Tutorial extends Phaser.Scene {
 	//timer 
 	private avviaTimer() {
 		this.time.addEvent({
-			delay: this.temp, // impostare 30 secondi  dopo debug
+			delay: this.temp, 
 			callback: () => {
 				this.events.emit("timer-finished");
 			},
@@ -147,16 +148,31 @@ class Tutorial extends Phaser.Scene {
 
 	// Funzione per creare il pallino fisso nel mondo
 	private creaLuce(x: number, y: number) {
+		// Crea un disegno di una batteria fisso nel mondo
+		const battery = this.add.graphics();
 
-		// Crea semplicemente un cerchio visibile alle coordinate x,y 
-		const luce = this.add.graphics();
-		luce.fillStyle(0xff0000, 1); // Rosso
-		luce.fillCircle(0, 0, 2); 
-		luce.setPosition(x, y); 
-		luce.setDepth(100); // Depth altissimo
+		// Corpo principale della batteria (rettangolo)
+		battery.fillStyle(0x333333, 1); // Grigio scuro
+		battery.fillRect(-6, -3, 12, 6);
+
+		// Terminale positivo della batteria
+		battery.fillStyle(0x666666, 1); // Grigio chiaro
+		battery.fillRect(6, -1, 2, 2);
+
+		// Indicatore di carica (verde)
+		battery.fillStyle(0x00ff00, 1); // Verde
+		battery.fillRect(-5, -2, 8, 4);
+
+		// Contorno della batteria
+		battery.lineStyle(1, 0x000000, 1); // Nero
+		battery.strokeRect(-6, -3, 12, 6);
+		battery.strokeRect(6, -1, 2, 2);
+
+		battery.setPosition(x, y);
+		battery.setDepth(100);
 
 		// Salva il riferimento per il controllo delle collisioni
-		this.targetLuce = luce;
+		this.targetLuce = battery;
 
 	}
 

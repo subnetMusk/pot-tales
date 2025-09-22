@@ -2,12 +2,14 @@
 
 import Player from "@/items/Main/Player";
 import PopupManager from "../items/UI/PopupManager";
+import LecterManager  from "../items/UI/LecterManager";
 
 class Scene_1 extends Phaser.Scene {
 
 	private fondale!: Phaser.GameObjects.Image;
 	private popupManager!: PopupManager;
 	private player!: Player;
+	private lecterManager!: LecterManager;
 
 	constructor() {
 		super("Scene_1");
@@ -46,7 +48,7 @@ class Scene_1 extends Phaser.Scene {
 
 	create() {
 		this.editorCreate();
-		this.cameras.main.setZoom(1);
+		this.cameras.main.setZoom(5);
 		this.cameras.main.startFollow(this.player.player, true, 1.0, 1.0, -this.player.x, -this.player.y);
 
 
@@ -59,10 +61,46 @@ class Scene_1 extends Phaser.Scene {
 
 		console.log("Mostrando primo popup...");
 		this.popupManager.showNextPopup();
+
+		this.creaLettera(660, 360);
 	}
 
 	update(){
 		console.log(`Player coordinates: x=${this.player.x}, y=${this.player.y}`);
+	}
+
+	private creaLettera(x: number, y: number){
+		const envelope = this.add.graphics();
+		envelope.fillStyle(0xF5F5DC); // Beige color for envelope
+		envelope.fillRoundedRect(x - 16, y - 10, 32, 20, 3);
+
+		envelope.lineStyle(1, 0xFF0000); // Red outline
+		envelope.strokeRoundedRect(x - 16, y - 10, 32, 20, 3);
+
+		// Envelope flap (triangle)
+		envelope.fillStyle(0xDDD8C7); // Slightly darker beige
+		envelope.fillTriangle(x - 12, y - 7, x + 12, y - 7, x, y + 3);
+
+		envelope.lineStyle(1, 0xFF0000);
+		envelope.strokeTriangle(x - 12, y - 7, x + 12, y - 7, x, y + 3);
+
+		// Make it interactive
+		envelope.setInteractive(new Phaser.Geom.Rectangle(x - 16, y - 10, 32, 20), Phaser.Geom.Rectangle.Contains);
+
+		// Check distance and E key press
+		this.input.keyboard?.on('keydown-E', () => {
+			const distance = Phaser.Math.Distance.Between(this.player.x, this.player.y, x, y);
+			if (distance < 50) { // Adjust distance threshold as needed
+				// Show letter popup
+				this.lecterManager = new LecterManager(this);
+				this.lecterManager.queueLetter("I contraccettivi femminili rappresentano uno strumento fondamentale per la salute e l'autonomia delle donne. Permettono una pianificazione familiare consapevole, consentendo alle donne di decidere quando e se avere figli, contribuendo così al loro benessere fisico, economico e sociale.");
+				this.lecterManager.showNextLetter();
+
+				// Remove the envelope graphic when letter is closed
+				envelope.destroy();
+			}
+		});
+
 	}
 
 }
