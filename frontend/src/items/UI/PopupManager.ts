@@ -39,9 +39,10 @@ export default class PopupManager {
 
     // Crea il popup interattivo
     private createInteractivePopup(message: string): Phaser.GameObjects.Container {
-        // Container per il popup (ignora zoom camera)
+        // Container per il popup (completamente fisso rispetto alla camera)
         const popup = this.scene.add.container(this.scene.scale.width / 2, this.scene.scale.height / 2);
-        popup.setScrollFactor(0); // Ignora zoom della camera
+        popup.setScrollFactor(0, 0); // Completamente fisso rispetto alla camera
+        popup.setDepth(1000); // Sopra tutto
         
         // Crea il testo prima per misurare le dimensioni
         const text = this.scene.add.text(0, -10, message, {
@@ -71,10 +72,12 @@ export default class PopupManager {
         bg.fillRoundedRect(-containerWidth/2, -containerHeight/2, containerWidth, containerHeight, 6);
         bg.lineStyle(1, 0xffffff, 1);
         bg.strokeRoundedRect(-containerWidth/2, -containerHeight/2, containerWidth, containerHeight, 6);
+        bg.setScrollFactor(0, 0); // Assicurati che il background sia fisso
         
         // Riposiziona il testo al centro dell'area testo
         const textY = -containerHeight/2 + padding + textHeight/2;
         text.setPosition(0, textY);
+        text.setScrollFactor(0, 0); // Assicurati che il testo sia fisso
 
         
         // Pulsante OK adattivo
@@ -87,6 +90,7 @@ export default class PopupManager {
         okButton.lineStyle(1, 0x45a049, 1);
         okButton.strokeRoundedRect(-buttonWidth/2, buttonY - buttonHeight/2, buttonWidth, buttonHeight, 3);
         okButton.setInteractive(new Phaser.Geom.Rectangle(-buttonWidth/2, buttonY - buttonHeight/2, buttonWidth, buttonHeight), Phaser.Geom.Rectangle.Contains);
+        okButton.setScrollFactor(0, 0); // Assicurati che il pulsante sia fisso
         
         const okText = this.scene.add.text(0, buttonY, 'OK', {
             fontSize: '6px',
@@ -96,19 +100,23 @@ export default class PopupManager {
             resolution: 2
         });
         okText.setOrigin(0.5);
+        okText.setScrollFactor(0, 0); // Assicurati che il testo del pulsante sia fisso
         
         // Aggiungi tutto al container
         popup.add([bg, text, okButton, okText]);
-        popup.setDepth(200);
-        popup.setScale(0);
+        popup.setDepth(1000); // Sopra tutto
+        popup.setScale(0.8); // Inizia leggermente piccolo ma visibile
+        popup.setAlpha(0); // Inizia invisibile
+        
+        // Posiziona il popup al centro dello schermo (semplificato)
+        popup.setPosition(this.scene.scale.width / 2, this.scene.scale.height / 2);
         
         // Animazione senza scaling per evitare blur
         this.scene.tweens.add({
             targets: popup,
-            alpha: { from: 0, to: 1 }, // Usa alpha invece di scale
-            y: { from: popup.y + 10, to: popup.y }, // Leggero movimento
-            scale: { from: 0.8, to: 1 }, // Scaling minimo
-            duration: 200, // Più veloce
+            alpha: 1, // Da 0 a 1
+            scale: 1, // Da 0.8 a 1
+            duration: 200,
             ease: 'Power2.easeOut'
         });
         

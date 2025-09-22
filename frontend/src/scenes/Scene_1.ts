@@ -46,7 +46,7 @@ class Scene_1 extends Phaser.Scene {
 
 	create() {
 		this.editorCreate();
-		this.cameras.main.setZoom(5);
+		this.cameras.main.setZoom(1);
 		this.cameras.main.startFollow(this.player.player, true, 1.0, 1.0, -this.player.x, -this.player.y);
 
 

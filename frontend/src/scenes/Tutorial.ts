@@ -54,6 +54,7 @@ class Tutorial extends Phaser.Scene {
 	private spotlight!: Phaser.GameObjects.Graphics;
 	private targetLuce!: Phaser.GameObjects.Graphics;
 	private timer = false
+	private temp = 2000; // tempo di attesa
 
 	/* START-USER-CODE */
 
@@ -98,7 +99,7 @@ class Tutorial extends Phaser.Scene {
 	//timer 
 	private avviaTimer() {
 		this.time.addEvent({
-			delay: 10000, // impostare 30 secondi  dopo debug
+			delay: this.temp, // impostare 30 secondi  dopo debug
 			callback: () => {
 				this.events.emit("timer-finished");
 			},
