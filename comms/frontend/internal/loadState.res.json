@@ -1,0 +1,27 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "SaveStateRequest",
+  "type": "object",
+  "properties": {
+    "state": {
+      "type": "object",
+      "description": "Player state, currently only coordinates",
+      "properties": {
+        "x": {
+          "type": "number",
+          "description": "Player X coordinate on the map"
+        },
+        "y": {
+          "type": "number",
+          "description": "Player Y coordinate on the map"
+        },
+        "level": {
+          "type": "number",
+          "description": "Current level of the player"
+        }
+      }
+    }
+  },
+    "required": ["x", "y", "level"],
+    "additionalProperties": false
+}
