@@ -1,11 +1,16 @@
+import { ok } from "assert";
+
 export default class PopupManager {
     private scene: Phaser.Scene;
     private popupQueue: string[] = [];
     private currentPopup: Phaser.GameObjects.Container | null = null;
     private isPopupActive: boolean = false;
+    private enterKey?: Phaser.Input.Keyboard.Key; // Aggiungi questa proprietà
 
     constructor(scene: Phaser.Scene) {
         this.scene = scene;
+        // Configura il tasto Invio
+        this.enterKey = this.scene.input.keyboard?.addKey(Phaser.Input.Keyboard.KeyCodes.ENTER);
     }
 
     // Aggiunge un popup alla coda
@@ -120,8 +125,8 @@ export default class PopupManager {
             ease: 'Power2.easeOut'
         });
         
-        // Gestione click con animazione più pulita
-        okButton.on('pointerdown', () => {
+        // Funzione per chiudere il popup (condivisa tra click e tasto Invio)
+        const closePopup = () => {
             this.scene.tweens.add({
                 targets: popup,
                 alpha: 0,
@@ -133,8 +138,28 @@ export default class PopupManager {
                     this.onPopupClosed(); // Chiama il callback per mostrare il prossimo popup
                 }
             });
-        });
-        
+        };
+
+        // Gestione click del pulsante OK
+        okButton.on('pointerdown', closePopup);
+
+        // Gestione tasto Invio
+        const onEnterDown = () => {
+            if (this.isPopupActive && this.currentPopup === popup) {
+                closePopup();
+            }
+        };
+
+        // Aggiungi listener per il tasto Invio
+        this.enterKey?.on('down', onEnterDown);
+
+        // Rimuovi il listener quando il popup viene distrutto
+        const originalDestroy = popup.destroy.bind(popup);
+        popup.destroy = () => {
+            this.enterKey?.off('down', onEnterDown);
+            originalDestroy();
+        };
+
         return popup;
     }
 
@@ -146,6 +171,8 @@ export default class PopupManager {
         }
         this.popupQueue = [];
         this.isPopupActive = false;
+        // Rimuovi tutti i listener del tasto Invio
+        this.enterKey?.removeAllListeners();
     }
 
     // Getter per sapere se c'è un popup attivo

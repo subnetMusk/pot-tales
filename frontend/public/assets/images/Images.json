@@ -7,6 +7,11 @@
                 "key": "Fondale"
             },
             {
+                "url": "frontend/public/assets/images/backgrounds/lab.png",
+                "type": "image",
+                "key": "lab"
+            },
+            {
                 "url": "frontend/public/assets/images/backgrounds/darkMask.png",
                 "type": "image",
                 "key": "MASK"
