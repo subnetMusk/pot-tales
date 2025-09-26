@@ -55,6 +55,7 @@ class Tutorial extends Phaser.Scene {
 	private targetLuce!: Phaser.GameObjects.Graphics;
 	private timer = false
 	private temp = 20000; // tempo di attesa
+	private popupMostrato = false; // Flag per evitare che il popup si riapra
 
 	/* START-USER-CODE */
 
@@ -137,14 +138,27 @@ class Tutorial extends Phaser.Scene {
 
 
 		// Controlla se esiste un pallino da raggiungere
-		if (this.timer) {
+		if (this.timer && !this.popupMostrato) {
 			//quando il player raggiunge il pallino passa a scena 1
 			if (this.player.player.x <= 10  && this.player.player.x >= -10 && this.player.player.y <= 10 && this.player.player.y >= -10	) {
-				this.scene.start("Scene_1");
+				this.popupMostrato = true; // Imposta la flag per evitare che si ripeta
+				/*fai comparire un popup che spiega che per raccogliere la pila deve premere I, e dopo che ha premuto I passa a scena 1 */
+				this.popupManager.queuePopup("Per raccogliere gli oggetti, premi I.");
+				this.popupManager.showNextPopup();
+				
+
+				/*TODO bug:
+				 una volta dentro questo ramo, il player viene rendidirizzato a scena 1, quando preme I, ovunque egli sia, 
+				invece dovrebbe succedere solo se è vicino alla pila
+				*/ 
+
+				this.input.keyboard?.on('keydown-I', () => {
+					this.scene.start("Scene_1");
+				});
+
 			}
 		}
 	}
-
 
 	// Funzione per creare il pallino fisso nel mondo
 	private creaLuce(x: number, y: number) {

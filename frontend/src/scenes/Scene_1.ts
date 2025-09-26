@@ -10,6 +10,7 @@ vinto un minigioco, dopo aver aperto la porta il giocatore viene catapultato nel
 import Player from "@/items/Main/Player";
 import PopupManager from "../items/UI/PopupManager";
 import LecterManager  from "../items/UI/LecterManager";
+import { Function } from "@/items/Main/Function";
 
 class Scene_1 extends Phaser.Scene {
 
@@ -34,7 +35,7 @@ class Scene_1 extends Phaser.Scene {
 		const background = this.add.container(0, 0);
 
 		// fondale
-		const fondale = this.add.image(640, 360, "Fondale");
+		const fondale = this.add.image(640, 360, "lab");
 		fondale.scaleX = 3;
 		fondale.scaleY = 3;
 		fondale.setOrigin(0.5, 0.5);
@@ -74,6 +75,30 @@ class Scene_1 extends Phaser.Scene {
 
 	update(){
 		console.log(`Player coordinates: x=${this.player.x}, y=${this.player.y}`);
+		
+		//gestione bordi
+		//dim lab_x /2 
+		//dim lab_y /2
+		const bounds = {
+			xMin: -187,
+			xMax: 187,
+			yMin: -145,
+			yMax: 148
+		};
+	
+		if(this.player.player.x < bounds.xMin ) {
+			this.player.player.x = bounds.xMin+1;		
+		}
+		if(this.player.player.x > bounds.xMax ) {
+			this.player.player.x = bounds.xMax-1;
+		}
+		if(this.player.player.y < bounds.yMin ) {
+			this.player.player.y = bounds.yMin+1;
+		}
+		if(this.player.player.y > bounds.yMax ) {
+			this.player.player.y = bounds.yMax-1;
+		}
+
 	}
 
 	private creaLettera(x: number, y: number){
@@ -94,10 +119,18 @@ class Scene_1 extends Phaser.Scene {
 		// Make it interactive
 		envelope.setInteractive(new Phaser.Geom.Rectangle(x - 8, y - 5, 16, 10), Phaser.Geom.Rectangle.Contains);
 
+
+
+		/*TODO --si apre anche quando lettera distrutta --*/
+
 		// Check distance and E key press
 		this.input.keyboard?.on('keydown-E', () => {
-			const distance = Phaser.Math.Distance.Between(this.player.x, this.player.y, x, y);
-			if (distance < 50) { // Adjust distance threshold as needed
+
+			/*NB  la funzione coordinateAbsoluteToRelative è uguale a fare x-640 e y-360, ma è più bella */
+			const relativeCoords = Function.coordinateAbsoluteToRelative(x, y);
+			const distance = Phaser.Math.Distance.Between(this.player.player.x, this.player.player.y, relativeCoords.x, relativeCoords.y);
+			console.log(`Distance to letter: ${distance}`);
+			if (distance < 25 && envelope.active) { // Distanza di 25 pixel per interagire
 				// Show letter popup
 				this.lecterManager = new LecterManager(this);
 				this.lecterManager.queueLetter("I contraccettivi femminili rappresentano uno strumento fondamentale per la salute e l'autonomia delle donne. Permettono una pianificazione familiare consapevole, consentendo alle donne di decidere quando e se avere figli, contribuendo così al loro benessere fisico, economico e sociale.");
