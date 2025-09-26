@@ -46,24 +46,24 @@ export default class LecterManager {
         
         // Crea il testo prima per misurare le dimensioni
         const text = this.scene.add.text(0, -10, message, {
-            fontSize: '8px',
+            fontSize: '4px',
             color: '#2F4F2F', // Verde scuro per contrasto su sfondo beige
             fontStyle: 'bold',
             fontFamily: 'Arial, sans-serif',
             resolution: 2,
             align: 'center',
-            wordWrap: { width: 200 } // Larghezza massima per il wrapping
+            wordWrap: { width: 100 } // Larghezza massima per il wrapping ancora più ridotta
         });
         text.setOrigin(0.5);
         
         // Calcola le dimensioni del contenitore basate sul testo
         const textWidth = text.width;
         const textHeight = text.height;
-        const padding = 12; // Padding maggiore attorno al testo
-        const buttonHeight = 10; // Altezza del pulsante
-        const buttonMargin = 8; // Spazio tra testo e pulsante
+        const padding = 5; // Padding ancora più ridotto attorno al testo
+        const buttonHeight = 6; // Altezza del pulsante ancora più ridotta
+        const buttonMargin = 4; // Spazio tra testo e pulsante ancora più ridotto
         
-        const containerWidth = Math.max(textWidth + padding * 2, 80); // Larghezza minima aumentata
+        const containerWidth = Math.max(textWidth + padding * 2, 40); // Larghezza minima ancora più ridotta
         const containerHeight = textHeight + padding + buttonHeight + buttonMargin;
         
         // Sfondo beige adattivo alle dimensioni del contenuto
@@ -81,8 +81,8 @@ export default class LecterManager {
 
         
         // Pulsante Chiudi adattivo - colori rosso e beige
-        const buttonWidth = Math.max(40, containerWidth * 0.3); // Larghezza proporzionale
-        const buttonY = containerHeight/2 - buttonHeight/2 - 4; // Posizione in fondo al container
+        const buttonWidth = Math.max(25, containerWidth * 0.25); // Larghezza proporzionale ridotta
+        const buttonY = containerHeight/2 - buttonHeight/2 - 3; // Posizione in fondo al container con margine ridotto
         
         const closeButton = this.scene.add.graphics();
         closeButton.fillStyle(0xCD5C5C, 1); // Rosso (Indian Red)
@@ -93,7 +93,7 @@ export default class LecterManager {
         closeButton.setScrollFactor(0, 0); // Assicurati che il pulsante sia fisso
         
         const closeText = this.scene.add.text(0, buttonY, 'Chiudi', {
-            fontSize: '6px',
+            fontSize: '3px',
             color: '#F5F5DC', // Beige
             fontFamily: 'Arial, sans-serif',
             fontStyle: 'bold',
@@ -105,7 +105,7 @@ export default class LecterManager {
         // Aggiungi tutto al container
         popup.add([bg, text, closeButton, closeText]);
         popup.setDepth(1000); // Sopra tutto
-        popup.setScale(0.8); // Inizia leggermente piccolo ma visibile
+        popup.setScale(0.5); // Inizia molto più piccolo
         popup.setAlpha(0); // Inizia invisibile
         
         // Posiziona la lettera al centro dello schermo (semplificato)
@@ -115,7 +115,7 @@ export default class LecterManager {
         this.scene.tweens.add({
             targets: popup,
             alpha: 1, // Da 0 a 1
-            scale: 1, // Da 0.8 a 1
+            scale: 0.7, // Da 0.5 a 0.7 (ancora più piccolo)
             duration: 200,
             ease: 'Power2.easeOut'
         });
