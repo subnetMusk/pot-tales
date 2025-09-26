@@ -1,4 +1,4 @@
-import { ok } from "assert";
+
 
 export default class PopupManager {
     private scene: Phaser.Scene;
@@ -30,6 +30,9 @@ export default class PopupManager {
         if (message) {
             this.isPopupActive = true;
             this.currentPopup = this.createInteractivePopup(message);
+            
+            // Emetti l'evento di popup mostrato
+            this.scene.events.emit('popup-shown');
         }
     }
 
@@ -37,6 +40,9 @@ export default class PopupManager {
     private onPopupClosed() {
         this.isPopupActive = false;
         this.currentPopup = null;
+        
+        // Emetti l'evento di chiusura popup
+        this.scene.events.emit('popup-closed');
         
         // Mostra il prossimo popup se ce ne sono altri
         this.showNextPopup();
@@ -163,6 +169,11 @@ export default class PopupManager {
         return popup;
     }
 
+    //metodo hasnext 
+    public hasNext(): boolean {
+        return this.popupQueue.length > 0;
+    }
+
     // Metodo per pulire tutto quando necessario
     public destroy() {
         if (this.currentPopup) {
@@ -184,4 +195,24 @@ export default class PopupManager {
     public get queueLength(): number {
         return this.popupQueue.length;
     }
+
+    //avvia un evento quando la coda è vuota
+    public on(event: 'queueEmpty' | 'popupClosed' | 'popupShown', callback: () => void) {
+        if (event === 'queueEmpty') {
+            const checkQueue = () => {
+                if (this.popupQueue.length === 0 && !this.isPopupActive) {
+                    callback();
+                    this.scene.events.off('update', checkQueue); // Rimuovi il listener dopo la chiamata
+                }
+            };
+            this.scene.events.on('update', checkQueue);
+        } else if (event === 'popupClosed') {
+            // Evento che si attiva ogni volta che un popup viene chiuso
+            this.scene.events.on('popup-closed', callback);
+        } else if (event === 'popupShown') {
+            // Evento che si attiva ogni volta che un popup viene mostrato
+            this.scene.events.on('popup-shown', callback);
+        }
+    }
+
 }
