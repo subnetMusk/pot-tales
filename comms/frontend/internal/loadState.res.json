@@ -10,18 +10,26 @@
         "x": {
           "type": "number",
           "description": "Player X coordinate on the map"
-        },
+          },
         "y": {
           "type": "number",
           "description": "Player Y coordinate on the map"
-        },
+          },
         "level": {
-          "type": "number",
+          "type": "integer",
           "description": "Current level of the player"
+          },
+        "battery": {
+          "type": "number",
+          "description": "Livello di batteria della torcia"
+          },
+        "inventory": {
+          "type": "array",
+          "description": "Inventario"
         }
       }
     }
   },
-    "required": ["x", "y", "level"],
-    "additionalProperties": false
+  "required": ["state"],
+  "additionalProperties": false
 }

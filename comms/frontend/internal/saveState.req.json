@@ -4,28 +4,40 @@
   "type": "object",
   "properties": {
     "state": {
-        "type": "object",
-        "description": "Stato del giocatore, attualmente solo le coordinate",
-        "properties": {
-            "cookie": {
-                "type": "string",
-                "description": "ID della sessione del giocatore"
-            },
-            "x": {
-                "type": "number",
-                "description": "Coordinate X del giocatore sulla mappa"
-            },
-            "y": {
-                "type": "number",
-                "description": "Coordinate Y del giocatore sulla mappa"
-            },
-            "level": {
-                "type": "number",
-                "description": "Livello attuale del giocatore"
-            }
+      "type": "object",
+      "description": "Stato del giocatore, attualmente solo le coordinate",
+      "properties": {
+        "cookie": {
+          "type": "string",
+          "description": "ID della sessione del giocatore"
+          },
+        "x": {
+          "type": "number",
+          "description": "Coordinate X del giocatore sulla mappa",
+          "minimum": 0
+          },
+        "y": {
+          "type": "number",
+          "description": "Coordinate Y del giocatore sulla mappa",
+          "minimum": 0
+          },
+        "level": {
+          "type": "number",
+          "description": "Livello attuale del giocatore"
+          },
+        "battery": {
+          "type": "number",
+          "description": "Livello di batteria della torcia",
+          "minimum": 0,
+          "maximum": 100
+          },
+        "inventory": {
+          "type": "array",
+          "description": "Inventario"
         }
+      }
     }
-  },    
-    "required": ["state"],
-    "additionalProperties": false
+  },
+  "required": ["state"],
+  "additionalProperties": false
 }

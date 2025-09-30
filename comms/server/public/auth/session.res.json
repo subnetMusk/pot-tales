@@ -3,8 +3,22 @@
   "title": "CreateSessionResponse",
   "type": "object",
   "properties": {
-    "token":   { "type": "string", "pattern": "^[0-9a-fA-F-]{36}$" },
-    "expires": { "type": "string", "format": "date-time" }
+    "token":   {
+      "type": "string",
+      "pattern": "^[0-9a-fA-F-]{36}$"
+    },
+    "expires": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "timer": {
+      "type": "number",
+      "description": "Timer del giocatore"
+    },
+    "achievements" : {
+      "type": "array",
+      "description": "Raggiungimenti del giocatore"
+    }
   },
   "required": ["token", "expires"],
   "additionalProperties": false
