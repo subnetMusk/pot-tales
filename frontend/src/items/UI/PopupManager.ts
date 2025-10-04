@@ -5,12 +5,18 @@ export default class PopupManager {
     private popupQueue: string[] = [];
     private currentPopup: Phaser.GameObjects.Container | null = null;
     private isPopupActive: boolean = false;
-    private enterKey?: Phaser.Input.Keyboard.Key; // Aggiungi questa proprietà
+    private enterKey?: Phaser.Input.Keyboard.Key; 
+    private layer: Phaser.GameObjects.Layer;
 
     constructor(scene: Phaser.Scene) {
         this.scene = scene;
         // Configura il tasto Invio
         this.enterKey = this.scene.input.keyboard?.addKey(Phaser.Input.Keyboard.KeyCodes.ENTER);
+
+        //creo uno strato per i popup
+        this.layer = this.scene.add.layer();
+        this.layer.setDepth(1000); // Sopra tutto
+        
     }
 
     // Aggiunge un popup alla coda
@@ -50,18 +56,21 @@ export default class PopupManager {
 
     // Crea il popup interattivo
     private createInteractivePopup(message: string): Phaser.GameObjects.Container {
-        // Container per il popup (completamente fisso rispetto alla camera)
+
+        // Container per il popup
         const popup = this.scene.add.container(this.scene.scale.width / 2, this.scene.scale.height / 2);
-        popup.setScrollFactor(0, 0); // Completamente fisso rispetto alla camera
-        popup.setDepth(1000); // Sopra tutto
+        this.layer = this.scene.add.layer();
+
+        //aggiungo il container al layer
+        this.layer.add(popup);
         
         // Crea il testo prima per misurare le dimensioni
         const text = this.scene.add.text(0, -10, message, {
             fontSize: '8px',
             color: '#ffffff',
-            fontStyle: 'bold',
-            fontFamily: 'Arial, sans-serif',
-            resolution: 2,
+            fontStyle: '',
+            fontFamily: 'PixelifySans-VariableFont_wght',
+            resolution: 5,
             align: 'center',
             wordWrap: { width: 200 } // Larghezza massima per il wrapping
         });
@@ -106,7 +115,7 @@ export default class PopupManager {
         const okText = this.scene.add.text(0, buttonY, 'OK', {
             fontSize: '6px',
             color: '#ffffff',
-            fontFamily: 'Arial, sans-serif',
+            fontFamily: 'PixelifySans-VariableFont_wght',
             fontStyle: 'bold',
             resolution: 2
         });

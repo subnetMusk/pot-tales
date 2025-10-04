@@ -49,8 +49,8 @@ export default class LecterManager {
             fontSize: '7px',
             color: '#2F4F2F', // Verde scuro per contrasto su sfondo beige
             fontStyle: 'bold',
-            fontFamily: 'Arial, sans-serif',
-            resolution: 2,
+            fontFamily: 'PixelifySans-VariableFont_wght',
+            resolution: 5,
             align: 'center',
             wordWrap: { width: 180 } // Larghezza massima aumentata per testo più grande
         });
@@ -95,9 +95,9 @@ export default class LecterManager {
         const closeText = this.scene.add.text(0, buttonY, 'Chiudi', {
             fontSize: '5px',
             color: '#F5F5DC', // Beige
-            fontFamily: 'Arial, sans-serif',
+            fontFamily: 'PixelifySans-VariableFont_wght',
             fontStyle: 'bold',
-            resolution: 2
+            resolution: 5
         });
         closeText.setOrigin(0.5);
         closeText.setScrollFactor(0, 0); // Assicurati che il testo del pulsante sia fisso
