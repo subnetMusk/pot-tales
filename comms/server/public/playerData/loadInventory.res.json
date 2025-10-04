@@ -1,0 +1,13 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "loadInventoryResponse",
+  "type": "object",
+  "properties": {
+    "inventory" : {
+      "type": "array",
+      "description": "Inventario del giocatore"
+    }
+  },
+  "required": ["cookie"],
+  "additionalProperties": false
+}

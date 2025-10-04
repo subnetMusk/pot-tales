@@ -1,13 +1,18 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "title": "LoadStateRequest",
+  "title": "LoadGameDataRequest",
   "type": "object",
+  "description": "Richiesta di dati da parte del giocatore",
   "properties": {
     "cookie": {
       "type": "string",
       "description": "ID della sessione del giocatore"
+    },
+    "request": {
+      "type": "string",
+      "enum": ["Scene", "Position", "Inventory"]
     }
   },
-  "required": ["cookie"],
+  "required": ["cookie", "request"],
   "additionalProperties": false
 }
