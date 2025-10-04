@@ -1,14 +1,26 @@
+
+// You can write more code here
+
+/* START OF COMPILED CODE */
+
 class Player extends Phaser.GameObjects.Container {
 
 	constructor(scene: Phaser.Scene, x?: number, y?: number) {
 		super(scene, x ?? 13, y ?? 8);
 
 		// player
-		const player = scene.physics.add.sprite(0, 0, "frontPlayer_S");
+		const player = scene.physics.add.sprite(0, 0, "frontPlayer_L");
 		player.body.setSize(16, 16, false);
 		this.add(player);
 
+		// darkMask
+		const darkMask = scene.add.image(0, 0, "darkMask");
+		darkMask.scaleX = 0.25;
+		darkMask.scaleY = 0.25;
+		this.add(darkMask);
+
 		this.player = player;
+		this.darkMask = darkMask;
 
 		/* START-USER-CTR-CODE */
 		if (this.scene.input && this.scene.input.keyboard) {
@@ -23,7 +35,9 @@ class Player extends Phaser.GameObjects.Container {
 	}
 
 	public player: Phaser.Physics.Arcade.Sprite;
+	private darkMask: Phaser.GameObjects.Image;
 
+	/* START-USER-CODE */
 	private stepSize: number = 16;					//grandezza del passo
 	private stepDelay: number = 200;				//attesa in ms tra i frame
 	//Input della tastiera
@@ -70,8 +84,8 @@ class Player extends Phaser.GameObjects.Container {
 			// Se sto muovendo
 			if (moving) {
 				if (time - this.lastMoveTime >= this.stepDelay) {
-					this.player.x += dx;
-					this.player.y += dy;
+					this.x += dx;
+					this.y += dy;
 
 					this.lastMoveTime = time;
 					this.updateMoveTexture(); // qui viene invertito lastStep
@@ -108,7 +122,10 @@ class Player extends Phaser.GameObjects.Container {
 		// Invertiamo lastStep **solo qui**, dopo aver cambiato la texture
 		this.lastStep = !this.lastStep;
 	}
-
+	/* END-USER-CODE */
 }
 
+/* END OF COMPILED CODE */
+
+// You can write more code here
 export default Player;
