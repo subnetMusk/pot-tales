@@ -1,7 +1,7 @@
 import { transformWithEsbuild } from "vite";
 import Player from "../items/Main/Player";
 import PopupManager from "../items/UI/PopupManager";
-import OggettoInterattivo from "@/items/Main/OggettoInterattivo";
+import OggettoInterattivo from "../items/Main/OggettoInterattivo";
 // You can write more code here
 
 /* START OF COMPILED CODE */
@@ -37,6 +37,7 @@ class Tutorial extends Phaser.Scene {
 	private timer = false
 	private temp = 20000; // tempo di attesa
 	private popupMostrato = false; // Flag per evitare che il popup si riapra
+	public oggVector = new Array<OggettoInterattivo>();
 
 	// Write your code here
 	preload() {
@@ -51,6 +52,7 @@ class Tutorial extends Phaser.Scene {
 	
 		this.cameras.main.setZoom(5);
 		this.cameras.main.startFollow(this.player);
+
 
 		// Inizializza il PopupManager
 		this.popupManager = new PopupManager(this);
@@ -70,8 +72,20 @@ class Tutorial extends Phaser.Scene {
 			// timer finito
 			this.timer = true;
 			// Crea il pallino vicino al player
-			const ogg = new OggettoInterattivo(this, 640 + 10, 360 + 10,0, "batteria", 1);
-			ogg.setVisible(true);
+			const ogg = new OggettoInterattivo(this, 640 + 10, 360 + 10, 0, "batteria", 1);
+
+			//sovrascrivo la funzione interagisci 
+			ogg.interagisci = () => {	
+				this.scene.start("Scene_1");
+			}
+
+			// Aggiungi l'oggetto all'array di oggetti
+			this.oggVector.push(ogg);
+
+			// Aggiungi l'oggetto alla scena
+			this.add.existing(ogg); 
+
+			//TODO cambiare immagine --batteria
 			ogg.setImg("backPlayer_L");
 		});
 

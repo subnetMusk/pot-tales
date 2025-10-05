@@ -31,6 +31,13 @@ class Player extends Phaser.GameObjects.Container {
 		}
 
 		this.scene.events.on("update", (time: number, delta: number) => this.movePlayer(time, delta), this);
+
+		this.Ikey = this.scene.input.keyboard?.addKey(Phaser.Input.Keyboard.KeyCodes.I);
+		this.Ikey?.on("down", () => {
+			//controllo collisione
+			this.controllaInterazioneOggetto();
+		});
+
 		/* END-USER-CTR-CODE */
 	}
 
@@ -45,6 +52,7 @@ class Player extends Phaser.GameObjects.Container {
 	private downKey!: Phaser.Input.Keyboard.Key;
 	private upKey!: Phaser.Input.Keyboard.Key;
 	private leftKey!: Phaser.Input.Keyboard.Key;
+	private Ikey?: Phaser.Input.Keyboard.Key;
 
 	lastMoveTime: number = 0;						//tempo dell'ultimo movimento (per l'effetto a bassi fps)
 	lastStep: boolean = false;						// Ultima textura usata
@@ -123,6 +131,19 @@ class Player extends Phaser.GameObjects.Container {
 		this.lastStep = !this.lastStep;
 	}
 	/* END-USER-CODE */
+
+	/* START-USER-CTR-CODE */
+	private controllaInterazioneOggetto() {
+		this.scene.oggVector.forEach(ogg => {
+			const distanza = Phaser.Math.Distance.Between(this.x, this.y, ogg.x, ogg.y);
+			//controllare che gli oggetti non siano abbastanza vicini
+			if(distanza < 20){
+				ogg.interagisci();
+			}
+		});
+	}
+
+	/* END-USER-CTR-CODE */
 }
 
 /* END OF COMPILED CODE */

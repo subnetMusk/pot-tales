@@ -4,19 +4,23 @@ class OggettoInterattivo  extends Phaser.GameObjects.Container{
     private id: number;
     private categoria: string;
     private numero: number;
+    public interagisci: () => void;
+
+    
 
     constructor(scene: Phaser.Scene, x?: number, y?: number , id?: number, categoria?: string, numero?: number) {
         super(scene, x ?? 0, y ?? 0);
         this.id = id ?? 0;
         this.categoria = categoria ?? "";
         this.numero = numero ?? 1;
+        this.interagisci = () => {console.log("interagisci non definito"); this.setVisible(false);};
 
         //creo un oggetto 
         const ogg = scene.add.sprite(0, 0, "oggetto_interattivo");
         this.add(ogg);
         this.ogg = ogg;
         this.ogg.setDepth(100);
-        console.log("Creando OggettoInterattivo con id:", this.id, "categoria:", this.categoria, "numero:", this.numero);
+        this.ogg.setVisible(true);
         
     }
 
@@ -42,6 +46,9 @@ class OggettoInterattivo  extends Phaser.GameObjects.Container{
         this.ogg.setVisible(value);
         return this;
     }
+
+
+
 
     /* END-USER-CTR-CODE */
     }
