@@ -9,7 +9,7 @@ vinto un minigioco, dopo aver aperto la porta il giocatore viene catapultato nel
 */
 import Player from "@/items/Main/Player";
 import PopupManager from "../items/UI/PopupManager";
-import LecterManager  from "../items/UI/LecterManager";
+import LecterManager  from "../items/UI/LetterManager";
 import { Function } from "@/items/Main/Function";
 
 class Scene_1 extends Phaser.Scene {
