@@ -1,6 +1,7 @@
 import { transformWithEsbuild } from "vite";
 import Player from "../items/Main/Player";
 import PopupManager from "../items/UI/PopupManager";
+import OggettoInterattivo from "@/items/Main/OggettoInterattivo";
 // You can write more code here
 
 /* START OF COMPILED CODE */
@@ -41,13 +42,13 @@ class Tutorial extends Phaser.Scene {
 	preload() {
 		this.load.pack("Player-pack", "frontend/public/assets/images/player-pack.json");
 		this.load.pack("Tutorial-pack", "frontend/public/assets/images/tutorial-pack.json");
+		this.load.pack("Items-pack", "frontend/public/assets/images/player-pack.json");
 	}
 
 	create() {
 
 		this.editorCreate();
-
-
+	
 		this.cameras.main.setZoom(5);
 		this.cameras.main.startFollow(this.player);
 
@@ -69,7 +70,9 @@ class Tutorial extends Phaser.Scene {
 			// timer finito
 			this.timer = true;
 			// Crea il pallino vicino al player
-			this.creaLuce(640 + 10, 350 +10);
+			const ogg = new OggettoInterattivo(this, 640 + 10, 360 + 10,0, "batteria", 1);
+			ogg.setVisible(true);
+			ogg.setImg("backPlayer_L");
 		});
 
 
@@ -103,52 +106,6 @@ class Tutorial extends Phaser.Scene {
 		if(this.player.x > bounds.xMax ) this.player.x = bounds.xMin + 1;
 		if(this.player.y < bounds.yMin ) this.player.y = bounds.yMax - 1;
 		if(this.player.y > bounds.yMax ) this.player.y = bounds.yMin + 1;
-
-		// Controlla se esiste un pallino da raggiungere
-		if (this.timer && !this.popupMostrato) {
-			//quando il player raggiunge il pallino passa a scena 1
-			if (Phaser.Math.Distance.Between(this.player.x, this.player.y, this.targetLuce.x, this.targetLuce.y) < 20) {
-				this.popupMostrato = true; // Imposta la flag per evitare che si ripeta
-				/*fai comparire un popup che spiega che per raccogliere la pila deve premere I, e dopo che ha premuto I passa a scena 1 */
-				this.popupManager.queuePopup("Per raccogliere gli oggetti, premi I.");
-				this.popupManager.showNextPopup();
-				this.input.keyboard?.on('keydown-I', () => {
-					if (Phaser.Math.Distance.Between(this.player.x, this.player.y, this.targetLuce.x, this.targetLuce.y) < 20) {
-						this.scene.start("Scene_1");
-					}
-				});
-
-			}
-		}
-	}
-
-	// Funzione per creare il pallino fisso nel mondo
-	private creaLuce(x: number, y: number) {
-		// Crea un disegno di una batteria fisso nel mondo
-		const battery = this.add.graphics();
-
-		// Corpo principale della batteria (rettangolo)
-		battery.fillStyle(0x333333, 1); // Grigio scuro
-		battery.fillRect(-6, -3, 12, 6);
-
-		// Terminale positivo della batteria
-		battery.fillStyle(0x666666, 1); // Grigio chiaro
-		battery.fillRect(6, -1, 2, 2);
-
-		// Indicatore di carica (verde)
-		battery.fillStyle(0x00ff00, 1); // Verde
-		battery.fillRect(-5, -2, 8, 4);
-
-		// Contorno della batteria
-		battery.lineStyle(1, 0x000000, 1); // Nero
-		battery.strokeRect(-6, -3, 12, 6);
-		battery.strokeRect(6, -1, 2, 2);
-
-		battery.setPosition(x, y);
-		battery.setDepth(100);
-
-		// Salva il riferimento per il controllo delle collisioni
-		this.targetLuce = battery;
 
 	}
 	/* END-USER-CODE */

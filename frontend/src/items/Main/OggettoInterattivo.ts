@@ -15,10 +15,13 @@ class OggettoInterattivo  extends Phaser.GameObjects.Container{
         const ogg = scene.add.sprite(0, 0, "oggetto_interattivo");
         this.add(ogg);
         this.ogg = ogg;
+        this.ogg.setDepth(100);
+        console.log("Creando OggettoInterattivo con id:", this.id, "categoria:", this.categoria, "numero:", this.numero);
         
     }
 
     /* START-USER-CTR-CODE */
+    
     public setImg(img: string) {
         this.ogg.setTexture(img);
     }
@@ -34,6 +37,11 @@ class OggettoInterattivo  extends Phaser.GameObjects.Container{
     public getNumero(): number {
         return this.numero;
     }   
+
+    public setVisible(value: boolean): this {
+        this.ogg.setVisible(value);
+        return this;
+    }
 
     /* END-USER-CTR-CODE */
     }
