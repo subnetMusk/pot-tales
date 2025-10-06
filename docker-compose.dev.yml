@@ -73,10 +73,10 @@ services:
       - DB_SQLITE_FILE=${DB_SQLITE_FILE}  # path within container to SQLite DB file for NPM for storing config of virtual hosts, users, etc.
     volumes:
       # Redundant with volumes section 
-      # - ./docker/volumes/npm_data:/data                       # persistent UI and config data
-      # - ./docker/volumes/npm_letsencrypt:/etc/letsencrypt     # persistent SSL certificates
-      - npm_data:/data                                        # persistent UI and config data
-      - npm_letsencrypt:/etc/letsencrypt                       # persistent SSL certificates
+      - ./docker/volumes/npm_data:/data                       # persistent UI and config data
+      - ./docker/volumes/npm_letsencrypt:/etc/letsencrypt     # persistent SSL certificates
+      # - npm_data:/data                                        # persistent UI and config data
+      # - npm_letsencrypt:/etc/letsencrypt                       # persistent SSL certificates
       - ./frontend/dist:/var/www/frontend:ro                  # frontend build assets mounted read-only in the container
       - ./sandbox/dist:/var/www/sandbox:ro                    # sandbox build assets mounted read-only in the container
     depends_on:
@@ -306,11 +306,23 @@ services:
       timeout: 5s
       retries: 120
 
+  # Set vm.max_map_count for Elasticsearch
+  elasticsearch-init:
+    image: alpine:3.18
+    container_name: elasticsearch-init
+    privileged: true
+    command: sysctl -w vm.max_map_count=1677720
+    deploy:
+      restart_policy:
+        condition: none
+
   # Elasticsearch 
   es01: 
     depends_on:
       setup: 
         condition: service_started   # certs service, once that it has created the certs, can exit, so we wait for it to complete successfully, not just to be healthy beacuse it would always fail 
+      elasticsearch-init:
+        condition: service_completed_successfully 
     container_name: es01
     image: docker.elastic.co/elasticsearch/elasticsearch:${STACK_VERSION}
     networks:
@@ -318,31 +330,23 @@ services:
     volumes:
       - certs:/usr/share/elasticsearch/config/certs                     # mount the certs volume created by the setup service
       - esdata01:/usr/share/elasticsearch/data                          # volume with persistent Elasticsearch data  
+      - ./docker/volumes/elasticsearch/config/elasticsearch.yml:/usr/share/elasticsearch/config/elasticsearch.yml:ro  # configurazione personalizzata
     # We avoid publishing the Elasticsearch port to the host for security reasons.
     # Elasticsearch will be reachable only by other services in the internal_net network, such as Kibana
     # port: 
     #   - ${ES_PORT}:9200
     environment: 
-      - node.name=es01
-      - cluster.name=${CLUSTER_NAME}
-      - discovery.type=${ELASTICSEARCH_DISCOVERY_TYPE}
       - ELASTIC_PASSWORD=${ELASTIC_PASSWORD}                        # set the elastic superuser password
-      - bootstrap.memory_lock=true                                    # lock memory to prevent swapping
-      - ES_JAVA_OPTS=${ELASTICSEARCH_JAVA_OPTS}                     # set JVM heap size to 1GB (adjust as needed, should be half of available RAM)
-      # TLS on HTTP
-      - xpack.security.enabled=true                                 # enable security features
-      - xpack.security.http.ssl.enabled=true                        # enable TLS for HTTP layer
+      - ES_JAVA_OPTS=${ELASTICSEARCH_JAVA_OPTS}                     # set JVM heap size 
+      # TLS paths (i paths sono relativi al container)
       - xpack.security.http.ssl.key=certs/es01/es01.key             # path to TLS key
-      - xpack.security.http.ssl.certificate=certs/es01/es01.crt             # path to TLS certificate
-      - xpack.security.http.ssl.certificate_authorities=certs/ca/ca.crt  # path to CA certificate, which is the one that signed the certificate for es01
-      # TLS on transport layer (inter-node communication)
-      - xpack.security.transport.ssl.enabled=true                   # enable TLS for inter-node communication (not really needed in single-node mode, but required by ES)
-      - xpack.security.transport.ssl.verification_mode=certificate  # set verification mode to certificate
+      - xpack.security.http.ssl.certificate=certs/es01/es01.crt     # path to TLS certificate
+      - xpack.security.http.ssl.certificate_authorities=certs/ca/ca.crt  # path to CA certificate
       - xpack.security.transport.ssl.key=certs/es01/es01.key        # path to TLS key for transport layer
-      - xpack.security.transport.ssl.certificate=certs/es01/es01.crt        # path to TLS certificate for transport layer  
+      - xpack.security.transport.ssl.certificate=certs/es01/es01.crt  # path to TLS certificate for transport layer  
       - xpack.security.transport.ssl.certificate_authorities=certs/ca/ca.crt # path to CA certificate for transport layer
-      - xpack.license.self_generated.type=basic                     # set license type to basic (free)
-    mem_limit: ${ES_MEM_LIMIT}                                      # limit container memory usage (adjust as needed)
+      - xpack.security.transport.ssl.verification_mode=certificate  # set verification mode to certificate
+    mem_limit: ${ES_MEM_LIMIT}                                      # limit container memory usage (adjusted to 384m)
     ulimits:
       memlock:
         soft: -1

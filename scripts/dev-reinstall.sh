@@ -3,6 +3,23 @@
 # Uses the new centralized cleanup script and rebuilds everything from scratch.env bash
 ###############################################################################
 # scripts/dev-reinstall.sh
+# Full "clean-slate" rebuild for development.
+# Every run simulates the very first execution on a brand-new machine:
+#   1. Wipe JS artefacts (dist, node_modules, lockfiles)
+#   2. Re-install JS dependencies
+#   3. Fetch / update Go modules inside a disposable container (respecting private repo)
+#   4. Build static bundles
+#   5. Purge all Docker data (containers, images, cache)
+#   6. Rebuild every image from scratch and start the stack
+#
+# NOTA IMPORTANTE: La cartella docker/ viene preservata per sicurezza.
+# Prima di eseguire questo script, è consigliato effettuare un backup completo della cartella.
+###############################################################################
+set -euo pipefailbash
+# Full "clean-slate" rebuild for development.
+# Uses the new centralized cleanup script and rebuilds everything from scratch.env bash
+###############################################################################
+# scripts/dev-reinstall.sh
 # Full “clean-slate” rebuild for development.
 # Every run simulates the very first execution on a brand-new machine:
 #   1. Wipe JS artefacts (dist, node_modules, lockfiles)
@@ -23,7 +40,22 @@ export GOPRIVATE=github.com/subnetMusk/progetti_innovativi/server
 echo "� === DEV REINSTALL - Ricostruzione Completa Sviluppo ==="
 echo ""
 
-# 1. Pulizia completa usando il nuovo script centralizzato
+# Verifica se è stato effettuato un backup della cartella docker/
+echo -e "\033[1;33m⚠️  ATTENZIONE: Protezione Cartella docker/\033[0m"
+echo -e "La cartella \033[1mdocker/\033[0m contiene dati importanti che non verranno eliminati."
+echo -e "Prima di procedere, è \033[1;31mFORTEMENTE RACCOMANDATO\033[0m effettuare un backup completo."
+echo ""
+echo -e "Comando consigliato per il backup:"
+echo -e "\033[1;32mcp -a docker/ /percorso/backup/docker_backup_$(date +%Y%m%d)/\033[0m"
+echo ""
+
+read -p "Hai effettuato un backup della cartella docker/? (s/n): " backup_confirm
+if [[ "$backup_confirm" != "s" && "$backup_confirm" != "S" ]]; then
+    echo -e "\033[1;31m❌ Operazione annullata. Effettua prima un backup.\033[0m"
+    exit 1
+fi
+
+echo ""
 echo "🧹 Esecuzione pulizia completa..."
 ./scripts/cleanup.sh --dev
 

@@ -56,6 +56,11 @@ backup_critical_configs() {
     local backup_dir="backups/config-$(date +%Y%m%d_%H%M%S)"
     mkdir -p "$backup_dir"
     
+    # Avviso su backup cartella docker/ completa
+    print_warning "ATTENZIONE: Questo è solo un backup parziale!"
+    print_warning "Per una reinstallazione completa, effettua un backup dell'intera cartella docker/"
+    print_info "Es: cp -a docker/ /percorso/backup/docker_backup_$(date +%Y%m%d_%H%M%S)/"
+    
     # Backup Kibana
     if [ -d "docker/volumes/kibana/config" ]; then
         cp -r docker/volumes/kibana/config "$backup_dir/kibana-config"
@@ -80,7 +85,7 @@ backup_critical_configs() {
     cp docker/env/.env "$backup_dir/docker-env" 2>/dev/null || true
     print_success "Backup file environment"
     
-    print_info "Backup salvato in: $backup_dir"
+    print_info "Backup parziale salvato in: $backup_dir"
 }
 
 # Pulizia artifacts di build
@@ -100,17 +105,17 @@ clean_build_artifacts() {
     print_success "Rimossi artifacts Go"
 }
 
-# Pulizia Docker completa
+# Pulizia Docker completa (ma preserva la cartella docker/)
 clean_docker_full() {
-    print_header "Pulizia Docker Completa"
+    print_header "Pulizia Docker (preserva cartella docker/)"
     
-    # Stop e rimozione container
-    docker compose down --volumes --remove-orphans 2>/dev/null || true
-    print_success "Container fermati e rimossi"
+    # Stop e rimozione container (ma NON rimuove volumi)
+    docker compose down --remove-orphans 2>/dev/null || true
+    print_success "Container fermati e rimossi (volumi preservati)"
     
-    # Pulizia sistema Docker
-    docker system prune -af --volumes 2>/dev/null || true
-    print_success "Risorse Docker inutilizzate rimosse"
+    # Pulizia sistema Docker (senza rimuovere volumi)
+    docker system prune -af 2>/dev/null || true
+    print_success "Risorse Docker inutilizzate rimosse (volumi preservati)"
     
     # Pulizia cache builder
     docker builder prune --all --force 2>/dev/null || true
@@ -121,29 +126,10 @@ clean_docker_full() {
 clean_development_data() {
     print_header "Pulizia Dati Sviluppo"
     
-    # MongoDB dati sviluppo
-    if [ -d "docker/volumes/mongodb" ]; then
-        rm -rf docker/volumes/mongodb/*
-        print_success "Database MongoDB sviluppo rimosso"
-    fi
-    
-    # Elasticsearch dati
-    if [ -d "docker/volumes/logs/esdata" ]; then
-        rm -rf docker/volumes/logs/esdata/*
-        print_success "Dati Elasticsearch sviluppo rimossi"
-    fi
-    
-    # Log MongoDB
-    if [ -d "docker/volumes/logs/mongodb" ]; then
-        rm -rf docker/volumes/logs/mongodb/*
-        print_success "Log MongoDB sviluppo rimossi"
-    fi
-    
-    # Fluent Bit cache
-    if [ -d "docker/volumes/fluent-bit-db" ]; then
-        rm -rf docker/volumes/fluent-bit-db/*.db*
-        print_success "Cache Fluent Bit rimossa"
-    fi
+    # NOTA: La cartella docker/ viene preservata completamente
+    # Un backup completo deve essere effettuato prima della reinstallazione
+    print_warning "La directory docker/ viene preservata completamente"
+    print_info "Effettua un backup completo prima della reinstallazione"
     
     # Kibana: PRESERVATO COMPLETAMENTE per evitare perdita configurazioni
     # La directory docker/volumes/kibana/ non viene mai toccata durante la pulizia
@@ -205,35 +191,32 @@ clean_production_data() {
 
 # Pulizia completa (ATTENZIONE!)
 clean_full() {
-    print_header "⚠️ PULIZIA COMPLETA - CANCELLA TUTTO"
+    print_header "⚠️ PULIZIA COMPLETA - CANCELLA TUTTO TRANNE DOCKER/"
     
     echo -e "${RED}ATTENZIONE: Questa operazione cancellerà:"
-    echo "• Tutti i container e volumi Docker"
-    echo "• Tutte le configurazioni (NGINX, Kibana, SSL)"
-    echo "• Tutti i dati (database, log, cache)"
+    echo "• Tutti i container Docker (ma preserva la cartella docker/)"
     echo "• Tutti gli artifacts di build"
     echo -e "${NC}"
+    echo -e "${GREEN}La directory docker/ viene preservata completamente."
+    echo "È necessario effettuare un backup completo prima della reinstallazione."
+    echo -e "${NC}"
     
-    read -p "Sei ASSOLUTAMENTE sicuro? Digita 'DELETE_ALL' per confermare: " confirm
-    if [ "$confirm" != "DELETE_ALL" ]; then
+    read -p "Sei sicuro? Digita 'DELETE_EXCEPT_DOCKER' per confermare: " confirm
+    if [ "$confirm" != "DELETE_EXCEPT_DOCKER" ]; then
         print_info "Operazione annullata"
         exit 0
     fi
     
-    # Backup prima della distruzione
+    # Backup prima della pulizia
     backup_critical_configs
     
-    # Rimuovi tutto
+    # Rimuovi solo i container, ma NON toccare la cartella docker/
     clean_docker_full
     clean_build_artifacts
     
-    # Rimuovi anche tutte le configurazioni ECCETTO Kibana (per sicurezza)
-    find docker/volumes -mindepth 1 -maxdepth 1 ! -name 'kibana' -exec rm -rf {} + 2>/dev/null || true
-    
     print_header "💥 Pulizia Completa Terminata"
-    print_warning "Tutte le configurazioni sono state cancellate!"
-    print_info "Directory Kibana preservata per sicurezza - cancella manualmente se necessario"
-    print_info "Dovrai riconfigurare tutto da zero"
+    print_success "Directory docker/ preservata completamente!"
+    print_info "Tutti i container sono stati fermati ma i dati e le configurazioni sono stati preservati"
 }
 
 # Pulizia leggera (solo cache e build)
@@ -285,6 +268,12 @@ show_help() {
 
 # Main
 main() {
+    print_header "⚠️ IMPORTANTE - PROTEZIONE DIRECTORY DOCKER/"
+    print_warning "La directory docker/ non verrà mai modificata dagli script di pulizia"
+    print_warning "Prima di qualsiasi reinstallazione completa, effettua un backup di docker/"
+    print_info "Comando consigliato per il backup:"
+    echo -e "${GREEN}cp -a docker/ /percorso/backup/docker_backup_$(date +%Y%m%d)/\n${NC}"
+    
     case "${1:---dev}" in
         --dev)
             print_header "🔧 Modalità Sviluppo"

@@ -1,0 +1,51 @@
+##########################################
+# CONFIGURAZIONE ELASTICSEARCH ULTRA-LIGHT
+##########################################
+cluster.name: elk-cluster
+node.name: es01
+
+# IMPOSTAZIONI ESSENZIALI PER LA MEMORIA
+bootstrap.memory_lock: false
+http.compression: true
+indices.memory.index_buffer_size: 5% # Riduci il buffer di indicizzazione
+indices.queries.cache.size: 1%
+indices.requests.cache.size: 1%
+indices.fielddata.cache.size: 1%
+
+# DISABILITA TUTTE LE FUNZIONALITÀ NON NECESSARIE
+xpack.security.enabled: true
+xpack.ml.enabled: false
+xpack.watcher.enabled: false
+xpack.graph.enabled: false
+http.cors.enabled: true
+http.cors.allow-origin: "*"
+
+# CONFIGURAZIONI SSL (necessario per evitare errori)
+xpack.security.transport.ssl.enabled: true
+xpack.security.http.ssl.enabled: true
+
+# OTTIMIZZAZIONE THREAD POOLS
+thread_pool.write.queue_size: 10
+thread_pool.search.queue_size: 10
+
+# IMPOSTAZIONI DI DISCOVERY
+discovery.type: single-node
+network.host: 0.0.0.0
+
+# OTTIMIZZAZIONE INDICIZZAZIONE
+indices.recovery.max_bytes_per_sec: 50mb
+indices.recovery.max_concurrent_file_chunks: 2
+
+# OPZIONI DI RICERCA
+action.destructive_requires_name: true
+
+# DISABILITAZIONI DI SICUREZZA PER AMBIENTE DI SVILUPPO
+node.store.allow_mmap: false
+cluster.routing.allocation.disk.threshold_enabled: false
+
+# OPZIONI AVANZATE DI OTTIMIZZAZIONE
+http.max_content_length: 100mb
+http.max_initial_line_length: 4kb
+http.max_header_size: 8kb
+search.max_buckets: 100
+search.max_keep_alive: 5m
