@@ -10,10 +10,6 @@ class Tutorial extends Phaser.Scene {
 
 	constructor() {
 		super("Tutorial");
-
-		/* START-USER-CTR-CODE */
-		// Write your code here.
-		/* END-USER-CTR-CODE */
 	}
 
 	editorCreate(): void {
@@ -25,25 +21,23 @@ class Tutorial extends Phaser.Scene {
 		this.player = player;
 
 		this.events.emit("scene-awake");
+
+	
 	}
 
-	private player!: Player;
 
 	/* START-USER-CODE */
+	private player!: Player;
 	private popupManager!: PopupManager;
-	private overlay!: Phaser.GameObjects.Graphics;
-	private spotlight!: Phaser.GameObjects.Graphics;
-	private targetLuce!: Phaser.GameObjects.Graphics;
-	private timer = false
 	private temp = 20000; // tempo di attesa
-	private popupMostrato = false; // Flag per evitare che il popup si riapra
 	public oggVector = new Array<OggettoInterattivo>();
 
 	// Write your code here
 	preload() {
-		this.load.pack("Player-pack", "frontend/public/assets/images/player-pack.json");
-		this.load.pack("Tutorial-pack", "frontend/public/assets/images/tutorial-pack.json");
-		this.load.pack("Items-pack", "frontend/public/assets/images/player-pack.json");
+		this.load.pack("Player-pack", "assets/images/player-pack.json");
+		this.load.pack("Tutorial-pack", "assets/images/tutorial-pack.json");
+		this.load.pack("Items-pack", "assets/images/player-pack.json");
+		this.load.pack("Font-pack", "assets/fonts/Pixelify_Sans/Font-pack.json");
 	}
 
 	create() {
@@ -69,11 +63,12 @@ class Tutorial extends Phaser.Scene {
 		this.avviaTimer();
 
 		this.events.on("timer-finished", () => {
-			// timer finito
-			this.timer = true;
-			// Crea il pallino vicino al player
-			const ogg = new OggettoInterattivo(this, 640 + 10, 360 + 10, 0, "batteria", 1);
 
+			this.popupManager.queuePopup("per raccogliere gli oggetti avvicinati e premi I !");
+			this.popupManager.showNextPopup();
+
+			
+			const ogg = new OggettoInterattivo(this, 640 + 10, 360 + 10, 0, "batteria", 1);
 			//sovrascrivo la funzione interagisci 
 			ogg.interagisci = () => {	
 				this.scene.start("Scene_1");
@@ -82,11 +77,17 @@ class Tutorial extends Phaser.Scene {
 			// Aggiungi l'oggetto all'array di oggetti
 			this.oggVector.push(ogg);
 
-			// Aggiungi l'oggetto alla scena
-			this.add.existing(ogg); 
-
+			
 			//TODO cambiare immagine --batteria
-			ogg.setImg("backPlayer_L");
+			ogg.setImg("battery");
+
+			// Crea l'oggetto dopo aver chiuso il popup, per evitare che si sovrapponga 
+			/*
+				se l'oggetto viene messo fuori  dallo schermo non serve 
+			*/ 
+			this.popupManager.on('queueEmpty', () => {
+					this.add.existing(ogg);
+				});
 		});
 
 

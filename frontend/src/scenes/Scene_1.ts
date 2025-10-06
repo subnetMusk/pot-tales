@@ -11,6 +11,7 @@ import Player from "@/items/Main/Player";
 import PopupManager from "../items/UI/PopupManager";
 import LecterManager  from "../items/UI/LetterManager";
 import { Function } from "@/items/Main/Function";
+import OggettoInterattivo from "../items/Main/OggettoInterattivo";
 
 class Scene_1 extends Phaser.Scene {
 
@@ -18,6 +19,8 @@ class Scene_1 extends Phaser.Scene {
 	private popupManager!: PopupManager;
 	private player!: Player;
 	private lecterManager!: LecterManager;
+	
+	public oggVector = new Array<OggettoInterattivo>();
 	
 	// Memory Game variables
 	private memoryContainer!: Phaser.GameObjects.Container;
@@ -65,7 +68,7 @@ class Scene_1 extends Phaser.Scene {
 	create() {
 		this.editorCreate();
 		this.cameras.main.setZoom(5);
-		this.cameras.main.startFollow(this.player.player, true, 1.0, 1.0, -this.player.x, -this.player.y);
+		this.cameras.main.startFollow(this.player);
 
 
 		console.log("Creando PopupManager in Scene_1...");
@@ -81,11 +84,49 @@ class Scene_1 extends Phaser.Scene {
 		
 		var coordinateLettera = Function.coordinateRelativeToAbsolute(20, 0);
 
-		this.creaLettera(coordinateLettera.x, coordinateLettera.y);
+		const oggLettera = new OggettoInterattivo(this, coordinateLettera.x, coordinateLettera.y, 0, "lettera", 1);
+		this.oggVector.push(oggLettera);
 
+		//aggiungo la lettera alla scena
+		this.add.existing(oggLettera);
+
+		oggLettera.interagisci = () => {
+			this.lecterManager = new LecterManager(this);
+			this.lecterManager.queueLetter("I contraccettivi femminili rappresentano uno strumento fondamentale per la salute e l'autonomia delle donne. Permettono una pianificazione familiare consapevole, consentendo alle donne di decidere quando e se avere figli, contribuendo così al loro benessere fisico, economico e sociale.");
+			this.lecterManager.showNextLetter();
+
+			//distruggi l'oggetto lettera dopo averla letta 
+			oggLettera.destroy();
+		
+		}
+
+
+		//aggiungo l'ampolla
 		var coordinateAmpolla = Function.coordinateRelativeToAbsolute(-160, 100);
 
-		this.creaAmpolla(coordinateAmpolla.x, coordinateAmpolla.y);
+		const oggAmpolla = new OggettoInterattivo(this, coordinateAmpolla.x, coordinateAmpolla.y, 0, "ampolla", 1);
+
+		this.oggVector.push(oggAmpolla);
+
+		//aggiungo l'oggetto alla scena
+		this.add.existing(oggAmpolla);
+
+		oggAmpolla.interagisci = () => {
+			this.popupManager.queuePopup("Hai trovato un'ampolla con uno strano liquido giallo...");
+			this.popupManager.queuePopup("prova a berla..");
+			this.popupManager.queuePopup("...");
+			this.popupManager.queuePopup("che schifo, era un'ampolla di piscio!");
+			this.popupManager.queuePopup("l'unico metodo per sciacquarsi la bocca dopo averlo bevuto è vincere questo minigioco");
+			this.popupManager.showNextPopup();
+
+			this.popupManager.on('queueEmpty', () => {
+					console.log("Tutti i popup dell'ampolla sono finiti, avvio memory game!");
+					oggAmpolla.destroy();
+					this.createMemoryGame();
+				});
+
+		};
+
 
 	}
 
@@ -117,101 +158,7 @@ class Scene_1 extends Phaser.Scene {
 
 	}
 
-	private creaLettera(x: number, y: number){
-		const envelope = this.add.graphics();
-		envelope.fillStyle(0xF5F5DC); // Beige color for envelope
-		envelope.fillRoundedRect(x - 8, y - 5, 16, 10, 2);
 
-		envelope.lineStyle(1, 0xFF0000); // Red outline
-		envelope.strokeRoundedRect(x - 8, y - 5, 16, 10, 2);
-
-		// Envelope flap (triangle)
-		envelope.fillStyle(0xDDD8C7); // Slightly darker beige
-		envelope.fillTriangle(x - 6, y - 3, x + 6, y - 3, x, y + 2);
-
-		envelope.lineStyle(1, 0xFF0000);
-		envelope.strokeTriangle(x - 6, y - 3, x + 6, y - 3, x, y + 2);
-
-		// Make it interactive
-		envelope.setInteractive(new Phaser.Geom.Rectangle(x - 8, y - 5, 16, 10), Phaser.Geom.Rectangle.Contains);
-
-
-		// Check distance and I key press
-		this.input.keyboard?.on('keydown-I', () => {
-
-			/*NB  la funzione coordinateAbsoluteToRelative è uguale a fare x-640 e y-360, ma è più bella */
-			const relativeCoords = Function.coordinateAbsoluteToRelative(x, y);
-			const distance = Phaser.Math.Distance.Between(this.player.player.x, this.player.player.y, relativeCoords.x, relativeCoords.y);
-			console.log(`Distance to letter: ${distance}`);
-			if (distance < 25 && envelope.active) { // Distanza di 25 pixel per interagire
-				// Show letter popup
-				this.lecterManager = new LecterManager(this);
-				this.lecterManager.queueLetter("I contraccettivi femminili rappresentano uno strumento fondamentale per la salute e l'autonomia delle donne. Permettono una pianificazione familiare consapevole, consentendo alle donne di decidere quando e se avere figli, contribuendo così al loro benessere fisico, economico e sociale.");
-				this.lecterManager.showNextLetter();
-
-				// Remove the envelope graphic when letter is closed
-				envelope.destroy();
-			}
-		});
-
-	}
-
-	private creaAmpolla(x: number, y: number){
-		const ampolla = this.add.graphics();
-
-		// Create the base of the potion bottle
-		ampolla.fillStyle(0x9370DB, 0.8); // Purple semi-transparent color for the glass
-		ampolla.fillRoundedRect(x - 5, y - 10, 10, 15, 5);
-
-		// Create the neck of the bottle
-		ampolla.fillStyle(0x9370DB, 0.8);
-		ampolla.fillRect(x - 2, y - 15, 4, 5);
-
-		// Create the top/cork of the bottle
-		ampolla.fillStyle(0xCD853F); // Brown color for cork
-		ampolla.fillRect(x - 3, y - 17, 6, 2);
-
-		// Add liquid inside the bottle
-		ampolla.fillStyle(0xFFFF00, 0.7); // Yellow liquid
-		ampolla.fillRoundedRect(x - 4, y - 8, 8, 12, 4);
-
-		// Add shine effect
-		ampolla.fillStyle(0xFFFFFF, 0.5);
-		ampolla.fillRect(x - 3, y - 9, 1, 10);
-
-		// Make it interactive
-		ampolla.setInteractive(new Phaser.Geom.Rectangle(x - 5, y - 17, 10, 22), Phaser.Geom.Rectangle.Contains);
-
-		// Interaction when pressing I
-		this.input.keyboard?.on('keydown-I', () => {
-			const relativeCoords = Function.coordinateAbsoluteToRelative(x, y);
-			const distance = Phaser.Math.Distance.Between(
-				this.player.player.x, 
-				this.player.player.y, 
-				relativeCoords.x, 
-				relativeCoords.y
-			);
-			
-			if (distance < 25 && ampolla.active) {
-				// Show potion interaction message
-				this.popupManager.queuePopup("Hai trovato un'ampolla con uno strano liquido giallo...");
-				this.popupManager.queuePopup("prova a berla..");
-				this.popupManager.queuePopup("...");
-				this.popupManager.queuePopup("che schifo, era un'ampolla di piscio!");
-				this.popupManager.queuePopup("l'unico metodo per sciacquarsi la bocca dopo averlo bevuto è vincere questo minigioco");
-				this.popupManager.showNextPopup();
-
-				// Cattura l'evento quando tutti i popup sono finiti
-				this.popupManager.on('queueEmpty', () => {
-					console.log("Tutti i popup dell'ampolla sono finiti, avvio memory game!");
-					ampolla.destroy();
-					this.createMemoryGame();
-				});
-
-			}
-			
-		});
-	}
 
 
 	private createMemoryGame() {
