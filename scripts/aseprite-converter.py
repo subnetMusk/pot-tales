@@ -41,7 +41,13 @@ def main(source, store, removeBG, tolerance):
         #print(f"{source + file}\nvvvvvvvvvvvvvvv\n{store + file.split(".")[0] + '.png'}\n") #DEBUG
         convert(source + file, store + file.split(".")[0] + ".png")
         if removeBG:
-            eraseBG(store + file.split(".")[0] + ".png", tolerance)
+            if os.path.exists(store + file.split(".")[0] + ".png"):
+                eraseBG(store + file.split(".")[0] + ".png", tolerance)
+            else:
+                i = 1
+                while os.path.exists(store + file.split(".")[0] + str(i) +".png"):
+                    eraseBG(store + file.split(".")[0] + str(i) +".png", tolerance)
+                    i += 1
 
 #Select only .aseprite
 def selectAseprite(source):
@@ -99,18 +105,19 @@ def eraseBG(file, tolerance):
 # ./aseprite-converter.py /Users/RobertoBenigni/fotoPiedi/ /Users/GianniMorandi/piattiDiMerda/ -t=100
 
 if __name__ == "__main__":
-
-    ##libs check
-
-
     removeBG = True
     tolerance = 12
+    debug = False
 
     if "-k" in sys.argv:                            #Keep the background?
         sys.argv.remove("-k")
         removeBG = False
 
-    token_pattern = re.compile(r"-t=(\d+)")         #Change the tolerance
+    if "-d" in sys.argv:                            #Don't mind me :3
+        sys.argv.remove("-d")
+        debug = True    
+
+    token_pattern = re.compile(r"-t=(\d+)")         #Change the tolerance?
     new_argv = []
     for arg in sys.argv:
         match = token_pattern.fullmatch(arg)
@@ -127,9 +134,9 @@ if __name__ == "__main__":
 
     #I/O check
     if len(sys.argv) < 2:
-        source = input("Specificare la directory in cui si trovano i file .aseprite: ").removeprefix("'").removesuffix("'")
+        source = input("Specificare la directory in cui si trovano i file .aseprite: ").replace("'", "").replace(" ", "")
     else:
-        source = sys.argv[1].removeprefix("'").removesuffix("'")
+        source = sys.argv[1].replace("'", "").replace(" ", "")
     source = source + "/" if source[-1] != "/" else source
 
     if (not os.path.exists(source)):
@@ -137,9 +144,9 @@ if __name__ == "__main__":
         exit()
 
     if len(sys.argv) < 3:
-        store = input("Specificare la directory in cui salvare i file .png: ").removeprefix("'").removesuffix("'")
+        store = input("Specificare la directory in cui salvare i file .png: ").replace("'", "").replace(" ", "")
     else:
-        store = sys.argv[2].removeprefix("'").removesuffix("'")
+        store = sys.argv[2].replace("'", "").replace(" ", "")
     store = store + "/" if store[-1] != "/" else store
 
     if (not os.path.exists(store)):
