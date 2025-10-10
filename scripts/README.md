@@ -307,6 +307,20 @@ KIBANA_SYSTEM_PASSWORD      # Dashboard access
 python scripts/json_structure.py
 ```
 
+### `aseprite-converter.py`
+
+**Scopo**: Converte i file `.aseprite` in `.png` e rimuove il background nero.
+
+**Utilizzo**:
+```bash
+./scripts/aseprite-converter.py
+./scripts/aseprite-converter.py path/to/input path/to/output
+```
+
+**Modalità Disponibili**
+- `-k`: Non rimuove il background, per evitare che vada a cancellare dettagli neri sull'immagine.
+- `-t=n`: Imposta la tolleranza a `n` (0 = rimuove solo il nero perfetto, 255 = rimuove tutto)
+
 ---
 
 ## 🛠️ Script Development Guidelines

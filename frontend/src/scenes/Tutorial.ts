@@ -29,7 +29,7 @@ class Tutorial extends Phaser.Scene {
 	/* START-USER-CODE */
 	private player!: Player;
 	private popupManager!: PopupManager;
-	private temp = 20000; // tempo di attesa
+	private temp = 2000; // tempo di attesa
 	public oggVector = new Array<OggettoInterattivo>();
 
 	// Write your code here
