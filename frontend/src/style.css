@@ -20,6 +20,7 @@ body {
     display: flex;
     justify-content: center;
     align-items: center;
+    cursor: url('/assets/images/ui/cursor.png') 4 10, auto;
 }
 
 h1, h2, h3 {
@@ -43,8 +44,6 @@ button {
                 5px 5px #00000038,
                 -5px 5px #00000038,
                 inset 0px 5px #ffffff36;
-    
-    cursor: pointer;
 }
 
 button:hover {
