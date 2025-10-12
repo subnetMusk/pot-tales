@@ -1,0 +1,47 @@
+{
+    "id": "47bcdfa2-56ec-4ae0-930d-09fc8b06a6a2",
+    "sceneType": "SCENE",
+    "settings": {
+        "preloadPackFiles": [
+            "progetti_innovativi/frontend/public/assets/sprite/Sprite-pack.json",
+            "progetti_innovativi/frontend/public/assets/images/images.json",
+            "progetti_innovativi/frontend/public/assets/fonts/Pixelify_Sans/Font-pack.json"
+        ],
+        "createMethodName": "editorCreate",
+        "sceneKey": "LabTutorial",
+        "compilerOutputLanguage": "TYPE_SCRIPT",
+        "borderWidth": 1280,
+        "borderHeight": 720
+    },
+    "displayList": [
+        {
+            "type": "Image",
+            "id": "e68367b7-2e57-40a2-9243-d95589e5a7ce",
+            "label": "labv2",
+            "texture": {
+                "key": "labv2"
+            },
+            "originX": 0,
+            "originY": 0
+        },
+        {
+            "prefabId": "5a8935be-1a98-42a5-9cc4-bca49b9c51b2",
+            "id": "b49e6a1c-1eb0-4034-b6cc-6d9bcb5f3a12",
+            "unlock": [
+                "x",
+                "y"
+            ],
+            "label": "player",
+            "scope": "CLASS",
+            "x": 160,
+            "y": 300
+        }
+    ],
+    "plainObjects": [],
+    "meta": {
+        "app": "Phaser Editor - Scene Editor",
+        "url": "https://phaser.io/editor",
+        "contentType": "phasereditor2d.core.scene.SceneContentType",
+        "version": 5
+    }
+}

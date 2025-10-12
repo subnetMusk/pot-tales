@@ -1,4 +1,4 @@
-export default class LecterManager {
+export default class LetterManager {
     private scene: Phaser.Scene;
     private popupQueue: string[] = [];
     private currentPopup: Phaser.GameObjects.Container | null = null;

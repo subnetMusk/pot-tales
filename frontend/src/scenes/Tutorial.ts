@@ -67,19 +67,17 @@ class Tutorial extends Phaser.Scene {
 			this.popupManager.queuePopup("per raccogliere gli oggetti avvicinati e premi I !");
 			this.popupManager.showNextPopup();
 
-			
+
 			const ogg = new OggettoInterattivo(this, 640 + 10, 360 + 10, 0, "batteria", 1);
 			//sovrascrivo la funzione interagisci 
 			ogg.interagisci = () => {	
-				this.scene.start("Scene_1");
+				this.scene.start("LabTutorial");
 			}
 
 			// Aggiungi l'oggetto all'array di oggetti
 			this.oggVector.push(ogg);
 
-			
-			//TODO cambiare immagine --batteria
-			ogg.setImg("battery");
+			ogg.setImg('battery');
 
 			// Crea l'oggetto dopo aver chiuso il popup, per evitare che si sovrapponga 
 			/*

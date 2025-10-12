@@ -2,9 +2,29 @@
     "section1": {
         "files": [
             {
-                "url": "frontend/public/assets/images/backgrounds/bgtest_pixelated.png",
+                "url": "frontend/public/assets/images/items/battery.png",
                 "type": "image",
-                "key": "Background"
+                "key": "battery"
+            },
+            {
+                "url": "frontend/public/assets/images/items/flask.png",
+                "type": "image",
+                "key": "flask"
+            },
+            {
+                "url": "frontend/public/assets/images/backgrounds/labv2.png",
+                "type": "image",
+                "key": "labv2"
+            },
+            {
+                "url": "frontend/public/assets/images/items/letter.png",
+                "type": "image",
+                "key": "letter"
+            },
+            {
+                "url": "frontend/public/assets/images/items/research.png",
+                "type": "image",
+                "key": "research"
             }
         ]
     },
