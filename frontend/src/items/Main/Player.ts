@@ -58,6 +58,10 @@ class Player extends Phaser.GameObjects.Container {
 	lastStep: boolean = false;						// Ultima textura usata
 	direction: 'front' | 'back' | 'side' = 'front';	// Direzione in cui sto guardando
 
+	public flashlight(active: boolean) {
+		this.darkMask.visible = active;
+	}
+
 	//Funzione di movimento, 
 	private movePlayer(time: number, delta: number) {
 		if (this.player.body !== null) {

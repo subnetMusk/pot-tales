@@ -17,7 +17,11 @@ Questa directory contiene tutti gli script di automazione per il deployment, man
 
 > 📖 **Documentazione Completa**: [Sistema di Pulizia Centralizzato](CLEANUP_SYSTEM.md)
 
-### **🔧 Utility Scripts**
+### **�️ Database Management**
+- [`fix-mongodb.sh`](#fix-mongodbsh) - Riparazione automatica MongoDB corrotto
+- [`check-mongodb.sh`](#check-mongodbsh) - Controllo rapido stato MongoDB
+
+### **�🔧 Utility Scripts**
 - [`json_structure.py`](#json_structurepy) - Analisi struttura project
 
 ---
@@ -565,6 +569,97 @@ func (h *GameHandler) SaveProgress(ctx context.Context, req *SaveProgressRequest
    - ✅ Test su frontend reale (non solo sandbox) 
    - ✅ APM tracking configurato e verificato
    - ✅ Analytics events validati in Kibana
+
+---
+
+## 🗄️ Database Management Scripts
+
+### `fix-mongodb.sh`
+
+**Scopo**: Riparazione automatica di MongoDB quando WiredTiger si corrompe
+
+**Sintassi**:
+```bash
+./scripts/fix-mongodb.sh
+```
+
+**Caratteristiche**:
+- 🔍 **Diagnosi automatica**: Rileva errori WiredTiger nei log
+- 🛡️ **Backup automatico**: Salva dati corrotti prima della pulizia
+- 🧹 **Pulizia completa**: Rimuove volumi corrotti e ricrea da zero
+- ✅ **Verifica finale**: Test completo del funzionamento post-riparazione
+- 🎨 **Output colorato**: Interfaccia user-friendly con progress feedback
+
+**Processo automatizzato**:
+1. Controllo stato attuale MongoDB
+2. Rilevamento errori WiredTiger
+3. Conferma utente (con backup automatico)
+4. Stop servizi Docker
+5. Backup directory corrotta
+6. Pulizia completa volumi
+7. Ricreazione directory con permessi corretti
+8. Restart servizi
+9. Verifica funzionamento completo
+
+**Sicurezza**:
+- ⚠️ **ATTENZIONE**: Cancella tutti i dati MongoDB
+- 💾 Backup automatico in `backups/mongodb-corrupted-YYYYMMDD_HHMMSS`
+- 🔒 Richiede conferma esplicita utente
+
+---
+
+### `check-mongodb.sh`
+
+**Scopo**: Controllo rapido dello stato di salute di MongoDB
+
+**Sintassi**:
+```bash
+./scripts/check-mongodb.sh
+```
+
+**Controlli effettuati**:
+- 🟢 **Stato container**: Verifica se MongoDB è in esecuzione
+- 🔍 **Analisi log**: Ricerca errori WiredTiger/FATAL negli ultimi 50 log
+- 🌐 **Test connettività**: Verifica presenza connessioni attive
+- 📊 **Report stato**: Output colorato con diagnosi completa
+
+**Output esempi**:
+```bash
+# MongoDB sano
+🔍 MongoDB Status Check
+=====================
+✅ MongoDB è in esecuzione
+✅ Nessun errore nei log recenti  
+✅ MongoDB sta accettando connessioni
+🎉 MongoDB è sano!
+
+# MongoDB con problemi
+❌ MongoDB non è in esecuzione
+💡 Esegui: ./scripts/fix-mongodb.sh
+```
+
+**Uso raccomandato**:
+- 🔄 **Check quotidiano**: Verifica rapida prima del lavoro
+- 🚨 **Troubleshooting**: Prima analisi quando si sospettano problemi
+- 📈 **Monitoraggio**: Integrazione in script di CI/CD
+
+---
+
+## 📚 Quick Reference - Database
+
+```bash
+# Controllo rapido MongoDB
+./scripts/check-mongodb.sh
+
+# Riparazione completa (in caso di corruzione)
+./scripts/fix-mongodb.sh
+
+# Monitoraggio log in tempo reale
+docker-compose -f docker-compose.dev.yml logs db -f
+
+# Stato tutti i servizi
+docker-compose -f docker-compose.dev.yml ps
+```
    - ✅ Schema validation aggiornata
    - ✅ Health checks funzionanti
 

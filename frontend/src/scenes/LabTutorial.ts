@@ -40,6 +40,7 @@ class LabTutorial extends Phaser.Scene {
 
 		// player
 		const player = new Player(this, 160, 300);
+		player.flashlight(false);
 		this.add.existing(player);
 
 		// lists
