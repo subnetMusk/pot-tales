@@ -1,4 +1,3 @@
-import { transformWithEsbuild } from "vite";
 import Player from "../items/Main/Player";
 import PopupManager from "../items/UI/PopupManager";
 import OggettoInterattivo from "../items/Main/OggettoInterattivo";
@@ -10,6 +9,10 @@ class Tutorial extends Phaser.Scene {
 
 	constructor() {
 		super("Tutorial");
+
+		/* START-USER-CTR-CODE */
+		// Write your code here.
+		/* END-USER-CTR-CODE */
 	}
 
 	editorCreate(): void {
@@ -18,32 +21,32 @@ class Tutorial extends Phaser.Scene {
 		const player = new Player(this, 640, 360);
 		this.add.existing(player);
 
+		// lists
+		const oggVector: Array<any> = [];
+
 		this.player = player;
+		this.oggVector = oggVector;
 
 		this.events.emit("scene-awake");
-
-	
 	}
 
+	private player!: Player;
+	private oggVector!: Array<any>;
 
 	/* START-USER-CODE */
-	private player!: Player;
 	private popupManager!: PopupManager;
 	private temp = 2000; // tempo di attesa
-	public oggVector = new Array<OggettoInterattivo>();
 
 	// Write your code here
 	preload() {
 		this.load.pack("Player-pack", "assets/images/player-pack.json");
 		this.load.pack("Tutorial-pack", "assets/images/tutorial-pack.json");
-		this.load.pack("Items-pack", "assets/images/player-pack.json");
-		this.load.pack("Font-pack", "assets/fonts/Pixelify_Sans/Font-pack.json");
 	}
 
 	create() {
 
 		this.editorCreate();
-	
+
 		this.cameras.main.setZoom(5);
 		this.cameras.main.startFollow(this.player);
 
@@ -68,7 +71,8 @@ class Tutorial extends Phaser.Scene {
 			this.popupManager.showNextPopup();
 
 
-			const ogg = new OggettoInterattivo(this, 640 + 10, 360 + 10, 0, "batteria", 1);
+			const ogg = new OggettoInterattivo(this, 640 + 10, 360 + 10, 'battery');
+
 			//sovrascrivo la funzione interagisci 
 			ogg.interagisci = () => {	
 				this.scene.start("LabTutorial");
@@ -76,8 +80,6 @@ class Tutorial extends Phaser.Scene {
 
 			// Aggiungi l'oggetto all'array di oggetti
 			this.oggVector.push(ogg);
-
-			ogg.setImg('battery');
 
 			// Crea l'oggetto dopo aver chiuso il popup, per evitare che si sovrapponga 
 			/*

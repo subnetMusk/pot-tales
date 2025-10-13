@@ -1,37 +1,30 @@
-class OggettoInterattivo  extends Phaser.GameObjects.Container{
 
-    private ogg: Phaser.GameObjects.Sprite;
-    private id: number;
-    private categoria: string;
-    private numero: number;
-    public interagisci: () => void;
+// You can write more code here
 
-    
+/* START OF COMPILED CODE */
 
-    constructor(scene: Phaser.Scene, x?: number, y?: number , id?: number, categoria?: string, numero?: number) {
-        super(scene, x ?? 0, y ?? 0);
-        this.id = id ?? 0;
-        this.categoria = categoria ?? "";
-        this.numero = numero ?? 1;
-        this.interagisci = () => {console.log("interagisci non definito"); this.setVisible(false);};
+class OggettoInterattivo extends Phaser.GameObjects.Image {
 
-        //creo un oggetto 
-        const ogg = scene.add.sprite(0, 0, "oggetto_interattivo");
-        this.add(ogg);
-        this.ogg = ogg;
-        this.ogg.setDepth(100);
-        this.ogg.setVisible(true);
-        
-    }
+	constructor(scene: Phaser.Scene, x?: number, y?: number, texture?: string, frame?: number | string) {
+		super(scene, x ?? 0, y ?? 0, texture || "default", frame);
 
-    /* START-USER-CTR-CODE */
-    
-    public setImg(img: string) {
-        this.ogg.setTexture(img);
+		/* START-USER-CTR-CODE */
+        /* END-USER-CTR-CODE */
+	}
+
+	public id_ogg: number = 0;
+	public categoria: string = "";
+	public number: number = 1;
+	public interagisci!: () => void;
+
+	/* START-USER-CODE */
+
+	public setImg(img: string) {
+        this.setTexture(img);
     }
 
     public getId(): number {
-        return this.id;
+        return this.id_ogg;
     }
 
     public getCategoria(): string {
@@ -39,17 +32,18 @@ class OggettoInterattivo  extends Phaser.GameObjects.Container{
     }
 
     public getNumero(): number {
-        return this.numero;
+        return this.number;
     }   
 
     public setVisible(value: boolean): this {
-        this.ogg.setVisible(value);
+        this.setVisible(value);
         return this;
     }
 
+	/* END-USER-CODE */
+}
 
+/* END OF COMPILED CODE */
 
-
-    /* END-USER-CTR-CODE */
-    }
+// You can write more code here
 export default OggettoInterattivo;

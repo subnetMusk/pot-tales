@@ -18,6 +18,10 @@ class LabTutorial extends Phaser.Scene {
 	}
 
 	preload(): void {
+
+		this.load.pack("Sprite-pack", "frontend/public/assets/sprite/Sprite-pack.json");
+		this.load.pack("images", "frontend/public/assets/images/images.json");
+		this.load.pack("Font-pack", "frontend/public/assets/fonts/Pixelify_Sans/Font-pack.json");
 	}
 
 	editorCreate(): void {
@@ -26,21 +30,40 @@ class LabTutorial extends Phaser.Scene {
 		const labv2 = this.add.image(0, 0, "labv2");
 		labv2.setOrigin(0, 0);
 
+		// letter
+		const letter = new OggettoInterattivo(this, 104, 272, "letter");
+		this.add.existing(letter);
+
+		// flask
+		const flask = new OggettoInterattivo(this, 226, 161, "flask");
+		this.add.existing(flask);
+
 		// player
 		const player = new Player(this, 160, 300);
 		this.add.existing(player);
 
+		// lists
+		const oggVector = [flask, letter];
+
+		// flask (prefab fields)
+		flask.number = 2;
+
+		this.letter = letter;
+		this.flask = flask;
 		this.player = player;
+		this.oggVector = oggVector;
 
 		this.events.emit("scene-awake");
 	}
 
+	private letter!: OggettoInterattivo;
+	private flask!: OggettoInterattivo;
 	private player!: Player;
+	private oggVector!: OggettoInterattivo[];
 
 	/* START-USER-CODE */
 	private popupManager!: PopupManager;
 	private letterManager!: LetterManager;
-	public oggVector = new Array<OggettoInterattivo>();
 
 	private isMemoryActive = false;
 
@@ -63,31 +86,17 @@ class LabTutorial extends Phaser.Scene {
 		console.log("Mostrando primo popup...");
 		this.popupManager.showNextPopup();
 
-		const oggLettera = new OggettoInterattivo(this, 100, 275, 0, "lettera", 1);
-		oggLettera.setImg('letter');
-		this.oggVector.push(oggLettera);
-
-		//aggiungo la lettera alla scena
-		this.add.existing(oggLettera);
-
-		oggLettera.interagisci = () => {
+		this.letter.interagisci = () => {
 			this.letterManager = new LetterManager(this);
 			this.letterManager.queueLetter("I contraccettivi femminili rappresentano uno strumento fondamentale per la salute e l'autonomia delle donne. Permettono una pianificazione familiare consapevole, consentendo alle donne di decidere quando e se avere figli, contribuendo così al loro benessere fisico, economico e sociale.");
 			this.letterManager.showNextLetter();
 
 			//distruggi l'oggetto lettera dopo averla letta 
-			oggLettera.destroy();
+			this.letter.destroy();
 
 		}
 
-		const oggAmpolla = new OggettoInterattivo(this, 100, 155, 0, 'piscio', 1);
-		oggAmpolla.setImg('flask');
-		this.oggVector.push(oggAmpolla);
-
-		//aggiungo l'oggetto alla scena
-		this.add.existing(oggAmpolla);
-
-		oggAmpolla.interagisci = () => {
+		this.flask.interagisci = () => {
 			this.popupManager.queuePopup("Hai trovato un'ampolla con uno strano liquido giallo...");
 			this.popupManager.queuePopup("prova a berla..");
 			this.popupManager.queuePopup("...");
@@ -97,7 +106,7 @@ class LabTutorial extends Phaser.Scene {
 
 			this.popupManager.on('queueEmpty', () => {
 				console.log("Tutti i popup dell'ampolla sono finiti, avvio memory game!");
-				oggAmpolla.destroy();
+				this.flask.destroy();
 				this.createMemoryGame();
 			});
 		};
@@ -137,12 +146,10 @@ class LabTutorial extends Phaser.Scene {
 
 		//TODO implementare il memory game
 	}
+
+	/* END-USER-CODE */
 }
 
 /* END OF COMPILED CODE */
-
 // You can write more code here
-// Esportazione della scena
 export default LabTutorial;
-
-/* END-USER-CODE */

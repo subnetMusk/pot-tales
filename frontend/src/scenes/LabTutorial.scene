@@ -25,6 +25,41 @@
             "originY": 0
         },
         {
+            "prefabId": "dfd624ad-310c-404d-96d2-d2307c3faaef",
+            "id": "5cfd2659-6e8b-4696-9937-416fc95f17a5",
+            "unlock": [
+                "x",
+                "y",
+                "texture"
+            ],
+            "label": "letter",
+            "scope": "CLASS",
+            "texture": {
+                "key": "letter"
+            },
+            "x": 104,
+            "y": 272
+        },
+        {
+            "prefabId": "dfd624ad-310c-404d-96d2-d2307c3faaef",
+            "id": "ba1fd2bf-eeb2-4151-ae81-ae655ad8c27e",
+            "unlock": [
+                "x",
+                "y",
+                "texture",
+                "id",
+                "number"
+            ],
+            "label": "flask",
+            "scope": "CLASS",
+            "number": 2,
+            "texture": {
+                "key": "flask"
+            },
+            "x": 226,
+            "y": 161
+        },
+        {
             "prefabId": "5a8935be-1a98-42a5-9cc4-bca49b9c51b2",
             "id": "b49e6a1c-1eb0-4034-b6cc-6d9bcb5f3a12",
             "unlock": [
@@ -43,5 +78,15 @@
         "url": "https://phaser.io/editor",
         "contentType": "phasereditor2d.core.scene.SceneContentType",
         "version": 5
-    }
+    },
+    "lists": [
+        {
+            "id": "c666166e-eb13-4fa5-85c1-e7e0cd21fdab",
+            "label": "oggVector",
+            "objectIds": [
+                "ba1fd2bf-eeb2-4151-ae81-ae655ad8c27e",
+                "5cfd2659-6e8b-4696-9937-416fc95f17a5"
+            ]
+        }
+    ]
 }

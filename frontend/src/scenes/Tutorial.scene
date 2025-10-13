@@ -29,5 +29,11 @@
         "url": "https://phaser.io/editor",
         "contentType": "phasereditor2d.core.scene.SceneContentType",
         "version": 5
-    }
+    },
+    "lists": [
+        {
+            "id": "e88a6724-0fc3-406c-90c0-08e8e6a6dfb7",
+            "label": "oggVector"
+        }
+    ]
 }
