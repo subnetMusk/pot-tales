@@ -1,44 +1,23 @@
-export default class LetterManager {
-    private scene: Phaser.Scene;
-    private popupQueue: string[] = [];
-    private currentPopup: Phaser.GameObjects.Container | null = null;
-    private isPopupActive: boolean = false;
+import PopupManager from "./PopupManager";
+
+export default class LetterManager extends PopupManager {
+    public set: boolean = false;
 
     constructor(scene: Phaser.Scene) {
-        this.scene = scene;
+        super(scene);
     }
 
-    // Aggiunge una lettera alla coda
+    // Compat: API precedente per aggiungere e mostrare lettere
     public queueLetter(message: string) {
-        this.popupQueue.push(message);
+        this.queuePopup(message);
     }
 
-    // Mostra la prossima lettera della coda
     public showNextLetter() {
-        // Se c'è già una lettera attiva o la coda è vuota, non fare nulla
-        if (this.isPopupActive || this.popupQueue.length === 0) {
-            return;
-        }
-        
-        // Prendi il primo messaggio dalla coda
-        const message = this.popupQueue.shift();
-        if (message) {
-            this.isPopupActive = true;
-            this.currentPopup = this.createInteractiveLetter(message);
-        }
+        this.showNextPopup();
     }
 
-    // Chiamata quando una lettera viene chiusa
-    private onLetterClosed() {
-        this.isPopupActive = false;
-        this.currentPopup = null;
-        
-        // Mostra la prossima lettera se ce ne sono altre
-        this.showNextLetter();
-    }
-
-    // Crea la lettera interattiva
-    private createInteractiveLetter(message: string): Phaser.GameObjects.Container {
+    // UI specifica della lettera, sfrutta la logica base (queue, eventi, Invio)
+    protected override createInteractivePopup(message: string): Phaser.GameObjects.Container {
         // Container per la lettera (completamente fisso rispetto alla camera)
         const popup = this.scene.add.container(this.scene.scale.width / 2, this.scene.scale.height / 2);
         popup.setScrollFactor(0, 0); // Completamente fisso rispetto alla camera
@@ -120,8 +99,8 @@ export default class LetterManager {
             ease: 'Power2.easeOut'
         });
         
-        // Gestione click con animazione più pulita
-        closeButton.on('pointerdown', () => {
+        // Funzione di chiusura coerente con la base
+        const closeLetter = () => {
             this.scene.tweens.add({
                 targets: popup,
                 alpha: 0,
@@ -130,31 +109,14 @@ export default class LetterManager {
                 ease: 'Power2.easeIn',
                 onComplete: () => {
                     popup.destroy();
-                    this.onLetterClosed(); // Chiama il callback per mostrare la prossima lettera
+                    this.onPopupClosed();
                 }
             });
-        });
+        };
+
+        // Gestione click con animazione più pulita
+        closeButton.on('pointerdown', closeLetter);
         
         return popup;
-    }
-
-    // Metodo per pulire tutto quando necessario
-    public destroy() {
-        if (this.currentPopup) {
-            this.currentPopup.destroy();
-            this.currentPopup = null;
-        }
-        this.popupQueue = [];
-        this.isPopupActive = false;
-    }
-
-    // Getter per sapere se c'è una lettera attiva
-    public get isActive(): boolean {
-        return this.isPopupActive;
-    }
-
-    // Getter per la lunghezza della coda di lettere
-    public get queueLength(): number {
-        return this.popupQueue.length;
     }
 }

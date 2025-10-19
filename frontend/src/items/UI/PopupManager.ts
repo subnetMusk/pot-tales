@@ -1,12 +1,12 @@
 
 
 export default class PopupManager {
-    private scene: Phaser.Scene;
-    private popupQueue: string[] = [];
-    private currentPopup: Phaser.GameObjects.Container | null = null;
-    private isPopupActive: boolean = false;
-    private enterKey?: Phaser.Input.Keyboard.Key; 
-    private layer: Phaser.GameObjects.Layer;
+    protected scene: Phaser.Scene;
+    protected popupQueue: string[] = [];
+    protected currentPopup: Phaser.GameObjects.Container | null = null;
+    protected isPopupActive: boolean = false;
+    protected enterKey?: Phaser.Input.Keyboard.Key; 
+    protected layer: Phaser.GameObjects.Layer;
 
     constructor(scene: Phaser.Scene) {
         this.scene = scene;
@@ -43,7 +43,7 @@ export default class PopupManager {
     }
 
     // Chiamata quando un popup viene chiuso
-    private onPopupClosed() {
+    protected onPopupClosed() {
         this.isPopupActive = false;
         this.currentPopup = null;
         
@@ -55,7 +55,7 @@ export default class PopupManager {
     }
 
     // Crea il popup interattivo
-    private createInteractivePopup(message: string): Phaser.GameObjects.Container {
+    protected createInteractivePopup(message: string): Phaser.GameObjects.Container {
 
         // Container per il popup
         const popup = this.scene.add.container(this.scene.scale.width / 2, this.scene.scale.height / 2);

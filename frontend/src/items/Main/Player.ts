@@ -140,8 +140,8 @@ class Player extends Phaser.GameObjects.Container {
 	private controllaInterazioneOggetto() {
 		this.scene.oggVector.forEach(ogg => {
 			const distanza = Phaser.Math.Distance.Between(this.x, this.y, ogg.x, ogg.y);
-			//controllare che gli oggetti non siano abbastanza vicini
-			if(distanza < 20){
+			//TODO : controllare che gli oggetti non siano abbastanza vicini
+			if(distanza < 20 &&  ogg.set == true) {
 				ogg.interagisci();
 			}
 		});

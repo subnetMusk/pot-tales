@@ -16,6 +16,7 @@ class OggettoInterattivo extends Phaser.GameObjects.Image {
 	public categoria: string = "";
 	public number: number = 1;
 	public interagisci!: () => void;
+    public set : boolean = true;
 
 	/* START-USER-CODE */
 
@@ -38,6 +39,11 @@ class OggettoInterattivo extends Phaser.GameObjects.Image {
     public setVisible(value: boolean): this {
         this.setVisible(value);
         return this;
+    }
+
+    public destroy(fromScene?: boolean): void {
+        super.destroy(fromScene);
+        this.set = false;
     }
 
 	/* END-USER-CODE */

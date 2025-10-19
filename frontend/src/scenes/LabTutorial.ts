@@ -11,7 +11,6 @@ class LabTutorial extends Phaser.Scene {
 
 	constructor() {
 		super("LabTutorial");
-
 		/* START-USER-CTR-CODE */
 		// Write your code here.
 		/* END-USER-CTR-CODE */
@@ -120,23 +119,23 @@ class LabTutorial extends Phaser.Scene {
 		//dim lab_x /2 
 		//dim lab_y /2
 		const bounds = {
-			xMin: -187,
-			xMax: 187,
-			yMin: -140,
-			yMax: 148
+			xMin: 0,
+			xMax: 320,
+			yMin: 0,
+			yMax: 320
 		};
 
-		if(this.player.player.x < bounds.xMin ) {
-			this.player.player.x = bounds.xMin+1;		
+		if(this.player.x < bounds.xMin ) {
+			this.player.x = bounds.xMin+1;		
 		}
-		if(this.player.player.x > bounds.xMax ) {
-			this.player.player.x = bounds.xMax-1;
+		if(this.player.x > bounds.xMax ) {
+			this.player.x = bounds.xMax-1;
 		}
-		if(this.player.player.y < bounds.yMin ) {
-			this.player.player.y = bounds.yMin+1;
+		if(this.player.y < bounds.yMin ) {
+			this.player.y = bounds.yMin+1;
 		}
-		if(this.player.player.y > bounds.yMax ) {
-			this.player.player.y = bounds.yMax-1;
+		if(this.player.y > bounds.yMax ) {
+			this.player.y = bounds.yMax-1;
 		}
 
 	}
