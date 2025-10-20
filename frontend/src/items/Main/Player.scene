@@ -29,15 +29,12 @@
                     "body.height": 16
                 },
                 {
-                    "type": "Image",
-                    "id": "8afd8f94-4e78-465c-94f8-44814a575d80",
-                    "label": "darkMask",
-                    "scope": "CLASS",
-                    "texture": {
-                        "key": "darkMask"
-                    },
-                    "scaleX": 0.25,
-                    "scaleY": 0.25
+                    "type": "Rectangle",
+                    "id": "767d670d-6bc2-435a-8649-2923dcee854f",
+                    "label": "BoundingBox",
+                    "isStroked": true,
+                    "width": 14,
+                    "height": 20
                 }
             ]
         }

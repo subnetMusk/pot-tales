@@ -11,6 +11,7 @@ class LabTutorial extends Phaser.Scene {
 
 	constructor() {
 		super("LabTutorial");
+
 		/* START-USER-CTR-CODE */
 		// Write your code here.
 		/* END-USER-CTR-CODE */
@@ -39,8 +40,42 @@ class LabTutorial extends Phaser.Scene {
 
 		// player
 		const player = new Player(this, 160, 300);
-		player.flashlight(false);
 		this.add.existing(player);
+
+		// Boundaries
+		const boundaries = this.add.container(0, 0);
+
+		// MapUp
+		const mapUp = this.add.rectangle(160, -60, 350, 120);
+		mapUp.isFilled = true;
+		boundaries.add(mapUp);
+
+		// MapDown
+		const mapDown = this.add.rectangle(160, 380, 350, 120);
+		mapDown.isFilled = true;
+		boundaries.add(mapDown);
+
+		// MapLeft
+		const mapLeft = this.add.rectangle(-60, 160, 120, 350);
+		mapLeft.isFilled = true;
+		boundaries.add(mapLeft);
+
+		// MapRight
+		const mapRight = this.add.rectangle(380, 160, 120, 350);
+		mapRight.isFilled = true;
+		boundaries.add(mapRight);
+
+		// DeskColliderL
+		const deskColliderL = this.add.rectangle(96, 160, 80, 65);
+		deskColliderL.isStroked = true;
+		deskColliderL.strokeColor = 16515072;
+		boundaries.add(deskColliderL);
+
+		// DeskColliderL_1
+		const deskColliderL_1 = this.add.rectangle(224, 160, 80, 65);
+		deskColliderL_1.isStroked = true;
+		deskColliderL_1.strokeColor = 16728642;
+		boundaries.add(deskColliderL_1);
 
 		// lists
 		const oggVector = [flask, letter];
@@ -110,34 +145,6 @@ class LabTutorial extends Phaser.Scene {
 				this.createMemoryGame();
 			});
 		};
-	}
-
-	update(){
-		console.log(`Player coordinates: x=${this.player.x}, y=${this.player.y}`);
-
-		//gestione bordi
-		//dim lab_x /2 
-		//dim lab_y /2
-		const bounds = {
-			xMin: 0,
-			xMax: 320,
-			yMin: 0,
-			yMax: 320
-		};
-
-		if(this.player.x < bounds.xMin ) {
-			this.player.x = bounds.xMin+1;		
-		}
-		if(this.player.x > bounds.xMax ) {
-			this.player.x = bounds.xMax-1;
-		}
-		if(this.player.y < bounds.yMin ) {
-			this.player.y = bounds.yMin+1;
-		}
-		if(this.player.y > bounds.yMax ) {
-			this.player.y = bounds.yMax-1;
-		}
-
 	}
 
 	private createMemoryGame() {

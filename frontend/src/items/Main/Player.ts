@@ -13,14 +13,12 @@ class Player extends Phaser.GameObjects.Container {
 		player.body.setSize(16, 16, false);
 		this.add(player);
 
-		// darkMask
-		const darkMask = scene.add.image(0, 0, "darkMask");
-		darkMask.scaleX = 0.25;
-		darkMask.scaleY = 0.25;
-		this.add(darkMask);
+		// BoundingBox
+		const boundingBox = scene.add.rectangle(0, 0, 14, 20);
+		boundingBox.isStroked = true;
+		this.add(boundingBox);
 
 		this.player = player;
-		this.darkMask = darkMask;
 
 		/* START-USER-CTR-CODE */
 		if (this.scene.input && this.scene.input.keyboard) {
@@ -42,7 +40,6 @@ class Player extends Phaser.GameObjects.Container {
 	}
 
 	public player: Phaser.Physics.Arcade.Sprite;
-	private darkMask: Phaser.GameObjects.Image;
 
 	/* START-USER-CODE */
 	private stepSize: number = 16;					//grandezza del passo
@@ -134,9 +131,7 @@ class Player extends Phaser.GameObjects.Container {
 		// Invertiamo lastStep **solo qui**, dopo aver cambiato la texture
 		this.lastStep = !this.lastStep;
 	}
-	/* END-USER-CODE */
 
-	/* START-USER-CTR-CODE */
 	private controllaInterazioneOggetto() {
 		this.scene.oggVector.forEach(ogg => {
 			const distanza = Phaser.Math.Distance.Between(this.x, this.y, ogg.x, ogg.y);
@@ -147,7 +142,7 @@ class Player extends Phaser.GameObjects.Container {
 		});
 	}
 
-	/* END-USER-CTR-CODE */
+	/* END-USER-CODE */
 }
 
 /* END OF COMPILED CODE */

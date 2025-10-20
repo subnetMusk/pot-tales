@@ -70,6 +70,75 @@
             "scope": "CLASS",
             "x": 160,
             "y": 300
+        },
+        {
+            "type": "Container",
+            "id": "7039fe73-6dfc-483a-9606-c8be9ee52fe7",
+            "label": "Boundaries",
+            "list": [
+                {
+                    "type": "Rectangle",
+                    "id": "88542478-0287-4221-8e7f-eceb3856dc38",
+                    "label": "MapUp",
+                    "x": 160,
+                    "y": -60,
+                    "isFilled": true,
+                    "width": 350,
+                    "height": 120
+                },
+                {
+                    "type": "Rectangle",
+                    "id": "3dab3049-98d4-4371-b173-5e9c6b3ecd4f",
+                    "label": "MapDown",
+                    "x": 160,
+                    "y": 380,
+                    "isFilled": true,
+                    "width": 350,
+                    "height": 120
+                },
+                {
+                    "type": "Rectangle",
+                    "id": "521dd7a8-5080-4f97-a069-ecedf503a4e9",
+                    "label": "MapLeft",
+                    "x": -60,
+                    "y": 160,
+                    "isFilled": true,
+                    "width": 120,
+                    "height": 350
+                },
+                {
+                    "type": "Rectangle",
+                    "id": "f37178e3-7a7a-4ce9-9b43-de8c35a5cca7",
+                    "label": "MapRight",
+                    "x": 380,
+                    "y": 160,
+                    "isFilled": true,
+                    "width": 120,
+                    "height": 350
+                },
+                {
+                    "type": "Rectangle",
+                    "id": "be04e720-4693-4c4a-a8f8-9d797ce7d03f",
+                    "label": "DeskColliderL",
+                    "x": 96,
+                    "y": 160,
+                    "strokeColor": "#fc0000",
+                    "isStroked": true,
+                    "width": 80,
+                    "height": 65
+                },
+                {
+                    "type": "Rectangle",
+                    "id": "9eaf16e9-147e-4a18-80c1-75102119fe4f",
+                    "label": "DeskColliderL_1",
+                    "x": 224,
+                    "y": 160,
+                    "strokeColor": "#ff4242",
+                    "isStroked": true,
+                    "width": 80,
+                    "height": 65
+                }
+            ]
         }
     ],
     "plainObjects": [],
