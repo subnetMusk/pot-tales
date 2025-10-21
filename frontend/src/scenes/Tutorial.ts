@@ -23,15 +23,18 @@ class Tutorial extends Phaser.Scene {
 
 		// lists
 		const oggVector: Array<any> = [];
+		const uselessList: Array<any> = [];
 
 		this.player = player;
 		this.oggVector = oggVector;
+		this.uselessList = uselessList;
 
 		this.events.emit("scene-awake");
 	}
 
 	private player!: Player;
 	private oggVector!: Array<any>;
+	private uselessList!: Array<any>;
 
 	/* START-USER-CODE */
 	private popupManager!: PopupManager;
@@ -46,7 +49,7 @@ class Tutorial extends Phaser.Scene {
 	create() {
 
 		this.editorCreate();
-
+		this.player.setBoundaries(this.uselessList); // Non serve a nulla, devo solo disabilitare i boundaries
 		this.cameras.main.setZoom(5);
 		this.cameras.main.startFollow(this.player);
 

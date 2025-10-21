@@ -13,12 +13,55 @@ class Player extends Phaser.GameObjects.Container {
 		player.body.setSize(16, 16, false);
 		this.add(player);
 
-		// BoundingBox
-		const boundingBox = scene.add.rectangle(0, 0, 14, 20);
-		boundingBox.isStroked = true;
-		this.add(boundingBox);
+		// BottomBound
+		const bottomBound = scene.add.rectangle(0, 20, 15, 16);
+		bottomBound.isStroked = true;
+		this.add(bottomBound);
+
+		// TopBound
+		const topBound = scene.add.rectangle(0, -3, 15, 16);
+		topBound.isStroked = true;
+		this.add(topBound);
+
+		// LeftBound
+		const leftBound = scene.add.rectangle(-15, 8, 16, 8);
+		leftBound.isStroked = true;
+		this.add(leftBound);
+
+		// RightBound
+		const rightBound = scene.add.rectangle(15, 8, 16, 8);
+		rightBound.isStroked = true;
+		this.add(rightBound);
+
+		// TLBound
+		const tLBound = scene.add.rectangle(-15, -3, 15, 16);
+		tLBound.isStroked = true;
+		this.add(tLBound);
+
+		// TRBound
+		const tRBound = scene.add.rectangle(15, -3, 15, 16);
+		tRBound.isStroked = true;
+		this.add(tRBound);
+
+		// BLBound
+		const bLBound = scene.add.rectangle(-15, 20, 15, 16);
+		bLBound.isStroked = true;
+		this.add(bLBound);
+
+		// BRBound
+		const bRBound = scene.add.rectangle(15, 20, 15, 16);
+		bRBound.isStroked = true;
+		this.add(bRBound);
 
 		this.player = player;
+		this.bottomBound = bottomBound;
+		this.topBound = topBound;
+		this.leftBound = leftBound;
+		this.rightBound = rightBound;
+		this.tLBound = tLBound;
+		this.tRBound = tRBound;
+		this.bLBound = bLBound;
+		this.bRBound = bRBound;
 
 		/* START-USER-CTR-CODE */
 		if (this.scene.input && this.scene.input.keyboard) {
@@ -40,10 +83,20 @@ class Player extends Phaser.GameObjects.Container {
 	}
 
 	public player: Phaser.Physics.Arcade.Sprite;
+	private bottomBound: Phaser.GameObjects.Rectangle;
+	private topBound: Phaser.GameObjects.Rectangle;
+	private leftBound: Phaser.GameObjects.Rectangle;
+	private rightBound: Phaser.GameObjects.Rectangle;
+	private tLBound: Phaser.GameObjects.Rectangle;
+	private tRBound: Phaser.GameObjects.Rectangle;
+	private bLBound: Phaser.GameObjects.Rectangle;
+	private bRBound: Phaser.GameObjects.Rectangle;
 
 	/* START-USER-CODE */
 	private stepSize: number = 16;					//grandezza del passo
 	private stepDelay: number = 200;				//attesa in ms tra i frame
+	private BoundsDebug: boolean = true;			//se true mostra i boundaries
+
 	//Input della tastiera
 	private rightKey!: Phaser.Input.Keyboard.Key;
 	private downKey!: Phaser.Input.Keyboard.Key;
@@ -51,15 +104,66 @@ class Player extends Phaser.GameObjects.Container {
 	private leftKey!: Phaser.Input.Keyboard.Key;
 	private Ikey?: Phaser.Input.Keyboard.Key;
 
+	boundaries : Phaser.GameObjects.Rectangle[] = [];
+
 	lastMoveTime: number = 0;						//tempo dell'ultimo movimento (per l'effetto a bassi fps)
 	lastStep: boolean = false;						// Ultima textura usata
 	direction: 'front' | 'back' | 'side' = 'front';	// Direzione in cui sto guardando
 
-	public flashlight(active: boolean) {
-		this.darkMask.visible = active;
+	//Check dell'overlap fra due rettangoli
+	private checkOverlap(rect1: Phaser.GameObjects.Rectangle, rect2: Phaser.GameObjects.Rectangle): boolean {
+		const rect1WorldX = this.x + rect1.x;
+		const rect1WorldY = this.y + rect1.y;
+
+		const bounds1 = new Phaser.Geom.Rectangle(
+			rect1WorldX - rect1.width / 2,
+			rect1WorldY - rect1.height / 2,
+			rect1.width,
+			rect1.height
+		);
+		const bounds2 = new Phaser.Geom.Rectangle(
+			rect2.x - rect2.width / 2,
+			rect2.y - rect2.height / 2,
+			rect2.width,
+			rect2.height
+		);
+		return Phaser.Geom.Rectangle.Overlaps(bounds1, bounds2);
 	}
 
-	//Funzione di movimento, 
+	//Passaggio della lista dei boundaries dalla scena al player
+	public setBoundaries(boundsList : Object[]) {
+		this.leftBound.visible = this.BoundsDebug;
+		this.rightBound.visible = this.BoundsDebug;
+		this.topBound.visible = this.BoundsDebug;
+		this.bottomBound.visible = this.BoundsDebug;
+
+		for (let i = 0; i < boundsList.length; i++) {
+			let b = boundsList[i] as Phaser.GameObjects.Rectangle;
+			b.visible = this.BoundsDebug; 					// Mostra i boundaries se il debug è attivo
+			this.boundaries.push(b);
+		}
+		if (this.BoundsDebug) console.log("Caricati i boundaries");
+	}
+
+	public debug(v : boolean) {
+		if (v) {
+			this.BoundsDebug = true;
+			this.leftBound.visible = true;
+			this.rightBound.visible = true;
+			this.topBound.visible = true;
+			this.bottomBound.visible = true;
+			this.boundaries.forEach(b => b.visible = true);
+		} else {
+			this.BoundsDebug = false;
+			this.leftBound.visible = false;
+			this.rightBound.visible = false;
+			this.topBound.visible = false;
+			this.bottomBound.visible = false;
+			this.boundaries.forEach(b => b.visible = false);
+		}
+	}
+
+	//Funzione di movimento
 	private movePlayer(time: number, delta: number) {
 		if (this.player.body !== null) {
 			let dx = 0;
@@ -68,26 +172,124 @@ class Player extends Phaser.GameObjects.Container {
 
 			// Input verticale
 			if (this.upKey.isDown && !this.downKey.isDown) {
-				dy = -this.stepSize;
+				if (time - this.lastMoveTime >= this.stepDelay) {				//Controlla solo ogni stepDelay
+					for (let i = 0; i < this.boundaries.length; i++) {			//Controlla collisione con tutti i boundaries
+						let b = this.boundaries[i];
+						if (this.checkOverlap(this.topBound, b)) {
+							if (this.BoundsDebug) console.log("Collisione in alto con boundary");
+							dy = 0;												//Collisione = movimento nullo, animazione attiva
+							break;
+						} else {
+							dy = -this.stepSize;
+						}
+					}
+				}
 				this.direction = "back";
 				moving = true;
 			} else if (this.downKey.isDown && !this.upKey.isDown) {
-				dy = this.stepSize;
+				if (time - this.lastMoveTime >= this.stepDelay) {
+					for (let i = 0; i < this.boundaries.length; i++) {
+						let b = this.boundaries[i];
+						if (this.checkOverlap(this.bottomBound, b)) {
+							if (this.BoundsDebug) console.log("Collisione in basso con boundary");
+							dy = 0;
+							break;
+						} else {
+							dy = this.stepSize;
+						}
+					}
+				}
 				this.direction = "front";
 				moving = true;
 			}
 
 			// Input orizzontale
 			if (this.leftKey.isDown && !this.rightKey.isDown) {
-				dx = -this.stepSize;
+				if (time - this.lastMoveTime >= this.stepDelay) {
+					for (let i = 0; i < this.boundaries.length; i++) {
+						let b = this.boundaries[i];
+						if (this.checkOverlap(this.leftBound, b)) {
+							if (this.BoundsDebug) console.log("Collisione a sinistra con boundary");
+							dx = 0;
+							break;
+						} else {
+							dx = -this.stepSize;
+						}
+					}
+				}
 				this.direction = "side";
 				this.player.setFlipX(false);
 				moving = true;
 			} else if (this.rightKey.isDown && !this.leftKey.isDown) {
-				dx = this.stepSize;
+				if (time - this.lastMoveTime >= this.stepDelay) {
+					for (let i = 0; i < this.boundaries.length; i++) {
+						let b = this.boundaries[i];
+						if (this.checkOverlap(this.rightBound, b)) {
+							if (this.BoundsDebug) console.log("Collisione a destra con boundary");
+							dx = 0;
+							break;
+						} else {
+							dx = this.stepSize;
+						}
+					}
+				}
 				this.direction = "side";
 				this.player.setFlipX(true);
 				moving = true;
+			}
+
+			//Input diagonale 
+			if (this.rightKey.isDown && this.downKey.isDown) {
+				if (time - this.lastMoveTime >= this.stepDelay) {
+					for (let i = 0; i < this.boundaries.length; i++) {
+						let b = this.boundaries[i];
+						if (this.checkOverlap(this.bRBound, b)) {
+							if (this.BoundsDebug) console.log("Collisione in basso a destra con boundary");
+							dx = 0;
+							dy = 0;
+							break;
+						}
+					}
+				}
+			}
+			if (this.rightKey.isDown && this.upKey.isDown) {
+				if (time - this.lastMoveTime >= this.stepDelay) {
+					for (let i = 0; i < this.boundaries.length; i++) {
+						let b = this.boundaries[i];
+						if (this.checkOverlap(this.tRBound, b)) {
+							if (this.BoundsDebug) console.log("Collisione in alto a destra con boundary");
+							dx = 0;
+							dy = 0;
+							break;
+						}
+					}
+				}
+			}
+			if (this.leftKey.isDown && this.downKey.isDown) {
+				if (time - this.lastMoveTime >= this.stepDelay) {
+					for (let i = 0; i < this.boundaries.length; i++) {
+						let b = this.boundaries[i];
+						if (this.checkOverlap(this.bLBound, b)) {
+							if (this.BoundsDebug) console.log("Collisione in basso a sinistra con boundary");
+							dx = 0;
+							dy = 0;
+							break;
+						}
+					}
+				}
+			}
+			if (this.leftKey.isDown && this.upKey.isDown) {
+				if (time - this.lastMoveTime >= this.stepDelay) {
+					for (let i = 0; i < this.boundaries.length; i++) {
+						let b = this.boundaries[i];
+						if (this.checkOverlap(this.tLBound, b)) {
+							if (this.BoundsDebug) console.log("Collisione in alto a sinistra con boundary");
+							dx = 0;
+							dy = 0;
+							break;
+						}
+					}
+				}
 			}
 
 			// Se sto muovendo
@@ -141,7 +343,6 @@ class Player extends Phaser.GameObjects.Container {
 			}
 		});
 	}
-
 	/* END-USER-CODE */
 }
 

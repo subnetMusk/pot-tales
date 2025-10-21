@@ -48,7 +48,9 @@
                 "y",
                 "texture",
                 "id",
-                "number"
+                "number",
+                "scaleX",
+                "scaleY"
             ],
             "label": "flask",
             "scope": "CLASS",
@@ -56,8 +58,10 @@
             "texture": {
                 "key": "flask"
             },
-            "x": 226,
-            "y": 161
+            "x": 191,
+            "y": 230,
+            "scaleX": 0.5,
+            "scaleY": 0.5
         },
         {
             "prefabId": "5a8935be-1a98-42a5-9cc4-bca49b9c51b2",
@@ -72,73 +76,104 @@
             "y": 300
         },
         {
-            "type": "Container",
-            "id": "7039fe73-6dfc-483a-9606-c8be9ee52fe7",
-            "label": "Boundaries",
-            "list": [
-                {
-                    "type": "Rectangle",
-                    "id": "88542478-0287-4221-8e7f-eceb3856dc38",
-                    "label": "MapUp",
-                    "x": 160,
-                    "y": -60,
-                    "isFilled": true,
-                    "width": 350,
-                    "height": 120
-                },
-                {
-                    "type": "Rectangle",
-                    "id": "3dab3049-98d4-4371-b173-5e9c6b3ecd4f",
-                    "label": "MapDown",
-                    "x": 160,
-                    "y": 380,
-                    "isFilled": true,
-                    "width": 350,
-                    "height": 120
-                },
-                {
-                    "type": "Rectangle",
-                    "id": "521dd7a8-5080-4f97-a069-ecedf503a4e9",
-                    "label": "MapLeft",
-                    "x": -60,
-                    "y": 160,
-                    "isFilled": true,
-                    "width": 120,
-                    "height": 350
-                },
-                {
-                    "type": "Rectangle",
-                    "id": "f37178e3-7a7a-4ce9-9b43-de8c35a5cca7",
-                    "label": "MapRight",
-                    "x": 380,
-                    "y": 160,
-                    "isFilled": true,
-                    "width": 120,
-                    "height": 350
-                },
-                {
-                    "type": "Rectangle",
-                    "id": "be04e720-4693-4c4a-a8f8-9d797ce7d03f",
-                    "label": "DeskColliderL",
-                    "x": 96,
-                    "y": 160,
-                    "strokeColor": "#fc0000",
-                    "isStroked": true,
-                    "width": 80,
-                    "height": 65
-                },
-                {
-                    "type": "Rectangle",
-                    "id": "9eaf16e9-147e-4a18-80c1-75102119fe4f",
-                    "label": "DeskColliderL_1",
-                    "x": 224,
-                    "y": 160,
-                    "strokeColor": "#ff4242",
-                    "isStroked": true,
-                    "width": 80,
-                    "height": 65
-                }
-            ]
+            "type": "Rectangle",
+            "id": "88542478-0287-4221-8e7f-eceb3856dc38",
+            "label": "MapUp",
+            "x": 160,
+            "y": -13,
+            "alpha": 0.8,
+            "isFilled": true,
+            "fillColor": "#f00",
+            "width": 320,
+            "height": 120
+        },
+        {
+            "type": "Rectangle",
+            "id": "3dab3049-98d4-4371-b173-5e9c6b3ecd4f",
+            "label": "MapDown",
+            "x": 160,
+            "y": 380,
+            "isFilled": true,
+            "fillColor": "#f00",
+            "width": 320,
+            "height": 120
+        },
+        {
+            "type": "Rectangle",
+            "id": "521dd7a8-5080-4f97-a069-ecedf503a4e9",
+            "label": "MapLeft",
+            "x": -60,
+            "y": 160,
+            "isFilled": true,
+            "fillColor": "#f00",
+            "width": 120,
+            "height": 320
+        },
+        {
+            "type": "Rectangle",
+            "id": "f37178e3-7a7a-4ce9-9b43-de8c35a5cca7",
+            "label": "MapRight",
+            "x": 380,
+            "y": 160,
+            "isFilled": true,
+            "fillColor": "#f00",
+            "width": 120,
+            "height": 320
+        },
+        {
+            "type": "Rectangle",
+            "id": "be04e720-4693-4c4a-a8f8-9d797ce7d03f",
+            "label": "DeskCollider4",
+            "x": 96,
+            "y": 160,
+            "strokeColor": "#fc0000",
+            "isStroked": true,
+            "width": 80,
+            "height": 65
+        },
+        {
+            "type": "Rectangle",
+            "id": "9eaf16e9-147e-4a18-80c1-75102119fe4f",
+            "label": "DeskCollider5",
+            "x": 224,
+            "y": 160,
+            "strokeColor": "#ff4242",
+            "isStroked": true,
+            "width": 80,
+            "height": 65
+        },
+        {
+            "type": "Rectangle",
+            "id": "e2328d30-f90e-484b-afd0-eea37487840a",
+            "label": "DeskCollider2",
+            "x": 96,
+            "y": 239,
+            "strokeColor": "#fc0000",
+            "isStroked": true,
+            "width": 80,
+            "height": 30
+        },
+        {
+            "type": "Rectangle",
+            "id": "e663b5aa-3456-4561-b4a3-7a7641658c7f",
+            "label": "DeskCollider3",
+            "x": 224,
+            "y": 239,
+            "strokeColor": "#ff4242",
+            "isStroked": true,
+            "width": 80,
+            "height": 30
+        },
+        {
+            "type": "Rectangle",
+            "id": "773cb354-0642-44cb-83eb-01da16f98819",
+            "label": "DeskCollider1",
+            "x": 160,
+            "y": 64,
+            "strokeColor": "#ff4242",
+            "isStroked": true,
+            "width": 65,
+            "height": 32
         }
     ],
     "plainObjects": [],
@@ -155,6 +190,21 @@
             "objectIds": [
                 "ba1fd2bf-eeb2-4151-ae81-ae655ad8c27e",
                 "5cfd2659-6e8b-4696-9937-416fc95f17a5"
+            ]
+        },
+        {
+            "id": "124bcad1-5eaa-4a1c-9418-1b33b3604dde",
+            "label": "Boundaries",
+            "objectIds": [
+                "88542478-0287-4221-8e7f-eceb3856dc38",
+                "773cb354-0642-44cb-83eb-01da16f98819",
+                "e663b5aa-3456-4561-b4a3-7a7641658c7f",
+                "e2328d30-f90e-484b-afd0-eea37487840a",
+                "9eaf16e9-147e-4a18-80c1-75102119fe4f",
+                "be04e720-4693-4c4a-a8f8-9d797ce7d03f",
+                "f37178e3-7a7a-4ce9-9b43-de8c35a5cca7",
+                "521dd7a8-5080-4f97-a069-ecedf503a4e9",
+                "3dab3049-98d4-4371-b173-5e9c6b3ecd4f"
             ]
         }
     ]

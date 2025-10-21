@@ -35,50 +35,64 @@ class LabTutorial extends Phaser.Scene {
 		this.add.existing(letter);
 
 		// flask
-		const flask = new OggettoInterattivo(this, 226, 161, "flask");
+		const flask = new OggettoInterattivo(this, 191, 230, "flask");
 		this.add.existing(flask);
+		flask.scaleX = 0.5;
+		flask.scaleY = 0.5;
 
 		// player
 		const player = new Player(this, 160, 300);
 		this.add.existing(player);
 
-		// Boundaries
-		const boundaries = this.add.container(0, 0);
-
 		// MapUp
-		const mapUp = this.add.rectangle(160, -60, 350, 120);
+		const mapUp = this.add.rectangle(160, -13, 320, 120);
+		mapUp.alpha = 0.8;
 		mapUp.isFilled = true;
-		boundaries.add(mapUp);
+		mapUp.fillColor = 16711680;
 
 		// MapDown
-		const mapDown = this.add.rectangle(160, 380, 350, 120);
+		const mapDown = this.add.rectangle(160, 380, 320, 120);
 		mapDown.isFilled = true;
-		boundaries.add(mapDown);
+		mapDown.fillColor = 16711680;
 
 		// MapLeft
-		const mapLeft = this.add.rectangle(-60, 160, 120, 350);
+		const mapLeft = this.add.rectangle(-60, 160, 120, 320);
 		mapLeft.isFilled = true;
-		boundaries.add(mapLeft);
+		mapLeft.fillColor = 16711680;
 
 		// MapRight
-		const mapRight = this.add.rectangle(380, 160, 120, 350);
+		const mapRight = this.add.rectangle(380, 160, 120, 320);
 		mapRight.isFilled = true;
-		boundaries.add(mapRight);
+		mapRight.fillColor = 16711680;
 
-		// DeskColliderL
-		const deskColliderL = this.add.rectangle(96, 160, 80, 65);
-		deskColliderL.isStroked = true;
-		deskColliderL.strokeColor = 16515072;
-		boundaries.add(deskColliderL);
+		// DeskCollider4
+		const deskCollider4 = this.add.rectangle(96, 160, 80, 65);
+		deskCollider4.isStroked = true;
+		deskCollider4.strokeColor = 16515072;
 
-		// DeskColliderL_1
-		const deskColliderL_1 = this.add.rectangle(224, 160, 80, 65);
-		deskColliderL_1.isStroked = true;
-		deskColliderL_1.strokeColor = 16728642;
-		boundaries.add(deskColliderL_1);
+		// DeskCollider5
+		const deskCollider5 = this.add.rectangle(224, 160, 80, 65);
+		deskCollider5.isStroked = true;
+		deskCollider5.strokeColor = 16728642;
+
+		// DeskCollider2
+		const deskCollider2 = this.add.rectangle(96, 239, 80, 30);
+		deskCollider2.isStroked = true;
+		deskCollider2.strokeColor = 16515072;
+
+		// DeskCollider3
+		const deskCollider3 = this.add.rectangle(224, 239, 80, 30);
+		deskCollider3.isStroked = true;
+		deskCollider3.strokeColor = 16728642;
+
+		// DeskCollider1
+		const deskCollider1 = this.add.rectangle(160, 64, 65, 32);
+		deskCollider1.isStroked = true;
+		deskCollider1.strokeColor = 16728642;
 
 		// lists
 		const oggVector = [flask, letter];
+		const boundaries = [mapUp, deskCollider1, deskCollider3, deskCollider2, deskCollider5, deskCollider4, mapRight, mapLeft, mapDown];
 
 		// flask (prefab fields)
 		flask.number = 2;
@@ -87,6 +101,7 @@ class LabTutorial extends Phaser.Scene {
 		this.flask = flask;
 		this.player = player;
 		this.oggVector = oggVector;
+		this.boundaries = boundaries;
 
 		this.events.emit("scene-awake");
 	}
@@ -95,21 +110,18 @@ class LabTutorial extends Phaser.Scene {
 	private flask!: OggettoInterattivo;
 	private player!: Player;
 	private oggVector!: OggettoInterattivo[];
+	private boundaries!: Phaser.GameObjects.Rectangle[];
 
 	/* START-USER-CODE */
 	private popupManager!: PopupManager;
 	private letterManager!: LetterManager;
-
 	private isMemoryActive = false;
 
-	// Write your code here
-
 	create() {
-
 		this.editorCreate();
+		this.player.setBoundaries(this.boundaries);			//Passo i boundaries al player
 		this.cameras.main.setZoom(5);
 		this.cameras.main.startFollow(this.player);
-
 
 		console.log("Creando PopupManager in LabTutorial...");
 		this.popupManager = new PopupManager(this);
@@ -128,7 +140,6 @@ class LabTutorial extends Phaser.Scene {
 
 			//distruggi l'oggetto lettera dopo averla letta 
 			this.letter.destroy();
-
 		}
 
 		this.flask.interagisci = () => {
