@@ -21,20 +21,43 @@ class Tutorial extends Phaser.Scene {
 		const player = new Player(this, 640, 360);
 		this.add.existing(player);
 
+		// MapUp
+		const mapUp = this.add.rectangle(642, 189, 320, 120);
+		mapUp.alpha = 0.8;
+		mapUp.isFilled = true;
+		mapUp.fillColor = 16711680;
+
+		// MapDown
+		const mapDown = this.add.rectangle(642, 582, 320, 120);
+		mapDown.isFilled = true;
+		mapDown.fillColor = 16711680;
+
+		// MapLeft
+		const mapLeft = this.add.rectangle(445, 362, 120, 320);
+		mapLeft.alpha = 0.7;
+		mapLeft.isFilled = true;
+		mapLeft.fillColor = 16711680;
+
+		// MapRight
+		const mapRight = this.add.rectangle(838, 362, 120, 320);
+		mapRight.alpha = 0.7;
+		mapRight.isFilled = true;
+		mapRight.fillColor = 16711680;
+
 		// lists
 		const oggVector: Array<any> = [];
-		const uselessList: Array<any> = [];
+		const boundaries = [mapUp, mapRight, mapLeft, mapDown];
 
 		this.player = player;
 		this.oggVector = oggVector;
-		this.uselessList = uselessList;
+		this.boundaries = boundaries;
 
 		this.events.emit("scene-awake");
 	}
 
 	private player!: Player;
 	private oggVector!: Array<any>;
-	private uselessList!: Array<any>;
+	private boundaries!: Phaser.GameObjects.Rectangle[];
 
 	/* START-USER-CODE */
 	private popupManager!: PopupManager;
@@ -49,7 +72,7 @@ class Tutorial extends Phaser.Scene {
 	create() {
 
 		this.editorCreate();
-		this.player.setBoundaries(this.uselessList); // Non serve a nulla, devo solo disabilitare i boundaries
+		this.player.setBoundaries(this.boundaries); // Non serve a nulla, devo solo disabilitare i boundaries
 		this.player.debug(false);
 		this.cameras.main.setZoom(5);
 		this.cameras.main.startFollow(this.player);
