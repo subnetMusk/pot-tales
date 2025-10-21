@@ -176,6 +176,18 @@
             "isStroked": true,
             "width": 65,
             "height": 32
+        },
+        {
+            "type": "Image",
+            "id": "86933cfa-9510-4344-9163-bbc6886b879e",
+            "label": "research",
+            "texture": {
+                "key": "research"
+            },
+            "x": 223,
+            "y": 276,
+            "scaleX": 0.4,
+            "scaleY": 0.4
         }
     ],
     "plainObjects": [],
@@ -206,7 +218,8 @@
                 "be04e720-4693-4c4a-a8f8-9d797ce7d03f",
                 "f37178e3-7a7a-4ce9-9b43-de8c35a5cca7",
                 "521dd7a8-5080-4f97-a069-ecedf503a4e9",
-                "3dab3049-98d4-4371-b173-5e9c6b3ecd4f"
+                "3dab3049-98d4-4371-b173-5e9c6b3ecd4f",
+                "86933cfa-9510-4344-9163-bbc6886b879e"
             ]
         }
     ]

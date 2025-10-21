@@ -92,9 +92,14 @@ class LabTutorial extends Phaser.Scene {
 		deskCollider1.isStroked = true;
 		deskCollider1.strokeColor = 16728642;
 
+		// research
+		const research = this.add.image(223, 276, "research");
+		research.scaleX = 0.4;
+		research.scaleY = 0.4;
+
 		// lists
 		const oggVector = [flask, letter];
-		const boundaries = [mapUp, deskCollider1, deskCollider3, deskCollider2, deskCollider5, deskCollider4, mapRight, mapLeft, mapDown];
+		const boundaries = [mapUp, deskCollider1, deskCollider3, deskCollider2, deskCollider5, deskCollider4, mapRight, mapLeft, mapDown, research];
 
 		// flask (prefab fields)
 		flask.number = 2;
@@ -112,7 +117,7 @@ class LabTutorial extends Phaser.Scene {
 	private flask!: OggettoInterattivo;
 	private player!: Player;
 	private oggVector!: OggettoInterattivo[];
-	private boundaries!: Phaser.GameObjects.Rectangle[];
+	private boundaries!: Array<Phaser.GameObjects.Rectangle|Phaser.GameObjects.Image>;
 
 	/* START-USER-CODE */
 	private popupManager!: PopupManager;
@@ -122,7 +127,7 @@ class LabTutorial extends Phaser.Scene {
 	create() {
 		this.editorCreate();
 		this.player.setBoundaries(this.boundaries);			//Passo i boundaries al player
-		this.player.debug(false);						//Disabilito il debug dei boundaries
+		this.player.debug(true);						//Disabilito il debug dei boundaries
 		this.cameras.main.setZoom(5);
 		this.cameras.main.startFollow(this.player);
 
@@ -138,7 +143,7 @@ class LabTutorial extends Phaser.Scene {
 
 		this.letter.interagisci = () => {
 			this.letterManager = new LetterManager(this);
-			this.letterManager.queueLetter("I contraccettivi femminili rappresentano uno strumento fondamentale per la salute e l'autonomia delle donne. Permettono una pianificazione familiare consapevole, consentendo alle donne di decidere quando e se avere figli, contribuendo così al loro benessere fisico, economico e sociale.");
+			this.letterManager.queueLetter("Ciao, \nSono Patrizia Sadocco, la tua nuova collega. \nBenvenuto in laboratorio!\nOggi ti insegnerò come si preparano le nostre famose droghe sintetiche.\nPer prima cosa, prendi l'ampolla con il liquido giallo sul tavolo e bevila.");
 			this.letterManager.showNextLetter();
 
 			//distruggi l'oggetto lettera dopo averla letta 

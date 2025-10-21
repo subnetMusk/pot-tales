@@ -135,16 +135,32 @@ class Player extends Phaser.GameObjects.Container {
 	}
 
 	//Passaggio della lista dei boundaries dalla scena al player
+	//Supporta solo Rectangle, Sprite e Image
 	public setBoundaries(boundsList : Object[]) {
-		this.leftBound.visible = this.BoundsDebug;
-		this.rightBound.visible = this.BoundsDebug;
-		this.topBound.visible = this.BoundsDebug;
-		this.bottomBound.visible = this.BoundsDebug;
 
 		for (let i = 0; i < boundsList.length; i++) {
-			let b = boundsList[i] as Phaser.GameObjects.Rectangle;
-			b.visible = this.BoundsDebug; 					// Mostra i boundaries se il debug è attivo
-			this.boundaries.push(b);
+			let obj = boundsList[i];
+			
+			if (obj instanceof Phaser.GameObjects.Rectangle) {
+				obj.visible = this.BoundsDebug;
+				this.boundaries.push(obj);
+			} else if (obj instanceof Phaser.GameObjects.Sprite || obj instanceof Phaser.Physics.Arcade.Sprite) {
+				const bounds = obj.getBounds();
+				const rect = this.scene.add.rectangle(bounds.x + bounds.width/2, bounds.y + bounds.height/2, bounds.width, bounds.height);
+				rect.isStroked = true;
+				rect.strokeColor = 0xff0000;
+				this.boundaries.push(rect);
+			} else if (obj instanceof Phaser.GameObjects.Image) {
+				const bounds = obj.getBounds();
+				const rect = this.scene.add.rectangle(bounds.x + bounds.width/2, bounds.y + bounds.height/2, bounds.width, bounds.height);
+				rect.isStroked = true;
+				rect.strokeColor = 0x00ff00;
+				this.boundaries.push(rect);
+			} else {
+				// Oggetto non supportato
+				const objName = (obj as any).name || obj.constructor.name || 'oggetto sconosciuto';
+				console.log(`L'oggetto ${objName} non può essere convertito in boundary`);
+			}
 		}
 		if (this.BoundsDebug) console.log("Caricati i boundaries");
 	}
