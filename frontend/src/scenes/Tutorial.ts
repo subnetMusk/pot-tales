@@ -50,6 +50,7 @@ class Tutorial extends Phaser.Scene {
 
 		this.editorCreate();
 		this.player.setBoundaries(this.uselessList); // Non serve a nulla, devo solo disabilitare i boundaries
+		this.player.debug(false);
 		this.cameras.main.setZoom(5);
 		this.cameras.main.startFollow(this.player);
 

@@ -102,8 +102,9 @@
             "type": "Rectangle",
             "id": "521dd7a8-5080-4f97-a069-ecedf503a4e9",
             "label": "MapLeft",
-            "x": -60,
+            "x": -37,
             "y": 160,
+            "alpha": 0.7,
             "isFilled": true,
             "fillColor": "#f00",
             "width": 120,
@@ -113,8 +114,9 @@
             "type": "Rectangle",
             "id": "f37178e3-7a7a-4ce9-9b43-de8c35a5cca7",
             "label": "MapRight",
-            "x": 380,
+            "x": 356,
             "y": 160,
+            "alpha": 0.7,
             "isFilled": true,
             "fillColor": "#f00",
             "width": 120,
@@ -125,22 +127,22 @@
             "id": "be04e720-4693-4c4a-a8f8-9d797ce7d03f",
             "label": "DeskCollider4",
             "x": 96,
-            "y": 160,
+            "y": 159,
             "strokeColor": "#fc0000",
             "isStroked": true,
             "width": 80,
-            "height": 65
+            "height": 62
         },
         {
             "type": "Rectangle",
             "id": "9eaf16e9-147e-4a18-80c1-75102119fe4f",
             "label": "DeskCollider5",
             "x": 224,
-            "y": 160,
+            "y": 159,
             "strokeColor": "#ff4242",
             "isStroked": true,
             "width": 80,
-            "height": 65
+            "height": 62
         },
         {
             "type": "Rectangle",

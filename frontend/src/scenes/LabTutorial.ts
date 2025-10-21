@@ -56,22 +56,24 @@ class LabTutorial extends Phaser.Scene {
 		mapDown.fillColor = 16711680;
 
 		// MapLeft
-		const mapLeft = this.add.rectangle(-60, 160, 120, 320);
+		const mapLeft = this.add.rectangle(-37, 160, 120, 320);
+		mapLeft.alpha = 0.7;
 		mapLeft.isFilled = true;
 		mapLeft.fillColor = 16711680;
 
 		// MapRight
-		const mapRight = this.add.rectangle(380, 160, 120, 320);
+		const mapRight = this.add.rectangle(356, 160, 120, 320);
+		mapRight.alpha = 0.7;
 		mapRight.isFilled = true;
 		mapRight.fillColor = 16711680;
 
 		// DeskCollider4
-		const deskCollider4 = this.add.rectangle(96, 160, 80, 65);
+		const deskCollider4 = this.add.rectangle(96, 159, 80, 62);
 		deskCollider4.isStroked = true;
 		deskCollider4.strokeColor = 16515072;
 
 		// DeskCollider5
-		const deskCollider5 = this.add.rectangle(224, 160, 80, 65);
+		const deskCollider5 = this.add.rectangle(224, 159, 80, 62);
 		deskCollider5.isStroked = true;
 		deskCollider5.strokeColor = 16728642;
 
@@ -120,6 +122,7 @@ class LabTutorial extends Phaser.Scene {
 	create() {
 		this.editorCreate();
 		this.player.setBoundaries(this.boundaries);			//Passo i boundaries al player
+		this.player.debug(false);						//Disabilito il debug dei boundaries
 		this.cameras.main.setZoom(5);
 		this.cameras.main.startFollow(this.player);
 
