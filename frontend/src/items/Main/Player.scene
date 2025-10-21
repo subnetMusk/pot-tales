@@ -117,6 +117,17 @@
                     "isStroked": true,
                     "width": 8,
                     "height": 8
+                },
+                {
+                    "type": "Image",
+                    "id": "a0d2479d-0d8f-467f-b65d-2079e3a685e9",
+                    "label": "darkMask",
+                    "scope": "CLASS",
+                    "texture": {
+                        "key": "darkMask"
+                    },
+                    "scaleX": 0.25,
+                    "scaleY": 0.25
                 }
             ]
         }

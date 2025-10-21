@@ -73,6 +73,7 @@ class Tutorial extends Phaser.Scene {
 
 		this.editorCreate();
 		this.player.setBoundaries(this.boundaries); // Non serve a nulla, devo solo disabilitare i boundaries
+		this.player.flashlight(true); // Disabilito la torcia
 		this.player.debug(false);
 		this.cameras.main.setZoom(5);
 		this.cameras.main.startFollow(this.player);
@@ -116,8 +117,6 @@ class Tutorial extends Phaser.Scene {
 					this.add.existing(ogg);
 				});
 		});
-
-
 	}
 
 	//timer 
@@ -129,26 +128,6 @@ class Tutorial extends Phaser.Scene {
 			},
 			callbackScope: this // Importante: assicura che il callback abbia il giusto contesto
 		});
-	}
-
-
-
-	// Metodo update per controllare eventi
-	update() {
-
-		//gestione bordi
-		const bounds = {
-			xMin: 480,
-			xMax: 800,
-			yMin: 240,
-			yMax: 480
-		};
-
-		if(this.player.x < bounds.xMin )this.player.x = bounds.xMax - 1;		
-		if(this.player.x > bounds.xMax ) this.player.x = bounds.xMin + 1;
-		if(this.player.y < bounds.yMin ) this.player.y = bounds.yMax - 1;
-		if(this.player.y > bounds.yMax ) this.player.y = bounds.yMin + 1;
-
 	}
 	/* END-USER-CODE */
 }

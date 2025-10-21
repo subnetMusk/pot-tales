@@ -127,7 +127,8 @@ class LabTutorial extends Phaser.Scene {
 	create() {
 		this.editorCreate();
 		this.player.setBoundaries(this.boundaries);			//Passo i boundaries al player
-		this.player.debug(true);						//Disabilito il debug dei boundaries
+		this.player.debug(false);						//Disabilito il debug dei boundaries
+		this.player.flashlight(false);					//Disabilito la torcia
 		this.cameras.main.setZoom(5);
 		this.cameras.main.startFollow(this.player);
 

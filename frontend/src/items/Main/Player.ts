@@ -57,6 +57,12 @@ class Player extends Phaser.GameObjects.Container {
 		bRBound.strokeColor = 3211231;
 		this.add(bRBound);
 
+		// darkMask
+		const darkMask = scene.add.image(0, 0, "darkMask");
+		darkMask.scaleX = 0.25;
+		darkMask.scaleY = 0.25;
+		this.add(darkMask);
+
 		this.player = player;
 		this.bottomBound = bottomBound;
 		this.topBound = topBound;
@@ -66,6 +72,7 @@ class Player extends Phaser.GameObjects.Container {
 		this.tRBound = tRBound;
 		this.bLBound = bLBound;
 		this.bRBound = bRBound;
+		this.darkMask = darkMask;
 
 		/* START-USER-CTR-CODE */
 		if (this.scene.input && this.scene.input.keyboard) {
@@ -95,6 +102,7 @@ class Player extends Phaser.GameObjects.Container {
 	private tRBound: Phaser.GameObjects.Rectangle;
 	private bLBound: Phaser.GameObjects.Rectangle;
 	private bRBound: Phaser.GameObjects.Rectangle;
+	private darkMask: Phaser.GameObjects.Image;
 
 	/* START-USER-CODE */
 	private stepSize: number = 8;					//grandezza del passo
@@ -137,10 +145,9 @@ class Player extends Phaser.GameObjects.Container {
 	//Passaggio della lista dei boundaries dalla scena al player
 	//Supporta solo Rectangle, Sprite e Image
 	public setBoundaries(boundsList : Object[]) {
-
 		for (let i = 0; i < boundsList.length; i++) {
 			let obj = boundsList[i];
-			
+
 			if (obj instanceof Phaser.GameObjects.Rectangle) {
 				obj.visible = this.BoundsDebug;
 				this.boundaries.push(obj);
@@ -163,6 +170,10 @@ class Player extends Phaser.GameObjects.Container {
 			}
 		}
 		if (this.BoundsDebug) console.log("Caricati i boundaries");
+	}
+
+	public flashlight(state : boolean) {
+		this.darkMask.visible = state;
 	}
 
 	public debug(v : boolean) {
