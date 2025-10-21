@@ -24,50 +24,43 @@
         },
         {
             "type": "Rectangle",
-            "id": "328cd082-49ab-4af8-88df-4c632aa76a66",
-            "label": "MapUp",
-            "x": 642,
-            "y": 189,
-            "alpha": 0.8,
+            "id": "a430322a-be22-4133-b439-e496309df159",
+            "label": "Top",
+            "x": 640,
+            "y": 222,
             "isFilled": true,
-            "fillColor": "#f00",
-            "width": 320,
-            "height": 120
+            "width": 300,
+            "height": 100
         },
         {
             "type": "Rectangle",
-            "id": "c370656b-3f26-482b-b81e-10c75d6fa29b",
-            "label": "MapDown",
-            "x": 642,
-            "y": 582,
+            "id": "77571f2f-74e3-40d4-b654-a0145c860895",
+            "label": "Bottom",
+            "x": 640,
+            "y": 493,
             "isFilled": true,
-            "fillColor": "#f00",
-            "width": 320,
-            "height": 120
+            "width": 300,
+            "height": 100
         },
         {
             "type": "Rectangle",
-            "id": "0c59c59c-bd27-4faa-965b-9d442d2f7fe5",
-            "label": "MapLeft",
-            "x": 445,
-            "y": 362,
-            "alpha": 0.7,
+            "id": "8fe992a1-4e99-47aa-ad50-2d57beefc085",
+            "label": "Left",
+            "x": 439,
+            "y": 371,
             "isFilled": true,
-            "fillColor": "#f00",
-            "width": 120,
-            "height": 320
+            "width": 100,
+            "height": 300
         },
         {
             "type": "Rectangle",
-            "id": "191d1b3f-1985-4888-a305-aef4bc53192f",
-            "label": "MapRight",
-            "x": 838,
-            "y": 362,
-            "alpha": 0.7,
+            "id": "94adb5e9-e1bf-4ff0-affc-9088fadd3ae1",
+            "label": "Right",
+            "x": 842,
+            "y": 371,
             "isFilled": true,
-            "fillColor": "#f00",
-            "width": 120,
-            "height": 320
+            "width": 100,
+            "height": 300
         }
     ],
     "plainObjects": [],
@@ -86,10 +79,10 @@
             "id": "17eacffd-c45d-40e9-a306-caa036e9fe6a",
             "label": "Boundaries",
             "objectIds": [
-                "328cd082-49ab-4af8-88df-4c632aa76a66",
-                "191d1b3f-1985-4888-a305-aef4bc53192f",
-                "0c59c59c-bd27-4faa-965b-9d442d2f7fe5",
-                "c370656b-3f26-482b-b81e-10c75d6fa29b"
+                "a430322a-be22-4133-b439-e496309df159",
+                "77571f2f-74e3-40d4-b654-a0145c860895",
+                "94adb5e9-e1bf-4ff0-affc-9088fadd3ae1",
+                "8fe992a1-4e99-47aa-ad50-2d57beefc085"
             ]
         }
     ]

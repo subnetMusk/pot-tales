@@ -76,7 +76,6 @@ select {
                 5px 5px #00000038,
                 -5px 5px #00000038,
                 inset 0px 5px #ffffff36;
-    cursor: pointer;
     appearance: none;
     border-radius: 0;
 }

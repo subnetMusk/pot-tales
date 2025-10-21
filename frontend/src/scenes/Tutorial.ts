@@ -1,5 +1,6 @@
 import Player from "../items/Main/Player";
 import PopupManager from "../items/UI/PopupManager";
+import LetterManager from "../items/UI/LetterManager";
 import OggettoInterattivo from "../items/Main/OggettoInterattivo";
 // You can write more code here
 
@@ -21,32 +22,25 @@ class Tutorial extends Phaser.Scene {
 		const player = new Player(this, 640, 360);
 		this.add.existing(player);
 
-		// MapUp
-		const mapUp = this.add.rectangle(642, 189, 320, 120);
-		mapUp.alpha = 0.8;
-		mapUp.isFilled = true;
-		mapUp.fillColor = 16711680;
+		// Top
+		const top = this.add.rectangle(640, 222, 300, 100);
+		top.isFilled = true;
 
-		// MapDown
-		const mapDown = this.add.rectangle(642, 582, 320, 120);
-		mapDown.isFilled = true;
-		mapDown.fillColor = 16711680;
+		// Bottom
+		const bottom = this.add.rectangle(640, 493, 300, 100);
+		bottom.isFilled = true;
 
-		// MapLeft
-		const mapLeft = this.add.rectangle(445, 362, 120, 320);
-		mapLeft.alpha = 0.7;
-		mapLeft.isFilled = true;
-		mapLeft.fillColor = 16711680;
+		// Left
+		const left = this.add.rectangle(439, 371, 100, 300);
+		left.isFilled = true;
 
-		// MapRight
-		const mapRight = this.add.rectangle(838, 362, 120, 320);
-		mapRight.alpha = 0.7;
-		mapRight.isFilled = true;
-		mapRight.fillColor = 16711680;
+		// Right
+		const right = this.add.rectangle(842, 371, 100, 300);
+		right.isFilled = true;
 
 		// lists
 		const oggVector: Array<any> = [];
-		const boundaries = [mapUp, mapRight, mapLeft, mapDown];
+		const boundaries = [top, bottom, right, left];
 
 		this.player = player;
 		this.oggVector = oggVector;
@@ -61,7 +55,7 @@ class Tutorial extends Phaser.Scene {
 
 	/* START-USER-CODE */
 	private popupManager!: PopupManager;
-	private temp = 2000; // tempo di attesa
+	private letterManager!: LetterManager;
 
 	// Write your code here
 	preload() {
@@ -70,65 +64,144 @@ class Tutorial extends Phaser.Scene {
 	}
 
 	create() {
-
 		this.editorCreate();
 		this.player.setBoundaries(this.boundaries); // Non serve a nulla, devo solo disabilitare i boundaries
-		this.player.flashlight(true); // Disabilito la torcia
 		this.player.debug(false);
+		this.player.flashlight(true); // Disabilito la torcia
 		this.cameras.main.setZoom(5);
 		this.cameras.main.startFollow(this.player);
 
-
 		// Inizializza il PopupManager
 		this.popupManager = new PopupManager(this);
+		this.letterManager = new LetterManager(this);
 
-		// Aggiugiamo i popup alla coda 
-		this.popupManager.queuePopup("ohoh, è così scuro qui dentro...");
-		this.popupManager.queuePopup("forse hai la torcia scarica..");
-		this.popupManager.queuePopup("cerca delle pile nuove..");
-		this.popupManager.queuePopup("(usa le frecce per muoverti)");
+		// Listener per il tasto E
+		const eKey = this.input.keyboard?.addKey(Phaser.Input.Keyboard.KeyCodes.E);
+		eKey?.on('down', () => {
+			this.events.emit("E");
+		});
 
-		// Inizia la visualizzazione dei popup
+		//Posizione iniziale di gioco
+		let startX = this.player.x;
+		let startY = this.player.y;
+
+		// Messaggi iniziali 
+		this.popupManager.queuePopup("Benvenuto nel tutorial di");
+		this.popupManager.queuePopup("IL VIDEOGIOCO SENZA NOME");
+		this.popupManager.queuePopup("Finché Filippo non ci manda il plot");
+		this.popupManager.queuePopup("Usa i tasti freccia per muoverti");
 		this.popupManager.showNextPopup();
 
-		this.avviaTimer();
+		// Check movimento
+		const moveTimer = this.time.addEvent({
+			delay: 1000,
+			callback: () => {
+				if (Math.abs(this.player.x - startX) > 20 && Math.abs(this.player.y - startY) > 20) {
+					this.events.emit("player-moved");
+					moveTimer.destroy(); // Ferma il timer
+				}
+			},
+			loop: true
+		});
 
-		this.events.on("timer-finished", () => {
+		// Check inventario
+		this.events.once("player-moved", () => {
+			this.popupManager.queuePopup("Ottimo! Ora passiamo all'inventario");
+			this.popupManager.queuePopup("Al suo interno puoi trovare gli oggetti che hai raccolto durante la partita");
+			this.popupManager.queuePopup("Usa il tasto E per aprire l'inventario");
+			this.popupManager.showNextPopup();
+		});
 
-			this.popupManager.queuePopup("per raccogliere gli oggetti avvicinati e premi I !");
+		this.events.once("E", () => {
+			this.popupManager.queuePopup("È comparsa una lettera al centro della mappa!");
+			this.popupManager.queuePopup("Per interagire con un oggetto, avvicinati e premi I");
+			this.events.emit("inventory-opened");
+		});
+
+		//Check interazione
+		this.events.once("inventory-opened", () => {
+			this.popupManager.showNextPopup();
+			const letter = new OggettoInterattivo(this, 640, 360, "letter");
+			letter.setDepth(-1);
+			letter.setScale(0.5, 0.5);
+
+			letter.interagisci = () => {
+				const messaggioLettera = "Nelle lettere puoi trovare informazioni utili per il gioco.";
+
+				this.letterManager.queueLetter(messaggioLettera);
+				this.letterManager.showNextLetter();
+
+				// Una volta chiusa la lettera inizia il blackout
+				this.letterManager.on('queueEmpty', () => {
+					this.events.emit("blackout");
+				});
+
+				// Rimuovi la lettera dalla scena
+				letter.destroy();
+			};
+
+			this.add.existing(letter);
+			this.oggVector.push(letter);
+		});
+
+		// Animazione del blackout con matte nero
+		this.events.once("blackout", () => {
+			const blackScreen = this.add.rectangle(
+				this.cameras.main.centerX, 
+				this.cameras.main.centerY, 
+				this.cameras.main.width, 
+				this.cameras.main.height, 
+				0x000000
+			);
+			blackScreen.setScrollFactor(0, 0);
+			blackScreen.setDepth(2000);
+			blackScreen.setAlpha(0.2);
+
+			let flashCount = 0;
+			const totalFlashes = 5;						//Numero di flash
+			let durations = [400, 50, 50, 50, 150];		//Durate dei singoli flash
+
+			const flashSequence = () => {
+				blackScreen.setAlpha(1);
+
+				this.time.delayedCall(100, () => { 
+					blackScreen.setAlpha(0);
+					flashCount++;
+
+					if (flashCount < totalFlashes) {
+						this.time.delayedCall(durations[flashCount], flashSequence);
+					} else {
+						blackScreen.destroy();
+						this.time.delayedCall(1000, () => {
+							this.events.emit("battery");
+						});
+					}
+				});
+			};
+
+			// Inizia la sequenza dopo un breve delay
+			this.time.delayedCall(500, flashSequence);
+		});
+
+		// Inizio del gioco da qua ᓚᘏᗢ
+		this.events.once("battery", () => {
+			this.popupManager.queuePopup("Oh no, la batteria della torcia è quasi scarica");
+			this.popupManager.queuePopup("Raccogli la batteria per ricaricarla e iniziare il gioco!");
 			this.popupManager.showNextPopup();
 
-
-			const ogg = new OggettoInterattivo(this, 640 + 10, 360 + 10, 'battery');
-
-			//sovrascrivo la funzione interagisci 
-			ogg.interagisci = () => {	
-				this.scene.start("LabTutorial");
-			}
-
-			// Aggiungi l'oggetto all'array di oggetti
-			this.oggVector.push(ogg);
-
-			// Crea l'oggetto dopo aver chiuso il popup, per evitare che si sovrapponga 
-			/*
-				se l'oggetto viene messo fuori  dallo schermo non serve 
-			*/ 
 			this.popupManager.on('queueEmpty', () => {
-					this.add.existing(ogg);
-				});
-		});
-	}
+				const battery = new OggettoInterattivo(this, 640, 300, "battery");
+				battery.setScale(0.5, 0.5);
+				battery.setDepth(-1); // Mette la batteria sotto il player
 
-	//timer 
-	private avviaTimer() {
-		this.time.addEvent({
-			delay: this.temp, 
-			callback: () => {
-				this.events.emit("timer-finished");
-			},
-			callbackScope: this // Importante: assicura che il callback abbia il giusto contesto
+				battery.interagisci = () => {
+					this.scene.start("LabTutorial");
+				};
+				this.add.existing(battery);
+				this.oggVector.push(battery);
+			});
 		});
-	}
+	}	
 	/* END-USER-CODE */
 }
 
