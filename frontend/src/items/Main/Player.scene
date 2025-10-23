@@ -23,7 +23,7 @@
                     "label": "player",
                     "scope": "PUBLIC",
                     "texture": {
-                        "key": "frontPlayer_L"
+                        "key": "frontPlayer_S"
                     },
                     "body.width": 16,
                     "body.height": 16

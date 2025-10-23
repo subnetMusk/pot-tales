@@ -165,15 +165,19 @@ class LabTutorial extends Phaser.Scene {
 				this.createMemoryGame();
 			});
 		};
+
+        this.events.once("game_completed", () => {
+            this.scene.start("Daghe Leo dio can");
+        });
 	}
 
+    //Lascia il comando emit al termine del gioco
 	private createMemoryGame() {
 		if (this.isMemoryActive) return; // Evita di avviare più volte il gioco
 		this.isMemoryActive = true;
-
+        this.events.emit("game_completed");
 		//TODO implementare il memory game
 	}
-
 	/* END-USER-CODE */
 }
 

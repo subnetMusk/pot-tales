@@ -9,7 +9,7 @@ class Player extends Phaser.GameObjects.Container {
 		super(scene, x ?? 13, y ?? 8);
 
 		// player
-		const player = scene.physics.add.sprite(0, 0, "frontPlayer_L");
+		const player = scene.physics.add.sprite(0, 0, "frontPlayer_S");
 		player.body.setSize(16, 16, false);
 		this.add(player);
 
@@ -82,7 +82,7 @@ class Player extends Phaser.GameObjects.Container {
 			this.leftKey = this.scene.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.LEFT);
 		}
 
-		this.scene.events.on("update", (time: number, delta: number) => this.movePlayer(time, delta), this);
+		this.scene.events.on("update", (time: number) => this.movePlayer(time), this);
 
 		this.Ikey = this.scene.input.keyboard?.addKey(Phaser.Input.Keyboard.KeyCodes.I);
 		this.Ikey?.on("down", () => {
@@ -105,9 +105,10 @@ class Player extends Phaser.GameObjects.Container {
 	private darkMask: Phaser.GameObjects.Image;
 
 	/* START-USER-CODE */
-	private stepSize: number = 8;					//grandezza del passo
-	private stepDelay: number = 100;				//attesa in ms tra i frame
-	private BoundsDebug: boolean = true;			//se true mostra i boundaries
+	private stepSize: number = 8;					//Grandezza del passo
+	private stepDelay: number = 100;				//Attesa in ms tra i frame
+	private BoundsDebug: boolean = true;			//true mostra i boundaries
+    public movementAllowed: boolean = true;       //Disabilita l'input
 
 	//Input della tastiera
 	private rightKey!: Phaser.Input.Keyboard.Key;
@@ -203,7 +204,7 @@ class Player extends Phaser.GameObjects.Container {
 	}
 
 	//Funzione di movimento
-	private movePlayer(time: number, delta: number) {
+	private movePlayer(time: number) {
 		if (this.player.body !== null) {
 			let dx = 0;
 			let dy = 0;
@@ -212,7 +213,7 @@ class Player extends Phaser.GameObjects.Container {
 			// Input verticale
 			if (this.upKey.isDown && !this.downKey.isDown) {
 				if (time - this.lastMoveTime >= this.stepDelay) {				//Controlla solo ogni stepDelay
-					for (let i = 0; i < this.boundaries.length; i++) {			//Controlla collisione con tutti i boundaries
+					if (this.boundaries.length != 0) for (let i = 0; i < this.boundaries.length; i++) {			//Controlla collisione con tutti i boundaries
 						let b = this.boundaries[i];
 						if (this.checkOverlap(this.topBound, b)) {
 							if (this.BoundsDebug) console.log("Collisione in alto con boundary");
@@ -221,13 +222,13 @@ class Player extends Phaser.GameObjects.Container {
 						} else {
 							dy = -this.stepSize;
 						}
-					}
+					} else dy = -this.stepSize;
 				}
 				this.direction = "back";
 				moving = true;
 			} else if (this.downKey.isDown && !this.upKey.isDown) {
 				if (time - this.lastMoveTime >= this.stepDelay) {
-					for (let i = 0; i < this.boundaries.length; i++) {
+                    if (this.boundaries.length != 0) for (let i = 0; i < this.boundaries.length; i++) {
 						let b = this.boundaries[i];
 						if (this.checkOverlap(this.bottomBound, b)) {
 							if (this.BoundsDebug) console.log("Collisione in basso con boundary");
@@ -236,7 +237,7 @@ class Player extends Phaser.GameObjects.Container {
 						} else {
 							dy = this.stepSize;
 						}
-					}
+					} else dy = this.stepSize;
 				}
 				this.direction = "front";
 				moving = true;
@@ -245,7 +246,7 @@ class Player extends Phaser.GameObjects.Container {
 			// Input orizzontale
 			if (this.leftKey.isDown && !this.rightKey.isDown) {
 				if (time - this.lastMoveTime >= this.stepDelay) {
-					for (let i = 0; i < this.boundaries.length; i++) {
+                    if (this.boundaries.length != 0) for (let i = 0; i < this.boundaries.length; i++) {
 						let b = this.boundaries[i];
 						if (this.checkOverlap(this.leftBound, b)) {
 							if (this.BoundsDebug) console.log("Collisione a sinistra con boundary");
@@ -254,14 +255,14 @@ class Player extends Phaser.GameObjects.Container {
 						} else {
 							dx = -this.stepSize;
 						}
-					}
+					} else dx = -this.stepSize;
 				}
 				this.direction = "side";
 				this.player.setFlipX(false);
 				moving = true;
 			} else if (this.rightKey.isDown && !this.leftKey.isDown) {
 				if (time - this.lastMoveTime >= this.stepDelay) {
-					for (let i = 0; i < this.boundaries.length; i++) {
+                    if (this.boundaries.length != 0) for (let i = 0; i < this.boundaries.length; i++) {
 						let b = this.boundaries[i];
 						if (this.checkOverlap(this.rightBound, b)) {
 							if (this.BoundsDebug) console.log("Collisione a destra con boundary");
@@ -270,17 +271,17 @@ class Player extends Phaser.GameObjects.Container {
 						} else {
 							dx = this.stepSize;
 						}
-					}
+					} else dx = this.stepSize;
 				}
 				this.direction = "side";
-				this.player.setFlipX(true);
+                if (this.movementAllowed) this.player.setFlipX(true);
 				moving = true;
 			}
 
 			//Input diagonale 
 			if (this.rightKey.isDown && this.downKey.isDown) {
 				if (time - this.lastMoveTime >= this.stepDelay) {
-					for (let i = 0; i < this.boundaries.length; i++) {
+                    if (this.boundaries.length != 0) for (let i = 0; i < this.boundaries.length; i++) {
 						let b = this.boundaries[i];
 						if (this.checkOverlap(this.bRBound, b)) {
 							if (this.BoundsDebug) console.log("Collisione in basso a destra con boundary");
@@ -304,7 +305,7 @@ class Player extends Phaser.GameObjects.Container {
 			}
 			if (this.rightKey.isDown && this.upKey.isDown) {
 				if (time - this.lastMoveTime >= this.stepDelay) {
-					for (let i = 0; i < this.boundaries.length; i++) {
+                    if (this.boundaries.length != 0) for (let i = 0; i < this.boundaries.length; i++) {
 						let b = this.boundaries[i];
 						if (this.checkOverlap(this.tRBound, b)) {
 							if (this.BoundsDebug) console.log("Collisione in alto a destra con boundary");
@@ -326,7 +327,7 @@ class Player extends Phaser.GameObjects.Container {
 			}
 			if (this.leftKey.isDown && this.downKey.isDown) {
 				if (time - this.lastMoveTime >= this.stepDelay) {
-					for (let i = 0; i < this.boundaries.length; i++) {
+                    if (this.boundaries.length != 0) for (let i = 0; i < this.boundaries.length; i++) {
 						let b = this.boundaries[i];
 						if (this.checkOverlap(this.bLBound, b)) {
 							if (this.BoundsDebug) console.log("Collisione in basso a sinistra con boundary");
@@ -347,7 +348,7 @@ class Player extends Phaser.GameObjects.Container {
 			}
 			if (this.leftKey.isDown && this.upKey.isDown) {
 				if (time - this.lastMoveTime >= this.stepDelay) {
-					for (let i = 0; i < this.boundaries.length; i++) {
+                    if (this.boundaries.length != 0) for (let i = 0; i < this.boundaries.length; i++) {
 						let b = this.boundaries[i];
 						if (this.checkOverlap(this.tLBound, b)) {
 							if (this.BoundsDebug) console.log("Collisione in alto a sinistra con boundary");
@@ -368,17 +369,19 @@ class Player extends Phaser.GameObjects.Container {
 			}
 
 			// Se sto muovendo
-			if (moving) {
-				if (time - this.lastMoveTime >= this.stepDelay) {
-					this.x += dx;
-					this.y += dy;
+            if (this.movementAllowed) {
+                if (moving) {
+                    if (time - this.lastMoveTime >= this.stepDelay) {
+                        this.x += dx;
+                        this.y += dy;
 
-					this.lastMoveTime = time;
-					this.updateMoveTexture(); // qui viene invertito lastStep
-				}
-			} else {
-				this.updateIdleTexture();
-			}
+                        this.lastMoveTime = time;
+                        this.updateMoveTexture(); // qui viene invertito lastStep
+                    }
+                } else {
+                    this.updateIdleTexture();
+                }
+            }
 		}
 	}
 
@@ -410,10 +413,10 @@ class Player extends Phaser.GameObjects.Container {
 	}
 
 	private controllaInterazioneOggetto() {
-		this.scene.oggVector.forEach(ogg => {
+		this.scene.oggVector.forEach((ogg: { x: number; y: number; set: boolean; interagisci: () => void; }) => {
 			const distanza = Phaser.Math.Distance.Between(this.x, this.y, ogg.x, ogg.y);
 			//TODO : controllare che gli oggetti non siano abbastanza vicini
-			if(distanza < 20 &&  ogg.set == true) {
+			if(distanza < 20 &&  ogg.set) {
 				ogg.interagisci();
 			}
 		});
