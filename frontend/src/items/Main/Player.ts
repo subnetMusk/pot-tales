@@ -332,7 +332,6 @@ class Player extends Phaser.GameObjects.Container {
                 }
             }
         }
-
         // Se non mi sto muovendo carico la texture ferma
         if (!moving) {
             this.updateIdleTexture();
@@ -369,18 +368,19 @@ class Player extends Phaser.GameObjects.Container {
 			this.player.setTexture(this.lastStep ? "sidePlayer_M" : "sidePlayer_S");
 		}
 
-		// Invertiamo lastStep **solo qui**, dopo aver cambiato la texture
 		this.lastStep = !this.lastStep;
 	}
 
 	private controllaInterazioneOggetto() {
-		this.scene.oggVector.forEach((ogg: { x: number; y: number; set: boolean; interagisci: () => void; }) => {
-			const distanza = Phaser.Math.Distance.Between(this.x, this.y, ogg.x, ogg.y);
-			//TODO : controllare che gli oggetti non siano abbastanza vicini
-			if(distanza < 20 &&  ogg.set) {
-				ogg.interagisci();
-			}
-		});
+		const oggVector = (this.scene as any).oggVector as { x: number; y: number; set: boolean; interagisci: () => void; }[] | undefined;
+
+        if (oggVector) for (const ogg of oggVector) {
+            const distanza = Phaser.Math.Distance.Between(this.x, this.y, ogg.x, ogg.y);
+            if (distanza < 20 && ogg.set) {
+                ogg.interagisci();
+                break;
+            }
+        }
 	}
 	/* END-USER-CODE */
 }
