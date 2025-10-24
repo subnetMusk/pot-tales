@@ -19,9 +19,11 @@ class Memory extends Phaser.Scene {
 
 	editorCreate(): void {
 		// sfondo_memory
-		const sfondo_memory = this.add.rectangle(640, 360, 640, 512);
-		sfondo_memory.isFilled = true;
-		sfondo_memory.fillColor = 10145483;
+		const rectangle_1 = this.add.rectangle(640, 360, 1280, 720);
+		rectangle_1.blendMode = Phaser.BlendModes.SATURATION;
+		rectangle_1.alpha = 0.3;
+		rectangle_1.isFilled = true;
+		rectangle_1.fillColor = 0;
 		this.events.emit("scene-awake");
 	}
 

@@ -173,6 +173,7 @@ class LabTutorial extends Phaser.Scene {
 		this.scene.pause();
 		console.log("Avvio del memory game...");
 
+		this.cameras.main.postFX.addBlur(4, 2, 2); // Aggiungi effetto blur alla scena sottostante
 		// Launch the memory scene on top of this paused scene
 		this.scene.launch("Memory");
 
@@ -183,6 +184,9 @@ class LabTutorial extends Phaser.Scene {
 			memScene.events.once("memory-complete", () => {
 				console.log("Memory completed, resuming LabTutorial");
 				this.scene.stop("Memory"); // Ferma la scena Memory
+
+				this.cameras.main.postFX.remove(this.cameras.main.postFX.list[0]); // Rimuovi l'effetto blur
+
 				this.scene.resume(); // Riprendi LabTutorial
 				this.isMemoryActive = false;
 				
