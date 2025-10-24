@@ -194,16 +194,15 @@ class Player extends Phaser.GameObjects.Container {
 
 	//Funzione di movimento
 	private movePlayer(time: number) {
-        if (!this.movementAllowed) {    //Input disabilitato
-            return;
-        }
-        if (this.player.body === null) return;      //Controlla che player non sia null
 
+        //Condizioni per il movimento
+        if (!this.movementAllowed) return;                          //Input disabilitato
+        if (this.player.body === null) return;                      //Controlla che player non sia null
         if (time - this.lastMoveTime < this.stepDelay) return;      //Movimento a scatti
 
-        let dx = 0;             //Componente orizzontale
-        let dy = 0;             //Componente verticale
-        let moving = false;     //Stato del movimento
+        let dx = 0;                                         //Componente orizzontale
+        let dy = 0;                                         //Componente verticale
+        let moving = false;                                 //Stato del movimento
 
         if (this.upKey.isDown && !this.downKey.isDown) {            //Freccia sù
             dy = -this.stepSize;                                    //Spostamento
@@ -262,59 +261,74 @@ class Player extends Phaser.GameObjects.Container {
 
         //Input diagonale
         if (this.rightKey.isDown && this.downKey.isDown) {
-            if (this.boundaries.length > 0) for (let bound of this.boundaries) {
-                if (this.checkOverlap(this.bRBound, bound)) {      //Collisione
-                    //Ora controllo se sto colpendo un angolo o se è una collisione laterale
-                    if (this.checkOverlap(this.rightBound, bound)) {
-                        dx = 0;
-                    } else if (this.checkOverlap(this.bottomBound, bound)) {
-                        dy = 0;
-                    } else {            //Effettivamente è un angolo, semplicemente lo fermo
-                        dx = 0;
-                        dy = 0;
-                    }
+            if (this.boundaries.length !== 0) for (const boundary of this.boundaries) {
+                const overlaps = this.checkOverlap(this.bRBound, boundary);
+                if (!overlaps) continue;                //Se non c'è overlap salto la prossima parte
+
+                const hitRight = this.checkOverlap(this.rightBound, boundary);
+                const hitBottom = this.checkOverlap(this.bottomBound, boundary);
+
+                if (hitRight && !hitBottom) {
+                    dx = 0;                             //Collisione laterale
+                } else if (hitBottom && !hitRight) {
+                    dy = 0;                             //Collisione verticale
+                } else {
+                    dx = 0;                             //Collisione con angolo
+                    dy = 0;
                 }
             }
         }
         if (this.rightKey.isDown && this.upKey.isDown) {
-            if (this.boundaries.length > 0) for (let bound of this.boundaries) {
-                if (this.checkOverlap(this.tRBound, bound)) {      //Collisione
-                    if (this.checkOverlap(this.rightBound, bound)) {
-                        dx = 0;
-                    } else if (this.checkOverlap(this.topBound, bound)) {
-                        dy = 0;
-                    } else {
-                        dx = 0;
-                        dy = 0;
-                    }
+            if (this.boundaries.length !== 0) for (const boundary of this.boundaries) {
+                const overlaps = this.checkOverlap(this.tRBound, boundary);
+                if (!overlaps) continue;                //Se non c'è overlap salto la prossima parte
+
+                const hitRight = this.checkOverlap(this.rightBound, boundary);
+                const hitBottom = this.checkOverlap(this.topBound, boundary);
+
+                if (hitRight && !hitBottom) {
+                    dx = 0;                             //Collisione laterale
+                } else if (hitBottom && !hitRight) {
+                    dy = 0;                             //Collisione verticale
+                } else {
+                    dx = 0;                             //Collisione con angolo
+                    dy = 0;
                 }
             }
         }
         if (this.leftKey.isDown && this.downKey.isDown) {
-            if (this.boundaries.length > 0) for (let bound of this.boundaries) {
-                if (this.checkOverlap(this.bLBound, bound)) {      //Collisione
-                    if (this.checkOverlap(this.leftBound, bound)) {
-                        dx = 0;
-                    } else if (this.checkOverlap(this.bottomBound, bound)) {
-                        dy = 0;
-                    } else {
-                        dx = 0;
-                        dy = 0;
-                    }
+            if (this.boundaries.length !== 0) for (const boundary of this.boundaries) {
+                const overlaps = this.checkOverlap(this.bLBound, boundary);
+                if (!overlaps) continue;                //Se non c'è overlap salto la prossima parte
+
+                const hitRight = this.checkOverlap(this.leftBound, boundary);
+                const hitBottom = this.checkOverlap(this.bottomBound, boundary);
+
+                if (hitRight && !hitBottom) {
+                    dx = 0;                             //Collisione laterale
+                } else if (hitBottom && !hitRight) {
+                    dy = 0;                             //Collisione verticale
+                } else {
+                    dx = 0;                             //Collisione con angolo
+                    dy = 0;
                 }
             }
         }
         if (this.leftKey.isDown && this.upKey.isDown) {
-            if (this.boundaries.length > 0) for (let bound of this.boundaries) {
-                if (this.checkOverlap(this.tLBound, bound)) {      //Collisione
-                    if (this.checkOverlap(this.leftBound, bound)) {
-                        dx = 0;
-                    } else if (this.checkOverlap(this.topBound, bound)) {
-                        dy = 0;
-                    } else {
-                        dx = 0;
-                        dy = 0;
-                    }
+            if (this.boundaries.length !== 0) for (const boundary of this.boundaries) {
+                const overlaps = this.checkOverlap(this.tLBound, boundary);
+                if (!overlaps) continue;                //Se non c'è overlap salto la prossima parte
+
+                const hitRight = this.checkOverlap(this.leftBound, boundary);
+                const hitBottom = this.checkOverlap(this.topBound, boundary);
+
+                if (hitRight && !hitBottom) {
+                    dx = 0;                             //Collisione laterale
+                } else if (hitBottom && !hitRight) {
+                    dy = 0;                             //Collisione verticale
+                } else {
+                    dx = 0;                             //Collisione con angolo
+                    dy = 0;
                 }
             }
         }
