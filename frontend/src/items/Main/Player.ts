@@ -3,6 +3,8 @@
 
 /* START OF COMPILED CODE */
 
+import Rectangle = Phaser.Geom.Rectangle;
+
 class Player extends Phaser.GameObjects.Container {
 
 	constructor(scene: Phaser.Scene, x?: number, y?: number) {
@@ -178,211 +180,156 @@ class Player extends Phaser.GameObjects.Container {
 	}
 
 	public debug(v : boolean) {
-		if (v) {
-			this.BoundsDebug = true;
-			this.leftBound.visible = true;
-			this.rightBound.visible = true;
-			this.topBound.visible = true;
-			this.bottomBound.visible = true;
-			this.tLBound.visible = true;
-			this.tRBound.visible = true;
-			this.bLBound.visible = true;
-			this.bRBound.visible = true;
-			this.boundaries.forEach(b => b.visible = true);
-		} else {
-			this.BoundsDebug = false;
-			this.leftBound.visible = false;
-			this.rightBound.visible = false;
-			this.topBound.visible = false;
-			this.bottomBound.visible = false;
-			this.tLBound.visible = false;
-			this.tRBound.visible = false;
-			this.bLBound.visible = false;
-			this.bRBound.visible = false;
-			this.boundaries.forEach(b => b.visible = false);
-		}
+			this.BoundsDebug = v;
+			this.leftBound.visible = v;
+			this.rightBound.visible = v;
+			this.topBound.visible = v;
+			this.bottomBound.visible = v;
+			this.tLBound.visible = v;
+			this.tRBound.visible = v;
+			this.bLBound.visible = v;
+			this.bRBound.visible = v;
+			this.boundaries.forEach(b => b.visible = v);
 	}
 
 	//Funzione di movimento
 	private movePlayer(time: number) {
-		if (this.player.body !== null) {
-			let dx = 0;
-			let dy = 0;
-			let moving = false;
+        if (!this.movementAllowed) {    //Input disabilitato
+            return;
+        }
+        if (this.player.body === null) return;      //Controlla che player non sia null
 
-			// Input verticale
-			if (this.upKey.isDown && !this.downKey.isDown) {
-				if (time - this.lastMoveTime >= this.stepDelay) {				//Controlla solo ogni stepDelay
-					if (this.boundaries.length != 0) for (let i = 0; i < this.boundaries.length; i++) {			//Controlla collisione con tutti i boundaries
-						let b = this.boundaries[i];
-						if (this.checkOverlap(this.topBound, b)) {
-							if (this.BoundsDebug) console.log("Collisione in alto con boundary");
-							dy = 0;												//Collisione = movimento nullo, animazione attiva
-							break;
-						} else {
-							dy = -this.stepSize;
-						}
-					} else dy = -this.stepSize;
-				}
-				this.direction = "back";
-				moving = true;
-			} else if (this.downKey.isDown && !this.upKey.isDown) {
-				if (time - this.lastMoveTime >= this.stepDelay) {
-                    if (this.boundaries.length != 0) for (let i = 0; i < this.boundaries.length; i++) {
-						let b = this.boundaries[i];
-						if (this.checkOverlap(this.bottomBound, b)) {
-							if (this.BoundsDebug) console.log("Collisione in basso con boundary");
-							dy = 0;
-							break;
-						} else {
-							dy = this.stepSize;
-						}
-					} else dy = this.stepSize;
-				}
-				this.direction = "front";
-				moving = true;
-			}
+        if (time - this.lastMoveTime < this.stepDelay) return;      //Movimento a scatti
 
-			// Input orizzontale
-			if (this.leftKey.isDown && !this.rightKey.isDown) {
-				if (time - this.lastMoveTime >= this.stepDelay) {
-                    if (this.boundaries.length != 0) for (let i = 0; i < this.boundaries.length; i++) {
-						let b = this.boundaries[i];
-						if (this.checkOverlap(this.leftBound, b)) {
-							if (this.BoundsDebug) console.log("Collisione a sinistra con boundary");
-							dx = 0;
-							break;
-						} else {
-							dx = -this.stepSize;
-						}
-					} else dx = -this.stepSize;
-				}
-				this.direction = "side";
-				this.player.setFlipX(false);
-				moving = true;
-			} else if (this.rightKey.isDown && !this.leftKey.isDown) {
-				if (time - this.lastMoveTime >= this.stepDelay) {
-                    if (this.boundaries.length != 0) for (let i = 0; i < this.boundaries.length; i++) {
-						let b = this.boundaries[i];
-						if (this.checkOverlap(this.rightBound, b)) {
-							if (this.BoundsDebug) console.log("Collisione a destra con boundary");
-							dx = 0;
-							break;
-						} else {
-							dx = this.stepSize;
-						}
-					} else dx = this.stepSize;
-				}
-				this.direction = "side";
-                if (this.movementAllowed) this.player.setFlipX(true);
-				moving = true;
-			}
+        let dx = 0;             //Componente orizzontale
+        let dy = 0;             //Componente verticale
+        let moving = false;     //Stato del movimento
 
-			//Input diagonale 
-			if (this.rightKey.isDown && this.downKey.isDown) {
-				if (time - this.lastMoveTime >= this.stepDelay) {
-                    if (this.boundaries.length != 0) for (let i = 0; i < this.boundaries.length; i++) {
-						let b = this.boundaries[i];
-						if (this.checkOverlap(this.bRBound, b)) {
-							if (this.BoundsDebug) console.log("Collisione in basso a destra con boundary");
-							//So che in diagonale non può andare, ora devo controllare
-							//Anche rightBound e topBound, se ne sta colpendo contemporaneamente due, ho solo un blocco
-							//Laterale, non diagonale, quindi mi basta annullare solo uno dei due movimenti
-							if (this.checkOverlap(this.rightBound, b)) {
-								dx = 0;
-								break;
-							} else if (this.checkOverlap(this.bottomBound, b)) {
-								dy = 0;
-								break;
-							} else {
-								dx = 0;
-								dy = 0;
-								break;
-							}
-						}
-					}
-				}
-			}
-			if (this.rightKey.isDown && this.upKey.isDown) {
-				if (time - this.lastMoveTime >= this.stepDelay) {
-                    if (this.boundaries.length != 0) for (let i = 0; i < this.boundaries.length; i++) {
-						let b = this.boundaries[i];
-						if (this.checkOverlap(this.tRBound, b)) {
-							if (this.BoundsDebug) console.log("Collisione in alto a destra con boundary");
+        if (this.upKey.isDown && !this.downKey.isDown) {            //Freccia sù
+            dy = -this.stepSize;                                    //Spostamento
+            this.direction = "back";                                //Nuova direzione
+            moving = true;                                          //Aggiornamento stato
 
-							if (this.checkOverlap(this.rightBound, b)) {
-								dx = 0;
-								break;
-							} else if (this.checkOverlap(this.topBound, b)) {
-								dy = 0;
-								break;
-							} else {
-								dx = 0;
-								dy = 0;
-								break;
-							}
-						}
-					}
-				}
-			}
-			if (this.leftKey.isDown && this.downKey.isDown) {
-				if (time - this.lastMoveTime >= this.stepDelay) {
-                    if (this.boundaries.length != 0) for (let i = 0; i < this.boundaries.length; i++) {
-						let b = this.boundaries[i];
-						if (this.checkOverlap(this.bLBound, b)) {
-							if (this.BoundsDebug) console.log("Collisione in basso a sinistra con boundary");
-							if (this.checkOverlap(this.leftBound, b)) {
-								dx = 0;
-								break;
-							} else if (this.checkOverlap(this.bottomBound, b)) {
-								dy = 0;
-								break;
-							} else {
-								dx = 0;
-								dy = 0;
-								break;
-							}
-						}
-					}
-				}
-			}
-			if (this.leftKey.isDown && this.upKey.isDown) {
-				if (time - this.lastMoveTime >= this.stepDelay) {
-                    if (this.boundaries.length != 0) for (let i = 0; i < this.boundaries.length; i++) {
-						let b = this.boundaries[i];
-						if (this.checkOverlap(this.tLBound, b)) {
-							if (this.BoundsDebug) console.log("Collisione in alto a sinistra con boundary");
-							if (this.checkOverlap(this.leftBound, b)) {
-								dx = 0;
-								break;
-							} else if (this.checkOverlap(this.topBound, b)) {
-								dy = 0;
-								break;
-							} else {
-								dx = 0;
-								dy = 0;
-								break;
-							}
-						}
-					}
-				}
-			}
-
-			// Se sto muovendo
-            if (this.movementAllowed) {
-                if (moving) {
-                    if (time - this.lastMoveTime >= this.stepDelay) {
-                        this.x += dx;
-                        this.y += dy;
-
-                        this.lastMoveTime = time;
-                        this.updateMoveTexture(); // qui viene invertito lastStep
-                    }
-                } else {
-                    this.updateIdleTexture();
+            //Controllo collisioni
+            if (this.boundaries.length > 0) for (let bound of this.boundaries) {
+                if (this.checkOverlap(this.topBound, bound)) {      //Collisione
+                    dy = 0;                                         //Annullo il movimento
+                    break;
                 }
             }
-		}
+        } else if (this.downKey.isDown && !this.upKey.isDown) {
+            dy = this.stepSize;                                     //Spostamento
+            this.direction = "front";                               //Nuova direzione
+            moving = true;                                          //Aggiornamento stato
+
+            //Controllo collisioni
+            if (this.boundaries.length > 0) for (let bound of this.boundaries) {
+                if (this.checkOverlap(this.bottomBound, bound)) {   //Collisione
+                    dy = 0;                                         //Annullo il movimento
+                    break;
+                }
+            }
+        }
+
+        // Input orizzontale
+        if (this.leftKey.isDown && !this.rightKey.isDown) {
+            dx = -this.stepSize;                                    //Spostamento
+            this.direction = "side";                                //Nuova direzione
+            this.player.setFlipX(false);                      //Flip della texture
+            moving = true;                                          //Aggiornamento stato
+
+            //Controllo collisioni
+            if (this.boundaries.length > 0) for (let bound of this.boundaries) {
+                if (this.checkOverlap(this.leftBound, bound)) {      //Collisione
+                    dx = 0;                                         //Annullo il movimento
+                    break;
+                }
+            }
+        } else if (this.rightKey.isDown && !this.leftKey.isDown) {
+            dx = this.stepSize;                                    //Spostamento
+            this.direction = "side";                                //Nuova direzione
+            this.player.setFlipX(true);                      //Flip della texture
+            moving = true;                                          //Aggiornamento stato
+
+            //Controllo collisioni
+            if (this.boundaries.length > 0) for (let bound of this.boundaries) {
+                if (this.checkOverlap(this.rightBound, bound)) {      //Collisione
+                    dx = 0;                                         //Annullo il movimento
+                    break;
+                }
+            }
+        }
+
+        //Input diagonale
+        if (this.rightKey.isDown && this.downKey.isDown) {
+            if (this.boundaries.length > 0) for (let bound of this.boundaries) {
+                if (this.checkOverlap(this.bRBound, bound)) {      //Collisione
+                    //Ora controllo se sto colpendo un angolo o se è una collisione laterale
+                    if (this.checkOverlap(this.rightBound, bound)) {
+                        dx = 0;
+                    } else if (this.checkOverlap(this.bottomBound, bound)) {
+                        dy = 0;
+                    } else {            //Effettivamente è un angolo, semplicemente lo fermo
+                        dx = 0;
+                        dy = 0;
+                    }
+                }
+            }
+        }
+        if (this.rightKey.isDown && this.upKey.isDown) {
+            if (this.boundaries.length > 0) for (let bound of this.boundaries) {
+                if (this.checkOverlap(this.tRBound, bound)) {      //Collisione
+                    if (this.checkOverlap(this.rightBound, bound)) {
+                        dx = 0;
+                    } else if (this.checkOverlap(this.topBound, bound)) {
+                        dy = 0;
+                    } else {
+                        dx = 0;
+                        dy = 0;
+                    }
+                }
+            }
+        }
+        if (this.leftKey.isDown && this.downKey.isDown) {
+            if (this.boundaries.length > 0) for (let bound of this.boundaries) {
+                if (this.checkOverlap(this.bLBound, bound)) {      //Collisione
+                    if (this.checkOverlap(this.leftBound, bound)) {
+                        dx = 0;
+                    } else if (this.checkOverlap(this.bottomBound, bound)) {
+                        dy = 0;
+                    } else {
+                        dx = 0;
+                        dy = 0;
+                    }
+                }
+            }
+        }
+        if (this.leftKey.isDown && this.upKey.isDown) {
+            if (this.boundaries.length > 0) for (let bound of this.boundaries) {
+                if (this.checkOverlap(this.tLBound, bound)) {      //Collisione
+                    if (this.checkOverlap(this.leftBound, bound)) {
+                        dx = 0;
+                    } else if (this.checkOverlap(this.topBound, bound)) {
+                        dy = 0;
+                    } else {
+                        dx = 0;
+                        dy = 0;
+                    }
+                }
+            }
+        }
+
+        // Se non mi sto muovendo carico la texture ferma
+        if (!moving) {
+            this.updateIdleTexture();
+            return;
+        }
+
+        //Altrimenti, aggiorno posizione e tempo dell'ultimo passo
+        this.x += dx;
+        this.y += dy;
+        this.lastMoveTime = time;
+        this.updateMoveTexture(); // qui viene invertito lastStep
 	}
 
 	private updateIdleTexture() {
