@@ -170,7 +170,28 @@ class LabTutorial extends Phaser.Scene {
 	private createMemoryGame() {
 		if (this.isMemoryActive) return; // Evita di avviare più volte il gioco
 		this.isMemoryActive = true;
+		this.scene.pause();
+		console.log("Avvio del memory game...");
 
+		// Launch the memory scene on top of this paused scene
+		this.scene.launch("Memory");
+
+		// When the memory scene finishes, resume this scene
+		const memScene = this.scene.get("Memory") as Phaser.Scene | undefined;
+		if (memScene) {
+			// Ascolta l'evento personalizzato di vittoria
+			memScene.events.once("memory-complete", () => {
+				console.log("Memory completed, resuming LabTutorial");
+				this.scene.stop("Memory"); // Ferma la scena Memory
+				this.scene.resume(); // Riprendi LabTutorial
+				this.isMemoryActive = false;
+				
+				// Mostra un messaggio di successo
+				this.popupManager.queuePopup("Bravissimo! Hai vinto!");
+				this.popupManager.queuePopup("Ora puoi continuare con il laboratorio...");
+				this.popupManager.showNextPopup();
+			});
+		}
 		//TODO implementare il memory game
 	}
 

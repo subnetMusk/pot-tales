@@ -6,29 +6,46 @@ class MemoryCard  extends Phaser.GameObjects.Container {
     private code:  number = 0;
     protected isFlipped: boolean = false;
     protected isMatched: boolean = false;
-    private image: Phaser.GameObjects.Image;
-    private backImage : Phaser.GameObjects.Image;
-    private dimensions: {width: number, height: number} = {width: 100, height: 150};
+    private image: Phaser.GameObjects.Image = new Phaser.GameObjects.Image(this.scene, 0, 0, 'card_back');
+    private backImage : Phaser.GameObjects.Image = new Phaser.GameObjects.Image(this.scene, 0, 0, 'card_back');
+    private dimensions: {width: number, height: number} = {width: 100, height: 100};
     public scene: Phaser.Scene;
 
-    constructor(code: number, imageKey: string, scene: Phaser.Scene,id:number,coords?: {x: number, y: number}) {
-        super(scene,640,360);
-        this.code = code;
+    constructor( scene: Phaser.Scene,id:number,coords?: {x: number, y: number}) {
+        super(scene,640,360);       
         this.scene = scene;
-        this.image = new Phaser.GameObjects.Image(this.scene, 0, 0, imageKey);
-        this.backImage = new Phaser.GameObjects.Image(this.scene, 0, 0, 'card_back');
-        this.backImage.setActive(true);
-        this.id = id;
-        this.isFlipped = false;
         this.setPosition(coords?.x || 0, coords?.y || 0);
+
+        this.id = id;
+
+        this.add(this.backImage);
+        this.add(this.image);
+        
+        this.image.setVisible(false); // Inizia con il dorso visibile
+        this.backImage.setVisible(true);
+        
+        // Ridimensiona le immagini
+        this.backImage.setDisplaySize(this.dimensions.width, this.dimensions.height);
+        this.image.setDisplaySize(this.dimensions.width, this.dimensions.height);
+
+        this.setSize(this.dimensions.width, this.dimensions.height);
+
+        
+
+        // Abilita l'interazione
+        this.setInteractive({ useHandCursor: true })
+            .on('pointerup', () => {
+                // Emetti un evento personalizzato quando la carta viene cliccata
+                this.scene.events.emit('card-clicked', this);
+            });
     }
 
     public flip(): void {
 
         //TODO fare l'animazione per girare la carta
 
-        this.backImage.setVisible(!this.isFlipped);
-        this.image.setVisible(this.isFlipped);
+        this.backImage.setVisible(this.isFlipped);
+        this.image.setVisible(!this.isFlipped);
 
         this.isFlipped = !this.isFlipped;
     }
@@ -41,18 +58,38 @@ class MemoryCard  extends Phaser.GameObjects.Container {
         return this.id;
     }
 
-    public isSister(code:number): boolean{
-        return this.code === code;
+    public getImg(): Phaser.GameObjects.Image {
+        return this.image;
     }
 
-    public createCard(): void {
-        this.scene.add.existing(this.backImage);
-        this.scene.add.existing(this.image);
 
-
+    public isSister(card: MemoryCard): boolean{
+        if(this.id != card.getId()){
+            return this.code === card.getCode();
+        }
+        return false;
     }
 
+    public setCode(code: number): void {
+        this.code = code;
+    }
+
+    public setImg(imageKey: string): void {
+        // Rimuovi l'immagine vecchia dal container
+        this.remove(this.image);
+        this.image.destroy();
+        
+        // Crea una nuova immagine e aggiungila al container
+        this.image = new Phaser.GameObjects.Image(this.scene, 0, 0, imageKey);
+        this.add(this.image);
+        this.image.setDisplaySize(this.dimensions.width, this.dimensions.height);
+        this.image.setVisible(false); // Mantieni il dorso visibile finché non viene girata
+    }   
+
+    
 
 
 
 }
+
+export default MemoryCard;

@@ -116,7 +116,23 @@ export default class LetterManager extends PopupManager {
 
         // Gestione click con animazione più pulita
         closeButton.on('pointerdown', closeLetter);
-        
+
+        // Gestione tasto Invio
+        const onEnterDown = () => {
+            if (this.isPopupActive && this.currentPopup === popup) {
+                closeLetter();
+            }
+        };
+
+        // Aggiungi listener per il tasto Invio
+        this.enterKey?.on('down', onEnterDown);
+
+        // Rimuovi il listener quando il popup viene distrutto
+        const originalDestroy = popup.destroy.bind(popup);
+        popup.destroy = () => {
+            this.enterKey?.off('down', onEnterDown);
+            originalDestroy();
+        };
         return popup;
     }
 }
