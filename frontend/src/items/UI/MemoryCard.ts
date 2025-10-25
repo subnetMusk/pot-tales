@@ -6,9 +6,9 @@ class MemoryCard  extends Phaser.GameObjects.Container {
     private code:  number = 0;
     protected isFlipped: boolean = false;
     protected isMatched: boolean = false;
-    private image: Phaser.GameObjects.Image = new Phaser.GameObjects.Image(this.scene, 0, 0, 'card_back');
-    private backImage : Phaser.GameObjects.Image = new Phaser.GameObjects.Image(this.scene, 0, 0, 'card_back');
-    private dimensions: {width: number, height: number} = {width: 100, height: 100};
+    private image: Phaser.GameObjects.Image = new Phaser.GameObjects.Image(this.scene, 0, 0, 'card', 0);
+    private backImage : Phaser.GameObjects.Image = new Phaser.GameObjects.Image(this.scene, 0, 0, 'card', 0);
+    private dimensions: {width: number, height: number} = {width: 96, height: 128};
     public scene: Phaser.Scene;
 
     constructor( scene: Phaser.Scene,id:number,coords?: {x: number, y: number}) {
@@ -72,23 +72,17 @@ class MemoryCard  extends Phaser.GameObjects.Container {
 
     public setCode(code: number): void {
         this.code = code;
-    }
 
-    public setImg(imageKey: string): void {
         // Rimuovi l'immagine vecchia dal container
         this.remove(this.image);
         this.image.destroy();
         
         // Crea una nuova immagine e aggiungila al container
-        this.image = new Phaser.GameObjects.Image(this.scene, 0, 0, imageKey);
+        this.image = new Phaser.GameObjects.Image(this.scene, 0, 0, 'card', this.code);
         this.add(this.image);
         this.image.setDisplaySize(this.dimensions.width, this.dimensions.height);
         this.image.setVisible(false); // Mantieni il dorso visibile finché non viene girata
-    }   
-
-    
-
-
+    }
 
 }
 

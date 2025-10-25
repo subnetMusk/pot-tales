@@ -16,10 +16,11 @@
             "label": "sfondo_memory",
             "x": 640,
             "y": 360,
+            "alpha": 0.3,
             "isFilled": true,
-            "fillColor": "#9acecb",
-            "width": 640,
-            "height": 512
+            "fillColor": "#000000",
+            "width": 1280,
+            "height": 720
         }
     ],
     "plainObjects": [],
