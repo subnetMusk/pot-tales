@@ -67,7 +67,6 @@ class Memory extends Phaser.Scene {
 				const card = new MemoryCard( this, i * 4 + j, { x, y });
 				this.cards.push(card);
 				this.add.existing(card); // Aggiungi il container della carta alla scena
-				console.log(`Carta ${i * 4 + j} creata alle coordinate (${x}, ${y})`);
 				x += 148;
 			}
 			y += 156;
@@ -75,7 +74,6 @@ class Memory extends Phaser.Scene {
 
 		// genera un array con valori unici
 		let randomArray: number[] = Phaser.Utils.Array.Shuffle([0, 1, 2, 3, 4, 5, 6, 7]);
-		console.log("randomArray:", randomArray);
 
 		//assegno le immagini alle prime 8 carte
 		for (let i = 0; i < 8; i++) {
@@ -84,7 +82,6 @@ class Memory extends Phaser.Scene {
 
 		//rimischia 
 		let randomArray1 = Phaser.Utils.Array.Shuffle(randomArray);
-		console.log("randomArray:", randomArray1);
 
 		//creo le coppie assegnando le stesse immagini alle carte da 8 a 15
 		// Le coppie sono nelle stesse posizioni dell'array (0-7)
@@ -92,30 +89,23 @@ class Memory extends Phaser.Scene {
 			this.cards[8 + i].setCode(cardData[randomArray[i]].code);
 		}
 
-		for(let i=0; i<16;i ++){
-			console.log(`Carta ${i}:`, {
-				code: this.cards[i].getCode(),
-				id: this.cards[i].getImg()
-			});
-		}
 
 		// Listener per i click sulle carte
 		this.events.on('card-clicked', (card: MemoryCard) => {
-			console.log(`Carta cliccata - ID: ${card.getId()}, Code: ${card.getCode()}`);
 
+		//TODO inserire suono di click carta
 
+		//this.sound.play('card_click');
 
 		if(carteGirate.length == 0 ){
 			//aggiungo la carta corrente
 			carteGirate.push(card);
 			carteGirate[0].flip(); // Gira la carta
-			console.log("carta girata");
 		}
 		else if(carteGirate.length == 1 && !carteGirate.includes(card)){
 			//controllo se sono coppie
 			carteGirate.push(card);
 			carteGirate[1].flip(); // Gira la carta
-			console.log("Seconda carta girata");
 
 			//delay per mostrare la seconda carta girata
 			this.time.delayedCall(1000, () => {
