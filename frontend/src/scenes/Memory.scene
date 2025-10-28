@@ -1,0 +1,33 @@
+{
+    "id": "34a2a603-4e7f-4d64-9425-a9ef1e511c91",
+    "sceneType": "SCENE",
+    "settings": {
+        "preloadPackFiles": [],
+        "createMethodName": "editorCreate",
+        "sceneKey": "Memory",
+        "compilerOutputLanguage": "TYPE_SCRIPT",
+        "borderWidth": 1280,
+        "borderHeight": 720
+    },
+    "displayList": [
+        {
+            "type": "Rectangle",
+            "id": "25fbfd2b-b7ec-4d29-98f8-8234c32f0394",
+            "label": "sfondo_memory",
+            "x": 640,
+            "y": 360,
+            "alpha": 0.3,
+            "isFilled": true,
+            "fillColor": "#000000",
+            "width": 1280,
+            "height": 720
+        }
+    ],
+    "plainObjects": [],
+    "meta": {
+        "app": "Phaser Editor - Scene Editor",
+        "url": "https://phaser.io/editor",
+        "contentType": "phasereditor2d.core.scene.SceneContentType",
+        "version": 5
+    }
+}

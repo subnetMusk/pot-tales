@@ -20,5 +20,7 @@ export class Function {
 
         return { x: absoluteX, y: absoluteY };
     }
+
+
 }
 
