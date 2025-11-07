@@ -1,33 +1,48 @@
 import * as THREE from 'three';
-import { OBJLoader } from 'three/examples/jsm/loaders/OBJLoader.js';
-
-const width = window.innerWidth, height = window.innerHeight;
-
-// init
-
-const camera = new THREE.PerspectiveCamera( 70, width / height, 0.01, 10 );
-camera.position.z = 1;
+import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
+import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 
 const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000); //75mm FOV, simil tele
 
-const geometry = new THREE.BoxGeometry( 0.2, 0.2, 0.2 );
-const material = new THREE.MeshNormalMaterial();
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.setClearColor(0xDCDCDC); 								//BG colore DIOCANEDIOCANEDIOCANE, anche detto gainsboro
+document.body.appendChild(renderer.domElement);
 
-const mesh = new THREE.Mesh( geometry, material );
-scene.add( mesh );
+const controls = new OrbitControls(camera, renderer.domElement);	//Rotazione con il mouse
+controls.maxPolarAngle = Math.PI / 2;
 
-const renderer = new THREE.WebGLRenderer( { antialias: true } );
-renderer.setSize( width, height );
-renderer.setAnimationLoop( animate );
-document.body.appendChild( renderer.domElement );
+scene.add(new THREE.AmbientLight(0xffffff, 0.02));					//Illuminazione ambientale leggera
+const dirLight = new THREE.DirectionalLight(0xffffff, 0.9);			//Luce direzionale per dare le ombre al modello
+dirLight.position.set(5, 10, 7.5);									//Posizione molto arbitraria
+scene.add(dirLight);
 
-// animation
+let model;		//
 
-function animate( time ) {
+const loader = new GLTFLoader();
+loader.load("../../assets/3Dobjs/obj1/DEFO.glb", (gltf) => {	//C
+  model = gltf.scene;
+  model.scale.set(0.1, 0.1, 0.1);			//Riscala il modello
+  scene.add(model);
 
-	mesh.rotation.x = time / 2000;
-	mesh.rotation.y = time / 1000;
+  const box = new THREE.Box3().setFromObject(model);			//Bounding box
+  const center = box.getCenter(new THREE.Vector3());			//Centro del bounding box
+  const size = box.getSize(new THREE.Vector3());
+  model.position.sub(center);									//Sposta l'oggetto al centro
+  camera.position.set(0, 0, size.length() * 1.5);				//Puntamento iniziale della telecamera
+});
 
-	renderer.render( scene, camera );
-
+function animate() {
+	requestAnimationFrame(animate);
+	renderer.render(scene, camera);
 }
+animate();
+
+
+//Controllo per il resize della pagina
+window.addEventListener('resize', () => {
+	camera.aspect = window.innerWidth / window.innerHeight;
+	camera.updateProjectionMatrix();
+	renderer.setSize(window.innerWidth, window.innerHeight);
+});
