@@ -256,7 +256,9 @@ class Tutorial extends Phaser.Scene {
 			this.popupManager.on('queueEmpty', () => {
                 this.battery.visible = true;
 				this.battery.interagisci = () => {
-					this.scene.start("LabTutorial"); //Entra nel laboratorio ᓚᘏᗢ
+					//this.scene.start("LabTutorial"); //Entra nel laboratorio ᓚᘏᗢ
+
+					this.scene.start("GraficoGame"); //Entra nel gioco grafico ᓚᘏᗢ
 				};
 			});
 		});

@@ -66,6 +66,9 @@ class Preload extends Phaser.Scene {
 		
 		// Carica l'immagine del dorso della carta per Memory
 		this.load.image('card_back', 'frontend/public/assets/images/items/wine jar.png');
+		
+		// Carica l'immagine del grafico
+		this.load.image('graficoEx', 'frontend/public/assets/images/graficoEx.png');
 	}
 
 	async create() {
@@ -78,8 +81,9 @@ class Preload extends Phaser.Scene {
 		this.scene.add("Tutorial", (await import("./Tutorial")).default);
 		this.scene.add("LabTutorial", (await import("./LabTutorial")).default);
 		this.scene.add("Memory", (await import("./Memory")).default);
+		this.scene.add("GraficoGame", (await import("./GraficoGame")).default, true);
 
-		this.scene.add("Menu", (await import("./Menu")).default, true);
+		this.scene.add("Menu", (await import("./Menu")).default, false);
 
 		this.scene.stop("Preload");
 
