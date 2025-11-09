@@ -10,6 +10,10 @@ Questa directory contiene tutti gli script di automazione per il deployment, man
 - [`update_frontend.sh`](#update_frontendsh) - Aggiornamento rapido frontend
 - [`update_sandbox.sh`](#update_sandboxsh) - Aggiornamento ambiente test
 
+### **📊 Monitoring Management**
+- [`start-monitoring.sh`](#start-monitoringsh) - Avvia stack di monitoring (Elasticsearch, Kibana, Fleet, APM)
+- [`stop-monitoring.sh`](#stop-monitoringsh) - Ferma servizi di monitoring mantenendo app attiva
+
 ### **🧹 Sistema di Pulizia Centralizzato**
 - [`cleanup.sh`](#cleanupsh) - Script di pulizia intelligente con modalità multiple
 - [`kibana-dashboard-manager.sh`](#kibana-dashboard-managersh) - Gestione backup dashboard
@@ -153,6 +157,283 @@ ELASTIC_APM_RUM_SERVER_URL  # Performance tracking
 **Utilizzo**:
 ```bash
 ./scripts/update_sandbox.sh
+```
+
+---
+
+## 📊 Monitoring Management
+
+### `start-monitoring.sh`
+
+**Scopo**: Avvia l'intero stack di monitoring indipendentemente dai servizi applicativi
+
+**Operazioni eseguite**:
+1. **Verifica prerequisiti**:
+   - Controlla esistenza file `.env`
+   - Verifica presenza reti Docker richieste (`internal_net`, `proxy_net`)
+   - Valida configurazioni Elasticsearch/Kibana
+
+2. **Avvio servizi monitoring**:
+   - Setup certificati TLS (container `setup-certs`)
+   - Elasticsearch cluster startup
+   - Kibana analytics platform
+   - Fleet Server per gestione agenti
+   - APM Agent per performance monitoring
+   - Infrastructure Agent per system metrics
+   - Fluent Bit per log aggregation
+
+3. **Health check**:
+   - Attende che Elasticsearch diventi healthy (max 5 minuti)
+   - Verifica availability di Kibana
+   - Mostra stato di tutti i servizi monitoring
+
+**Dipendenze Environment**:
+```bash
+STACK_VERSION                # Versione Elastic Stack (es. 8.11.0)
+ELASTIC_PASSWORD             # Password superuser Elasticsearch
+KIBANA_PASSWORD              # Password sistema Kibana
+KIBANA_ENCRYPTION_KEY        # Chiave encryption Kibana
+FLEET_ENROLLMENT_TOKEN       # Token enrollment Fleet
+FLEET_ENROLLMENT_TOKEN_APM   # Token enrollment APM Agent
+FLEET_ENROLLMENT_TOKEN_INFRA # Token enrollment Infrastructure Agent
+```
+
+**Utilizzo**:
+```bash
+./scripts/start-monitoring.sh
+```
+
+**Output**:
+```
+================================
+  Starting Monitoring Stack
+================================
+
+Starting monitoring services...
+Running docker compose up for monitoring stack...
+[+] Running 7/7
+ ✔ Container setup-certs    Started
+ ✔ Container es01           Healthy
+ ✔ Container kibana         Healthy
+ ✔ Container fleet-server   Healthy
+ ✔ Container apm-agent      Started
+ ✔ Container infra-agent    Started
+ ✔ Container fluent-bit     Started
+
+================================
+  Monitoring stack started!
+================================
+
+Access points:
+  Kibana: http://kibana.localhost (via NGINX Proxy Manager)
+  Elasticsearch: https://es01:9200 (internal only)
+  APM Server: http://apm.localhost (via NGINX Proxy Manager)
+```
+
+**Tempo esecuzione**: ~3-5 minuti (primo avvio con setup certificati)
+**Note**: I servizi applicativi (server, db, redis, frontend, sandbox) possono essere avviati separatamente
+
+---
+
+### `stop-monitoring.sh`
+
+**Scopo**: Ferma tutti i servizi di monitoring mantenendo attivi i servizi applicativi
+
+**Operazioni eseguite**:
+1. **Verifica configurazione**:
+   - Controlla esistenza `docker-compose.monitoring.yml`
+   
+2. **Stop servizi monitoring**:
+   - Ferma tutti i container monitoring via `docker compose down`
+   - Rimuove i container monitoring
+   - Mantiene i volumi con dati persistenti
+
+3. **Verifica completamento**:
+   - Controlla che tutti i container monitoring siano fermati
+   - Report dettagliato per ogni servizio
+   - Verifica che servizi app siano ancora attivi
+
+**Container fermati**:
+- `fluent-bit` - Log aggregation
+- `infra-agent` - Infrastructure monitoring
+- `apm-agent` - Application performance monitoring
+- `fleet-server` - Fleet management
+- `kibana` - Analytics dashboard
+- `es01` - Elasticsearch cluster
+- `setup-certs` - Certificate setup utility
+
+**Utilizzo**:
+```bash
+./scripts/stop-monitoring.sh
+```
+
+**Output**:
+```
+================================
+  Stopping Monitoring Stack
+================================
+
+Stopping monitoring containers...
+Running docker compose down for monitoring stack...
+[+] Running 7/7
+ ✔ Container fluent-bit     Removed
+ ✔ Container infra-agent    Removed
+ ✔ Container apm-agent      Removed
+ ✔ Container fleet-server   Removed
+ ✔ Container kibana         Removed
+ ✔ Container es01           Removed
+ ✔ Container setup-certs    Removed
+
+Verifying containers are stopped...
+✓ fluent-bit stopped
+✓ infra-agent stopped
+✓ apm-agent stopped
+✓ fleet-server stopped
+✓ kibana stopped
+✓ es01 stopped
+✓ setup-certs stopped
+
+================================
+  All monitoring services stopped successfully!
+================================
+
+Note: Application services (server, db, redis, frontend, sandbox) are still running.
+To stop them, use: docker compose -f docker-compose.dev.yml down
+```
+
+**Tempo esecuzione**: ~10-30 secondi
+**Note**: Questa operazione NON elimina i dati persistenti (volumi Elasticsearch, configurazioni Kibana, etc.)
+
+---
+
+## 🐳 Docker Compose Architecture
+
+Il progetto utilizza **due file Docker Compose separati** per permettere gestione indipendente:
+
+### `docker-compose.dev.yml` - Servizi Applicativi
+**Container inclusi**:
+- `nginx-proxy-manager` - Reverse proxy e SSL termination
+- `server` - Backend API Go con hot-reload
+- `db` - MongoDB database
+- `mongo-express` - MongoDB Web UI
+- `redis` - Cache in-memory
+- `redis-ui` - Redis Commander Web UI
+- `frontend` - Frontend production build (Vite)
+- `sandbox` - Frontend development server
+
+**Reti**:
+- `internal_net` - Rete privata interna (MongoDB, Redis, Backend)
+- `proxy_net` - Rete per proxy verso servizi backend
+- `frontend_net` - Rete per servizi frontend
+
+**Avvio**:
+```bash
+docker compose -f docker-compose.dev.yml up -d
+```
+
+---
+
+### `docker-compose.monitoring.yml` - Stack Monitoring
+**Container inclusi**:
+- `setup-certs` - Setup certificati TLS (one-time)
+- `es01` - Elasticsearch single-node cluster
+- `kibana` - Analytics e visualization platform
+- `fleet-server` - Gestione centralizzata Elastic Agents
+- `apm-agent` - Application Performance Monitoring
+- `infra-agent` - System e infrastructure metrics
+- `fluent-bit` - Log collection e aggregation
+
+**Reti condivise**:
+- `internal_net` (external) - Comunicazione con servizi app
+- `proxy_net` (external) - Accesso via NGINX Proxy Manager
+- `kibana_net` - Accesso internet per Kibana (integrazioni)
+
+**Volumi persistenti**:
+- `certs` - Certificati TLS per Elasticsearch
+- `esdata01` - Dati Elasticsearch
+- `kibanadata` - Configurazioni e dashboards Kibana
+- `fleetserverdata` - Configurazioni Fleet Server
+
+**Avvio**:
+```bash
+./scripts/start-monitoring.sh
+# oppure manualmente:
+docker compose -f docker-compose.monitoring.yml up -d
+```
+
+---
+
+### Gestione Indipendente dei Servizi
+
+**Scenario 1: Solo applicazione (sviluppo veloce)**
+```bash
+# Avvia solo app senza monitoring
+docker compose -f docker-compose.dev.yml up -d
+
+# I servizi applicativi funzionano normalmente
+# Performance monitoring è disabilitato ma app funziona
+```
+
+**Scenario 2: Applicazione + Monitoring (sviluppo completo)**
+```bash
+# Avvia prima l'applicazione (crea le reti)
+docker compose -f docker-compose.dev.yml up -d
+
+# Poi avvia monitoring
+./scripts/start-monitoring.sh
+
+# Tutti i servizi attivi con telemetria completa
+```
+
+**Scenario 3: Stop monitoring mantenendo app attiva**
+```bash
+# Ferma solo monitoring
+./scripts/stop-monitoring.sh
+
+# App continua a funzionare
+# Utile per risparmiare risorse quando non serve analisi
+```
+
+**Scenario 4: Riavvio completo**
+```bash
+# Ferma tutto
+./scripts/stop-monitoring.sh
+docker compose -f docker-compose.dev.yml down
+
+# Riavvia tutto
+docker compose -f docker-compose.dev.yml up -d
+./scripts/start-monitoring.sh
+```
+
+---
+
+### Configurazione Environment Condivisa
+
+**Entrambi i compose file** leggono dallo stesso `.env`:
+```
+docker/env/.env
+```
+
+Questo garantisce:
+- ✅ **Configurazione centralizzata** - Un solo file da modificare
+- ✅ **Credenziali condivise** - Elasticsearch password, APM tokens, etc.
+- ✅ **Consistency** - Stesse variabili per app e monitoring
+- ✅ **Manutenibilità** - Facile gestione configurazioni
+
+**Variabili chiave condivise**:
+```bash
+# Networking
+MONGODB_HOST=db
+REDIS_URL=redis://app:password@redis:6379/0
+
+# Monitoring
+ELASTIC_APM_SERVER_URL=http://apm.localhost
+ELASTIC_APM_SECRET_TOKEN=apm-secret-token-123
+ELASTICSEARCH_HOSTS=https://es01:9200
+ELASTICSEARCH_PASSWORD=m6OHmMuiqNrV1i25Jz3Z
+
+# Stack versions
+STACK_VERSION=8.11.0
 ```
 
 ---
