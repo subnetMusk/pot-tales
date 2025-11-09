@@ -152,9 +152,7 @@ class Tutorial extends Phaser.Scene {
             });
 
             //Mostra i messaggi
-            this.popupManager.queuePopup("Benvenuto nel tutorial di");
-            this.popupManager.queuePopup("IL VIDEOGIOCO SENZA NOME");
-            this.popupManager.queuePopup("Finché Filippo non ci manda il plot");
+            this.popupManager.queuePopup("Benvenuto nel tutorial!");
             this.popupManager.showNextPopup();
 
             this.player.movementAllowed = true;                         //Abilita l'input da tastiera
