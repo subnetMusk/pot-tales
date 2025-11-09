@@ -47,20 +47,7 @@
   document.getElementById("accept-cookies")?.addEventListener("click", async () => {
     const lang = langSelect.value;
     localStorage.setItem("lang", lang); // Save language choice
-
-    try {
-      const res = await fetch("/auth/session", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify({ consentGiven: true })
-      });
-      
-      if (res.ok) startGame();
-      else throw new Error("Errore nella creazione della sessione");
-
-    } catch (err) {
-      alert("Errore durante il consenso: " + err);
-    }
+    localStorage.setItem("consentGiven", "true");
+    startGame();
   });
 </script>

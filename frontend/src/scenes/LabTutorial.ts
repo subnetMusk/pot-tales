@@ -166,7 +166,7 @@ class LabTutorial extends Phaser.Scene {
 		};
 
         this.events.once("game_completed", () => {
-            this.scene.start("Daghe Leo dio can");
+            this.scene.start("FAR PARTIRE LA PROSSIMA SCENA");
         });
 	}
 
