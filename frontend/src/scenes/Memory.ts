@@ -1,4 +1,3 @@
-import { Sleeping } from "matter";
 import MemoryCard from "../items/UI/MemoryCard";
 // You can write more code here
 
@@ -33,7 +32,6 @@ class Memory extends Phaser.Scene {
 	create() {
 
 		this.editorCreate();
-		const imageKey: string = 'card_front'; //immagine frontale delle carte
 		const numCards = 16; // Numero totale di carte nel gioco
 		// lista di oggetti con due parametri: codice e nome immagine
 		const cardData: { code: number }[] = [
