@@ -1,5 +1,5 @@
 
-// You can write more code here
+//You can write more code here
 import Player from "@/items/Main/Player";
 import PopupManager from "../items/UI/PopupManager";
 import LetterManager  from "../items/UI/LetterManager";
@@ -13,7 +13,7 @@ class LabTutorial extends Phaser.Scene {
 		super("LabTutorial");
 
 		/* START-USER-CTR-CODE */
-		// Write your code here.
+		//Write your code here.
 		/* END-USER-CTR-CODE */
 	}
 
@@ -126,11 +126,11 @@ class LabTutorial extends Phaser.Scene {
 
 	create() {
 		this.editorCreate();
-		this.player.setBoundaries(this.boundaries);			//Passo i boundaries al player
-		this.player.debug(false);						//Disabilito il debug dei boundaries
-		this.player.flashlight(false);					//Disabilito la torcia
+		this.player.setBoundaries(this.boundaries);			// Passo i boundaries al player
+		this.player.debug(false);							// Disabilito il debug dei boundaries
+		this.player.flashlight(false);						// Disabilito la torcia
 		this.cameras.main.setZoom(5);
-		this.cameras.main.startFollow(this.player);
+		this.cameras.main.startFollow(this.player);			// Segue il giocatore
 
 		console.log("Creando PopupManager in LabTutorial...");
 		this.popupManager = new PopupManager(this);
@@ -147,8 +147,7 @@ class LabTutorial extends Phaser.Scene {
 			this.letterManager.queueLetter("Ciao, \nSono Patrizia Sadocco, la tua nuova collega. \nBenvenuto in laboratorio!\nOggi ti insegnerò come si preparano le nostre famose droghe sintetiche.\nPer prima cosa, prendi l'ampolla con il liquido giallo sul tavolo e bevila.");
 			this.letterManager.showNextLetter();
 
-			//distruggi l'oggetto lettera dopo averla letta 
-			this.letter.destroy();
+			this.letter.destroy();			// Distruggi l'oggetto lettera dopo averla letta 
 		}
 
 		this.flask.interagisci = () => {
@@ -171,31 +170,27 @@ class LabTutorial extends Phaser.Scene {
         });
 	}
 
-    //Lascia il comando emit al termine del gioco
+    // Lascia il comando emit al termine del gioco
 	private createMemoryGame() {
 		if (this.isMemoryActive) return; // Evita di avviare più volte il gioco
 		this.isMemoryActive = true;
 		this.scene.pause();
 		console.log("Avvio del memory game...");
 
-		// Sfocare la camera prima di avviare Memory
-		this.cameras.main.postFX.addBlur(8, 8, 2);
+		this.cameras.main.postFX.addBlur(8, 8, 2);		// Sfocare la camera prima di avviare Memory
+		this.scene.launch("Memory");					// Avvia il gioco
 
-		// Launch the memory scene on top of this paused scene
-		this.scene.launch("Memory");
-
-		// When the memory scene finishes, resume this scene
+		// Una volta terminato il memory riprende il gioco principale
 		const memScene = this.scene.get("Memory") as Phaser.Scene | undefined;
 		if (memScene) {
 			// Ascolta l'evento personalizzato di vittoria
 			memScene.events.once("memory-complete", () => {
 				console.log("Memory completed, resuming LabTutorial");
 				
-				// Rimuovi il blur quando torni
-				this.cameras.main.postFX.clear();
+				this.cameras.main.postFX.clear();				// Rimuovi il blur quando torni
 				
-				this.scene.stop("Memory"); // Ferma la scena Memory
-				this.scene.resume(); // Riprendi LabTutorial
+				this.scene.stop("Memory"); 						// Ferma la scena Memory
+				this.scene.resume(); 							// Riprendi LabTutorial
 				this.isMemoryActive = false;
 				
 				// Mostra un messaggio di successo
@@ -204,11 +199,10 @@ class LabTutorial extends Phaser.Scene {
 				this.popupManager.showNextPopup();
 			});
 		}
-		//TODO implementare il memory game
 	}
 	/* END-USER-CODE */
 }
 
 /* END OF COMPILED CODE */
-// You can write more code here
+//You can write more code here
 export default LabTutorial;

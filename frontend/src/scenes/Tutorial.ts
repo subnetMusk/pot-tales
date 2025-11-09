@@ -108,19 +108,19 @@ class Tutorial extends Phaser.Scene {
 
 	create() {
 		this.editorCreate();
-		this.player.setBoundaries(this.boundaries); // Non serve a nulla, devo solo disabilitare i boundaries
-		this.player.debug(false);               //Disabilita il debug (grazie al cazzo aggiungo)
-        this.player.movementAllowed = false;        // Disabilita gli input durante la transizione
-		this.player.flashlight(true);         // Disabilito la torcia
-		let zoom: number = 10;                         //Zoom della camera
-        this.cameras.main.startFollow(this.player);     //Tracking del player
+		this.player.setBoundaries(this.boundaries); 	// Imposta i boundaries
+		this.player.debug(false);               		// Disabilita il debug
+        this.player.movementAllowed = false;        	// Disabilita gli input durante la transizione
+		this.player.flashlight(true);         			// Abilito l'effetto torcia
+		let zoom: number = 10;                         	// Zoom della camera
+        this.cameras.main.startFollow(this.player);     // Tracking del player
 
-        // Inizializzo il PopupManager e il LetterManager
+        // Inizializza il PopupManager e il LetterManager
         this.popupManager = new PopupManager(this);
         this.letterManager = new LetterManager(this);
 
-        //Inizio, transizione di camera
-		const animation = this.time.addEvent({      //Animazione
+        // Inizio della scena, transizione di camera
+		const animation = this.time.addEvent({      		// Animazione
 			delay: 25,
 			callback: () => {
 				zoom -= 0.1;
@@ -128,8 +128,8 @@ class Tutorial extends Phaser.Scene {
 				if (zoom < 5) {
 					animation.destroy();
 					this.cameras.main.setZoom(5);
-                    this.time.delayedCall(1000, () => {         //Attende un secondo
-                        this.events.emit("begin");                  //Ora parte tutto
+                    this.time.delayedCall(1000, () => {         	// Attende un secondo
+                        this.events.emit("begin");                  // Ora parte tutto
                     });
 				}
 			},
@@ -137,27 +137,27 @@ class Tutorial extends Phaser.Scene {
 		});
 
 		this.events.once("begin", () => {
-            //Ogni 250ms controlla la distanza dal vaso
+            // Ogni 250ms controlla la distanza dal vaso
             const moveTimer = this.time.addEvent({
                 delay: 250,
                 callback: () => {
-                    let offset: number = 20;        //Distanza minima arbitraria
+                    let offset: number = 20;        		// Distanza minima arbitraria
                     if (Math.abs(this.player.x - this.wine_jar.x) < offset && Math.abs(this.player.y - this.wine_jar.y) < offset) {
                         this.events.emit("player-moved");
                         this.wine_jar.visible = false;
-                        moveTimer.destroy();                //Termino il controllo raggiunto l'obbiettivo
+                        moveTimer.destroy();                // Termina il controllo una volta raggiunto l'obbiettivo
                     }
                 },
                 loop: true
             });
 
-            //Mostra i messaggi
+            // Mostra i messaggi
             this.popupManager.queuePopup("Benvenuto nel tutorial!");
             this.popupManager.showNextPopup();
 
-            this.player.movementAllowed = true;                         //Abilita l'input da tastiera
+            this.player.movementAllowed = true;                         // Abilita l'input da tastiera
 
-            //Terminati i primi messaggi rendo visibile il vaso e dico di avvicinarsi
+            // Terminati i primi messaggi rende visibile il vaso e dice di avvicinarsi
             this.popupManager.on("queueEmpty", () => {
                 this.wine_jar.visible = true;
                 this.popupManager.queuePopup("Usa i tasti freccia per avvicinarti al vaso");
@@ -165,34 +165,34 @@ class Tutorial extends Phaser.Scene {
             });
 		});
 
-		// Check inventario, prima controllo se viene premuta la E
+		// Check inventario, prima controlla se viene premuta la E
 		this.events.once("player-moved", () => {
 			this.popupManager.queuePopup("Ottimo! Ora passiamo all'inventario");
 			this.popupManager.queuePopup("Al suo interno puoi trovare gli oggetti che hai raccolto durante la partita");
 			this.popupManager.queuePopup("Usa il tasto E per aprire l'inventario");
 			this.popupManager.showNextPopup();
 
-            //Inizia ad ascoltare il tasto E
+            // Inizia ad ascoltare il tasto E
             const eKey = this.input.keyboard?.addKey(Phaser.Input.Keyboard.KeyCodes.E);
             eKey?.on('down', () => {
-                eKey?.destroy();                //Termina l'ascolto
+                eKey?.destroy();                // Termina l'ascolto
                 this.events.emit("E");
             });
 		});
 
-        // Lettera E premuta, non c'è un inventario ma ok
+        // Lettera E premuta, non c'è ancora un inventario ma ok
 		this.events.once("E", () => {
 			this.events.emit("inventory-opened");
 		});
 
-		//Check interazione
+		// Check interazione
 		this.events.once("inventory-opened", () => {
             this.popupManager.queuePopup("È comparsa una lettera al centro della mappa!");
             this.popupManager.queuePopup("Per interagire con un oggetto, avvicinati e premi I");
 			this.popupManager.showNextPopup();
-            this.letter.visible = true;                 //Lettera visibile
+            this.letter.visible = true;                 // Rende la lettera visibile
 			this.letter.interagisci = () => {
-                //Una volta che vi si interagisce, aspetto che finisca di leggere
+                // Una volta che vi si interagisce, aspetta che finisca di leggere
 				const messaggioLettera = "Nelle lettere puoi trovare informazioni utili per il gioco.";
 
 				this.letterManager.queueLetter(messaggioLettera);
@@ -219,8 +219,8 @@ class Tutorial extends Phaser.Scene {
 			blackScreen.setAlpha(0.2);
 
 			let flashCount = 0;
-			const totalFlashes = 5;						            //Numero di flash
-			let durations = [400, 50, 50, 50, 150];		//Durate dei singoli flash
+			const totalFlashes = 5;						            // Numero di flash
+			let durations = [400, 50, 50, 50, 150];					// Durate dei singoli flash
 
 			const flashSequence = () => {
 				blackScreen.setAlpha(1);
@@ -233,7 +233,7 @@ class Tutorial extends Phaser.Scene {
 						this.time.delayedCall(durations[flashCount], flashSequence);
 					} else {
 						blackScreen.destroy();
-						this.time.delayedCall(1000, () => {     //Attende un secondo e poi va alla prossima parte
+						this.time.delayedCall(1000, () => {     	// Attende un secondo e poi va alla prossima parte
 							this.events.emit("battery");
 						});
 					}
@@ -250,11 +250,11 @@ class Tutorial extends Phaser.Scene {
 			this.popupManager.queuePopup("Raccogli la batteria per ricaricarla e iniziare il gioco!");
 			this.popupManager.showNextPopup();
 
-            //Terminano i messaggi e mostra la batteria
+            // Terminano i messaggi e mostra la batteria
 			this.popupManager.on('queueEmpty', () => {
                 this.battery.visible = true;
 				this.battery.interagisci = () => {
-					this.scene.start("LabTutorial"); //Entra nel laboratorio ᓚᘏᗢ
+					this.scene.start("LabTutorial"); // Entra nel laboratorio ᓚᘏᗢ
 				};
 			});
 		});

@@ -18,24 +18,24 @@ PROJECT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 DOCKER_COMPOSE_FILE="$PROJECT_DIR/docker-compose.dev.yml"
 MONGODB_VOLUME_DIR="$PROJECT_DIR/docker/volumes/mongodb"
 
-echo -e "${BLUE}🔧 MongoDB Repair Script${NC}"
+echo -e "${BLUE} MongoDB Repair Script${NC}"
 echo -e "${BLUE}========================${NC}"
 
 # Funzione per stampare messaggi colorati
 print_status() {
-    echo -e "${GREEN}✅ $1${NC}"
+    echo -e "${GREEN}$1${NC}"
 }
 
 print_warning() {
-    echo -e "${YELLOW}⚠️  $1${NC}"
+    echo -e "${YELLOW}$1${NC}"
 }
 
 print_error() {
-    echo -e "${RED}❌ $1${NC}"
+    echo -e "${RED}$1${NC}"
 }
 
 print_info() {
-    echo -e "${BLUE}ℹ️  $1${NC}"
+    echo -e "${BLUE}$1${NC}"
 }
 
 # Controlla se siamo nella directory corretta
@@ -221,12 +221,12 @@ echo
 print_status "🎉 Riparazione MongoDB completata con successo!"
 echo
 print_info "Riepilogo operazioni eseguite:"
-echo -e "  ${GREEN}✅${NC} Servizi fermati"
-echo -e "  ${GREEN}✅${NC} Dati corrotti rimossi"
-echo -e "  ${GREEN}✅${NC} Directory MongoDB ricreata"
-echo -e "  ${GREEN}✅${NC} Volumi Docker puliti"
-echo -e "  ${GREEN}✅${NC} Servizi riavviati"
-echo -e "  ${GREEN}✅${NC} MongoDB funzionante"
+echo -e "  ${GREEN}${NC} Servizi fermati"
+echo -e "  ${GREEN}${NC} Dati corrotti rimossi"
+echo -e "  ${GREEN}${NC} Directory MongoDB ricreata"
+echo -e "  ${GREEN}${NC} Volumi Docker puliti"
+echo -e "  ${GREEN}${NC} Servizi riavviati"
+echo -e "  ${GREEN}${NC} MongoDB funzionante"
 echo
 print_info "Per monitorare MongoDB: docker-compose -f $DOCKER_COMPOSE_FILE logs db -f"
 print_info "Per vedere lo stato: docker-compose -f $DOCKER_COMPOSE_FILE ps"
