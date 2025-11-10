@@ -3,7 +3,7 @@ import sys
 import subprocess
 import importlib
 
-#libs check, just ignore it
+# Libs check, just ignore it
 REQUIRED_LIBS = [
     "PIL",
     "tqdm"
@@ -28,7 +28,7 @@ from PIL import Image
 import re
 from tqdm import tqdm
 
-#Main
+# Main
 def main(source, store, removeBG, tolerance):
     print(source, "\n", store)
     dir = os.listdir(source)
@@ -38,7 +38,6 @@ def main(source, store, removeBG, tolerance):
 
     dir = selectAseprite(dir)
     for file in tqdm(dir, desc="Conversione", unit="file"):
-        #print(f"{source + file}\nvvvvvvvvvvvvvvv\n{store + file.split(".")[0] + '.png'}\n") #DEBUG
         convert(source + file, store + file.split(".")[0] + ".png")
         if removeBG:
             if os.path.exists(store + file.split(".")[0] + ".png"):
@@ -49,7 +48,7 @@ def main(source, store, removeBG, tolerance):
                     eraseBG(store + file.split(".")[0] + str(i) +".png", tolerance)
                     i += 1
 
-#Select only .aseprite
+# Select only .aseprite files
 def selectAseprite(source):
     tmp = []
     for file in source:
@@ -59,7 +58,7 @@ def selectAseprite(source):
             tmp.append(file)
     return tmp
 
-#Cross-platform (maybe) process to convert the files
+# Cross-platform (maybe) adaptive process to convert the files
 def convert(source, store):
     os_name = platform.system()
     
@@ -67,7 +66,7 @@ def convert(source, store):
         aseprite_path = "/Applications/Aseprite.app/Contents/MacOS/aseprite"
     elif os_name == "Linux":
         aseprite_path = "aseprite"
-    elif os_name == "Windows":                                #BLEAH >:( 
+    elif os_name == "Windows":                                # Window's hate is always right
         aseprite_path = r"C:\Program Files\Aseprite\Aseprite.exe"
     else:
         print(f"Ma che minchia di OS stai usando???")
@@ -87,7 +86,7 @@ def convert(source, store):
             print(f"Errore durante la conversione: {e}")
             break
 
-#Remove the background
+# Remove the background
 def eraseBG(file, tolerance):
     input_image = Image.open(file).convert("RGBA")
     pixels = input_image.load()
@@ -102,22 +101,22 @@ def eraseBG(file, tolerance):
     input_image.save(file)
 
 # example:
-# ./aseprite-converter.py /Users/RobertoBenigni/fotoPiedi/ /Users/GianniMorandi/piattiDiMerda/ -t=100
+# ./aseprite-converter.py /path/to/aseprite/ /path/to/input/ -t=100
 
 if __name__ == "__main__":
     removeBG = True
     tolerance = 12
     debug = False
 
-    if "-k" in sys.argv:                            #Keep the background?
+    if "-k" in sys.argv:                            # Keep the background?
         sys.argv.remove("-k")
         removeBG = False
 
-    if "-d" in sys.argv:                            #Don't mind me :3
+    if "-d" in sys.argv:                            # Don't mind me :3
         sys.argv.remove("-d")
         debug = True    
 
-    token_pattern = re.compile(r"-t=(\d+)")         #Change the tolerance?
+    token_pattern = re.compile(r"-t=(\d+)")         # Change the tolerance?
     new_argv = []
     for arg in sys.argv:
         match = token_pattern.fullmatch(arg)
@@ -132,7 +131,7 @@ if __name__ == "__main__":
             new_argv.append(arg)
     sys.argv = new_argv
 
-    #I/O check
+    # I/O check
     if len(sys.argv) < 2:
         source = input("Specificare la directory in cui si trovano i file .aseprite: ").replace("'", "").replace(" ", "")
     else:

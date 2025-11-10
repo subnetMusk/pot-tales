@@ -1,10 +1,5 @@
 export class Function {
-    /**
-     * Converts absolute coordinates to relative coordinates
-     * @param absX Absolute X coordinate
-     * @param absY Absolute Y coordinate
-     * @returns Object containing relative coordinates
-     */
+    //Converte le coordinate da assolute a relative e viceversa
 
     public static coordinateAbsoluteToRelative(absX: number, absY: number): { x: number, y: number } {
         const relativeX = absX - 640; // Assuming 640 is half the width of the game world
