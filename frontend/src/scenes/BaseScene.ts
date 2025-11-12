@@ -9,10 +9,10 @@ import OggettoInterattivo from "../items/Main/OggettoInterattivo";
 
 /* START OF COMPILED CODE */
 
-class Stage1 extends Phaser.Scene {
+class BaseScene extends Phaser.Scene {
 
 	constructor() {
-		super("Stage1");
+		super("BaseScene");
 
 		/* START-USER-CTR-CODE */
 		// Write your code here.
@@ -27,18 +27,21 @@ class Stage1 extends Phaser.Scene {
 
 		// lists
 		const boundaries: Array<any> = [];
+		const oggVector: Array<any> = [];
 
 		this.player = player;
 		this.boundaries = boundaries;
+		this.oggVector = oggVector;
 
 		this.events.emit("scene-awake");
 	}
 
 	private player!: Player;
 	private boundaries!: Array<any>;
+	private oggVector!: Array<any>;
 
 	/* START-USER-CODE */
-	
+
 	private popupManager!: PopupManager;
 	private letterManager!: LetterManager;
 
@@ -48,7 +51,7 @@ class Stage1 extends Phaser.Scene {
 		this.load.pack("icons-pack", "frontend/public/assets/images/icons-pack.json");
 
 		const lang = localStorage.getItem("lang") || "en";
-        this.load.json("stage1_i18n", `assets/i18n/${lang}/Stage1.json`);
+        this.load.json("baseScene_i18n", `assets/i18n/${lang}/BaseScene.json`);
 	}
 
 	create() {
@@ -56,13 +59,13 @@ class Stage1 extends Phaser.Scene {
 		this.editorCreate();
 
 		// Applicazione delle traduzioni sui testi già presenti nella scena
-		const i18n = this.cache.json.get("stage1_i18n");
+		const i18n = this.cache.json.get("baseScene_i18n");
 		applyTranslations(this, i18n);
 
 		// Configurazione del giocatore
 		this.player.debug(false);
 		this.player.setBoundaries(this.boundaries);
-		
+
 		// Configurazione della telecamera
 		this.cameras.main.setZoom(5.0);
         this.cameras.main.startFollow(this.player);
@@ -80,4 +83,4 @@ class Stage1 extends Phaser.Scene {
 /* END OF COMPILED CODE */
 
 // You can write more code here
-export default Stage1;
+export default BaseScene;

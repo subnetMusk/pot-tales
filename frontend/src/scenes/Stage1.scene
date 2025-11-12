@@ -1,5 +1,5 @@
 {
-    "id": "e107631f-bb6d-4a49-99c8-a8c0730b82b1",
+    "id": "b11f45c2-3413-4df0-9564-c83fab54d582",
     "sceneType": "SCENE",
     "settings": {
         "preloadPackFiles": [],
@@ -11,6 +11,16 @@
     },
     "displayList": [
         {
+            "type": "Image",
+            "id": "9d0fb09f-e52a-401e-b8b1-59d7e72ca2ae",
+            "label": "bG",
+            "texture": {
+                "key": "BG"
+            },
+            "x": 540,
+            "y": 360
+        },
+        {
             "prefabId": "5a8935be-1a98-42a5-9cc4-bca49b9c51b2",
             "id": "c2e3a6c4-b355-4140-8b64-f9f16f4b1089",
             "unlock": [
@@ -21,6 +31,21 @@
             "scope": "CLASS",
             "x": 160,
             "y": 90
+        },
+        {
+            "prefabId": "dfd624ad-310c-404d-96d2-d2307c3faaef",
+            "id": "b6f790ec-3589-41a7-9be2-ebe9fd43b91d",
+            "unlock": [
+                "x",
+                "y",
+                "number"
+            ],
+            "label": "strange_light",
+            "displayName": "Strange Light",
+            "scope": "CLASS",
+            "number": 1,
+            "x": 470,
+            "y": 299
         }
     ],
     "plainObjects": [],
@@ -36,8 +61,11 @@
             "label": "boundaries"
         },
         {
-            "id": "0faa1bb6-ae3e-42d3-b705-54a31d0204aa",
-            "label": "oggVector"
+            "id": "119c445d-8151-4d88-83ac-55efa24fb60c",
+            "label": "oggVector",
+            "objectIds": [
+                "b6f790ec-3589-41a7-9be2-ebe9fd43b91d"
+            ]
         }
     ]
 }

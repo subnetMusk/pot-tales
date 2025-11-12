@@ -14,6 +14,8 @@ class MemoryCard  extends Phaser.GameObjects.Container {
     constructor( scene: Phaser.Scene,id:number,coords?: {x: number, y: number}) {
         super(scene,640,360);       
         this.scene = scene;
+        console.log("scena padre: ", this.scene.scene.key);
+
         this.setPosition(coords?.x || 0, coords?.y || 0);
 
         this.id = id;
@@ -79,6 +81,7 @@ class MemoryCard  extends Phaser.GameObjects.Container {
         
         // Crea una nuova immagine e aggiungila al container
         this.image = new Phaser.GameObjects.Image(this.scene, 0, 0, 'card', this.code);
+        console.log("Setting image", this.image, " found at ", this.image.texture.key, " frame ", this.image.frame.name);
         this.add(this.image);
         this.image.setDisplaySize(this.dimensions.width, this.dimensions.height);
         this.image.setVisible(false); // Mantieni il dorso visibile finché non viene girata
