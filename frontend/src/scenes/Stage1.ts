@@ -174,27 +174,30 @@ class Stage1 extends Phaser.Scene {
 		console.log("Avvio del memory game...");
 
 		// Sfocare la camera prima di avviare Memory
-		this.cameras.main.postFX.addBlur(8, 8, 2);
+		this.cameras.main.postFX.addBlur(2, 2, 2);
 
 		// Avvia il gioco
 		this.scene.launch("Memory");
+
+		// Porta la scena Memory in primo piano
+		this.scene.bringToTop("Memory");
 
 		// Una volta terminato il memory riprende il gioco principale
 		const memScene = this.scene.get("Memory") as Phaser.Scene | undefined;
 		if (memScene) {
 			// Ascolta l'evento personalizzato di vittoria
 			memScene.events.once("memory-complete", () => {
-				console.log("Memory completed, resuming LabTutorial");
+				console.log("Memory game completato con successo!");
 
 				this.cameras.main.postFX.clear();				// Rimuovi il blur quando torni
 
 				this.scene.stop("Memory"); 						// Ferma la scena Memory
-				this.scene.resume(); 							// Riprendi LabTutorial
+				this.scene.resume();
 				this.isMemoryActive = false;
 
 				// Mostra un messaggio di successo
 				this.popupManager.queuePopup("Bravissimo! Hai vinto!");
-				this.popupManager.queuePopup("Ora puoi continuare con il laboratorio...");
+				this.popupManager.queuePopup("Ora puoi continuare con il tuo viaggio.");
 				this.popupManager.showNextPopup();
 			});
 		}
