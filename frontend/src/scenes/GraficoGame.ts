@@ -153,7 +153,7 @@ class GraficoGame extends Phaser.Scene {
 								const y = Phaser.Math.Between(100, 400);
 
 								for (let i = 0; i < 16; i++) {
-									const particle = this.add.text(x, y, '✨', { fontSize: '24px' });
+									const particle = this.add.text(x, y, '✨', { fontSize: '12px' });
 									const angle = (i / 16) * Math.PI * 2;
 									const distance = 200;
 
@@ -170,7 +170,7 @@ class GraficoGame extends Phaser.Scene {
 							});
 						}
 
-						this.cameras.main.shake(500, 0.01);
+						this.cameras.main.shake(500, 0.001);
 						this.time.delayedCall(3000, () => {
 							// Emetti un evento di vittoria SUBITO
 							this.events.emit('memory-complete');

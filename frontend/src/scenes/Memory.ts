@@ -34,7 +34,7 @@ class Memory extends Phaser.Scene {
 
 		this.editorCreate();
 		const imageKey: string = 'card_front'; //immagine frontale delle carte
-		const numCards = 16; // Numero totale di carte nel gioco
+		const numCards = 24; // Numero totale di carte nel gioco
 		// lista di oggetti con due parametri: codice e nome immagine
 		const cardData: { code: number }[] = [
 			{ code: 1 },
@@ -44,7 +44,11 @@ class Memory extends Phaser.Scene {
 			{ code: 5 },
 			{ code: 6 },
 			{ code: 7 },
-			{ code: 8 }
+			{ code: 8 },
+			{ code: 9 },
+			{ code: 10 },
+			{ code: 11 },
+			{ code: 12 }
 		];
 
 		let carteGirate: MemoryCard[] = [];
@@ -52,7 +56,7 @@ class Memory extends Phaser.Scene {
 
 
 
-		//creo le 16 carte e posiziono 
+		//creo le 24 carte e posiziono 
 
 
 		//TODO sistemare coordinate e spaziatura carte 
@@ -73,10 +77,10 @@ class Memory extends Phaser.Scene {
 		}
 
 		// genera un array con valori unici
-		let randomArray: number[] = Phaser.Utils.Array.Shuffle([0, 1, 2, 3, 4, 5, 6, 7]);
+		let randomArray: number[] = Phaser.Utils.Array.Shuffle([0, 1, 2, 3, 4, 5, 6, 7,8,9,10,11]);
 
-		//assegno le immagini alle prime 8 carte
-		for (let i = 0; i < 8; i++) {
+		//assegno le immagini alle prime 12 carte
+		for (let i = 0; i < numCards/2; i++) {
 			this.cards[i].setCode (cardData[randomArray[i]].code);
 		}
 
@@ -85,8 +89,8 @@ class Memory extends Phaser.Scene {
 
 		//creo le coppie assegnando le stesse immagini alle carte da 8 a 15
 		// Le coppie sono nelle stesse posizioni dell'array (0-7)
-		for (let i = 0; i < 8; i++) {
-			this.cards[8 + i].setCode(cardData[randomArray[i]].code);
+		for (let i = 0; i < numCards/2; i++) {
+			this.cards[12 + i].setCode(cardData[randomArray[i]].code);
 		}
 
 
@@ -116,7 +120,8 @@ class Memory extends Phaser.Scene {
 					const cardX = (carteGirate[0].x + carteGirate[1].x) / 2;
 					const cardY = (carteGirate[0].y + carteGirate[1].y) / 2;
 
-					for (let i = 0; i < 8; i++) {
+					//effetto quando giri carte uguali
+					for (let i = 0; i < numCards/2; i++) {
 						const star = this.add.text(cardX, cardY, '⭐', { fontSize: '32px' });
 						const angle = (i / 8) * Math.PI * 2;
 						const velocity = {
@@ -139,7 +144,7 @@ class Memory extends Phaser.Scene {
 					carteGirate[0].setVisible(false);
 					carteGirate[1].setVisible(false);
 					carteGirate = [];
-					if(coppieTrovate === 8){
+					if(coppieTrovate === numCards/2){
 						console.log("Hai vinto il gioco!");
 
 						// Fireworks effect 
