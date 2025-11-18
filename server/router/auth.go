@@ -1,13 +1,14 @@
 // =========================================================
-// router/auth.go   (path segment: "auth")
+// router/auth.go
 // =========================================================
-// POST /auth/session  → {"token":string,"expires":string}
-// GET /auth/validate  → {"state":"active"|"absent"}
+// Gestione del ciclo di vita della sessione (Login/Verify).
+// Inizializza anche lo stato del gioco (GameState) su Mongo.
 // =========================================================
 
 package router
 
 import (
+	"encoding/json" // Import necessario per decodificare il body
 	"net/http"
 	"time"
 
@@ -20,106 +21,140 @@ import (
 	"github.com/subnetMusk/progetti_innovativi/server/models"
 )
 
-// authSvc incapsula la logica di accesso a MongoDB e Redis per le sessioni.
-type authSvc struct {
-	col *mongo.Collection
-	rdb *redis.Client
-	ttl time.Duration
+// Struttura temporanea per leggere il body della richiesta.
+// Rispetta lo schema JSON "CreateSessionRequest".
+type sessionRequest struct {
+	Device       string `json:"device"`
+	IPAddress    string `json:"ipAddress"` // Quello dichiarato dal client
+	ConsentGiven bool   `json:"consentGiven"`
 }
 
-// registerAuth registra gli endpoint per l’autenticazione.
-func registerAuth(r *mux.Router, m *mongo.Client, rd *redis.Client, ttl time.Duration) {
-	svc := &authSvc{
-		col: m.Database("app").Collection("sessions"),
-		rdb: rd,
-		ttl: ttl,
+// authSvc incapsula le dipendenze.
+// Ora gestisce sia la collection delle sessioni che quella del gioco.
+type authSvc struct {
+	sessionCol *mongo.Collection
+	gameCol    *mongo.Collection
+	rdb        *redis.Client
+	ttl        time.Duration
+}
+
+// registerAuth configura le rotte di autenticazione.
+func registerAuth(r *mux.Router, m *mongo.Client, rd *redis.Client, ttlMinutes string) {
+	// Parsing del TTL (con fallback sicuro)
+	ttlDuration, _ := time.ParseDuration(ttlMinutes + "m")
+	if ttlDuration == 0 {
+		ttlDuration = 30 * time.Minute
 	}
+
+	// Riferimento al Database
+	db := m.Database("game_db")
+
+	svc := &authSvc{
+		sessionCol: db.Collection("sessions"),
+		gameCol:    db.Collection("game_states"), // <--- NUOVO: Collezione gioco
+		rdb:        rd,
+		ttl:        ttlDuration,
+	}
+
 	r.HandleFunc("/session", svc.create).Methods(http.MethodPost)
 	r.HandleFunc("/validate", svc.validate).Methods(http.MethodGet)
 }
 
-// create gestisce POST /auth/session: crea una nuova sessione.
+// / create (POST /auth/session)
 func (a *authSvc) create(w http.ResponseWriter, r *http.Request) {
-	// Rifiuta se esiste già un cookie di sessione
+	// 0. Pulizia cookie esistente
 	if _, err := r.Cookie("session_token"); err == nil {
-		// PER IL MOMENTO RIMUOVIAMO IL COOKIE ESISTENTE E NE CREIAMO UNO NUOVO
-
-		// potremmo restituire 409 Conflict invece di eliminare il cookie.
 		helpers.DeleteCookies(w, r, "session_token")
 	}
 
+	// 1. Parsing del Body (Lettura dati Client)
+	// Poiché il Middleware ha già validato che il JSON è corretto,
+	// possiamo decodificarlo con sicurezza.
+	var reqPayload sessionRequest
+	if err := json.NewDecoder(r.Body).Decode(&reqPayload); err != nil {
+		// Fallback difensivo se il body è strano (anche se validato)
+		helpers.WriteJSON(w, http.StatusBadRequest, map[string]string{"error": "malformed request body"})
+		return
+	}
+
+	// 2. Estrazione IP Reale (Security enforcement)
+	realIP := helpers.GetRealIP(r)
+
+	// --- QUI POSSIAMO INSERIRE LOGICHE DI BAN ---
+	// if isBanned(realIP) { return 403 }
+	// --------------------------------------------
+
+	// 3. Generazione Identità
 	token := uuid.NewString()
 	now := time.Now()
-	doc := models.SessionDoc{
+	expiresAt := now.Add(a.ttl)
+
+	// 4. Preparazione Documento Sessione
+	sessDoc := models.SessionDoc{
 		ID:        token,
 		CreatedAt: now,
-		ExpiresAt: now.Add(a.ttl),
+		ExpiresAt: expiresAt,
 		Active:    true,
+		// Campi Sicurezza salvati
+		Device:       reqPayload.Device,
+		ClientIP:     realIP,               // <--- QUELLO CHE CONTA (Nginx Header)
+		ReportedIP:   reqPayload.IPAddress, // Quello che dice il client (metadata)
+		ConsentGiven: reqPayload.ConsentGiven,
 	}
 
-	// Inserisce il documento in MongoDB
-	if _, err := a.col.InsertOne(r.Context(), doc); err != nil {
-		helpers.WriteJSON(w, http.StatusInternalServerError, map[string]string{"error": "mongo error"})
+	// 5. Preparazione GameState (uguale a prima)
+	gameDoc := models.GameState{ID: token}
+	gameDoc.Data.SceneID = "Tutorial_End"
+	gameDoc.Data.X = 0.0
+	gameDoc.Data.Y = 0.0
+	gameDoc.Data.TotalPlayTimeMs = 0
+	gameDoc.Meta.LastPing = now
+	gameDoc.Meta.Warnings = 0
+
+	ctx := r.Context()
+
+	// 6. Persistenza (Mongo Session)
+	if _, err := a.sessionCol.InsertOne(ctx, sessDoc); err != nil {
+		helpers.WriteJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to create session record"})
 		return
 	}
 
-	// Popola la cache in Redis
-	if err := a.rdb.Set(r.Context(), "sess:"+token, "1", a.ttl).Err(); err != nil {
-		helpers.WriteJSON(w, http.StatusInternalServerError, map[string]string{"error": "redis error"})
+	// 7. Persistenza (Mongo GameState)
+	if _, err := a.gameCol.InsertOne(ctx, gameDoc); err != nil {
+		helpers.WriteJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to init game state"})
 		return
 	}
 
-	// Imposta il cookie HTTP-only sul client
+	// 8. Persistenza (Redis Cache)
+	// Nota: Potremmo usare realIP come valore invece di "1" se volessimo
+	// fare controlli veloci sull'IP anche da Redis in futuro.
+	if err := a.rdb.Set(ctx, "sess:"+token, "1", a.ttl).Err(); err != nil {
+		helpers.WriteJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to cache session"})
+		return
+	}
+
+	// 9. Risposta
 	http.SetCookie(w, &http.Cookie{
 		Name:     "session_token",
 		Value:    token,
 		Path:     "/",
-		Expires:  doc.ExpiresAt,
+		Expires:  expiresAt,
 		HttpOnly: true,
 		SameSite: http.SameSiteLaxMode,
 	})
 
-	// Restituisce 201 Created con token e scadenza
 	helpers.WriteJSON(w, http.StatusCreated, map[string]any{
 		"token":   token,
-		"expires": doc.ExpiresAt.Format(time.RFC3339),
+		"expires": expiresAt.Format(time.RFC3339),
 	})
 }
 
-// validate gestisce GET /auth/validate: verifica lo stato della sessione,
-// utilizza helpers.DeleteCookies per rimuovere cookie invalidi e aggiorna Redis.
+// validate (GET /auth/validate)
 func (a *authSvc) validate(w http.ResponseWriter, r *http.Request) {
-	token, err := helpers.ExtractToken(r)
-	if err != nil {
-		helpers.DeleteCookies(w, r, "session_token")
-		helpers.WriteJSON(w, http.StatusUnauthorized, map[string]string{"state": "absent"})
-		return
-	}
+	tokenID := r.Context().Value(helpers.UserIDKey).(string)
 
-	ctx := r.Context()
-
-	// Redis
-	_, redisErr := a.rdb.Get(ctx, "sess:"+token).Result()
-	// Mongo
-	doc, mongoErr := helpers.LoadSession(ctx, a.col, token)
-
-	switch {
-	case redisErr == nil && mongoErr == nil:
-		_ = helpers.RefreshRedis(ctx, a.rdb, token, a.ttl)
-		helpers.WriteJSON(w, http.StatusOK, map[string]string{"state": "active"})
-
-	case redisErr != nil && mongoErr == nil:
-		remaining := time.Until(doc.ExpiresAt)
-		if remaining <= 0 {
-			helpers.DeleteCookies(w, r, "session_token")
-			helpers.WriteJSON(w, http.StatusUnauthorized, map[string]string{"state": "absent"})
-			return
-		}
-		_ = helpers.RefreshRedis(ctx, a.rdb, token, remaining)
-		helpers.WriteJSON(w, http.StatusOK, map[string]string{"state": "active"})
-
-	default:
-		helpers.DeleteCookies(w, r, "session_token")
-		helpers.WriteJSON(w, http.StatusUnauthorized, map[string]string{"state": "absent"})
-	}
+	helpers.WriteJSON(w, http.StatusOK, map[string]string{
+		"state":   "active",
+		"session": tokenID,
+	})
 }
