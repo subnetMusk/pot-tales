@@ -233,15 +233,7 @@ class LabTutorial extends Phaser.Scene {
                 this.popupManager.queuePopup("Ora puoi continuare con il laboratorio...");
                 this.popupManager.showNextPopup();
 
-                // === NOTA IMPORTANTE ===
-                // Se vuoi che l'evento "game_completed" si attivi QUI,
-                // devi aggiungere questa riga:
-                // this.events.emit("game_completed");
-                // (Assumendo che tu non lo emetta da un'altra parte)
-                //
-                // Per ora, lascio il tuo codice com'è,
-                // ma il listener "game_completed"
-                // aspetta che l'evento sia emesso da qualche parte.
+
                 this.events.emit("game_completed");
             });
         }

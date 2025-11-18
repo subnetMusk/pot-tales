@@ -17,6 +17,16 @@ const CreateSessionResponseSchema = z.object({
 export type CreateSessionResponse = z.infer<typeof CreateSessionResponseSchema>;
 // ------------------
 
+// VALIDATE SESSION -----
+const ValidateSessionRequestSchema = z.object({}).strict();
+export type ValidateSessionRequest = z.infer<typeof ValidateSessionRequestSchema>;
+
+const ValidateSessionResponseSchema = z.object({
+    state: z.enum(["active", "inactive", "absent"]),
+}).strict();
+export type ValidateSessionResponse = z.infer<typeof ValidateSessionResponseSchema>;
+// ------------------
+
 
 
 export class APISession {
@@ -26,6 +36,7 @@ export class APISession {
         this.baseUrl = "/auth";
     }
 
+    // INVIA LA RICHIESTA PER LA CREAZIONE DI UNA NUOVA SESSIONE
     public async createSession(requestData: CreateSessionRequest): Promise<CreateSessionResponse> {
         console.log('Creazione sessione con i dati:', requestData);
 
@@ -74,6 +85,53 @@ export class APISession {
             console.error('Risposta del server non valida:', validationError);
             console.error('Dati ricevuti:', responseData);
             throw new Error('Formato della risposta del server non valido.');
+        }
+    }
+
+    // VERIFICA SE LA SESSIONE SALVATA NEI COOKIES è:
+    // ATTIVA -> salvata in redis
+    // INATTIVA -> salvata in mongo (e verrà spostata ora in redis)
+    // INESISTENTE -> uuid non valido, da rimandare al menu principale
+    public async validateSession(): Promise<ValidateSessionResponse> {
+        console.log('Validazione sessione in corso...');
+
+        const requestData: ValidateSessionRequest = {};
+
+        let response: Response;
+        try {
+            response = await fetch(`${this.baseUrl}/validate`, {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json',
+                }
+            });
+
+        } catch (networkError) {
+            console.error('Errore di rete (validate):', networkError);
+            throw new Error('Errore di rete durante la validazione.');
+        }
+
+        if (!response.ok) {
+            if (response.status === 401) {
+                console.log("COD 401");
+            }
+            console.error(`Errore HTTP (validate): ${response.status} ${response.statusText}`);
+            throw new Error(`Errore server: ${response.status}`);
+        }
+
+        const responseData = await response.json();
+
+        try {
+            const validatedResponse = ValidateSessionResponseSchema.parse(responseData);
+
+            console.log(`Stato sessione: ${validatedResponse.state}`);
+            return validatedResponse;
+
+        } catch (validationError) {
+            console.error('Risposta di validazione non valida:', validationError);
+            console.error('Dati ricevuti:', responseData);
+            throw new Error('Formato della risposta di validazione non valido.');
         }
     }
 

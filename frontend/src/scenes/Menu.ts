@@ -2,6 +2,8 @@ import { applyTranslations } from "../utils";
 import { showElements } from "../utils";
 import { fadeElements } from "../utils";
 import MenuBackground from "../items/UI/MenuBackground";
+
+import {APISession} from "@/network/APISession";
 // You can write more code here
 
 /* START OF COMPILED CODE */
@@ -100,6 +102,8 @@ class Menu extends Phaser.Scene {
 	private fullscreen_icon!: Phaser.GameObjects.Image;
 	private uI!: Array<Phaser.GameObjects.Rectangle|Phaser.GameObjects.Image|Phaser.GameObjects.Text>;
 
+    private apiSession!: APISession;
+
 	/* START-USER-CODE */
 
 	// Write your code here
@@ -111,6 +115,37 @@ class Menu extends Phaser.Scene {
 
 	async create() {
 		this.editorCreate();
+
+        // ------- VALIDAZIONE DELLA SESSIONE -----
+        this.apiSession = new APISession();
+        try {
+            const validation = await this.apiSession.validateSession();
+            switch (validation.state) {
+                case 'active':
+                    console.log("SESSIONE ATTIVA");
+                    break;
+                case 'inactive':
+                    console.log("SESSIONE INATTIVA");
+                    break;
+                case 'absent':
+                    console.log("SESSIONE ABSENT");
+                    break;
+                default:
+                    console.log("PALLE SUDATE");
+                    break;
+
+            }
+        }
+        catch(error){
+            if(error instanceof Error) {
+                console.error(error.message);
+            }
+            else{
+                console.error("ERRORE STRANO: ", error);
+            }
+        }
+        // ---------------
+
 		showElements(this.uI, false);
 
 		// Riproduce il video introduttivo al primo accesso (si resetta aggiornando la pagina)
