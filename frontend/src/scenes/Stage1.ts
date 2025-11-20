@@ -61,9 +61,9 @@ class Stage1 extends Phaser.Scene {
 	private isMemoryActive: boolean = false;
 
 	async preload() {
-		this.load.pack("tutorial-pack", "frontend/public/assets/images/tutorial-pack.json");
-		this.load.pack("player-pack", "frontend/public/assets/images/player-pack.json");
-		this.load.pack("icons-pack", "frontend/public/assets/images/icons-pack.json");
+		this.load.pack("tutorial-pack", "assets/images/tutorial-pack.json");
+		this.load.pack("player-pack", "assets/images/player-pack.json");
+		this.load.pack("icons-pack", "assets/images/icons-pack.json");
 
 		const lang = localStorage.getItem("lang") || "en";
         this.load.json("stage1_i18n", `assets/i18n/${lang}/Stage1.json`);

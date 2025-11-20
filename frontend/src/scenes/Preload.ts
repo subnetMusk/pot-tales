@@ -61,11 +61,6 @@ class Preload extends Phaser.Scene {
 
 			this.loader.width = width * value;
 		});
-
-		this.load.pack("Icons-pack", "frontend/public/assets/images/icons-pack.json");
-		
-		// Carica l'immagine del dorso della carta per Memory
-		this.load.image('card_back', 'frontend/public/assets/images/items/wine jar.png');
 	}
 
 	async create() {

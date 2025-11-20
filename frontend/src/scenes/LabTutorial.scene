@@ -3,9 +3,8 @@
     "sceneType": "SCENE",
     "settings": {
         "preloadPackFiles": [
-            "progetti_innovativi/frontend/public/assets/sprite/Sprite-pack.json",
-            "progetti_innovativi/frontend/public/assets/images/images.json",
-            "progetti_innovativi/frontend/public/assets/fonts/Pixelify_Sans/Font-pack.json"
+            "progetti_innovativi/assets/images/tutorial-pack.json",
+            "progetti_innovativi/assets/fonts/Pixelify_Sans/Font-pack.json"
         ],
         "createMethodName": "editorCreate",
         "sceneKey": "LabTutorial",

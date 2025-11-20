@@ -3,9 +3,9 @@
     "sceneType": "SCENE",
     "settings": {
         "preloadPackFiles": [
-            "progetti_innovativi/frontend/public/assets/images/tutorial-pack.json",
-            "progetti_innovativi/frontend/public/assets/images/player-pack.json",
-            "progetti_innovativi/frontend/public/assets/images/icons-pack.json"
+            "progetti_innovativi/assets/images/tutorial-pack.json",
+            "progetti_innovativi/assets/images/player-pack.json",
+            "progetti_innovativi/assets/images/icons-pack.json"
         ],
         "createMethodName": "editorCreate",
         "sceneKey": "Tutorial",

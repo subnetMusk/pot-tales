@@ -18,9 +18,9 @@ class Tutorial extends Phaser.Scene {
 
 	preload(): void {
 
-		this.load.pack("tutorial-pack", "frontend/public/assets/images/tutorial-pack.json");
-		this.load.pack("player-pack", "frontend/public/assets/images/player-pack.json");
-		this.load.pack("icons-pack", "frontend/public/assets/images/icons-pack.json");
+		this.load.pack("tutorial-pack", "assets/images/tutorial-pack.json");
+		this.load.pack("player-pack", "assets/images/player-pack.json");
+		this.load.pack("icons-pack", "assets/images/icons-pack.json");
 	}
 
 	editorCreate(): void {

@@ -19,10 +19,8 @@ class LabTutorial extends Phaser.Scene {
     }
 
     preload(): void {
-
-        this.load.pack("Sprite-pack", "frontend/public/assets/sprite/Sprite-pack.json");
-        this.load.pack("images", "frontend/public/assets/images/images.json");
-        this.load.pack("Font-pack", "frontend/public/assets/fonts/Pixelify_Sans/Font-pack.json");
+        this.load.pack("tutorial-pack", "assets/images/tutorial-pack.json");
+        this.load.pack("Font-pack", "assets/fonts/Pixelify_Sans/Font-pack.json");
     }
 
     editorCreate(): void {
