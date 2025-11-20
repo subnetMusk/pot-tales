@@ -264,10 +264,6 @@ class Menu extends Phaser.Scene {
 			});
 			this.resume_button.on('pointerover', () => {this.resume_button.setStrokeStyle(4, 0x70bcff);});
 			this.resume_button.on('pointerout', () => {this.resume_button.setStrokeStyle(2, 0xf0f8ff);});
-		} else {
-			this.resume_button_items.forEach( element => {
-				element.alpha = 0.5;
-			});
 		}
 
 		this.events.once("shutdown", () => {

@@ -164,7 +164,7 @@ class Stage1 extends Phaser.Scene {
 		/* END-SCENE-LOGIC */
 	}
 
-	startMinigame() {
+	private startMinigame() {
 		// Evita di avviare più volte il gioco
 		if (this.isMemoryActive) return;
 		this.isMemoryActive = true;
@@ -197,8 +197,44 @@ class Stage1 extends Phaser.Scene {
 
 				// Mostra un messaggio di successo
 				this.popupManager.queuePopup("Bravissimo! Hai vinto!");
-				this.popupManager.queuePopup("Ora puoi continuare con il tuo viaggio.");
+				// Mostra un messaggio di successo
+				this.popupManager.queuePopup("Bravissimo! Hai vinto!");
+				this.popupManager.queuePopup("Che succede ora?");
 				this.popupManager.showNextPopup();
+
+				this.popupManager.on("queueEmpty", () => {
+					const fadeRect = this.add.rectangle(
+						this.cameras.main.centerX,
+						this.cameras.main.centerY,
+						this.cameras.main.width,
+						this.cameras.main.height,
+						0x000000
+					);
+
+					fadeRect.setScrollFactor(0);
+					fadeRect.setDepth(10);
+					fadeRect.setAlpha(0);
+
+					this.tweens.add({
+						targets: fadeRect,
+						alpha: 0.95,
+						duration: 600,
+						ease: "Linear",
+						onComplete: () => {
+							this.time.delayedCall(9600, () => {
+								this.tweens.add({
+									targets: fadeRect,
+									alpha: 1,
+									duration: 400,
+									ease: "Linear",
+									onComplete: () => {
+										this.scene.start("Stage2");
+									}
+								});
+							});
+						}
+					});
+				});
 			});
 		}
 	}
