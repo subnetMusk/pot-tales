@@ -13,11 +13,11 @@ export function showElements(elements: Array<Phaser.GameObjects.GameObject>, sho
 	});
 }
 
-export function fadeElements(SceneObject: Array<Phaser.GameObjects.GameObject>, show: boolean, duration: number = 1000, onComplete?: () => void) {
+export function fadeElements(SceneObject: Array<Phaser.GameObjects.GameObject>, show: boolean, duration: number = 1000, onComplete?: () => void, targetAlpha: number = 1) {
 	SceneObject.forEach(obj => {
 		obj.scene.tweens.add({
 			targets: obj,
-			alpha: show ? 1 : 0,
+			alpha: show ? targetAlpha : 0,
 			duration: duration,
 			ease: 'Quad.easeInOut',
 			onComplete: onComplete
