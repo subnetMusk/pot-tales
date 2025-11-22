@@ -127,6 +127,8 @@ class Stage2 extends Phaser.Scene {
 	}
 
 	private startMinigame() {
+		this.player.movementAllowed = false;
+
 		// Evita di avviare più volte il gioco
 		if (this.isMemoryActive) return;
 		this.isMemoryActive = true;
@@ -154,8 +156,49 @@ class Stage2 extends Phaser.Scene {
 				this.scene.resume();
 				this.isMemoryActive = false;
 
-				// Mostra un messaggio di successo
-				this.popupManager.queuePopup("Bravissimo! Hai vinto!");
+				this.cameras.main.shake(10000, 0.0004); 
+				
+				this.popupManager.queuePopup("Che sta succedendo?");
+				this.popupManager.showNextPopup();
+
+				this.popupManager.on("queueEmpty", () => {
+					this.tweens.add({
+						targets: this.player,
+						x: this.pool_center.x,
+						y: this.pool_center.y - 50,
+						duration: 1000,
+						ease: "Sine.easeInOut",
+						onComplete: () => {
+							const blackRect = this.add.rectangle(
+								this.cameras.main.centerX,
+								this.cameras.main.centerY,
+								this.cameras.main.width,
+								this.cameras.main.height,
+								0x000000
+							);
+							blackRect.setScrollFactor(0);
+							blackRect.setDepth(100);
+							blackRect.alpha = 0;
+
+							this.tweens.add({
+								targets: blackRect,
+								alpha: 1,
+								duration: 1000,
+								ease: "Linear"
+							});
+
+							this.tweens.add({
+								targets: this.cameras.main,
+								zoom: 10.0,
+								duration: 1000,
+								ease: "Sine.easeInOut",
+								onComplete: () => {
+									this.scene.start("Stage3");
+								}
+							});
+						}
+					});
+				});
 			});
 		}
 	}
