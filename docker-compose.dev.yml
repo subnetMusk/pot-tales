@@ -114,10 +114,9 @@ services:
     image: mongo-express:latest
     container_name: mongo-ui
     restart: unless-stopped
-    env_file:
-      - docker/env/.env
     environment:
       - ME_CONFIG_MONGODB_SERVER=${MONGODB_HOST}
+      - ME_CONFIG_MONGODB_URL=mongodb://${MONGODB_HOST}:27017
     networks:
       - internal_net
       - proxy_net
@@ -132,8 +131,6 @@ services:
     container_name: redis-ui
     platform: linux/amd64
     restart: unless-stopped
-    env_file:
-      - docker/env/.env
     environment:
       - REDIS_HOSTS=${REDIS_UI_HOSTS}
     networks:
