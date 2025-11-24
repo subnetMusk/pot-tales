@@ -12,7 +12,8 @@ echo "⚙️ Building frontend (Vite)…"
 # che non tengono conto del fatto che in produzione gli asset non sono serviti dalla cartella "public".
 # Questo passaggio viene svolto qui per evitare di dover modificare la copia locale dei file di sviluppo, che renderebbe inutilizzabile il phaser editor.
 echo "🔧 Adjusting asset paths for production…"
-find frontend/dist/assets -type f -name "*.json" -exec sed -i 's|frontend/public/||g' {} +
+# Soluzione universale (macOS + Linux)
+find frontend/dist/assets -type f -name "*.json" -exec perl -pi -e 's|frontend/public/||g' {} +
 
 echo "⚙️ Building sandbox (Vite)…"
 (cd sandbox && npm run build)
