@@ -2,6 +2,8 @@ import { applyTranslations } from "../utils";
 import { showElements } from "../utils";
 import { fadeElements } from "../utils";
 import MenuBackground from "../items/UI/MenuBackground";
+
+import {APISession} from "@/network/APISession";
 // You can write more code here
 
 /* START OF COMPILED CODE */
@@ -28,83 +30,112 @@ class Menu extends Phaser.Scene {
 		settings_icon.scaleY = 1.5;
 
 		// Leaderboard_button
-		const leaderboard_button = this.add.rectangle(640, 470, 450, 90);
+		const leaderboard_button = this.add.rectangle(640, 534, 400, 75);
 		leaderboard_button.isStroked = true;
 		leaderboard_button.strokeColor = 15792383;
 		leaderboard_button.lineWidth = 2;
 
 		// Leaderboard
-		const leaderboard = this.add.text(640, 470, "", {});
+		const leaderboard = this.add.text(640, 534, "", {});
 		leaderboard.name = "Leaderboard";
 		leaderboard.setOrigin(0.5, 0.5);
 		leaderboard.text = "Leaderboard";
 		leaderboard.setStyle({ "align": "center", "color": "#f0f8ff", "fontFamily": "PixelifySans-VariableFont_wght", "fontSize": "30px", "stroke": "#000000" });
 
 		// leaderboard_icon
-		const leaderboard_icon = this.add.image(500, 470, "leaderboard");
-
-		// Play_button
-		const play_button = this.add.rectangle(640, 250, 450, 90);
-		play_button.isStroked = true;
-		play_button.strokeColor = 15792383;
-		play_button.lineWidth = 2;
-
-		// Play
-		const play = this.add.text(640, 250, "", {});
-		play.name = "Play";
-		play.setOrigin(0.5, 0.5);
-		play.text = "Play";
-		play.setStyle({ "align": "center", "color": "#f0f8ff", "fontFamily": "PixelifySans-VariableFont_wght", "fontSize": "30px", "stroke": "#000000" });
+		const leaderboard_icon = this.add.image(478, 532, "leaderboard");
 
 		// Gallery_button
-		const gallery_button = this.add.rectangle(640, 360, 450, 90);
+		const gallery_button = this.add.rectangle(640, 448, 400, 75);
 		gallery_button.isStroked = true;
 		gallery_button.strokeColor = 15792383;
 		gallery_button.lineWidth = 2;
 
 		// Gallery
-		const gallery = this.add.text(640, 360, "", {});
+		const gallery = this.add.text(640, 448, "", {});
 		gallery.name = "Gallery";
 		gallery.setOrigin(0.5, 0.5);
 		gallery.text = "Gallery";
 		gallery.setStyle({ "align": "center", "color": "#f0f8ff", "fontFamily": "PixelifySans-VariableFont_wght", "fontSize": "30px", "stroke": "#000000" });
 
 		// gallery_icon
-		const gallery_icon = this.add.image(500, 359, "gallery");
+		const gallery_icon = this.add.image(478, 447, "gallery");
+
+		// resume_button
+		const resume_button = this.add.rectangle(640, 362, 400, 75);
+		resume_button.isStroked = true;
+		resume_button.strokeColor = 15792383;
+		resume_button.lineWidth = 2;
+
+		// Resume
+		const resume = this.add.text(640, 362, "", {});
+		resume.name = "Resume";
+		resume.setOrigin(0.5, 0.5);
+		resume.text = "Continue";
+		resume.setStyle({ "align": "center", "color": "#f0f8ff", "fontFamily": "PixelifySans-VariableFont_wght", "fontSize": "30px", "stroke": "#000000" });
+
+		// resume_icon
+		const resume_icon = this.add.image(478, 362, "play", 0);
+
+		// Play_button
+		const play_button = this.add.rectangle(640, 276, 400, 75);
+		play_button.isStroked = true;
+		play_button.strokeColor = 15792383;
+		play_button.lineWidth = 2;
+
+		// Play
+		const play = this.add.text(640, 276, "", {});
+		play.name = "Play";
+		play.setOrigin(0.5, 0.5);
+		play.text = "Play";
+		play.setStyle({ "align": "center", "color": "#f0f8ff", "fontFamily": "PixelifySans-VariableFont_wght", "fontSize": "30px", "stroke": "#000000" });
+
+		// play_icon
+		const play_icon = this.add.image(478, 277, "play", 0);
 
 		// fullscreen_icon
 		const fullscreen_icon = this.add.image(1182, 98, "fullscreen", 1);
 		fullscreen_icon.scaleX = 1.5;
 		fullscreen_icon.scaleY = 1.5;
 
-		// play_icon
-		const play_icon = this.add.image(500, 250, "play", 0);
+		// Title
+		const title = this.add.image(640, 150, "default");
+		title.scaleX = 15;
+		title.scaleY = 3;
 
 		// lists
-		const uI = [play_button, play_icon, fullscreen_icon, gallery_icon, gallery, gallery_button, play, leaderboard_icon, leaderboard, leaderboard_button, settings_icon];
+		const uI = [play_button, play_icon, fullscreen_icon, gallery_icon, gallery, gallery_button, play, leaderboard_icon, leaderboard, leaderboard_button, settings_icon, resume_icon, resume, resume_button];
+		const resume_button_items = [resume_icon, resume, resume_button];
 
 		this.settings_icon = settings_icon;
 		this.leaderboard_button = leaderboard_button;
-		this.play_button = play_button;
 		this.gallery_button = gallery_button;
+		this.resume_button = resume_button;
+		this.play_button = play_button;
 		this.fullscreen_icon = fullscreen_icon;
 		this.uI = uI;
+		this.resume_button_items = resume_button_items;
 
 		this.events.emit("scene-awake");
 	}
 
 	private settings_icon!: Phaser.GameObjects.Image;
 	private leaderboard_button!: Phaser.GameObjects.Rectangle;
-	private play_button!: Phaser.GameObjects.Rectangle;
 	private gallery_button!: Phaser.GameObjects.Rectangle;
+	private resume_button!: Phaser.GameObjects.Rectangle;
+	private play_button!: Phaser.GameObjects.Rectangle;
 	private fullscreen_icon!: Phaser.GameObjects.Image;
 	private uI!: Array<Phaser.GameObjects.Rectangle|Phaser.GameObjects.Image|Phaser.GameObjects.Text>;
+	private resume_button_items!: Array<Phaser.GameObjects.Image|Phaser.GameObjects.Text|Phaser.GameObjects.Rectangle>;
 
 	/* START-USER-CODE */
 
 	// Write your code here
+	private apiSession!: APISession;
 
 	async preload() {
+		this.load.pack("icons-pack", "assets/images/icons-pack.json");
+
         const lang = localStorage.getItem("lang") || "en";
         this.load.json("menu_i18n", `assets/i18n/${lang}/Menu.json`);
     }
@@ -112,6 +143,38 @@ class Menu extends Phaser.Scene {
 	async create() {
 		this.editorCreate();
 		showElements(this.uI, false);
+
+		let resume_alpha = 0.5;
+
+        // ------- VALIDAZIONE DELLA SESSIONE -----
+        this.apiSession = new APISession();
+        try {
+            const validation = await this.apiSession.validateSession();
+            switch (validation.state) {
+                case 'active':
+					console.log("SESSIONE ATTIVA");
+                    resume_alpha = 1;
+                    break;
+                case 'inactive':
+                    console.log("SESSIONE INATTIVA");
+                    break;
+                case 'absent':
+                    console.log("SESSIONE ABSENT");
+                    break;
+                default:
+                    console.log("PALLE SUDATE");
+                    break;
+
+            }
+        }
+        catch(error){
+            if(error instanceof Error) {
+                console.error(error.message);
+            }
+            else{
+                console.error("ERRORE STRANO: ", error);
+            }
+        }
 
 		// Riproduce il video introduttivo al primo accesso (si resetta aggiornando la pagina)
 		if(localStorage.getItem("playIntro") === "true") {
@@ -126,11 +189,15 @@ class Menu extends Phaser.Scene {
 				fadeElements([videoPlayer], false, 1000, () => {
 					videoPlayer.destroy();
 					localStorage.setItem("playIntro", "false");
-					fadeElements(this.uI, true);
+
+					fadeElements(this.uI.filter(el => !this.resume_button_items.includes(el)), true);
+					fadeElements(this.resume_button_items, true, 1000, undefined, resume_alpha);
 				});
 			});
-		} else fadeElements(this.uI, true);
-
+		} else {
+			fadeElements(this.uI.filter(el => !this.resume_button_items.includes(el)), true);
+			fadeElements(this.resume_button_items, true, 1000, undefined, resume_alpha);
+		}
 		// Apply translations
         const i18n = this.cache.json.get("menu_i18n");
         applyTranslations(this, i18n);
@@ -183,6 +250,21 @@ class Menu extends Phaser.Scene {
 
 		this.fullscreen_icon.on('pointerover', () => {this.fullscreen_icon.setTint(0x70bcff);});
 		this.fullscreen_icon.on('pointerout', () => {this.fullscreen_icon.clearTint();});
+
+		if(resume_alpha === 1) {
+			this.resume_button.setInteractive();
+
+			this.resume_button.on('pointerdown', () => {this.resume_button.setStrokeStyle(4, 0x00aaff);});
+			this.resume_button.on('pointerup', () => {
+				fadeElements(this.uI, false, 1000, () => {
+					this.cameras.main.zoomTo(1.5, 1000);
+					this.cameras.main.fadeOut(1000, 0, 0, 0);
+					this.cameras.main.once('camerafadeoutcomplete', () => {this.scene.start("Tutorial");});
+				});
+			});
+			this.resume_button.on('pointerover', () => {this.resume_button.setStrokeStyle(4, 0x70bcff);});
+			this.resume_button.on('pointerout', () => {this.resume_button.setStrokeStyle(2, 0xf0f8ff);});
+		}
 
 		this.events.once("shutdown", () => {
         	this.cache.json.remove("menu_i18n");

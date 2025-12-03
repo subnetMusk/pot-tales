@@ -5,7 +5,7 @@
   "properties": {
     "device": {
       "type": "string",
-      "maxLength": 64
+      "maxLength": 1024
     },
     "ipAddress": {
       "type": "string",
@@ -16,6 +16,6 @@
       "description": "True if the user has given consent to store session data."
     }
   },
-  "required": ["consentGiven"],
+  "required": ["consentGiven", "device"],
   "additionalProperties": false
 }

@@ -1,0 +1,35 @@
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.169.0/build/three.module.js",
+    "three/examples/jsm/": "https://cdn.jsdelivr.net/npm/three@0.169.0/examples/jsm/"
+  }
+}
+</script>
+
+<script
+  type="module"
+  src="../utils/main.js"
+  data-model="TEST.glb">
+</script>
+
+<!--FILE 3D
+I file 3D DEVONO essere dei file .glb, non .obj, e si devono trovare in public/assets/3Dobjs, niente sottocartelle.
+Non uso i file .obj perché la gestione delle texture diventa un casino, i file .glb hanno tutto già impacchettato.
+
+CONVERSIONE CON BLENDER
+Se non avete cazzi di farlo ditemelo e lo faccio io, altrimenti:
+
+Per la conversione si può usare blender, basta aprirlo e trascinare sopra il file .obj (Importatelo senza toccare i parametri di default).
+Dato che la fotogrammetria genera sempre l'oggetto spostato rispetto all'origine bisogna premere: TAB, A (l'oggetto deve diventre arancione), shift+S, 7.
+Fatto ciò andate nel pannello shading (quelli scritti in alto, nella barra sopra alla vista sull'oggetto).
+Da lì si mettono i nodi, fate click destro e selezionate Add, aggiungete il nodo Image Texture e selezionate la texture
+
+i nodi devono essere semplici, quindi solo:
+
+Image (color)->(base color) Principled BSDF (BSDF)-> (surface)Output
+
+Niente roba in più, per i parametri si può mettere quello che si vuole, se volete andare sul sicuro: Metallic = 1, Roughness = 0.75
+
+Fate 'esporta' e selezionate 'glTF 2.0', non toccate i parametri
+-->

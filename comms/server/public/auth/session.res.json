@@ -10,14 +10,6 @@
     "expires": {
       "type": "string",
       "format": "date-time"
-    },
-    "timer": {
-      "type": "number",
-      "description": "Timer del giocatore"
-    },
-    "achievements" : {
-      "type": "array",
-      "description": "Raggiungimenti del giocatore"
     }
   },
   "required": ["token", "expires"],

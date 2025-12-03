@@ -33,9 +33,8 @@ class Memory extends Phaser.Scene {
 	create() {
 
 		this.editorCreate();
-		const imageKey: string = 'card_front'; //immagine frontale delle carte
-		const numCards = 24; // Numero totale di carte nel gioco
-		// lista di oggetti con due parametri: codice e nome immagine
+		const numCards = 24; 						// Numero totale di carte nel gioco
+		// Enum con i numeri delle carte
 		const cardData: { code: number }[] = [
 			{ code: 1 },
 			{ code: 2 },
@@ -61,13 +60,13 @@ class Memory extends Phaser.Scene {
 
 		//TODO sistemare coordinate e spaziatura carte 
 		//coordianate iniziali 
-		let x = 48+ 320;
+		let x = 48+ 260;
 		let y = 22.4 +104; 
 
-		//posiziono le carte in una griglia 4x4
-		for (let i = 0; i < numCards/4; i++) {
-			x = 48+ 320; //resetto x ad ogni riga
-			for (let j = 0; j < 4; j++) {
+		// Posiziona le carte in una griglia 4x6
+		for (let i = 0; i < 4; i++) {
+			x = 48+ 260; //resetto x ad ogni riga
+			for (let j = 0; j < numCards/4; j++) {
 				const card = new MemoryCard( this, i * 4 + j, { x, y });
 				this.cards.push(card);
 				this.add.existing(card); // Aggiungi il container della carta alla scena

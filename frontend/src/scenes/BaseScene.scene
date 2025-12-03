@@ -1,0 +1,43 @@
+{
+    "id": "e107631f-bb6d-4a49-99c8-a8c0730b82b1",
+    "sceneType": "SCENE",
+    "settings": {
+        "preloadPackFiles": [],
+        "createMethodName": "editorCreate",
+        "sceneKey": "Stage1",
+        "compilerOutputLanguage": "TYPE_SCRIPT",
+        "borderWidth": 1280,
+        "borderHeight": 720
+    },
+    "displayList": [
+        {
+            "prefabId": "5a8935be-1a98-42a5-9cc4-bca49b9c51b2",
+            "id": "c2e3a6c4-b355-4140-8b64-f9f16f4b1089",
+            "unlock": [
+                "x",
+                "y"
+            ],
+            "label": "player",
+            "scope": "CLASS",
+            "x": 160,
+            "y": 90
+        }
+    ],
+    "plainObjects": [],
+    "meta": {
+        "app": "Phaser Editor - Scene Editor",
+        "url": "https://phaser.io/editor",
+        "contentType": "phasereditor2d.core.scene.SceneContentType",
+        "version": 5
+    },
+    "lists": [
+        {
+            "id": "235707ec-1cdc-4ba5-bd88-6953c1d6828c",
+            "label": "boundaries"
+        },
+        {
+            "id": "0faa1bb6-ae3e-42d3-b705-54a31d0204aa",
+            "label": "oggVector"
+        }
+    ]
+}

@@ -1,5 +1,5 @@
 {
-  "mainVolume": "Main Volume",
-  "musicVolume": "Music Volume",
-  "sfxVolume": "Effects Volume"
+  "MainVolume": "Main Volume",
+  "MusicVolume": "Music Volume",
+  "SfxVolume": "Effects Volume"
 }

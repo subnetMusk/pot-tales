@@ -1,0 +1,21 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "GetTimerResponse",
+  "type": "object",
+  "properties": {
+    "total_playtime_seconds": {
+      "type": "number",
+      "description": "Tempo totale di gioco effettivo in secondi (con decimali)"
+    },
+    "is_active": {
+      "type": "boolean",
+      "description": "True se l'utente sta giocando attivamente (gap < threshold)"
+    },
+    "gap_ms": {
+      "type": "integer",
+      "description": "Millisecondi trascorsi dall'ultimo ping (utile per debug/client sync)"
+    }
+  },
+  "required": ["total_playtime_seconds", "is_active"],
+  "additionalProperties": false
+}

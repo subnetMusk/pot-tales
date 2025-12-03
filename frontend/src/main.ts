@@ -63,29 +63,24 @@ async function injectAndExecute(path: string): Promise<void> {
 }
 
 // Funzione per validare la sessione
-async function checkSession(): Promise<boolean> {
-  try {
-    const res = await fetch("/auth/validate", { credentials: "include" });
-    return res.ok;
-  } catch {
-    return false;
-  }
+function checkConsent(): boolean {
+    return localStorage.getItem("consentGiven") == "true";
 }
 
 // Flusso principale all'avvio
 (async () => {
-  const hasSession = await checkSession();
+    const cons = checkConsent();
 
-  if (hasSession) {
-    startGame();
-  } else {
-    await injectAndExecute("/static/pages/consent.html");
-  }
+    if (cons) {
+        startGame();
+    } else {
+        await injectAndExecute("/static/pages/consent.html");
+    }
 })();
 
 async function startGame() {
-  await injectAndExecute('static/pages/game.html');
-  import('./loader.js').then(() => {});
+    await injectAndExecute('static/pages/game.html');
+    import('./loader.js').then(() => {});
 }
 
 // Esporta le funzione per poterle usare in altri moduli 

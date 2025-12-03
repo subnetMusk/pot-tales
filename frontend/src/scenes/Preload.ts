@@ -81,6 +81,10 @@ class Preload extends Phaser.Scene {
 		this.scene.add("Tutorial", (await import("./Tutorial")).default);
 		this.scene.add("LabTutorial", (await import("./LabTutorial")).default);
 		this.scene.add("Memory", (await import("./Memory")).default);
+
+		this.scene.add("Stage1", (await import("./Stage1")).default);
+		this.scene.add("Stage2", (await import("./Stage2")).default);
+		this.scene.add("Stage3", (await import("./Stage3")).default);
 		this.scene.add("GraficoGame", (await import("./GraficoGame")).default, true);
 
 		this.scene.add("Menu", (await import("./Menu")).default, false);

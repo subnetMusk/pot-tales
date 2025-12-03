@@ -6,7 +6,7 @@ class Boot extends Phaser.Scene {
 	}
 	
 	preload() {
-		this.load.pack("Font-pack", "frontend/public/assets/fonts/Pixelify_Sans/Font-pack.json");
+		this.load.pack("Font-pack", "assets/fonts/Pixelify_Sans/Font-pack.json");
 	}
 
 	async create() {

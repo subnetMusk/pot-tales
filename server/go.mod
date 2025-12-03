@@ -14,7 +14,7 @@ require (
 	github.com/gorilla/mux v1.8.0
 
 	// Redis client (context-aware, v9 API)
-	github.com/redis/go-redis/v9 v9.16.0
+	github.com/redis/go-redis/v9 v9.17.0
 
 	// JSON-Schema validator (Draft-07+)
 	github.com/santhosh-tekuri/jsonschema/v5 v5.3.1
