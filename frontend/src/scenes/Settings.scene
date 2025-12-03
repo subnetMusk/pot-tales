@@ -1,0 +1,196 @@
+{
+    "id": "bc181d71-b38f-46f2-ba23-ee56f15f9821",
+    "sceneType": "SCENE",
+    "settings": {
+        "preloadPackFiles": [],
+        "createMethodName": "editorCreate",
+        "sceneKey": "Settings",
+        "compilerOutputLanguage": "TYPE_SCRIPT",
+        "borderWidth": 1280,
+        "borderHeight": 720
+    },
+    "displayList": [
+        {
+            "prefabId": "b839e604-a177-4f6e-9a14-7bbc8c2c4576",
+            "id": "8fb1228d-1290-43b6-9b0b-b4b76ed3020b",
+            "unlock": [
+                "x",
+                "y"
+            ],
+            "label": "menuBackground",
+            "x": 520,
+            "y": 360
+        },
+        {
+            "prefabId": "75c6733d-e056-42d2-b166-e4b1e0e10aac",
+            "id": "86ae0908-b2c4-41a9-9ada-5e1676e33def",
+            "unlock": [
+                "x",
+                "y",
+                "scaleX",
+                "scaleY"
+            ],
+            "label": "backButton",
+            "x": 1182,
+            "y": 98,
+            "scaleX": 1.5,
+            "scaleY": 1.5
+        },
+        {
+            "prefabId": "dbaee912-664e-41be-ab33-968f861902a2",
+            "id": "b999cd69-6ce8-4ce7-997d-db6c84077dcd",
+            "unlock": [
+                "x",
+                "y",
+                "scaleX",
+                "scaleY"
+            ],
+            "label": "sfxVolumeSlider",
+            "scope": "CLASS",
+            "x": 640,
+            "y": 421,
+            "scaleX": 2,
+            "scaleY": 2
+        },
+        {
+            "type": "Text",
+            "id": "53a5efe2-7bed-4e65-bc72-61cdaca697dc",
+            "label": "sfxVolume",
+            "useGameObjectName": true,
+            "x": 465,
+            "y": 453,
+            "originX": 0.5,
+            "originY": 0.5,
+            "text": "Effects Volume",
+            "fixedWidth": 300,
+            "align": "right",
+            "fontFamily": "PixelifySans-VariableFont_wght",
+            "fontSize": "30px"
+        },
+        {
+            "prefabId": "dbaee912-664e-41be-ab33-968f861902a2",
+            "id": "83edbcad-5e5b-4c9d-b7c9-e98cdbf34dc4",
+            "unlock": [
+                "x",
+                "y",
+                "scaleX",
+                "scaleY"
+            ],
+            "label": "musicVolumeSlider",
+            "scope": "CLASS",
+            "x": 640,
+            "y": 346,
+            "scaleX": 2,
+            "scaleY": 2
+        },
+        {
+            "type": "Text",
+            "id": "398ff9f2-86a5-4cf6-b9dc-f5a4fa473b60",
+            "label": "musicVolume",
+            "useGameObjectName": true,
+            "x": 465,
+            "y": 378,
+            "originX": 0.5,
+            "originY": 0.5,
+            "text": "Music Volume",
+            "fixedWidth": 300,
+            "align": "right",
+            "fontFamily": "PixelifySans-VariableFont_wght",
+            "fontSize": "30px"
+        },
+        {
+            "prefabId": "dbaee912-664e-41be-ab33-968f861902a2",
+            "id": "851115c5-df27-454d-bc1c-f95819f063e2",
+            "unlock": [
+                "x",
+                "y",
+                "scaleX",
+                "scaleY"
+            ],
+            "label": "mainVolumeSlider",
+            "scope": "CLASS",
+            "x": 640,
+            "y": 271,
+            "scaleX": 2,
+            "scaleY": 2
+        },
+        {
+            "type": "Text",
+            "id": "aa014342-0f41-4a80-9716-77ca3d66b601",
+            "label": "mainVolume",
+            "useGameObjectName": true,
+            "x": 465,
+            "y": 303,
+            "originX": 0.5,
+            "originY": 0.5,
+            "text": "Main Volume",
+            "fixedWidth": 300,
+            "align": "right",
+            "fontFamily": "PixelifySans-VariableFont_wght",
+            "fontSize": "30px"
+        },
+        {
+            "type": "Rectangle",
+            "id": "d5d58185-c868-4159-a74a-5238528a4c09",
+            "label": "enButton",
+            "displayName": "EN Button",
+            "scope": "CLASS",
+            "x": 1166,
+            "y": 638,
+            "strokeColor": "#f0f8ff",
+            "lineWidth": 2,
+            "isStroked": true,
+            "width": 150,
+            "height": 64
+        },
+        {
+            "type": "Text",
+            "id": "80c509c5-cfc1-466d-815e-30d402e908d7",
+            "label": "english",
+            "x": 1167,
+            "y": 638,
+            "originX": 0.5,
+            "originY": 0.5,
+            "text": "English",
+            "fixedWidth": 128,
+            "align": "center",
+            "fontFamily": "PixelifySans-VariableFont_wght",
+            "fontSize": "30px"
+        },
+        {
+            "type": "Rectangle",
+            "id": "d99fdb81-09e0-46af-8b39-b125f48af84d",
+            "label": "itButton",
+            "displayName": "ITA Button",
+            "scope": "CLASS",
+            "x": 1006,
+            "y": 638,
+            "strokeColor": "#f0f8ff",
+            "lineWidth": 2,
+            "isStroked": true,
+            "width": 150,
+            "height": 64
+        },
+        {
+            "type": "Text",
+            "id": "8abee8ec-1478-49a1-a2bb-06b63d4a266a",
+            "label": "italian",
+            "x": 1006,
+            "y": 638,
+            "originX": 0.5,
+            "originY": 0.5,
+            "text": "Italiano",
+            "fixedWidth": 128,
+            "align": "center",
+            "fontFamily": "PixelifySans-VariableFont_wght",
+            "fontSize": "30px"
+        }
+    ],
+    "plainObjects": [],
+    "meta": {
+        "app": "Phaser Editor - Scene Editor",
+        "url": "https://phaser.io/editor",
+        "contentType": "phasereditor2d.core.scene.SceneContentType",
+        "version": 5
+    }
+}

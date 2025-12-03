@@ -1,0 +1,71 @@
+{
+    "id": "a51eda54-072c-474b-996c-cf5e471309ed",
+    "sceneType": "SCENE",
+    "settings": {
+        "preloadPackFiles": [],
+        "createMethodName": "editorCreate",
+        "sceneKey": "Stage2",
+        "compilerOutputLanguage": "TYPE_SCRIPT",
+        "borderWidth": 1280,
+        "borderHeight": 720
+    },
+    "displayList": [
+        {
+            "type": "Image",
+            "id": "bb69c0e4-6ea3-4d3e-9403-0f0746e1dea1",
+            "label": "lake",
+            "texture": {
+                "key": "lake"
+            },
+            "x": 640,
+            "y": 360,
+            "scaleX": 10,
+            "scaleY": 10
+        },
+        {
+            "prefabId": "5a8935be-1a98-42a5-9cc4-bca49b9c51b2",
+            "id": "c2e3a6c4-b355-4140-8b64-f9f16f4b1089",
+            "unlock": [
+                "x",
+                "y"
+            ],
+            "label": "player",
+            "scope": "CLASS",
+            "x": 640,
+            "y": 519
+        },
+        {
+            "prefabId": "dfd624ad-310c-404d-96d2-d2307c3faaef",
+            "id": "3a886a57-9afb-4977-805a-14f857ba1dc2",
+            "unlock": [
+                "x",
+                "y"
+            ],
+            "label": "pool_center",
+            "displayName": "Pool Center",
+            "scope": "CLASS",
+            "x": 640,
+            "y": 360
+        }
+    ],
+    "plainObjects": [],
+    "meta": {
+        "app": "Phaser Editor - Scene Editor",
+        "url": "https://phaser.io/editor",
+        "contentType": "phasereditor2d.core.scene.SceneContentType",
+        "version": 5
+    },
+    "lists": [
+        {
+            "id": "235707ec-1cdc-4ba5-bd88-6953c1d6828c",
+            "label": "boundaries"
+        },
+        {
+            "id": "0faa1bb6-ae3e-42d3-b705-54a31d0204aa",
+            "label": "oggVector",
+            "objectIds": [
+                "3a886a57-9afb-4977-805a-14f857ba1dc2"
+            ]
+        }
+    ]
+}

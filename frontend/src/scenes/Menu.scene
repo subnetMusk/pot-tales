@@ -1,0 +1,271 @@
+{
+    "id": "0176a608-6ca5-4541-ba0d-750b92a3d813",
+    "sceneType": "SCENE",
+    "settings": {
+        "preloadPackFiles": [],
+        "createMethodName": "editorCreate",
+        "sceneKey": "Menu",
+        "compilerOutputLanguage": "TYPE_SCRIPT",
+        "borderWidth": 1280,
+        "borderHeight": 720
+    },
+    "displayList": [
+        {
+            "prefabId": "b839e604-a177-4f6e-9a14-7bbc8c2c4576",
+            "id": "03b123d4-293e-442b-a610-27d9198b842c",
+            "unlock": [
+                "x",
+                "y"
+            ],
+            "label": "menuBackground",
+            "x": 520,
+            "y": 360
+        },
+        {
+            "type": "Image",
+            "id": "cd866935-4696-4d3d-aae6-65725956c783",
+            "label": "settings_icon",
+            "displayName": "Settings Icon",
+            "scope": "CLASS",
+            "texture": {
+                "key": "settings"
+            },
+            "x": 1182,
+            "y": 622,
+            "scaleX": 1.5,
+            "scaleY": 1.5
+        },
+        {
+            "type": "Rectangle",
+            "id": "212906bf-af42-4fd1-bca2-572ce7f12351",
+            "label": "Leaderboard_button",
+            "displayName": "Leader button",
+            "scope": "CLASS",
+            "x": 640,
+            "y": 534,
+            "strokeColor": "#f0f8ff",
+            "lineWidth": 2,
+            "isStroked": true,
+            "width": 400,
+            "height": 75
+        },
+        {
+            "type": "Text",
+            "id": "740b6b0c-8a36-4dc3-9451-5be9043034c2",
+            "label": "Leaderboard",
+            "useGameObjectName": true,
+            "x": 640,
+            "y": 534,
+            "originX": 0.5,
+            "originY": 0.5,
+            "text": "Leaderboard",
+            "align": "center",
+            "fontFamily": "PixelifySans-VariableFont_wght",
+            "fontSize": "30px",
+            "color": "#f0f8ff",
+            "stroke": "#000000"
+        },
+        {
+            "type": "Image",
+            "id": "bc85f77b-dc3d-4dae-9f9d-b66d0324f959",
+            "label": "leaderboard_icon",
+            "displayName": "Leaderboard Icon",
+            "texture": {
+                "key": "leaderboard"
+            },
+            "x": 478,
+            "y": 532
+        },
+        {
+            "type": "Rectangle",
+            "id": "e077216e-4bdd-4ed4-bab7-6374c06c558f",
+            "label": "Gallery_button",
+            "displayName": "Gallery Button",
+            "scope": "CLASS",
+            "x": 640,
+            "y": 448,
+            "strokeColor": "#f0f8ff",
+            "lineWidth": 2,
+            "isStroked": true,
+            "width": 400,
+            "height": 75
+        },
+        {
+            "type": "Text",
+            "id": "c0363a2e-c739-419e-91b2-36bac29f920e",
+            "label": "Gallery",
+            "useGameObjectName": true,
+            "x": 640,
+            "y": 448,
+            "originX": 0.5,
+            "originY": 0.5,
+            "text": "Gallery",
+            "align": "center",
+            "fontFamily": "PixelifySans-VariableFont_wght",
+            "fontSize": "30px",
+            "color": "#f0f8ff",
+            "stroke": "#000000"
+        },
+        {
+            "type": "Image",
+            "id": "3970b748-5627-497f-8a17-e511a5dc2595",
+            "label": "gallery_icon",
+            "displayName": "Gallery Icon",
+            "texture": {
+                "key": "gallery"
+            },
+            "x": 478,
+            "y": 447
+        },
+        {
+            "type": "Rectangle",
+            "id": "c66bc216-dfc8-4532-80d6-7619a808dde4",
+            "label": "resume_button",
+            "displayName": "Continue Button",
+            "scope": "CLASS",
+            "x": 640,
+            "y": 362,
+            "strokeColor": "#f0f8ff",
+            "lineWidth": 2,
+            "isStroked": true,
+            "width": 400,
+            "height": 75
+        },
+        {
+            "type": "Text",
+            "id": "7e922fde-8435-4281-8e00-a21a90551bee",
+            "label": "Resume",
+            "displayName": "Continue",
+            "useGameObjectName": true,
+            "x": 640,
+            "y": 362,
+            "originX": 0.5,
+            "originY": 0.5,
+            "text": "Continue",
+            "align": "center",
+            "fontFamily": "PixelifySans-VariableFont_wght",
+            "fontSize": "30px",
+            "color": "#f0f8ff",
+            "stroke": "#000000"
+        },
+        {
+            "type": "Image",
+            "id": "86cf0036-7675-43db-80cd-eecc46829223",
+            "label": "resume_icon",
+            "displayName": "Continue Icon",
+            "texture": {
+                "key": "play",
+                "frame": 0
+            },
+            "x": 478,
+            "y": 362
+        },
+        {
+            "type": "Rectangle",
+            "id": "535588e3-c367-4778-98bb-8733913aa93a",
+            "label": "Play_button",
+            "displayName": "Play Button",
+            "scope": "CLASS",
+            "x": 640,
+            "y": 276,
+            "strokeColor": "#f0f8ff",
+            "lineWidth": 2,
+            "isStroked": true,
+            "width": 400,
+            "height": 75
+        },
+        {
+            "type": "Text",
+            "id": "8708ef72-5d1c-459d-b92b-f6b0d081107a",
+            "label": "Play",
+            "useGameObjectName": true,
+            "x": 640,
+            "y": 276,
+            "originX": 0.5,
+            "originY": 0.5,
+            "text": "Play",
+            "align": "center",
+            "fontFamily": "PixelifySans-VariableFont_wght",
+            "fontSize": "30px",
+            "color": "#f0f8ff",
+            "stroke": "#000000"
+        },
+        {
+            "type": "Image",
+            "id": "5a78daa9-b4a5-48a5-87e9-b464c462cb75",
+            "label": "play_icon",
+            "displayName": "Play Icon",
+            "texture": {
+                "key": "play",
+                "frame": 0
+            },
+            "x": 478,
+            "y": 277
+        },
+        {
+            "type": "Image",
+            "id": "468e258c-422c-408e-b9b8-43637fbc6d7c",
+            "label": "fullscreen_icon",
+            "displayName": "Fullscreen Icon",
+            "scope": "CLASS",
+            "texture": {
+                "key": "fullscreen",
+                "frame": 1
+            },
+            "x": 1182,
+            "y": 98,
+            "scaleX": 1.5,
+            "scaleY": 1.5
+        },
+        {
+            "type": "Image",
+            "id": "83388f7e-c90d-4b51-ac31-bf50d871a138",
+            "label": "Title",
+            "texture": {
+                "key": "default"
+            },
+            "x": 640,
+            "y": 150,
+            "scaleX": 15,
+            "scaleY": 3
+        }
+    ],
+    "plainObjects": [],
+    "meta": {
+        "app": "Phaser Editor - Scene Editor",
+        "url": "https://phaser.io/editor",
+        "contentType": "phasereditor2d.core.scene.SceneContentType",
+        "version": 5
+    },
+    "lists": [
+        {
+            "id": "54bf8ea5-be4b-4cf1-9c7a-8a646c4488e8",
+            "label": "UI",
+            "objectIds": [
+                "535588e3-c367-4778-98bb-8733913aa93a",
+                "5a78daa9-b4a5-48a5-87e9-b464c462cb75",
+                "468e258c-422c-408e-b9b8-43637fbc6d7c",
+                "3970b748-5627-497f-8a17-e511a5dc2595",
+                "c0363a2e-c739-419e-91b2-36bac29f920e",
+                "e077216e-4bdd-4ed4-bab7-6374c06c558f",
+                "8708ef72-5d1c-459d-b92b-f6b0d081107a",
+                "bc85f77b-dc3d-4dae-9f9d-b66d0324f959",
+                "740b6b0c-8a36-4dc3-9451-5be9043034c2",
+                "212906bf-af42-4fd1-bca2-572ce7f12351",
+                "cd866935-4696-4d3d-aae6-65725956c783",
+                "86cf0036-7675-43db-80cd-eecc46829223",
+                "7e922fde-8435-4281-8e00-a21a90551bee",
+                "c66bc216-dfc8-4532-80d6-7619a808dde4"
+            ]
+        },
+        {
+            "id": "1f4d9ed3-85fd-4f74-971e-265f4a926e1d",
+            "label": "resume_button_items",
+            "objectIds": [
+                "86cf0036-7675-43db-80cd-eecc46829223",
+                "7e922fde-8435-4281-8e00-a21a90551bee",
+                "c66bc216-dfc8-4532-80d6-7619a808dde4"
+            ]
+        }
+    ]
+}

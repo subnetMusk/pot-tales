@@ -1,0 +1,55 @@
+{
+    "id": "b839e604-a177-4f6e-9a14-7bbc8c2c4576",
+    "sceneType": "PREFAB",
+    "settings": {
+        "preloadMethodName": "",
+        "preloadPackFiles": [],
+        "createMethodName": "",
+        "compilerOutputLanguage": "TYPE_SCRIPT",
+        "borderWidth": 1280,
+        "borderHeight": 720
+    },
+    "displayList": [
+        {
+            "type": "Container",
+            "id": "ae7997d0-8029-41dc-8ce8-0c8835e7b7e0",
+            "label": "container_1",
+            "x": 519,
+            "y": 350,
+            "list": [
+                {
+                    "type": "Rectangle",
+                    "id": "25dc14ed-af8a-4979-a296-5bd62c6347b7",
+                    "label": "bg_filter",
+                    "displayName": "Background Filter",
+                    "x": 121,
+                    "y": 10,
+                    "alpha": 0.4,
+                    "isFilled": true,
+                    "fillColor": "#000000",
+                    "width": 1280,
+                    "height": 720
+                },
+                {
+                    "type": "Sprite",
+                    "id": "f733bb32-fd52-4302-9247-c6cab2359405",
+                    "label": "bg",
+                    "texture": {
+                        "key": "tunnel_1",
+                        "frame": 0
+                    },
+                    "x": 121,
+                    "scaleX": 20.01,
+                    "scaleY": 20.01
+                }
+            ]
+        }
+    ],
+    "plainObjects": [],
+    "meta": {
+        "app": "Phaser Editor - Scene Editor",
+        "url": "https://phaser.io/editor",
+        "contentType": "phasereditor2d.core.scene.SceneContentType",
+        "version": 5
+    }
+}

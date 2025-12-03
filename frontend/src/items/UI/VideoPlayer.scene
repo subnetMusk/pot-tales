@@ -1,0 +1,118 @@
+{
+    "id": "c6fe7923-ccfe-42a4-9540-87e443b241d0",
+    "sceneType": "PREFAB",
+    "settings": {
+        "preloadMethodName": "",
+        "preloadPackFiles": [],
+        "createMethodName": "",
+        "compilerOutputLanguage": "TYPE_SCRIPT",
+        "borderWidth": 1280,
+        "borderHeight": 720
+    },
+    "displayList": [
+        {
+            "type": "Container",
+            "id": "72cff328-0f20-47c9-8648-d1aeb5ec1bcb",
+            "label": "container_1",
+            "x": 626,
+            "y": 318,
+            "list": [
+                {
+                    "type": "Rectangle",
+                    "id": "overlay_dark",
+                    "label": "overlay",
+                    "x": 640,
+                    "y": 360,
+                    "isFilled": true,
+                    "fillColor": "#000000",
+                    "fillAlpha": 0.5,
+                    "width": 1280,
+                    "height": 720
+                },
+                {
+                    "type": "Image",
+                    "id": "play_btn",
+                    "label": "playButton",
+                    "scope": "CLASS",
+                    "texture": {
+                        "key": "play",
+                        "frame": 0
+                    },
+                    "x": 640,
+                    "y": 360
+                },
+                {
+                    "type": "Text",
+                    "id": "skip_btn",
+                    "label": "skip",
+                    "useGameObjectName": true,
+                    "scope": "CLASS",
+                    "x": 1149,
+                    "y": 659,
+                    "originX": 0.5,
+                    "originY": 0.5,
+                    "text": "Skip",
+                    "fixedWidth": 100,
+                    "align": "right",
+                    "fontFamily": "PixelifySans-VariableFont_wght",
+                    "fontSize": "24px"
+                },
+                {
+                    "type": "Image",
+                    "id": "8702450d-d169-451b-8886-f56b433d5d08",
+                    "label": "skipIcon",
+                    "displayName": "Spacebar Icon",
+                    "scope": "CLASS",
+                    "texture": {
+                        "key": "spacebar",
+                        "frame": 0
+                    },
+                    "x": 1231,
+                    "y": 659
+                },
+                {
+                    "type": "Rectangle",
+                    "id": "progress_bg",
+                    "label": "progressBarBg",
+                    "x": 640,
+                    "y": 705,
+                    "isFilled": true,
+                    "fillColor": "#222222",
+                    "fillAlpha": 0.8,
+                    "width": 1280,
+                    "height": 30
+                },
+                {
+                    "type": "Rectangle",
+                    "id": "progress_bar",
+                    "label": "progressBar",
+                    "scope": "CLASS",
+                    "y": 705,
+                    "isFilled": true,
+                    "fillColor": "#a61200",
+                    "height": 30
+                }
+            ]
+        }
+    ],
+    "plainObjects": [],
+    "meta": {
+        "app": "Phaser Editor - Scene Editor",
+        "url": "https://phaser.io/editor",
+        "contentType": "phasereditor2d.core.scene.SceneContentType",
+        "version": 5
+    },
+    "lists": [
+        {
+            "id": "e4d29fea-7a30-40cd-9282-005dcac130f6",
+            "label": "UI",
+            "objectIds": [
+                "progress_bar",
+                "progress_bg",
+                "play_btn",
+                "skip_btn",
+                "8702450d-d169-451b-8886-f56b433d5d08"
+            ]
+        }
+    ]
+}

@@ -1,0 +1,142 @@
+{
+    "id": "5a8935be-1a98-42a5-9cc4-bca49b9c51b2",
+    "sceneType": "PREFAB",
+    "settings": {
+        "preloadMethodName": "",
+        "preloadPackFiles": [],
+        "createMethodName": "",
+        "compilerOutputLanguage": "TYPE_SCRIPT",
+        "borderWidth": 32,
+        "borderHeight": 32
+    },
+    "displayList": [
+        {
+            "type": "Container",
+            "id": "1c250462-51bc-4440-bb69-8d56fe196c80",
+            "label": "container_1",
+            "x": 13,
+            "y": 8,
+            "list": [
+                {
+                    "type": "ArcadeSprite",
+                    "id": "fa2b71b7-7105-43dc-9fbe-3301c2e5a545",
+                    "label": "player",
+                    "scope": "PUBLIC",
+                    "texture": {
+                        "key": "frontPlayer_S"
+                    },
+                    "body.width": 16,
+                    "body.height": 16
+                },
+                {
+                    "type": "Rectangle",
+                    "id": "767d670d-6bc2-435a-8649-2923dcee854f",
+                    "label": "BottomBound",
+                    "scope": "CLASS",
+                    "y": 16,
+                    "isStroked": true,
+                    "width": 15,
+                    "height": 8
+                },
+                {
+                    "type": "Rectangle",
+                    "id": "fefc4a8e-1a0c-495c-ba5c-77eaa2fb509d",
+                    "label": "TopBound",
+                    "scope": "CLASS",
+                    "y": 1,
+                    "isStroked": true,
+                    "width": 15,
+                    "height": 8
+                },
+                {
+                    "type": "Rectangle",
+                    "id": "452e0d07-8089-406d-88c9-c81fc6a18e41",
+                    "label": "LeftBound",
+                    "scope": "CLASS",
+                    "x": -11,
+                    "y": 8,
+                    "isStroked": true,
+                    "width": 8,
+                    "height": 8
+                },
+                {
+                    "type": "Rectangle",
+                    "id": "9d4eccfe-2dc2-4f41-821a-3442debc1b34",
+                    "label": "RightBound",
+                    "scope": "CLASS",
+                    "x": 11,
+                    "y": 8,
+                    "isStroked": true,
+                    "width": 8,
+                    "height": 8
+                },
+                {
+                    "type": "Rectangle",
+                    "id": "bf5a3b44-525a-4c99-9f4e-0d00aa962550",
+                    "label": "TLBound",
+                    "scope": "CLASS",
+                    "x": -11,
+                    "y": 1,
+                    "strokeColor": "#30ffdf",
+                    "isStroked": true,
+                    "width": 8,
+                    "height": 8
+                },
+                {
+                    "type": "Rectangle",
+                    "id": "ec01ba24-8835-477a-b6e6-ffac5df54c28",
+                    "label": "TRBound",
+                    "scope": "CLASS",
+                    "x": 11,
+                    "y": 1,
+                    "strokeColor": "#30ffdf",
+                    "isStroked": true,
+                    "width": 8,
+                    "height": 8
+                },
+                {
+                    "type": "Rectangle",
+                    "id": "2ba7b5c0-4f75-4dbf-9486-3f0e6831fe76",
+                    "label": "BLBound",
+                    "scope": "CLASS",
+                    "x": -11,
+                    "y": 16,
+                    "strokeColor": "#30ffdf",
+                    "isStroked": true,
+                    "width": 8,
+                    "height": 8
+                },
+                {
+                    "type": "Rectangle",
+                    "id": "afed54c3-6ffd-4a47-b28d-ed74fcb0ebae",
+                    "label": "BRBound",
+                    "scope": "CLASS",
+                    "x": 11,
+                    "y": 16,
+                    "strokeColor": "#30ffdf",
+                    "isStroked": true,
+                    "width": 8,
+                    "height": 8
+                },
+                {
+                    "type": "Image",
+                    "id": "a0d2479d-0d8f-467f-b65d-2079e3a685e9",
+                    "label": "darkMask",
+                    "scope": "CLASS",
+                    "texture": {
+                        "key": "darkMask"
+                    },
+                    "scaleX": 0.25,
+                    "scaleY": 0.25
+                }
+            ]
+        }
+    ],
+    "plainObjects": [],
+    "meta": {
+        "app": "Phaser Editor - Scene Editor",
+        "url": "https://phaser.io/editor",
+        "contentType": "phasereditor2d.core.scene.SceneContentType",
+        "version": 5
+    }
+}

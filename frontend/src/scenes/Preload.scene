@@ -1,0 +1,77 @@
+{
+    "id": "bdfee774-84d8-47ad-83ac-db01ad36f8dd",
+    "sceneType": "SCENE",
+    "settings": {
+        "preloadPackFiles": [],
+        "createMethodName": "editorCreate",
+        "sceneKey": "Preload",
+        "compilerOutputLanguage": "TYPE_SCRIPT",
+        "borderWidth": 1280,
+        "borderHeight": 720
+    },
+    "displayList": [
+        {
+            "type": "Rectangle",
+            "id": "a17aa838-c56d-42de-bd37-dc1246f1d20b",
+            "label": "bg_filter",
+            "displayName": "Background Filter",
+            "x": 640,
+            "y": 360,
+            "alpha": 0.4,
+            "isFilled": true,
+            "fillColor": "#000000",
+            "width": 1280,
+            "height": 720
+        },
+        {
+            "type": "Rectangle",
+            "id": "4778c574-8ff9-4a4c-b828-e7673be49001",
+            "label": "loader_bg",
+            "displayName": "Loader Background",
+            "scope": "CLASS",
+            "x": 640,
+            "y": 360,
+            "isFilled": true,
+            "fillColor": "#f0f8ff",
+            "width": 400,
+            "height": 40
+        },
+        {
+            "type": "Rectangle",
+            "id": "ff95d783-228d-4c34-b2f0-58f89f4bc640",
+            "label": "loader",
+            "displayName": "Loader ",
+            "scope": "CLASS",
+            "x": 640,
+            "y": 360,
+            "isFilled": true,
+            "fillColor": "#a61200",
+            "width": 390,
+            "height": 30
+        },
+        {
+            "type": "Text",
+            "id": "c831e2c9-60e0-4771-b0d7-47cd8418b605",
+            "label": "Loading",
+            "displayName": "Loading",
+            "useGameObjectName": true,
+            "x": 640,
+            "y": 320,
+            "originX": 0.5,
+            "originY": 0.5,
+            "text": "Loading...",
+            "fixedWidth": 200,
+            "align": "center",
+            "fontFamily": "PixelifySans-VariableFont_wght",
+            "fontSize": "30px",
+            "color": "#f0f8ff"
+        }
+    ],
+    "plainObjects": [],
+    "meta": {
+        "app": "Phaser Editor - Scene Editor",
+        "url": "https://phaser.io/editor",
+        "contentType": "phasereditor2d.core.scene.SceneContentType",
+        "version": 5
+    }
+}

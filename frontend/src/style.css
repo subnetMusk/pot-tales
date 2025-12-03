@@ -1,0 +1,109 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+@font-face {
+    font-family: 'Pixelify Sans';
+    src: url('/frontend-assets/fonts/Pixelify_Sans/PixelifySans-VariableFont_wght.ttf') format('truetype');
+    font-weight: normal;
+    font-style: normal;
+}
+
+body {
+    font-family: 'Pixelify Sans', 'Segoe UI', Arial, sans-serif;
+    background-color: #f0f8ff;
+    color: #222;
+    line-height: 1.6;
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    cursor: url('/assets/images/ui/cursor.png') 4 10, auto;
+}
+
+h1, h2, h3 {
+    color: #2a4d69;
+    margin-bottom: 16px;
+}
+
+button {
+    color: #f0f8ff;
+    background-color: #81e249;
+    padding: 15px 40px 15px 40px;
+    margin: 10px;
+    font-size: 20px;
+    font-family: 'Pixelify Sans', 'Segoe UI', Arial, sans-serif;
+    border: none;
+    box-shadow: 0px 5px black,
+                0px -5px black,
+                5px 0px black,
+                -5px 0px black,
+                0px 10px #00000038,
+                5px 5px #00000038,
+                -5px 5px #00000038,
+                inset 0px 5px #ffffff36;
+}
+
+button:hover {
+    background-color: #54cf0c;
+}
+
+button:active {
+    background-color: #54cf0c;
+    transform: translateY(5px);
+    box-shadow: 0px 5px black,
+                0px -5px black,
+                5px 0px black,
+                -5px 0px black,
+                inset 0px 5px #00000038;
+}
+
+select {
+    color: #f0f8ff;
+    background-color: #81e249;
+    padding: 15px 40px 15px 40px;
+    margin: 10px;
+    font-size: 20px;
+    font-family: 'Pixelify Sans', 'Segoe UI', Arial, sans-serif;
+    border: none;
+    box-shadow: 0px 5px black,
+                0px -5px black,
+                5px 0px black,
+                -5px 0px black,
+                0px 10px #00000038,
+                5px 5px #00000038,
+                -5px 5px #00000038,
+                inset 0px 5px #ffffff36;
+    appearance: none;
+    border-radius: 0;
+}
+
+select:focus {
+    outline: none;
+    background-color: #54cf0c;
+}
+
+select option {
+    color: #222;
+    background-color: #f0f8ff;
+    font-family: 'Pixelify Sans', 'Segoe UI', Arial, sans-serif;
+}
+
+#lang-container {
+    position: fixed;
+    right: 30px;
+    bottom: 30px;
+    z-index: 1;
+}
+
+#game-container {
+    width: 100vw;
+    height: 100vh;
+    overflow: hidden;
+    position: fixed;
+    top: 0;
+    left: 0;
+    background-color: #121314;
+}

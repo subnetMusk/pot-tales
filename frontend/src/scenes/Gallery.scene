@@ -1,0 +1,59 @@
+{
+    "id": "20b31380-7ee6-473e-a640-db47edd8d870",
+    "sceneType": "SCENE",
+    "settings": {
+        "preloadPackFiles": [],
+        "createMethodName": "editorCreate",
+        "sceneKey": "Gallery",
+        "compilerOutputLanguage": "TYPE_SCRIPT",
+        "borderWidth": 1280,
+        "borderHeight": 720
+    },
+    "displayList": [
+        {
+            "prefabId": "b839e604-a177-4f6e-9a14-7bbc8c2c4576",
+            "id": "e5576c69-269d-4083-a47a-b2724199f886",
+            "unlock": [
+                "x",
+                "y"
+            ],
+            "label": "menuBackground",
+            "x": 520,
+            "y": 360
+        },
+        {
+            "prefabId": "c6fe7923-ccfe-42a4-9540-87e443b241d0",
+            "id": "8892535a-0006-43b5-9d95-d56803585ac4",
+            "unlock": [
+                "x",
+                "y"
+            ],
+            "label": "videoPlayer",
+            "scope": "CLASS",
+            "x": 0,
+            "y": 0
+        },
+        {
+            "prefabId": "75c6733d-e056-42d2-b166-e4b1e0e10aac",
+            "id": "0780658b-73f8-43c0-846c-db9cdb7176dd",
+            "unlock": [
+                "x",
+                "y",
+                "scaleX",
+                "scaleY"
+            ],
+            "label": "back_button",
+            "x": 1182,
+            "y": 98,
+            "scaleX": 1.5,
+            "scaleY": 1.5
+        }
+    ],
+    "plainObjects": [],
+    "meta": {
+        "app": "Phaser Editor - Scene Editor",
+        "url": "https://phaser.io/editor",
+        "contentType": "phasereditor2d.core.scene.SceneContentType",
+        "version": 5
+    }
+}

@@ -1,0 +1,188 @@
+############################
+# NETWORK DEFINITIONS
+############################
+
+networks:
+  # Private internal network for secure communication between backend, DB, dashboards
+  internal_net:
+    name: internal_net
+    internal: true  # prevents containers from reaching the external internet
+
+  # Bridge network used by NGINX Proxy Manager to communicate with backend services
+  proxy_net:
+    name: proxy_net
+    driver: bridge
+
+  # Bridge network used by NGINX Proxy Manager to communicate with front-end apps
+  frontend_net:
+    name: frontend_net
+    driver: bridge
+
+############################
+# SERVICE DEFINITIONS
+############################
+
+services:
+
+  # NGINX Proxy Manager – manages virtual hosts and TLS termination
+  proxy:
+    image: jc21/nginx-proxy-manager:2
+    container_name: nginx-proxy-manager
+    restart: unless-stopped
+    env_file:
+      - docker/env/.env
+    ports:
+      - "80:80"        # HTTP
+      - "443:443"      # HTTPS
+      - "${PROXY_ADMIN_PORT}:81"     # Admin UI
+    networks:
+      - proxy_net
+      - frontend_net
+    environment:
+      - DB_SQLITE_FILE=${DB_SQLITE_FILE}
+    volumes:
+      - ./docker/volumes/npm_data:/data                       # persistent UI and config data
+      - ./docker/volumes/npm_letsencrypt:/etc/letsencrypt     # persistent SSL certificates
+      - ./frontend/dist:/var/www/frontend:ro                  # frontend build assets
+      - ./sandbox/dist:/var/www/sandbox:ro                    # sandbox build assets
+    depends_on:
+      - server
+      - sandbox
+      - frontend
+
+  # Go backend API service
+  server:
+    build:
+      context: ./server
+      dockerfile: Dockerfile
+      target: builder
+    container_name: server
+    networks:
+      - internal_net
+      - proxy_net
+    env_file:
+      - docker/env/.env
+    environment:
+      - REDIS_URL=${REDIS_URL}
+      - SESSION_TTL_MIN=${SESSION_TTL_MIN}
+      - ELASTIC_APM_SERVER_URL=${ELASTIC_APM_SERVER_URL}
+      - ELASTIC_APM_SERVICE_NAME=${ELASTIC_APM_SERVICE_NAME}
+      - ELASTIC_APM_ENVIRONMENT=${ELASTIC_APM_ENVIRONMENT}
+      - ELASTIC_APM_SECRET_TOKEN=${ELASTIC_APM_SECRET_TOKEN}
+    volumes:
+      - ./server:/src:delegated
+      - ./comms:/src/comms:ro
+    expose:
+      - "3000"  # internal API port (proxied)
+    command: air  # hot-reload tool
+    depends_on:
+      - db
+      - redis
+
+  # Redis in-memory database with ACL
+  redis:
+    image: redis:alpine
+    container_name: redis
+    env_file:
+      - docker/env/.env
+    command: ["redis-server", "/usr/local/etc/redis/redis.conf"]
+    volumes:
+      - ./docker/redis/redis.conf:/usr/local/etc/redis/redis.conf:ro
+      - ./docker/redis/users.acl:/usr/local/etc/redis/users.acl:ro
+    expose:
+      - "6379"
+    networks:
+      - internal_net
+
+  # MongoDB database with init scripts and log bind
+  db:
+    image: mongo:latest
+    container_name: db
+    env_file:
+      - docker/env/.env
+    expose:
+      - "27017"
+    networks:
+      - internal_net
+    volumes:
+      - ./docker/volumes/mongodb:/data/db:delegated
+      - ./docker/init-db:/docker-entrypoint-initdb.d:ro
+      - ./docker/volumes/logs/mongodb:/var/log/mongodb
+
+  # MongoDB Web UI (mongo-express)
+  mongo-ui:
+    image: mongo-express:latest
+    container_name: mongo-ui
+    restart: unless-stopped
+    environment:
+      - ME_CONFIG_MONGODB_SERVER=${MONGODB_HOST}
+      - ME_CONFIG_MONGODB_URL=mongodb://${MONGODB_HOST}:27017
+    networks:
+      - internal_net
+      - proxy_net
+    depends_on:
+      - db
+    expose:
+      - "8081"
+
+  # Redis Web UI (redis-commander)
+  redis-ui:
+    image: rediscommander/redis-commander:latest
+    container_name: redis-ui
+    platform: linux/amd64
+    restart: unless-stopped
+    environment:
+      - REDIS_HOSTS=${REDIS_UI_HOSTS}
+    networks:
+      - internal_net
+      - proxy_net
+    depends_on:
+      - redis
+    expose:
+      - "8081"
+
+  # Vite sandbox frontend dev server
+  sandbox:
+    build: ./sandbox
+    container_name: sandbox
+    env_file:
+      - docker/env/.env
+    networks:
+      - frontend_net
+    expose:
+      - "5173"
+    volumes:
+      - ./sandbox/package.json:/app/package.json:ro
+      - ./sandbox/package-lock.json:/app/package-lock.json:ro
+      - ./sandbox/vite.config.ts:/app/vite.config.ts:ro
+    command: npm run dev
+    depends_on:
+      - server
+
+  # Production frontend build (served statically by NGINX)
+  frontend:
+    build: ./frontend
+    container_name: frontend
+    env_file:
+      - docker/env/.env
+    networks:
+      - frontend_net
+    environment:
+      - REDIS_FE_URL=${REDIS_FE_URL}
+      - VITE_ELASTIC_APM_RUM_SERVER_URL=${ELASTIC_APM_RUM_SERVER_URL}
+      - VITE_ELASTIC_APM_RUM_SERVICE_NAME=${ELASTIC_APM_RUM_SERVICE_NAME}
+      - VITE_ELASTIC_APM_RUM_SECRET_TOKEN=${ELASTIC_APM_RUM_SECRET_TOKEN}
+      - VITE_ELASTIC_APM_ENVIRONMENT=${ELASTIC_APM_ENVIRONMENT}
+    expose:
+      - "80"
+    depends_on:
+      - server
+
+
+############################
+# VOLUME DEFINITIONS
+############################
+volumes:
+  npm_data: {}            # Proxy Manager SQLite config
+  npm_letsencrypt: {}     # SSL certs for domains
+  esdata: {}              # Persistent data for Elasticsearch

@@ -1,0 +1,3 @@
+user app        on    >app-password      allcommands    allkeys  
+user frontend   on    >fe-password       +get +exists +ttl +pttl +type +ping
+user redisui    on    >redisuipass       allcommands allkeys

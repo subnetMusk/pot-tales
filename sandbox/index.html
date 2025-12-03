@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Sandbox</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    #sandbox-wrapper {
+      display: flex;
+      width: 90vw;
+      height: 90vh;
+      border: 2px solid #444;
+      box-shadow: 0 0 10px rgba(255, 255, 255, 0.1);
+    }
+
+    #dashboard-panel {
+      flex: 1;
+      background-color: #1e1e1e;
+      padding: 1rem;
+      border-right: 2px solid #444;
+      overflow-y: auto;
+    }
+
+    #wrapper {
+      flex: 3;
+      position: relative;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+  </style>
+
+  <script type="module" src="/src/main.ts"></script>
+  <!-- VITE_ASSETS (DONT REMOVE) -->
+</head>
+<body>
+  <div id="sandbox-wrapper">
+    <div id="dashboard-panel">
+      <!-- qui viene iniettata la dashboard -->
+    </div>
+    <div id="wrapper"></div>
+  </div>
+</body>
+</html>

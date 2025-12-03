@@ -1,0 +1,186 @@
+import { i } from "vite/dist/node/types.d-aGj9QkWt";
+import PopupManager from "../items/UI/PopupManager";
+// You can write more code here
+
+/* START OF COMPILED CODE */
+
+class GraficoGame extends Phaser.Scene {
+
+	constructor() {
+		super("GraficoGame");
+
+		/* START-USER-CTR-CODE */
+
+		/* END-USER-CTR-CODE */
+	}
+
+	editorCreate(): void {
+
+		// graficoEx
+		const graficoEx = this.add.image(640, 360, "graficoEx");
+		graficoEx.scaleX = 0.2;
+		graficoEx.scaleY = 0.2;
+
+		// rectangle_1
+		this.rectangle_1 = this.add.rectangle(561, 360, 1, 80);
+		this.rectangle_1.isFilled = true;
+		this.rectangle_1.fillColor = 13633030;
+
+		this.events.emit("scene-awake");
+	}
+
+	/* START-USER-CODE */
+
+	private popup!: PopupManager;
+	private rectangle_1!: Phaser.GameObjects.Rectangle;
+
+
+	// Write your code here
+
+	create() {
+
+		this.editorCreate();
+		this.cameras.main.setZoom(5);
+		const picchi :{ x:number, found:boolean}[] = [
+			{ x: 624, found: false },
+			{ x: 200, found: false },
+			{ x: 300, found: false },
+			{ x: 400, found: false }
+		];
+
+		const risposte:{text : string}[] = [
+			{ text: "Risposta 1" },
+			{ text: "Risposta 2" },
+			{ text: "Risposta 3" },
+			{ text: "Risposta 4" }
+		];
+
+
+		this.popup = new PopupManager(this);
+		const lunghezzaMax = 180; // Valore massimo del grafico 
+		let picchiTrovati = 0;
+
+		//popup per spiegare il gioco 
+
+		this.popup.queuePopup("Benvenuto nel gioco del grafico!,In questo gioco, dovrai trovare i materiali più usati, rappresentati dai picchi del grafico.");
+		this.popup.queuePopup("premi il tasto 'invio' per avviare la scansione, e premi 'spazio' quando la barra si trova sul picco maggiore");
+		this.popup.showNextPopup();
+		let tween: Phaser.Tweens.Tween;
+
+
+		if (this.input.keyboard) {
+			console.log("Impostando i listener per i tasti...");
+			this.input.keyboard.on('keydown-ENTER', () => {
+				//avvia scansione con animazione visibile
+				let startX = this.rectangle_1.x;
+				let endX = startX + lunghezzaMax;
+
+				this.input.keyboard?.off('keydown-ENTER');
+
+				 tween = this.tweens.add({
+					targets: this.rectangle_1,
+					x: endX,
+					duration: 4000,
+					ease: 'linear',
+					yoyo: true,
+					loop: -1,
+					//deve accelerare e decelerare
+					onComplete: () => {
+						console.log("Scansione completata!");
+					}
+				});
+			});
+
+			this.input.keyboard.on('keydown-SPACE', () => {
+				//ferma scansione e valuta posizione
+				console.log("SPAZIO premuto! Posizione rettangolo: " + this.rectangle_1.x);
+				tween.pause();
+				if(this.rectangle_1.x <= picchi[0].x+4 && this.rectangle_1.x >= picchi[0].x-4	&&  picchi[0].found == false){
+					this.popup.queuePopup("Ottimo lavoro! Hai individuato il picco corretto corrispondente a " + risposte[0].text);
+					picchiTrovati++;
+					picchi[0].found = true;
+					
+				}else if(this.rectangle_1.x <= picchi[1].x+4 && this.rectangle_1.x >= picchi[1].x-4	&&  picchi[1].found == false){
+					this.popup.queuePopup("Ottimo lavoro! Hai individuato il picco corretto corrispondente a " + risposte[1].text);
+					picchiTrovati++;
+					picchi[1].found = true;
+					
+				}else if(this.rectangle_1.x <= picchi[2].x+4 && this.rectangle_1.x >= picchi[2].x-4	&&  picchi[2].found == false){
+					this.popup.queuePopup("Ottimo lavoro! Hai individuato il picco corretto corrispondente a " + risposte[2].text);
+					picchiTrovati++;
+					picchi[2].found = true;
+					
+				}else if(this.rectangle_1.x <= picchi[3].x+4 && this.rectangle_1.x >= picchi[3].x-4	&&  picchi[3].found == false){
+					this.popup.queuePopup("Ottimo lavoro! Hai individuato il picco corretto corrispondente a " + risposte[3].text);
+					picchiTrovati++;
+					picchi[3].found = true;
+					
+				}else {
+					this.popup.queuePopup("Peccato, non hai individuato il picco corretto. Riprova!");
+
+				}
+				this.popup.showNextPopup();
+				this.popup.on("popupClosed", () => {
+					this.controllaPunteggio(picchiTrovati,tween);
+					tween.resume();
+				});
+
+				
+
+				
+			});
+
+			
+		}
+
+	
+		console.log("GraficoGame scene created");
+
+	}
+
+	 controllaPunteggio(picchiTrovati:number,tween:Phaser.Tweens.Tween){ 
+			if(picchiTrovati == 1){
+				tween.stop();
+				this.popup.queuePopup("Complimenti! Hai trovato tutti i picchi del grafico e completato il gioco!");
+					console.log("Hai vinto il gioco!");
+
+						// Fireworks effect 
+						//TODO sistemare l'effetto provvisorio fatto da copilot
+						const fireworksCount = 22;
+						for (let f = 0; f < fireworksCount; f++) {
+							this.time.delayedCall(f * 100, () => {
+								const x = Phaser.Math.Between(200, 1080);
+								const y = Phaser.Math.Between(100, 400);
+
+								for (let i = 0; i < 16; i++) {
+									const particle = this.add.text(x, y, '✨', { fontSize: '12px' });
+									const angle = (i / 16) * Math.PI * 2;
+									const distance = 200;
+
+									this.tweens.add({
+										targets: particle,
+										x: x + Math.cos(angle) * distance,
+										y: y + Math.sin(angle) * distance,
+										alpha: 0,
+										duration: 1200,
+										ease: 'Quad.easeOut',
+										onComplete: () => particle.destroy()
+									});
+								}
+							});
+						}
+
+						this.cameras.main.shake(500, 0.001);
+						this.time.delayedCall(3000, () => {
+							// Emetti un evento di vittoria SUBITO
+							this.events.emit('memory-complete');
+						});
+			}
+		}
+
+	/* END-USER-CODE */
+}
+
+/* END OF COMPILED CODE */
+export default GraficoGame;
+// You can write more code here

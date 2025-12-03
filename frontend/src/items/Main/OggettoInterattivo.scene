@@ -1,0 +1,74 @@
+{
+    "id": "dfd624ad-310c-404d-96d2-d2307c3faaef",
+    "sceneType": "PREFAB",
+    "settings": {
+        "snapWidth": 32,
+        "snapHeight": 32,
+        "preloadMethodName": "",
+        "preloadPackFiles": [],
+        "createMethodName": "",
+        "compilerOutputLanguage": "TYPE_SCRIPT",
+        "borderWidth": 32,
+        "borderHeight": 32
+    },
+    "displayList": [
+        {
+            "type": "Image",
+            "id": "09a2abb3-de81-4983-ba9f-f67a9d4b89c8",
+            "label": "default",
+            "texture": {
+                "key": "default"
+            }
+        }
+    ],
+    "plainObjects": [],
+    "meta": {
+        "app": "Phaser Editor - Scene Editor",
+        "url": "https://phaser.io/editor",
+        "contentType": "phasereditor2d.core.scene.SceneContentType",
+        "version": 5
+    },
+    "prefabProperties": [
+        {
+            "name": "id_ogg",
+            "label": "Id",
+            "tooltip": "",
+            "defValue": 0,
+            "customDefinition": false,
+            "type": {
+                "id": "number"
+            }
+        },
+        {
+            "name": "categoria",
+            "label": "Categoria",
+            "tooltip": "",
+            "defValue": "",
+            "customDefinition": false,
+            "type": {
+                "id": "string"
+            }
+        },
+        {
+            "name": "number",
+            "label": "Numero",
+            "tooltip": "",
+            "defValue": 1,
+            "customDefinition": false,
+            "type": {
+                "id": "number"
+            }
+        },
+        {
+            "name": "interagisci",
+            "label": "Interazione",
+            "tooltip": "",
+            "defValue": "",
+            "customDefinition": false,
+            "type": {
+                "id": "expression",
+                "expressionType": "() => void"
+            }
+        }
+    ]
+}
