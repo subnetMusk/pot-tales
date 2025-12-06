@@ -99,12 +99,10 @@ class Menu extends Phaser.Scene {
 		fullscreen_icon.scaleY = 1.5;
 
 		// Title
-		const title = this.add.image(640, 150, "default");
-		title.scaleX = 15;
-		title.scaleY = 3;
+		const title = this.add.image(640, 150, "title");
 
 		// lists
-		const uI = [play_button, play_icon, fullscreen_icon, gallery_icon, gallery, gallery_button, play, leaderboard_icon, leaderboard, leaderboard_button, settings_icon, resume_icon, resume, resume_button];
+		const uI = [play_button, play_icon, fullscreen_icon, gallery_icon, gallery, gallery_button, play, leaderboard_icon, leaderboard, leaderboard_button, settings_icon, resume_icon, resume, resume_button, title];
 		const resume_button_items = [resume_icon, resume, resume_button];
 
 		this.settings_icon = settings_icon;
@@ -219,7 +217,7 @@ class Menu extends Phaser.Scene {
 			fadeElements(this.uI, false, 1000, () => {
 				this.cameras.main.zoomTo(1.5, 1000);
 				this.cameras.main.fadeOut(1000, 0, 0, 0);
-				this.cameras.main.once('camerafadeoutcomplete', () => {this.scene.start("Tutorial");});
+				this.cameras.main.once('camerafadeoutcomplete', () => {this.scene.start("Stage1");});
 			});
 		});
 		this.leaderboard_button.on('pointerup', () => {this.scene.start("Leaderboard");});

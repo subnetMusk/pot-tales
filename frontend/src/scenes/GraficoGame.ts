@@ -1,4 +1,3 @@
-import { i } from "vite/dist/node/types.d-aGj9QkWt";
 import PopupManager from "../items/UI/PopupManager";
 // You can write more code here
 

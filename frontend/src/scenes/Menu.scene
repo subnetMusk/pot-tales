@@ -219,15 +219,13 @@
         },
         {
             "type": "Image",
-            "id": "83388f7e-c90d-4b51-ac31-bf50d871a138",
+            "id": "4bccf065-daef-4dc8-a45d-9d614fa5de34",
             "label": "Title",
             "texture": {
-                "key": "default"
+                "key": "title"
             },
             "x": 640,
-            "y": 150,
-            "scaleX": 15,
-            "scaleY": 3
+            "y": 150
         }
     ],
     "plainObjects": [],
@@ -255,7 +253,8 @@
                 "cd866935-4696-4d3d-aae6-65725956c783",
                 "86cf0036-7675-43db-80cd-eecc46829223",
                 "7e922fde-8435-4281-8e00-a21a90551bee",
-                "c66bc216-dfc8-4532-80d6-7619a808dde4"
+                "c66bc216-dfc8-4532-80d6-7619a808dde4",
+                "4bccf065-daef-4dc8-a45d-9d614fa5de34"
             ]
         },
         {
