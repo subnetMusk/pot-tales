@@ -31,21 +31,6 @@
             "scope": "CLASS",
             "x": 160,
             "y": 90
-        },
-        {
-            "prefabId": "dfd624ad-310c-404d-96d2-d2307c3faaef",
-            "id": "b6f790ec-3589-41a7-9be2-ebe9fd43b91d",
-            "unlock": [
-                "x",
-                "y",
-                "number"
-            ],
-            "label": "strange_light",
-            "displayName": "Strange Light",
-            "scope": "CLASS",
-            "number": 1,
-            "x": 470,
-            "y": 299
         }
     ],
     "plainObjects": [],
@@ -62,10 +47,7 @@
         },
         {
             "id": "119c445d-8151-4d88-83ac-55efa24fb60c",
-            "label": "oggVector",
-            "objectIds": [
-                "b6f790ec-3589-41a7-9be2-ebe9fd43b91d"
-            ]
+            "label": "oggVector"
         }
     ]
 }

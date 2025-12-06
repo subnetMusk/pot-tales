@@ -1,4 +1,3 @@
-
 // You can write more code here
 import Player from "@/items/Main/Player";
 import PopupManager from "../items/UI/PopupManager";
@@ -28,19 +27,11 @@ class Stage1 extends Phaser.Scene {
 		const player = new Player(this, 160, 90);
 		this.add.existing(player);
 
-		// strange_light
-		const strange_light = new OggettoInterattivo(this, 470, 299);
-		this.add.existing(strange_light);
-
 		// lists
 		const boundaries: Array<any> = [];
-		const oggVector = [strange_light];
-
-		// strange_light (prefab fields)
-		strange_light.number = 1;
+		const oggVector: Array<any> = [];
 
 		this.player = player;
-		this.strange_light = strange_light;
 		this.boundaries = boundaries;
 		this.oggVector = oggVector;
 
@@ -48,9 +39,8 @@ class Stage1 extends Phaser.Scene {
 	}
 
 	private player!: Player;
-	private strange_light!: OggettoInterattivo;
 	private boundaries!: Array<any>;
-	private oggVector!: OggettoInterattivo[];
+	private oggVector!: Array<any>;
 
 	/* START-USER-CODE */
 
@@ -72,6 +62,18 @@ class Stage1 extends Phaser.Scene {
 	create() {
 
 		this.editorCreate();
+
+		this.anims.create({
+			key: "strange_light_anim",
+			frames: this.anims.generateFrameNumbers("red_light", { start: 0, end: 3 }),
+			frameRate: 4,
+			repeat: -1
+		});
+
+		this.sound.play("dripping_water", {
+			loop: true, 
+			volume: this.game.sound.volume * parseFloat(localStorage.getItem("musicVolume") || "1") * 0.3
+		});
 
 		// Applicazione delle traduzioni sui testi già presenti nella scena
 		const i18n = this.cache.json.get("stage1_i18n");
@@ -151,15 +153,9 @@ class Stage1 extends Phaser.Scene {
 			this.player.movementAllowed = true;
 			this.popupManager.queuePopup("Usa le frecce direzionali per muoverti.");
 			this.popupManager.showNextPopup();
+
+			this.lightInteraction();
 		});
-
-		this.strange_light.interagisci = () => {
-			this.popupManager.queuePopup("Una luce strana emana da questo oggetto...");
-			this.popupManager.queuePopup("Forse dovrei indagare più a fondo...");
-			this.popupManager.showNextPopup();
-
-			this.popupManager.on("queueEmpty", () => {this.startMinigame();});
-		}
 
 		/* END-SCENE-LOGIC */
 	}
@@ -228,6 +224,7 @@ class Stage1 extends Phaser.Scene {
 									duration: 400,
 									ease: "Linear",
 									onComplete: () => {
+										this.sound.stopAll();
 										this.scene.start("Stage2");
 									}
 								});
@@ -236,6 +233,139 @@ class Stage1 extends Phaser.Scene {
 					});
 				});
 			});
+		}
+	}
+
+	private lightsPositions: Array<{x: number, y: number}> = [
+		{x: 100, y: 100},
+		{x: 200, y: 250},
+		{x: 400, y: 350}
+	];
+	private currentLightIndex: number = 0;
+	private currentLight!: OggettoInterattivo;
+	private lightInteraction = () => {
+		// this.currentLightIndex = this.lightsPositions.length - 1; // DEBUG: attiva l'ultima luce subito
+
+		// Crea una nuova luce nella posizione successiva
+		var light = new OggettoInterattivo(this, this.lightsPositions[this.currentLightIndex].x, this.lightsPositions[this.currentLightIndex].y, "red_light", 0);
+		light.setScale(0);
+		light.play("strange_light_anim");
+		this.add.existing(light);
+
+		// Animazione di comparsa della luce
+		this.tweens.add({
+			targets: light,
+			scale: 1,
+			duration: 500,
+			ease: "Linear"
+		});
+
+		// Configura l'interazione della luce
+		if(this.currentLightIndex < this.lightsPositions.length - 1) {
+			light.setAlpha(0.5);
+			light.interagisci = this.lightInteraction;
+		} else {
+			// Crea una zona luminosa attorno alla luce
+			const brightZone = this.add.circle(light.x, light.y, 100, 0xff0000);
+			brightZone.alpha = 0.01;
+			brightZone.setBlendMode(Phaser.BlendModes.ADD);
+
+			this.tweens.add({
+				targets: brightZone,
+				alpha: 0.05,
+				duration: 3000,
+				ease: 'Sine.easeInOut',
+				yoyo: true,
+				repeat: -1
+			});
+
+			// L'ultima luce avvierà il minigioco
+			light.interagisci = () => {
+				this.popupManager.queuePopup("Una luce strana emana da questo oggetto...");
+				this.popupManager.queuePopup("Forse dovrei indagare più a fondo...");
+				this.popupManager.showNextPopup();
+
+				this.popupManager.on("queueEmpty", () => {this.startMinigame();});
+			};
+		}
+
+		// Rende l'oggetto interagibile
+		this.oggVector.push(light);
+
+		this.currentLightIndex++;
+
+		if(this.currentLight) {
+			let duration = 2500;
+
+			// Elimina la luce precedente
+			this.tweens.add({
+				targets: this.currentLight,
+				alpha: 0,
+				scale: 0,
+				ease: "Linear",
+				duration: duration,
+				onComplete: () => {
+					// Rimuovi la luce corrente
+					this.currentLight.destroy();
+					this.currentLight = light;
+				}
+			});
+
+			// Parametri per il triangolo di luce, che punta alla prossima luce (con un po' di variazione casuale)
+			const nextLight = light;
+			const angle = Phaser.Math.Angle.Between(this.currentLight.x, this.currentLight.y, nextLight.x, nextLight.y) + Phaser.Math.FloatBetween(-0.2, 0.2);
+			const amplitude = 1.0 // Apertura del triangolo
+			const finalLength = 200; // Lunghezza finale dei lati uguali
+
+			const x1 = this.currentLight.x;
+			const y1 = this.currentLight.y;
+			let x2 = x1
+			let y2 = y1
+			let x3 = x1
+			let y3 = y1
+			
+			const triangle = this.add.triangle(
+				0, 0,
+				x1, y1,
+				x2, y2,
+				x3, y3,
+				0xff0000
+			);
+			triangle.setBlendMode(Phaser.BlendModes.ADD);
+			triangle.setAlpha(0.1);
+			const animData = { length: 0 };
+
+			// Anima l'allungamento del triangolo
+			this.tweens.add({
+				targets: animData,
+				length: finalLength,
+				duration: duration,
+				ease: 'Sine.easeOut',
+				onUpdate: () => {
+					// Ricalcola le posizioni dei vertici in base alla lunghezza corrente
+					const currentLength = animData.length;
+					let x2 = x1 + currentLength * Math.cos(angle - amplitude / 2);
+					let y2 = y1 + currentLength * Math.sin(angle - amplitude / 2);
+					let x3 = x1 + currentLength * Math.cos(angle + amplitude / 2);
+					let y3 = y1 + currentLength * Math.sin(angle + amplitude / 2);
+					
+					// Aggiorna la geometria del triangolo
+					triangle.setTo(x1, y1, x2, y2, x3, y3);
+				},
+				onComplete: () => {
+					triangle.destroy();
+				}
+			});
+
+			// Anima il fade out
+			this.tweens.add({
+				targets: triangle,
+				alpha: 0,
+				duration: duration,
+				ease: 'Linear'
+			});
+		} else {
+			this.currentLight = light;
 		}
 	}
 

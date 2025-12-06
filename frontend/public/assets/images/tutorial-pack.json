@@ -25,9 +25,21 @@
                 "key": "card"
             },
             {
+                "url": [
+                    "frontend/public/assets/sfx/dripping_water.mp3"
+                ],
+                "type": "audio",
+                "key": "dripping_water"
+            },
+            {
                 "url": "frontend/public/assets/images/items/flask.png",
                 "type": "image",
                 "key": "flask"
+            },
+            {
+                "url": "frontend/public/assets/images/graficoEx.png",
+                "type": "image",
+                "key": "graficoEx"
             },
             {
                 "url": "frontend/public/assets/images/backgrounds/labv2.png",
@@ -38,6 +50,19 @@
                 "url": "frontend/public/assets/images/items/letter.png",
                 "type": "image",
                 "key": "letter"
+            },
+            {
+                "url": "frontend/public/assets/images/items/red_light.png",
+                "frameConfig": {
+                    "frameWidth": 32,
+                    "frameHeight": 32,
+                    "startFrame": 0,
+                    "endFrame": -1,
+                    "spacing": 0,
+                    "margin": 0
+                },
+                "type": "spritesheet",
+                "key": "red_light"
             },
             {
                 "url": "frontend/public/assets/images/items/research.png",
