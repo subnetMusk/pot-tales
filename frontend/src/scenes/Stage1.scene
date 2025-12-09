@@ -11,13 +11,26 @@
     },
     "displayList": [
         {
+            "type": "Rectangle",
+            "id": "080c85b0-c192-45e1-a868-ae4b9cc7aa67",
+            "label": "background_light",
+            "scope": "CLASS",
+            "x": 640,
+            "y": 360,
+            "isFilled": true,
+            "fillColor": "#ff0000",
+            "fillAlpha": 0.5,
+            "width": 1204,
+            "height": 890
+        },
+        {
             "type": "Image",
             "id": "9d0fb09f-e52a-401e-b8b1-59d7e72ca2ae",
-            "label": "bG",
+            "label": "background",
             "texture": {
                 "key": "BG"
             },
-            "x": 540,
+            "x": 640,
             "y": 360
         },
         {
@@ -31,6 +44,24 @@
             "scope": "CLASS",
             "x": 160,
             "y": 90
+        },
+        {
+            "type": "Rectangle",
+            "id": "c6e71cd7-69a1-4efb-a437-928df0c877d2",
+            "label": "rock_bound1",
+            "x": 707,
+            "y": 162,
+            "width": 80,
+            "height": 60
+        },
+        {
+            "type": "Rectangle",
+            "id": "1898aa19-473b-4721-8870-72aae3ae8ea8",
+            "label": "rock_bound",
+            "x": 821,
+            "y": 111,
+            "width": 40,
+            "height": 30
         }
     ],
     "plainObjects": [],
@@ -43,7 +74,11 @@
     "lists": [
         {
             "id": "235707ec-1cdc-4ba5-bd88-6953c1d6828c",
-            "label": "boundaries"
+            "label": "boundaries",
+            "objectIds": [
+                "c6e71cd7-69a1-4efb-a437-928df0c877d2",
+                "1898aa19-473b-4721-8870-72aae3ae8ea8"
+            ]
         },
         {
             "id": "119c445d-8151-4d88-83ac-55efa24fb60c",

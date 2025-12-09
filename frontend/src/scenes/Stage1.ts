@@ -20,17 +20,30 @@ class Stage1 extends Phaser.Scene {
 
 	editorCreate(): void {
 
-		// bG
-		this.add.image(540, 360, "BG");
+		// background_light
+		const background_light = this.add.rectangle(640, 360, 1204, 890);
+		background_light.isFilled = true;
+		background_light.fillColor = 16711680;
+		background_light.fillAlpha = 0.5;
+
+		// background
+		this.add.image(640, 360, "BG");
 
 		// player
 		const player = new Player(this, 160, 90);
 		this.add.existing(player);
 
+		// rock_bound1
+		const rock_bound1 = this.add.rectangle(707, 162, 80, 60);
+
+		// rock_bound
+		const rock_bound = this.add.rectangle(821, 111, 40, 30);
+
 		// lists
-		const boundaries: Array<any> = [];
+		const boundaries = [rock_bound1, rock_bound];
 		const oggVector: Array<any> = [];
 
+		this.background_light = background_light;
 		this.player = player;
 		this.boundaries = boundaries;
 		this.oggVector = oggVector;
@@ -38,8 +51,9 @@ class Stage1 extends Phaser.Scene {
 		this.events.emit("scene-awake");
 	}
 
+	private background_light!: Phaser.GameObjects.Rectangle;
 	private player!: Player;
-	private boundaries!: Array<any>;
+	private boundaries!: Phaser.GameObjects.Rectangle[];
 	private oggVector!: Array<any>;
 
 	/* START-USER-CODE */
@@ -62,6 +76,15 @@ class Stage1 extends Phaser.Scene {
 	create() {
 
 		this.editorCreate();
+
+		this.tweens.add({
+			targets: this.background_light,
+			alpha: 0.0,
+			duration: 2000,
+			ease: 'Sine.easeInOut',
+			yoyo: true,
+			repeat: -1
+		});
 
 		this.anims.create({
 			key: "strange_light_anim",
@@ -86,6 +109,7 @@ class Stage1 extends Phaser.Scene {
 
 		// Configurazione della telecamera
 		this.cameras.main.setZoom(5.0);
+		this.cameras.main.roundPixels = true;
         this.cameras.main.startFollow(this.player);
 
 		// Inizializzazione dei manager
@@ -323,7 +347,7 @@ class Stage1 extends Phaser.Scene {
 			let y2 = y1
 			let x3 = x1
 			let y3 = y1
-			
+
 			const triangle = this.add.triangle(
 				0, 0,
 				x1, y1,
@@ -348,7 +372,7 @@ class Stage1 extends Phaser.Scene {
 					let y2 = y1 + currentLength * Math.sin(angle - amplitude / 2);
 					let x3 = x1 + currentLength * Math.cos(angle + amplitude / 2);
 					let y3 = y1 + currentLength * Math.sin(angle + amplitude / 2);
-					
+
 					// Aggiorna la geometria del triangolo
 					triangle.setTo(x1, y1, x2, y2, x3, y3);
 				},

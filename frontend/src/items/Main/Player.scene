@@ -18,15 +18,14 @@
             "y": 8,
             "list": [
                 {
-                    "type": "ArcadeSprite",
-                    "id": "fa2b71b7-7105-43dc-9fbe-3301c2e5a545",
+                    "type": "Sprite",
+                    "id": "30b454bf-d319-4bfa-be41-6051a30376bd",
                     "label": "player",
-                    "scope": "PUBLIC",
+                    "scope": "CLASS",
                     "texture": {
-                        "key": "frontPlayer_S"
-                    },
-                    "body.width": 16,
-                    "body.height": 16
+                        "key": "player_idle",
+                        "frame": 1
+                    }
                 },
                 {
                     "type": "Rectangle",

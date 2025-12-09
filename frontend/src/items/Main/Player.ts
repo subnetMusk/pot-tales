@@ -3,58 +3,56 @@
 
 /* START OF COMPILED CODE */
 
-import Rectangle = Phaser.Geom.Rectangle;
-
 class Player extends Phaser.GameObjects.Container {
 
 	constructor(scene: Phaser.Scene, x?: number, y?: number) {
 		super(scene, x ?? 13, y ?? 8);
 
 		// player
-		const player = scene.physics.add.sprite(0, 0, "frontPlayer_S");
+		const player = scene.physics.add.sprite(0, 0, "player_idle", 1);
 		player.body.setSize(16, 16, false);
 		this.add(player);
 
 		// BottomBound
-		const bottomBound = scene.add.rectangle(0, 16, 15, 8);
+		const bottomBound = scene.add.rectangle(0, 26, 20, 8);
 		bottomBound.isStroked = true;
 		this.add(bottomBound);
 
 		// TopBound
-		const topBound = scene.add.rectangle(0, 1, 15, 8);
+		const topBound = scene.add.rectangle(0, 11, 20, 8);
 		topBound.isStroked = true;
 		this.add(topBound);
 
 		// LeftBound
-		const leftBound = scene.add.rectangle(-11, 8, 8, 8);
+		const leftBound = scene.add.rectangle(-14, 18, 8, 8);
 		leftBound.isStroked = true;
 		this.add(leftBound);
 
 		// RightBound
-		const rightBound = scene.add.rectangle(11, 8, 8, 8);
+		const rightBound = scene.add.rectangle(14, 18, 8, 8);
 		rightBound.isStroked = true;
 		this.add(rightBound);
 
 		// TLBound
-		const tLBound = scene.add.rectangle(-11, 1, 8, 8);
+		const tLBound = scene.add.rectangle(-14, 10, 8, 8);
 		tLBound.isStroked = true;
 		tLBound.strokeColor = 3211231;
 		this.add(tLBound);
 
 		// TRBound
-		const tRBound = scene.add.rectangle(11, 1, 8, 8);
+		const tRBound = scene.add.rectangle(14, 10, 8, 8);
 		tRBound.isStroked = true;
 		tRBound.strokeColor = 3211231;
 		this.add(tRBound);
 
 		// BLBound
-		const bLBound = scene.add.rectangle(-11, 16, 8, 8);
+		const bLBound = scene.add.rectangle(-14, 26, 8, 8);
 		bLBound.isStroked = true;
 		bLBound.strokeColor = 3211231;
 		this.add(bLBound);
 
 		// BRBound
-		const bRBound = scene.add.rectangle(11, 16, 8, 8);
+		const bRBound = scene.add.rectangle(14, 26, 8, 8);
 		bRBound.isStroked = true;
 		bRBound.strokeColor = 3211231;
 		this.add(bRBound);
@@ -84,6 +82,12 @@ class Player extends Phaser.GameObjects.Container {
 			this.leftKey = this.scene.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.LEFT);
 		}
 
+		// Create animations for the player
+		this.createPlayerAnimations();
+		
+		// Start with idle front animation
+		this.player.play('idle_front', true);
+
 		this.scene.events.on("update", (time: number) => this.movePlayer(time), this);
 
 		this.Ikey = this.scene.input.keyboard?.addKey(Phaser.Input.Keyboard.KeyCodes.I);
@@ -95,7 +99,7 @@ class Player extends Phaser.GameObjects.Container {
 		/* END-USER-CTR-CODE */
 	}
 
-	public player: Phaser.Physics.Arcade.Sprite;
+	private player: Phaser.GameObjects.Sprite;
 	private bottomBound: Phaser.GameObjects.Rectangle;
 	private topBound: Phaser.GameObjects.Rectangle;
 	private leftBound: Phaser.GameObjects.Rectangle;
@@ -124,6 +128,70 @@ class Player extends Phaser.GameObjects.Container {
 	lastMoveTime: number = 0;						// Tempo dell'ultimo movimento (per l'effetto a bassi fps)
 	lastStep: boolean = false;						// Ultima textura usata
 	direction: 'front' | 'back' | 'side' = 'front';	// Direzione in cui sto guardando
+	
+	// Create animations for the player
+	private createPlayerAnimations() {
+		const anims = this.scene.anims;
+		
+		// Idle animations
+		// player_idle frames: [side, down1, down2, up]
+		if (!anims.exists('idle_side')) {
+			anims.create({
+				key: 'idle_side',
+				frames: [{ key: 'player_idle', frame: 0 }],
+				frameRate: 1,
+				repeat: -1
+			});
+		}
+		
+		if (!anims.exists('idle_front')) {
+			anims.create({
+				key: 'idle_front',
+				frames: [{ key: 'player_idle', frame: 1 }],
+				frameRate: 1,
+				repeat: -1
+			});
+		}
+		
+		if (!anims.exists('idle_back')) {
+			anims.create({
+				key: 'idle_back',
+				frames: [{ key: 'player_idle', frame: 3 }],
+				frameRate: 1,
+				repeat: -1
+			});
+		}
+		
+		// Walk down animation
+		if (!anims.exists('walk_down')) {
+			anims.create({
+				key: 'walk_down',
+				frames: anims.generateFrameNumbers('player_walk_down', { start: 0, end: -1 }),
+				frameRate: 15,
+				repeat: -1
+			});
+		}
+		
+		// Walk side animation
+		if (!anims.exists('walk_side')) {
+			anims.create({
+				key: 'walk_side',
+				frames: anims.generateFrameNumbers('player_walk_side', { start: 0, end: -1 }),
+				frameRate: 15,
+				repeat: -1
+			});
+		}
+		
+		// Walk up animation
+		if (!anims.exists('walk_up')) {
+			anims.create({
+				key: 'walk_up',
+				frames: anims.generateFrameNumbers('player_walk_up', { start: 0, end: -1 }),
+				frameRate: 15,
+				repeat: -1
+			});
+		}
+	}
 
 	// Check dell'overlap fra due rettangoli ᓚᘏᗢ 
 	private checkOverlap(rect1: Phaser.GameObjects.Rectangle, rect2: Phaser.GameObjects.Rectangle): boolean {
@@ -345,31 +413,32 @@ class Player extends Phaser.GameObjects.Container {
         // Altrimenti, aggiorno la posizione e salvo il timestamp dell'ultimo passo
         this.x += dx;
         this.y += dy;
+        
         this.lastMoveTime = time;
         this.updateMoveTexture(); 			// Qui viene invertito lastStep
 	}
 
 	private updateIdleTexture() {
-		switch (this.direction) {			// Carico la texture in base alla direzione
+		switch (this.direction) {			// Play idle animation based on direction
 			case "front":
-				this.player.setTexture("frontPlayer_S");
+				this.player.play('idle_front', true);
 				break;
 			case "back":
-				this.player.setTexture("backPlayer_S");
+				this.player.play('idle_back', true);
 				break;
 			case "side":
-				this.player.setTexture("sidePlayer_S");
+				this.player.play('idle_side', true);
 				break;
 		}
 	}
 
 	private updateMoveTexture() {
 		if (this.direction === "front") {
-			this.player.setTexture(this.lastStep ? "frontPlayer_L" : "frontPlayer_R");
+			this.player.play('walk_down', true);
 		} else if (this.direction === "back") {
-			this.player.setTexture(this.lastStep ? "backPlayer_L" : "backPlayer_R");
+			this.player.play('walk_up', true);
 		} else if (this.direction === "side") {
-			this.player.setTexture(this.lastStep ? "sidePlayer_M" : "sidePlayer_S");
+			this.player.play('walk_side', true);
 		}
 
 		this.lastStep = !this.lastStep;
