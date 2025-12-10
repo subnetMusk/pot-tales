@@ -42,16 +42,16 @@ class GraficoGame extends Phaser.Scene {
 		this.cameras.main.setZoom(5);
 		const picchi :{ x:number, found:boolean}[] = [
 			{ x: 624, found: false },
-			{ x: 200, found: false },
-			{ x: 300, found: false },
-			{ x: 400, found: false }
+			{ x: 600, found: false },
+			{ x: 640, found: false },
+			{ x: 580, found: false }
 		];
 
 		const risposte:{text : string}[] = [
-			{ text: "Risposta 1" },
-			{ text: "Risposta 2" },
-			{ text: "Risposta 3" },
-			{ text: "Risposta 4" }
+			{ text: "questo è mercurio, significa che hai il cancro" },
+			{ text: "questo è sperpa, significa che tua mamma è puttana" },
+			{ text: "ohoh, questo sembra proprio merda" },
+			{ text: "chissa che cazzo è questo ..." }
 		];
 
 
@@ -95,22 +95,27 @@ class GraficoGame extends Phaser.Scene {
 				console.log("SPAZIO premuto! Posizione rettangolo: " + this.rectangle_1.x);
 				tween.pause();
 				if(this.rectangle_1.x <= picchi[0].x+4 && this.rectangle_1.x >= picchi[0].x-4	&&  picchi[0].found == false){
-					this.popup.queuePopup("Ottimo lavoro! Hai individuato il picco corretto corrispondente a " + risposte[0].text);
+					this.popup.queuePopup(risposte[0].text);
+					this.popup.showNextPopup();
 					picchiTrovati++;
 					picchi[0].found = true;
 					
 				}else if(this.rectangle_1.x <= picchi[1].x+4 && this.rectangle_1.x >= picchi[1].x-4	&&  picchi[1].found == false){
-					this.popup.queuePopup("Ottimo lavoro! Hai individuato il picco corretto corrispondente a " + risposte[1].text);
+					this.popup.queuePopup(risposte[1].text);
+					this.popup.showNextPopup();
 					picchiTrovati++;
 					picchi[1].found = true;
 					
 				}else if(this.rectangle_1.x <= picchi[2].x+4 && this.rectangle_1.x >= picchi[2].x-4	&&  picchi[2].found == false){
-					this.popup.queuePopup("Ottimo lavoro! Hai individuato il picco corretto corrispondente a " + risposte[2].text);
+					this.popup.queuePopup(risposte[2].text);
+					this.popup.showNextPopup();
 					picchiTrovati++;
 					picchi[2].found = true;
 					
 				}else if(this.rectangle_1.x <= picchi[3].x+4 && this.rectangle_1.x >= picchi[3].x-4	&&  picchi[3].found == false){
-					this.popup.queuePopup("Ottimo lavoro! Hai individuato il picco corretto corrispondente a " + risposte[3].text);
+					this.popup.queuePopup(risposte[3].text);
+					this.popup.showNextPopup();
+
 					picchiTrovati++;
 					picchi[3].found = true;
 					
@@ -138,22 +143,22 @@ class GraficoGame extends Phaser.Scene {
 	}
 
 	 controllaPunteggio(picchiTrovati:number,tween:Phaser.Tweens.Tween){ 
-			if(picchiTrovati == 1){
+			if(picchiTrovati == 4){
 				tween.stop();
 				this.popup.queuePopup("Complimenti! Hai trovato tutti i picchi del grafico e completato il gioco!");
 					console.log("Hai vinto il gioco!");
 
 						// Fireworks effect 
 						//TODO sistemare l'effetto provvisorio fatto da copilot
-						const fireworksCount = 22;
+						const fireworksCount = 8;
 						for (let f = 0; f < fireworksCount; f++) {
 							this.time.delayedCall(f * 100, () => {
 								const x = Phaser.Math.Between(200, 1080);
 								const y = Phaser.Math.Between(100, 400);
 
-								for (let i = 0; i < 16; i++) {
+								for (let i = 0; i < 8; i++) {
 									const particle = this.add.text(x, y, '✨', { fontSize: '12px' });
-									const angle = (i / 16) * Math.PI * 2;
+									const angle = (i / 8) * Math.PI * 2;
 									const distance = 200;
 
 									this.tweens.add({
@@ -161,7 +166,7 @@ class GraficoGame extends Phaser.Scene {
 										x: x + Math.cos(angle) * distance,
 										y: y + Math.sin(angle) * distance,
 										alpha: 0,
-										duration: 1200,
+										duration: 800,
 										ease: 'Quad.easeOut',
 										onComplete: () => particle.destroy()
 									});
@@ -169,11 +174,11 @@ class GraficoGame extends Phaser.Scene {
 							});
 						}
 
-						this.cameras.main.shake(500, 0.001);
-						this.time.delayedCall(3000, () => {
-							// Emetti un evento di vittoria SUBITO
-							this.events.emit('memory-complete');
-						});
+					this.cameras.main.shake(300, 0.001);
+					this.time.delayedCall(2000, () => {
+						// Emetti un evento di vittoria SUBITO
+						this.events.emit('grafico-complete');
+					});
 			}
 		}
 

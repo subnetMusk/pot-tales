@@ -115,6 +115,8 @@ class Player extends Phaser.GameObjects.Container {
 	private stepDelay: number = 100;				// Attesa in ms tra i frame
 	private BoundsDebug: boolean = true;			// Se true mostra i boundaries
     public movementAllowed: boolean = true;       	// Disabilita l'input
+	public interactionAllowed: boolean = true;  	// Disabilita l'interazione con gli oggetti	
+	
 
 	// Input della tastiera
 	private rightKey!: Phaser.Input.Keyboard.Key;
@@ -445,6 +447,7 @@ class Player extends Phaser.GameObjects.Container {
 	}
 
 	private controllaInterazioneOggetto() {
+		if (!this.interactionAllowed) return;  	// Controlla se l'interazione è permessa
 		const oggVector = (this.scene as any).oggVector as { x: number; y: number; set: boolean; interagisci: () => void; }[] | undefined;
 
         if (oggVector) for (const ogg of oggVector) {

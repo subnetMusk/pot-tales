@@ -62,7 +62,7 @@ class Stage1 extends Phaser.Scene {
 	private letterManager!: LetterManager;
 
 	// Stato del minigioco di memoria (serve per evitare riavvii multipli)
-	private isMemoryActive: boolean = false;
+	private isGraficoActive: boolean = false;
 
 	async preload() {
 		this.load.pack("tutorial-pack", "assets/images/tutorial-pack.json");
@@ -186,8 +186,8 @@ class Stage1 extends Phaser.Scene {
 
 	private startMinigame() {
 		// Evita di avviare più volte il gioco
-		if (this.isMemoryActive) return;
-		this.isMemoryActive = true;
+		if (this.isGraficoActive) return;
+		this.isGraficoActive = true;
 
 		// Pausa il gioco principale
 		this.scene.pause();
@@ -197,26 +197,24 @@ class Stage1 extends Phaser.Scene {
 		this.cameras.main.postFX.addBlur(2, 2, 2);
 
 		// Avvia il gioco
-		this.scene.launch("Memory");
+		this.scene.launch("GraficoGame");
 
 		// Porta la scena Memory in primo piano
-		this.scene.bringToTop("Memory");
+		this.scene.bringToTop("GraficoGame");
 
 		// Una volta terminato il memory riprende il gioco principale
-		const memScene = this.scene.get("Memory") as Phaser.Scene | undefined;
+		const memScene = this.scene.get("GraficoGame") as Phaser.Scene | undefined;
 		if (memScene) {
 			// Ascolta l'evento personalizzato di vittoria
-			memScene.events.once("memory-complete", () => {
+			memScene.events.once("grafico-complete", () => {
 				console.log("Memory game completato con successo!");
 
 				this.cameras.main.postFX.clear();				// Rimuovi il blur quando torni
 
-				this.scene.stop("Memory"); 						// Ferma la scena Memory
+				this.scene.stop("GraficoGame"); 						// Ferma la scena grafico
 				this.scene.resume();
-				this.isMemoryActive = false;
+				this.isGraficoActive = false;
 
-				// Mostra un messaggio di successo
-				this.popupManager.queuePopup("Bravissimo! Hai vinto!");
 				// Mostra un messaggio di successo
 				this.popupManager.queuePopup("Bravissimo! Hai vinto!");
 				this.popupManager.queuePopup("Che succede ora?");
@@ -240,7 +238,9 @@ class Stage1 extends Phaser.Scene {
 						alpha: 0.95,
 						duration: 600,
 						ease: "Linear",
+
 						onComplete: () => {
+							this.player.interactionAllowed = false; //disabilita l'interazione
 							this.time.delayedCall(9600, () => {
 								this.tweens.add({
 									targets: fadeRect,
