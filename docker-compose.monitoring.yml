@@ -352,32 +352,23 @@ services:
       - ELASTICSEARCH_CA=/usr/share/elastic-agent/certs/ca/ca.crt
       - ELASTIC_AGENT_TAGS=infra,internal           # used fot filtering
 
-  # Fluent-bit
-  fluent-bit:
+  # Filebeat (Log Collector)
+  filebeat:
     depends_on:
       es01:
         condition: service_healthy
-    env_file:
-      - docker/env/.env
-    image: fluent/fluent-bit:2.2
-    container_name: fluent-bit
+    image: docker.elastic.co/beats/filebeat:${STACK_VERSION}
+    container_name: filebeat
+    user: root # Necessario per leggere /var/lib/docker e il socket
     restart: unless-stopped
-    user: root
     networks:
       - internal_net
     environment:
-      # These credential will be used by the output of Fluent-bit
       - ELASTICSEARCH_USERNAME=${ELASTICSEARCH_USERNAME}
       - ELASTICSEARCH_PASSWORD=${ELASTICSEARCH_PASSWORD}
     volumes:
-      - certs:/fluent-bit/certs:ro
-      # Thanks to that it can access the JSON logs of the container
+      - certs:/usr/share/filebeat/certs:ro
       - /var/lib/docker/containers:/var/lib/docker/containers:ro
-      # System logs
-      - /var/log:/var/log:ro
-      # Configuration files
-      - ./docker/volumes/fluent-bit:/fluent-bit/etc:ro
-      - ./docker/volumes/fluent-bit-db:/fluent-bit/db
-      # Metadata
       - /var/run/docker.sock:/var/run/docker.sock:ro
-      - ./docker/volumes/npm_data:/npm_data:ro
+      - ./docker/volumes/filebeat/filebeat.yml:/usr/share/filebeat/filebeat.yml:ro
+    command: filebeat -e -strict.perms=false
