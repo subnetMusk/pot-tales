@@ -217,8 +217,8 @@ class Stage1 extends Phaser.Scene {
 		flashSequence();
 
 		// Inizio del dialogo iniziale dopo il risveglio
-		this.popupManager.queuePopup("Dove sono...? Cosa è successo?");
-		this.popupManager.queuePopup("Devo trovare una via d'uscita da questo posto strano.");
+		this.popupManager.queuePopup(i18n.wake_up_1);
+		this.popupManager.queuePopup(i18n.wake_up_2);
 
 		// Mostra il popup SOLO quando l'animazione del risveglio è completa
 		blackScreen.on("destroy", () => {this.popupManager.showNextPopup();});
@@ -226,7 +226,7 @@ class Stage1 extends Phaser.Scene {
 		// Abilita il movimento del giocatore una volta terminato il dialogo iniziale
 		this.popupManager.on('queueEmpty', () => {
 			this.player.movementAllowed = true;
-			this.popupManager.queuePopup("Usa le frecce direzionali per muoverti.");
+			this.popupManager.queuePopup(i18n.movement_hint);
 			this.popupManager.showNextPopup();
 
 			this.lightInteraction();
@@ -267,8 +267,9 @@ class Stage1 extends Phaser.Scene {
 				this.isGraficoActive = false;
 
 				// Mostra un messaggio di successo
-				this.popupManager.queuePopup("Bravissimo! Hai vinto!");
-				this.popupManager.queuePopup("Che succede ora?");
+				const i18n = this.cache.json.get("stage1_i18n");
+				this.popupManager.queuePopup(i18n.minigame_success_1);
+				this.popupManager.queuePopup(i18n.minigame_success_2);
 				this.popupManager.showNextPopup();
 
 				this.popupManager.on("queueEmpty", () => {
@@ -358,8 +359,9 @@ class Stage1 extends Phaser.Scene {
 
 			// L'ultima luce avvierà il minigioco
 			light.interagisci = () => {
-				this.popupManager.queuePopup("Una luce strana emana da questo oggetto...");
-				this.popupManager.queuePopup("Forse dovrei indagare più a fondo...");
+				const i18n = this.cache.json.get("stage1_i18n");
+				this.popupManager.queuePopup(i18n.light_1);
+				this.popupManager.queuePopup(i18n.light_2);
 				this.popupManager.showNextPopup();
 
 				this.popupManager.on("queueEmpty", () => {this.startMinigame();});

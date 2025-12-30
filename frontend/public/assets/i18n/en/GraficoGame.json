@@ -1,0 +1,10 @@
+{
+    "welcome": "Welcome to the graph game! In this game, you'll need to find the most used materials, represented by the peaks of the graph.",
+    "instructions": "Press the 'enter' key to start the scan, and press 'space' when the bar is on the highest peak",
+    "peak_1": "This is mercury, it means you have cancer",
+    "peak_2": "This is sperpa, it means your mom is a whore",
+    "peak_3": "Ohoh, this looks like crap",
+    "peak_4": "I wonder what the hell this is...",
+    "miss": "Too bad, you didn't identify the correct peak. Try again!",
+    "victory": "Congratulations! You found all the peaks of the graph and completed the game!"
+}

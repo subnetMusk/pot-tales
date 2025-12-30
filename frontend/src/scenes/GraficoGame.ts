@@ -1,4 +1,5 @@
 import PopupManager from "../items/UI/PopupManager";
+import { applyTranslations } from "../utils";
 // You can write more code here
 
 /* START OF COMPILED CODE */
@@ -36,10 +37,20 @@ class GraficoGame extends Phaser.Scene {
 
 	// Write your code here
 
+	preload() {
+		const lang = localStorage.getItem("lang") || "en";
+		this.load.json("graficoGame_i18n", `assets/i18n/${lang}/GraficoGame.json`);
+	}
+
 	create() {
 
 		this.editorCreate();
 		this.cameras.main.setZoom(5);
+
+		// Applicazione delle traduzioni
+		const i18n = this.cache.json.get("graficoGame_i18n");
+		applyTranslations(this, i18n);
+
 		const picchi :{ x:number, found:boolean}[] = [
 			{ x: 624, found: false },
 			{ x: 600, found: false },
@@ -48,10 +59,10 @@ class GraficoGame extends Phaser.Scene {
 		];
 
 		const risposte:{text : string}[] = [
-			{ text: "questo è mercurio, significa che hai il cancro" },
-			{ text: "questo è sperpa, significa che tua mamma è puttana" },
-			{ text: "ohoh, questo sembra proprio merda" },
-			{ text: "chissa che cazzo è questo ..." }
+			{ text: i18n.peak_1 },
+			{ text: i18n.peak_2 },
+			{ text: i18n.peak_3 },
+			{ text: i18n.peak_4 }
 		];
 
 
@@ -61,8 +72,8 @@ class GraficoGame extends Phaser.Scene {
 
 		//popup per spiegare il gioco 
 
-		this.popup.queuePopup("Benvenuto nel gioco del grafico!,In questo gioco, dovrai trovare i materiali più usati, rappresentati dai picchi del grafico.");
-		this.popup.queuePopup("premi il tasto 'invio' per avviare la scansione, e premi 'spazio' quando la barra si trova sul picco maggiore");
+		this.popup.queuePopup(i18n.welcome);
+		this.popup.queuePopup(i18n.instructions);
 		this.popup.showNextPopup();
 		let tween: Phaser.Tweens.Tween;
 
@@ -120,7 +131,8 @@ class GraficoGame extends Phaser.Scene {
 					picchi[3].found = true;
 					
 				}else {
-					this.popup.queuePopup("Peccato, non hai individuato il picco corretto. Riprova!");
+					const i18n = this.cache.json.get("graficoGame_i18n");
+					this.popup.queuePopup(i18n.miss);
 
 				}
 				this.popup.showNextPopup();
@@ -142,43 +154,44 @@ class GraficoGame extends Phaser.Scene {
 
 	}
 
-	 controllaPunteggio(picchiTrovati:number,tween:Phaser.Tweens.Tween){ 
-			if(picchiTrovati == 4){
+	controllaPunteggio(picchiTrovati:number,tween:Phaser.Tweens.Tween){ 
+			if(picchiTrovati == 1){
 				tween.stop();
-				this.popup.queuePopup("Complimenti! Hai trovato tutti i picchi del grafico e completato il gioco!");
-					console.log("Hai vinto il gioco!");
+				const i18n = this.cache.json.get("graficoGame_i18n");
+				this.popup.queuePopup(i18n.victory);
+				console.log("Hai vinto il gioco!");
 
-						// Fireworks effect 
-						//TODO sistemare l'effetto provvisorio fatto da copilot
-						const fireworksCount = 8;
-						for (let f = 0; f < fireworksCount; f++) {
-							this.time.delayedCall(f * 100, () => {
-								const x = Phaser.Math.Between(200, 1080);
-								const y = Phaser.Math.Between(100, 400);
+				// Fireworks effect 
+				//TODO sistemare l'effetto provvisorio fatto da copilot
+				const fireworksCount = 8;
+				for (let f = 0; f < fireworksCount; f++) {
+					this.time.delayedCall(f * 100, () => {
+						const x = Phaser.Math.Between(200, 1080);
+						const y = Phaser.Math.Between(100, 400);
 
-								for (let i = 0; i < 8; i++) {
-									const particle = this.add.text(x, y, '✨', { fontSize: '12px' });
-									const angle = (i / 8) * Math.PI * 2;
-									const distance = 200;
+						for (let i = 0; i < 6; i++) {
+							const particle = this.add.text(x, y, '✨', { fontSize: '12px' });
+							const angle = (i / 6) * Math.PI * 2;
+							const distance = 200;
 
-									this.tweens.add({
-										targets: particle,
-										x: x + Math.cos(angle) * distance,
-										y: y + Math.sin(angle) * distance,
-										alpha: 0,
-										duration: 800,
-										ease: 'Quad.easeOut',
-										onComplete: () => particle.destroy()
-									});
-								}
+							this.tweens.add({
+								targets: particle,
+								x: x + Math.cos(angle) * distance,
+								y: y + Math.sin(angle) * distance,
+								alpha: 0,
+								duration: 800,
+								ease: 'Quad.easeOut',
+								onComplete: () => particle.destroy()
 							});
 						}
-
-					this.cameras.main.shake(300, 0.001);
-					this.time.delayedCall(2000, () => {
-						// Emetti un evento di vittoria SUBITO
-						this.events.emit('grafico-complete');
 					});
+				}
+
+				this.cameras.main.shake(300, 0.001);
+				this.time.delayedCall(2000, () => {
+					// Emetti un evento di vittoria SUBITO
+					this.events.emit('grafico-complete');
+				});
 			}
 		}
 

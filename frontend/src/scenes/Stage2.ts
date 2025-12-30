@@ -99,8 +99,8 @@ class Stage2 extends Phaser.Scene {
 		fadeRect.setScrollFactor(0);
 		fadeRect.setDepth(10);
 
-		this.popupManager.queuePopup("Where am I?");
-		this.popupManager.queuePopup("This is vicious...");
+		this.popupManager.queuePopup(i18n.wake_up_1);
+		this.popupManager.queuePopup(i18n.wake_up_2);
 
 
 		this.tweens.add({
@@ -118,8 +118,8 @@ class Stage2 extends Phaser.Scene {
 		});
 
 		this.pool_center.interagisci = () => {
-			this.popupManager.queuePopup("C'è qualcosa di luccicante sul fondo...");
-			this.popupManager.queuePopup("Forse dovrei indagare più a fondo...");
+			this.popupManager.queuePopup(i18n.pool_1);
+			this.popupManager.queuePopup(i18n.pool_2);
 			this.popupManager.showNextPopup();
 
 			this.popupManager.on("queueEmpty", () => {this.startMinigame();});
@@ -158,7 +158,8 @@ class Stage2 extends Phaser.Scene {
 
 				this.cameras.main.shake(10000, 0.0004); 
 				
-				this.popupManager.queuePopup("Che sta succedendo?");
+				const i18n = this.cache.json.get("Stage2_i18n");
+				this.popupManager.queuePopup(i18n.shaking);
 				this.popupManager.showNextPopup();
 
 				this.popupManager.on("queueEmpty", () => {

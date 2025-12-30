@@ -1,0 +1,10 @@
+{
+    "welcome": "Benvenuto nel gioco del grafico! In questo gioco, dovrai trovare i materiali più usati, rappresentati dai picchi del grafico.",
+    "instructions": "Premi il tasto 'invio' per avviare la scansione, e premi 'spazio' quando la barra si trova sul picco maggiore",
+    "peak_1": "Questo è mercurio, significa che hai il cancro",
+    "peak_2": "Questo è sperpa, significa che tua mamma è puttana",
+    "peak_3": "Ohoh, questo sembra proprio merda",
+    "peak_4": "Chissà che cazzo è questo...",
+    "miss": "Peccato, non hai individuato il picco corretto. Riprova!",
+    "victory": "Complimenti! Hai trovato tutti i picchi del grafico e completato il gioco!"
+}
