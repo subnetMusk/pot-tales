@@ -39,7 +39,9 @@
                         "frame": 0
                     },
                     "x": 640,
-                    "y": 360
+                    "y": 360,
+                    "scaleX": 2,
+                    "scaleY": 2
                 },
                 {
                     "type": "Text",

@@ -25,20 +25,20 @@
                 "key": "fullscreen"
             },
             {
-                "url": "frontend/public/assets/images/ui/gallery.png",
+                "url": "frontend/public/assets/images/ui/gallery-button.png",
                 "type": "image",
                 "key": "gallery"
             },
             {
-                "url": "frontend/public/assets/images/ui/leaderboard.png",
+                "url": "frontend/public/assets/images/ui/leaderboard-button.png",
                 "type": "image",
                 "key": "leaderboard"
             },
             {
-                "url": "frontend/public/assets/images/ui/play.png",
+                "url": "frontend/public/assets/images/ui/play-button.png",
                 "frameConfig": {
-                    "frameWidth": 64,
-                    "frameHeight": 64,
+                    "frameWidth": 32,
+                    "frameHeight": 32,
                     "startFrame": 0,
                     "endFrame": -1,
                     "spacing": 0,
@@ -48,7 +48,7 @@
                 "key": "play"
             },
             {
-                "url": "frontend/public/assets/images/ui/settings.png",
+                "url": "frontend/public/assets/images/ui/settings-button.png",
                 "type": "image",
                 "key": "settings"
             },

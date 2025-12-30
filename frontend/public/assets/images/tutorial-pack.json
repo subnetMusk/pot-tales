@@ -7,15 +7,15 @@
                 "key": "battery"
             },
             {
-                "url": "frontend/public/assets/images/backgrounds/BG.png",
+                "url": "frontend/public/assets/images/backgrounds/stage1.png",
                 "type": "image",
                 "key": "BG"
             },
             {
                 "url": "frontend/public/assets/images/ui/card.png",
                 "frameConfig": {
-                    "frameWidth": 48,
-                    "frameHeight": 64,
+                    "frameWidth": 24,
+                    "frameHeight": 32,
                     "startFrame": 0,
                     "endFrame": -1,
                     "spacing": 0,

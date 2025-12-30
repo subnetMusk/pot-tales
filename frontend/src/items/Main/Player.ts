@@ -9,58 +9,62 @@ class Player extends Phaser.GameObjects.Container {
 		super(scene, x ?? 13, y ?? 8);
 
 		// player
-		const player = scene.physics.add.sprite(0, 0, "player_idle", 1);
-		player.body.setSize(16, 16, false);
+		const player = scene.add.sprite(0, 0, "player_idle", 1) as Phaser.GameObjects.Sprite & { body: Phaser.Physics.Arcade.Body };
+		scene.physics.add.existing(player, false);
+		player.body.setSize(32, 32, false);
 		this.add(player);
 
 		// BottomBound
-		const bottomBound = scene.add.rectangle(0, 26, 20, 8);
+		const bottomBound = scene.add.rectangle(0, 16, 15, 8);
 		bottomBound.isStroked = true;
 		this.add(bottomBound);
 
 		// TopBound
-		const topBound = scene.add.rectangle(0, 11, 20, 8);
+		const topBound = scene.add.rectangle(0, 1, 15, 8);
 		topBound.isStroked = true;
 		this.add(topBound);
 
 		// LeftBound
-		const leftBound = scene.add.rectangle(-14, 18, 8, 8);
+		const leftBound = scene.add.rectangle(-11, 8, 8, 8);
 		leftBound.isStroked = true;
 		this.add(leftBound);
 
 		// RightBound
-		const rightBound = scene.add.rectangle(14, 18, 8, 8);
+		const rightBound = scene.add.rectangle(11, 8, 8, 8);
 		rightBound.isStroked = true;
 		this.add(rightBound);
 
 		// TLBound
-		const tLBound = scene.add.rectangle(-14, 10, 8, 8);
+		const tLBound = scene.add.rectangle(-11, 1, 8, 8);
 		tLBound.isStroked = true;
 		tLBound.strokeColor = 3211231;
 		this.add(tLBound);
 
 		// TRBound
-		const tRBound = scene.add.rectangle(14, 10, 8, 8);
+		const tRBound = scene.add.rectangle(11, 1, 8, 8);
 		tRBound.isStroked = true;
 		tRBound.strokeColor = 3211231;
 		this.add(tRBound);
 
 		// BLBound
-		const bLBound = scene.add.rectangle(-14, 26, 8, 8);
+		const bLBound = scene.add.rectangle(-11, 16, 8, 8);
 		bLBound.isStroked = true;
 		bLBound.strokeColor = 3211231;
 		this.add(bLBound);
 
 		// BRBound
-		const bRBound = scene.add.rectangle(14, 26, 8, 8);
+		const bRBound = scene.add.rectangle(11, 16, 8, 8);
 		bRBound.isStroked = true;
 		bRBound.strokeColor = 3211231;
 		this.add(bRBound);
 
 		// darkMask
 		const darkMask = scene.add.image(0, 0, "darkMask");
-		darkMask.scaleX = 0.25;
-		darkMask.scaleY = 0.25;
+		darkMask.alpha = 0.5;
+		darkMask.alphaTopLeft = 0.5;
+		darkMask.alphaTopRight = 0.5;
+		darkMask.alphaBottomLeft = 0.5;
+		darkMask.alphaBottomRight = 0.5;
 		this.add(darkMask);
 
 		this.player = player;
@@ -84,7 +88,7 @@ class Player extends Phaser.GameObjects.Container {
 
 		// Create animations for the player
 		this.createPlayerAnimations();
-		
+
 		// Start with idle front animation
 		this.player.play('idle_front', true);
 
@@ -99,7 +103,7 @@ class Player extends Phaser.GameObjects.Container {
 		/* END-USER-CTR-CODE */
 	}
 
-	private player: Phaser.GameObjects.Sprite;
+	private player: Phaser.GameObjects.Sprite & { body: Phaser.Physics.Arcade.Body };
 	private bottomBound: Phaser.GameObjects.Rectangle;
 	private topBound: Phaser.GameObjects.Rectangle;
 	private leftBound: Phaser.GameObjects.Rectangle;
@@ -116,7 +120,7 @@ class Player extends Phaser.GameObjects.Container {
 	private BoundsDebug: boolean = true;			// Se true mostra i boundaries
     public movementAllowed: boolean = true;       	// Disabilita l'input
 	public interactionAllowed: boolean = true;  	// Disabilita l'interazione con gli oggetti	
-	
+
 
 	// Input della tastiera
 	private rightKey!: Phaser.Input.Keyboard.Key;
@@ -130,11 +134,11 @@ class Player extends Phaser.GameObjects.Container {
 	lastMoveTime: number = 0;						// Tempo dell'ultimo movimento (per l'effetto a bassi fps)
 	lastStep: boolean = false;						// Ultima textura usata
 	direction: 'front' | 'back' | 'side' = 'front';	// Direzione in cui sto guardando
-	
+
 	// Create animations for the player
 	private createPlayerAnimations() {
 		const anims = this.scene.anims;
-		
+
 		// Idle animations
 		// player_idle frames: [side, down1, down2, up]
 		if (!anims.exists('idle_side')) {
@@ -145,7 +149,7 @@ class Player extends Phaser.GameObjects.Container {
 				repeat: -1
 			});
 		}
-		
+
 		if (!anims.exists('idle_front')) {
 			anims.create({
 				key: 'idle_front',
@@ -154,7 +158,7 @@ class Player extends Phaser.GameObjects.Container {
 				repeat: -1
 			});
 		}
-		
+
 		if (!anims.exists('idle_back')) {
 			anims.create({
 				key: 'idle_back',
@@ -163,7 +167,7 @@ class Player extends Phaser.GameObjects.Container {
 				repeat: -1
 			});
 		}
-		
+
 		// Walk down animation
 		if (!anims.exists('walk_down')) {
 			anims.create({
@@ -173,7 +177,7 @@ class Player extends Phaser.GameObjects.Container {
 				repeat: -1
 			});
 		}
-		
+
 		// Walk side animation
 		if (!anims.exists('walk_side')) {
 			anims.create({
@@ -183,7 +187,7 @@ class Player extends Phaser.GameObjects.Container {
 				repeat: -1
 			});
 		}
-		
+
 		// Walk up animation
 		if (!anims.exists('walk_up')) {
 			anims.create({
@@ -415,7 +419,7 @@ class Player extends Phaser.GameObjects.Container {
         // Altrimenti, aggiorno la posizione e salvo il timestamp dell'ultimo passo
         this.x += dx;
         this.y += dy;
-        
+
         this.lastMoveTime = time;
         this.updateMoveTexture(); 			// Qui viene invertito lastStep
 	}

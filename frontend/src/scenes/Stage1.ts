@@ -29,18 +29,69 @@ class Stage1 extends Phaser.Scene {
 		// background
 		this.add.image(640, 360, "BG");
 
-		// player
-		const player = new Player(this, 160, 90);
-		this.add.existing(player);
+		// rectangle
+		const rectangle = this.add.rectangle(1306, 360, 128, 890);
 
-		// rock_bound1
-		const rock_bound1 = this.add.rectangle(707, 162, 80, 60);
+		// rectangle_12
+		const rectangle_12 = this.add.rectangle(509, 482, 50, 220);
+
+		// rectangle_2
+		const rectangle_2 = this.add.rectangle(640, -147, 1204, 128);
+
+		// rectangle_1
+		const rectangle_1 = this.add.rectangle(-26, 360, 128, 890);
+
+		// rectangle_7
+		const rectangle_7 = this.add.rectangle(714, 308, 150, 70);
+
+		// rectangle_15
+		const rectangle_15 = this.add.rectangle(904, 800, 70, 70);
+
+		// rock_bound_1
+		const rock_bound_1 = this.add.rectangle(877, 31, 30, 25);
+
+		// rectangle_6
+		const rectangle_6 = this.add.rectangle(783, 252, 50, 70);
+
+		// rectangle_5
+		const rectangle_5 = this.add.rectangle(892, 153, 50, 70);
+
+		// rectangle_9
+		const rectangle_9 = this.add.rectangle(1041, -2, 70, 20);
+
+		// rectangle_3
+		const rectangle_3 = this.add.rectangle(640, 868, 1204, 128);
+
+		// rectangle_8
+		const rectangle_8 = this.add.rectangle(988.5970572476753, 23.718636567813064, 50, 70);
+
+		// rectangle_10
+		const rectangle_10 = this.add.rectangle(1078, -47, 20, 75);
+
+		// rectangle_11
+		const rectangle_11 = this.add.rectangle(626.0930293981846, 373.87435827556254, 50, 70);
+
+		// rectangle_13
+		const rectangle_13 = this.add.rectangle(563, 649, 120, 120);
+
+		// rectangle_14
+		const rectangle_14 = this.add.rectangle(633, 741, 150, 70);
 
 		// rock_bound
 		const rock_bound = this.add.rectangle(821, 111, 40, 30);
 
+		// rock_bound1
+		const rock_bound1 = this.add.rectangle(707, 162, 80, 60);
+
+		// rectangle_4
+		const rectangle_4 = this.add.rectangle(945, 77, 75, 100);
+
+		// player
+		const player = new Player(this, 160, 90);
+		this.add.existing(player);
+
 		// lists
-		const boundaries = [rock_bound1, rock_bound];
+		const boundaries = [rectangle_4, rock_bound1, rock_bound, rectangle_14, rectangle_13, rectangle_11, rectangle_10, rectangle_8, rectangle_3, rectangle_9, rectangle_5, rectangle_6, rock_bound_1, rectangle_15, rectangle_7, rectangle_1, rectangle_2, rectangle_12, rectangle];
 		const oggVector: Array<any> = [];
 
 		this.background_light = background_light;
@@ -95,7 +146,7 @@ class Stage1 extends Phaser.Scene {
 
 		this.sound.play("dripping_water", {
 			loop: true, 
-			volume: this.game.sound.volume * parseFloat(localStorage.getItem("musicVolume") || "1") * 0.3
+			volume: this.game.sound.volume * parseFloat(localStorage.getItem("musicVolume") || "1") * 0.01
 		});
 
 		// Applicazione delle traduzioni sui testi già presenti nella scena
@@ -261,9 +312,11 @@ class Stage1 extends Phaser.Scene {
 	}
 
 	private lightsPositions: Array<{x: number, y: number}> = [
-		{x: 100, y: 100},
-		{x: 200, y: 250},
-		{x: 400, y: 350}
+		{x: 270, y: 100},
+		{x: 348, y: 464},
+		{x: 840, y: 0},
+		{x: 1090, y: 270},
+		{x: 1096, y: 610}
 	];
 	private currentLightIndex: number = 0;
 	private currentLight!: OggettoInterattivo;

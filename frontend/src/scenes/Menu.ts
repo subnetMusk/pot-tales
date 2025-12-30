@@ -26,8 +26,8 @@ class Menu extends Phaser.Scene {
 
 		// settings_icon
 		const settings_icon = this.add.image(1182, 622, "settings");
-		settings_icon.scaleX = 1.5;
-		settings_icon.scaleY = 1.5;
+		settings_icon.scaleX = 2;
+		settings_icon.scaleY = 2;
 
 		// Leaderboard_button
 		const leaderboard_button = this.add.rectangle(640, 534, 400, 75);
@@ -44,6 +44,8 @@ class Menu extends Phaser.Scene {
 
 		// leaderboard_icon
 		const leaderboard_icon = this.add.image(478, 532, "leaderboard");
+		leaderboard_icon.scaleX = 2;
+		leaderboard_icon.scaleY = 2;
 
 		// Gallery_button
 		const gallery_button = this.add.rectangle(640, 448, 400, 75);
@@ -60,6 +62,8 @@ class Menu extends Phaser.Scene {
 
 		// gallery_icon
 		const gallery_icon = this.add.image(478, 447, "gallery");
+		gallery_icon.scaleX = 2;
+		gallery_icon.scaleY = 2;
 
 		// resume_button
 		const resume_button = this.add.rectangle(640, 362, 400, 75);
@@ -76,6 +80,8 @@ class Menu extends Phaser.Scene {
 
 		// resume_icon
 		const resume_icon = this.add.image(478, 362, "play", 0);
+		resume_icon.scaleX = 2;
+		resume_icon.scaleY = 2;
 
 		// Play_button
 		const play_button = this.add.rectangle(640, 276, 400, 75);
@@ -92,6 +98,8 @@ class Menu extends Phaser.Scene {
 
 		// play_icon
 		const play_icon = this.add.image(478, 277, "play", 0);
+		play_icon.scaleX = 2;
+		play_icon.scaleY = 2;
 
 		// fullscreen_icon
 		const fullscreen_icon = this.add.image(1182, 98, "fullscreen", 1);
@@ -207,11 +215,11 @@ class Menu extends Phaser.Scene {
 		this.settings_icon.setInteractive();
 		this.fullscreen_icon.setInteractive();
 
-		this.play_button.on('pointerdown', () => {this.play_button.setStrokeStyle(4, 0x00aaff);});
-		this.leaderboard_button.on('pointerdown', () => {this.leaderboard_button.setStrokeStyle(4, 0x00aaff);});
-		this.gallery_button.on('pointerdown', () => {this.gallery_button.setStrokeStyle(4, 0x00aaff);});
-		this.settings_icon.on('pointerdown', () => {this.settings_icon.setTint(0x00aaff);});
-		this.fullscreen_icon.on('pointerdown', () => {this.fullscreen_icon.setTint(0x00aaff);});
+		this.play_button.on('pointerdown', () => {this.play_button.setStrokeStyle(4, 0x056f00);});
+		this.leaderboard_button.on('pointerdown', () => {this.leaderboard_button.setStrokeStyle(4, 0xc58f11);});
+		this.gallery_button.on('pointerdown', () => {this.gallery_button.setStrokeStyle(4, 0x283593);});
+		this.settings_icon.on('pointerdown', () => {this.settings_icon.setTint(0xbdbdbd);});
+		this.fullscreen_icon.on('pointerdown', () => {this.fullscreen_icon.setTint(0xbdbdbd);});
 
 		this.play_button.on('pointerup', () => {
 			fadeElements(this.uI, false, 1000, () => {
@@ -234,19 +242,19 @@ class Menu extends Phaser.Scene {
 		});
 
 		// add hover effects
-		this.leaderboard_button.on('pointerover', () => {this.leaderboard_button.setStrokeStyle(4, 0x70bcff);});
+		this.leaderboard_button.on('pointerover', () => {this.leaderboard_button.setStrokeStyle(4, 0xecd58f);});
 		this.leaderboard_button.on('pointerout', () => {this.leaderboard_button.setStrokeStyle(2, 0xf0f8ff);});
 
-		this.play_button.on('pointerover', () => {this.play_button.setStrokeStyle(4, 0x70bcff);});
+		this.play_button.on('pointerover', () => {this.play_button.setStrokeStyle(4, 0x72d572);});
 		this.play_button.on('pointerout', () => {this.play_button.setStrokeStyle(2, 0xf0f8ff);});
 
-		this.gallery_button.on('pointerover', () => {this.gallery_button.setStrokeStyle(4, 0x70bcff);});
+		this.gallery_button.on('pointerover', () => {this.gallery_button.setStrokeStyle(4, 0x8fd3f1);});
 		this.gallery_button.on('pointerout', () => {this.gallery_button.setStrokeStyle(2, 0xf0f8ff);});
 
-		this.settings_icon.on('pointerover', () => {this.settings_icon.setTint(0x70bcff);});
+		this.settings_icon.on('pointerover', () => {this.settings_icon.setTint(0xbababa);});
 		this.settings_icon.on('pointerout', () => {this.settings_icon.clearTint();});
 
-		this.fullscreen_icon.on('pointerover', () => {this.fullscreen_icon.setTint(0x70bcff);});
+		this.fullscreen_icon.on('pointerover', () => {this.fullscreen_icon.setTint(0xbababa);});
 		this.fullscreen_icon.on('pointerout', () => {this.fullscreen_icon.clearTint();});
 
 		if(resume_alpha === 1) {

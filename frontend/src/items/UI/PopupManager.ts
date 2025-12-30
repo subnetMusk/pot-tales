@@ -59,7 +59,6 @@ export default class PopupManager {
 
         // Container per il popup
         const popup = this.scene.add.container(this.scene.scale.width / 2, this.scene.scale.height / 2);
-        this.layer = this.scene.add.layer();
 
         //aggiungo il container al layer
         this.layer.add(popup);
@@ -80,18 +79,19 @@ export default class PopupManager {
         const textWidth = text.width;
         const textHeight = text.height;
         const padding = 6; // Padding attorno al testo
+        const buttonWidth = 40; // Larghezza del pulsante OK
         const buttonHeight = 10; // Altezza del pulsante OK
+        const buttonY = textHeight/2 + padding + buttonHeight/2; // Posizione Y del pulsante
         const buttonMargin = 6; // Spazio tra testo e pulsante
         
         const containerWidth = Math.max(textWidth + padding * 2, 60); // Larghezza minima 60px
         const containerHeight = textHeight + padding + buttonHeight + buttonMargin;
         
-        // Sfondo adattivo alle dimensioni del contenuto
         const bg = this.scene.add.graphics();
-        bg.fillStyle(0x333333, 0.95);
-        bg.fillRoundedRect(-containerWidth/2, -containerHeight/2, containerWidth, containerHeight, 6);
-        bg.lineStyle(1, 0xffffff, 1);
-        bg.strokeRoundedRect(-containerWidth/2, -containerHeight/2, containerWidth, containerHeight, 6);
+        bg.fillStyle(0x111111, 0.7);
+        bg.fillRect(-containerWidth/2, -containerHeight/2, containerWidth, containerHeight, 8);
+        bg.lineStyle(1, 0xffffff, 0.8);
+        bg.strokeRect(-containerWidth/2, -containerHeight/2, containerWidth, containerHeight, 6);
         bg.setScrollFactor(0, 0); // Assicurati che il background sia fisso
         
         // Riposiziona il testo al centro dell'area testo
@@ -100,36 +100,34 @@ export default class PopupManager {
         text.setScrollFactor(0, 0); // Assicurati che il testo sia fisso
 
         
-        // Pulsante OK adattivo
-        const buttonWidth = Math.max(40, containerWidth * 0.3); // Larghezza proporzionale
-        const buttonY = containerHeight/2 - buttonHeight/2 - 4; // Posizione in fondo al container
-        
         const okButton = this.scene.add.graphics();
         okButton.fillStyle(0x4CAF50, 1);
-        okButton.fillRoundedRect(-buttonWidth/2, buttonY - buttonHeight/2, buttonWidth, buttonHeight, 3);
+        okButton.fillRect(-buttonWidth/2, buttonY - buttonHeight/2, buttonWidth, buttonHeight);
         okButton.lineStyle(1, 0x45a049, 1);
-        okButton.strokeRoundedRect(-buttonWidth/2, buttonY - buttonHeight/2, buttonWidth, buttonHeight, 3);
+        okButton.strokeRect(-buttonWidth/2, buttonY - buttonHeight/2, buttonWidth, buttonHeight, 3);
         okButton.setInteractive(new Phaser.Geom.Rectangle(-buttonWidth/2, buttonY - buttonHeight/2, buttonWidth, buttonHeight), Phaser.Geom.Rectangle.Contains);
         okButton.setScrollFactor(0, 0); // Assicurati che il pulsante sia fisso
         
         const okText = this.scene.add.text(0, buttonY, 'OK', {
-            fontSize: '6px',
+            fontSize: '8px',
             color: '#ffffff',
             fontFamily: 'PixelifySans-VariableFont_wght',
             fontStyle: 'bold',
-            resolution: 2
+            resolution: 5,
+            align: 'center',
         });
         okText.setOrigin(0.5);
         okText.setScrollFactor(0, 0); // Assicurati che il testo del pulsante sia fisso
         
         // Aggiungi tutto al container
         popup.add([bg, text, okButton, okText]);
-        popup.setDepth(1000); // Sopra tutto
         popup.setScale(0.8); // Inizia leggermente piccolo ma visibile
         popup.setAlpha(0); // Inizia invisibile
         
-        // Posiziona il popup al centro dello schermo (semplificato)
-        popup.setPosition(this.scene.scale.width / 2, this.scene.scale.height / 2);
+        // Posiziona il popup al basso al centro dello schermo
+        console.log(this.scene.scale.width, this.scene.scale.height);
+        popup.setPosition(this.scene.scale.width / 2, (this.scene.scale.height * (1 + 1 / (2 * this.scene.cameras.main.zoom)) - containerHeight - buttonHeight - buttonMargin) * 0.5);
+        console.log(popup.x, popup.y);
         
         // Animazione senza scaling per evitare blur
         this.scene.tweens.add({

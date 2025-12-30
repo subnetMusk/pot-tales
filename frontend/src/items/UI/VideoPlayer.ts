@@ -17,6 +17,8 @@ class VideoPlayer extends Phaser.GameObjects.Container {
 
 		// playButton
 		const playButton = scene.add.image(640, 360, "play", 0);
+		playButton.scaleX = 2;
+		playButton.scaleY = 2;
 		this.add(playButton);
 
 		// skip
@@ -197,7 +199,7 @@ class VideoPlayer extends Phaser.GameObjects.Container {
                 this.scene.events.emit('video-ended', this.video?.texture.key);
             } else if(this.video.isPlaying()) {
                 this.skipFillOverlay.clear();
-                this.skipFillOverlay.fillStyle(0x64cfff, 0.5);
+                this.skipFillOverlay.fillStyle(0xbdbdbd, 0.5);
                 this.skipFillOverlay.fillRect(
                     this.skipIcon.x - this.skipIcon.displayWidth / 2,
                     this.skipIcon.y - this.skipIcon.displayHeight / 2,
