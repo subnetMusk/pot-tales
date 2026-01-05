@@ -46,7 +46,7 @@ class BaseScene extends Phaser.Scene {
 	private letterManager!: LetterManager;
 
 	async preload() {
-		this.load.pack("tutorial-pack", "assets/images/tutorial-pack.json");
+		this.load.pack("stage1-pack", "assets/images/stage1-pack.json");
 		this.load.pack("player-pack", "assets/images/player-pack.json");
 		this.load.pack("icons-pack", "assets/images/icons-pack.json");
 

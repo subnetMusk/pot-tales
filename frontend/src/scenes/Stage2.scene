@@ -18,9 +18,7 @@
                 "key": "lake"
             },
             "x": 640,
-            "y": 360,
-            "scaleX": 10,
-            "scaleY": 10
+            "y": 360
         },
         {
             "prefabId": "5a8935be-1a98-42a5-9cc4-bca49b9c51b2",

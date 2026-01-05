@@ -2,6 +2,7 @@
     "wake_up_1": "Where am I...? What happened?",
     "wake_up_2": "I need to find a way out of this strange place.",
     "movement_hint": "Use the arrow keys to move.",
+    "interact_hint": "Press 'I' to interact with objects.",
     "light_1": "A strange light emanates from this object...",
     "light_2": "Maybe I should investigate further...",
     "minigame_success_1": "Well done! You won!",

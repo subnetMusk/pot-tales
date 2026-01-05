@@ -1,4 +1,3 @@
-
 // You can write more code here
 
 /* START OF COMPILED CODE */
@@ -414,6 +413,12 @@ class Player extends Phaser.GameObjects.Container {
         if (!moving) {
             this.updateIdleTexture();
             return;
+        }
+
+        // Normalizzo il movimento diagonale
+        if (dx !== 0 && dy !== 0) {
+            dx /= Math.sqrt(2);
+            dy /= Math.sqrt(2);
         }
 
         // Altrimenti, aggiorno la posizione e salvo il timestamp dell'ultimo passo

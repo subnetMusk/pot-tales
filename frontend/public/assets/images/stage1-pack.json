@@ -2,27 +2,9 @@
     "section1": {
         "files": [
             {
-                "url": "frontend/public/assets/images/items/battery.png",
-                "type": "image",
-                "key": "battery"
-            },
-            {
                 "url": "frontend/public/assets/images/backgrounds/stage1.png",
                 "type": "image",
                 "key": "BG"
-            },
-            {
-                "url": "frontend/public/assets/images/ui/card.png",
-                "frameConfig": {
-                    "frameWidth": 24,
-                    "frameHeight": 32,
-                    "startFrame": 0,
-                    "endFrame": -1,
-                    "spacing": 0,
-                    "margin": 0
-                },
-                "type": "spritesheet",
-                "key": "card"
             },
             {
                 "url": [
@@ -32,24 +14,28 @@
                 "key": "dripping_water"
             },
             {
-                "url": "frontend/public/assets/images/items/flask.png",
-                "type": "image",
-                "key": "flask"
+                "url": [
+                    "frontend/public/assets/sfx/earthquake.mp3"
+                ],
+                "type": "audio",
+                "key": "earthquake"
             },
             {
-                "url": "frontend/public/assets/images/graficoEx.png",
+                "url": "frontend/public/assets/images/ui/IR-Spectra/STR_4963.png",
                 "type": "image",
-                "key": "graficoEx"
+                "key": "grafico"
             },
             {
-                "url": "frontend/public/assets/images/backgrounds/labv2.png",
-                "type": "image",
-                "key": "labv2"
+                "url": [
+                    "frontend/public/assets/sfx/keyboard.mp3"
+                ],
+                "type": "audio",
+                "key": "keyboard"
             },
             {
-                "url": "frontend/public/assets/images/items/letter.png",
+                "url": "frontend/public/assets/images/backgrounds/laboratory.png",
                 "type": "image",
-                "key": "letter"
+                "key": "lab_bg"
             },
             {
                 "url": "frontend/public/assets/images/items/red_light.png",
@@ -63,11 +49,6 @@
                 },
                 "type": "spritesheet",
                 "key": "red_light"
-            },
-            {
-                "url": "frontend/public/assets/images/items/research.png",
-                "type": "image",
-                "key": "research"
             }
         ]
     },

@@ -125,9 +125,7 @@ export default class PopupManager {
         popup.setAlpha(0); // Inizia invisibile
         
         // Posiziona il popup al basso al centro dello schermo
-        console.log(this.scene.scale.width, this.scene.scale.height);
         popup.setPosition(this.scene.scale.width / 2, (this.scene.scale.height * (1 + 1 / (2 * this.scene.cameras.main.zoom)) - containerHeight - buttonHeight - buttonMargin) * 0.5);
-        console.log(popup.x, popup.y);
         
         // Animazione senza scaling per evitare blur
         this.scene.tweens.add({

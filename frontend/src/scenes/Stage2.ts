@@ -22,9 +22,7 @@ class Stage2 extends Phaser.Scene {
 	editorCreate(): void {
 
 		// lake
-		const lake = this.add.image(640, 360, "lake");
-		lake.scaleX = 10;
-		lake.scaleY = 10;
+		this.add.image(640, 360, "lake");
 
 		// player
 		const player = new Player(this, 640, 519);
@@ -157,7 +155,7 @@ class Stage2 extends Phaser.Scene {
 				this.isMemoryActive = false;
 
 				this.cameras.main.shake(10000, 0.0004); 
-				
+
 				const i18n = this.cache.json.get("Stage2_i18n");
 				this.popupManager.queuePopup(i18n.shaking);
 				this.popupManager.showNextPopup();

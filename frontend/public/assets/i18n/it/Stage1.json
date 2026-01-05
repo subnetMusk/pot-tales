@@ -2,6 +2,7 @@
     "wake_up_1": "Dove sono...? Cosa è successo?",
     "wake_up_2": "Devo trovare una via d'uscita da questo posto strano.",
     "movement_hint": "Usa le frecce direzionali per muoverti.",
+    "interact_hint": "Premi 'I' per interagire con gli oggetti.",
     "light_1": "Una luce strana emana da questo oggetto...",
     "light_2": "Forse dovrei indagare più a fondo...",
     "minigame_success_1": "Bravissimo! Hai vinto!",

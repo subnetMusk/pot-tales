@@ -17,14 +17,10 @@ class GraficoGame extends Phaser.Scene {
 	editorCreate(): void {
 
 		// graficoEx
-		const graficoEx = this.add.image(640, 360, "graficoEx");
-		graficoEx.scaleX = 0.2;
-		graficoEx.scaleY = 0.2;
+		const graficoEx = this.add.image(640, 360, "grafico");
 
 		// rectangle_1
-		this.rectangle_1 = this.add.rectangle(561, 360, 1, 80);
-		this.rectangle_1.isFilled = true;
-		this.rectangle_1.fillColor = 13633030;
+		this.rectangle_1 = this.add.rectangle(581.5, 357, 1, 82, 13633030);
 
 		this.events.emit("scene-awake");
 	}
@@ -33,6 +29,8 @@ class GraficoGame extends Phaser.Scene {
 
 	private popup!: PopupManager;
 	private rectangle_1!: Phaser.GameObjects.Rectangle;
+
+	private victoryShown: boolean = false;
 
 
 	// Write your code here
@@ -45,29 +43,29 @@ class GraficoGame extends Phaser.Scene {
 	create() {
 
 		this.editorCreate();
-		this.cameras.main.setZoom(5);
+		// Start zoomed out so the scene is invisible
+		this.cameras.main.setZoom(0.01);
+		this.cameras.main.zoomTo(5, 100);
 
 		// Applicazione delle traduzioni
 		const i18n = this.cache.json.get("graficoGame_i18n");
 		applyTranslations(this, i18n);
 
 		const picchi :{ x:number, found:boolean}[] = [
-			{ x: 624, found: false },
-			{ x: 600, found: false },
-			{ x: 640, found: false },
-			{ x: 580, found: false }
+			{ x: 592, found: false },
+			{ x: 659.5, found: false },
+			{ x: 692, found: false }
 		];
 
 		const risposte:{text : string}[] = [
 			{ text: i18n.peak_1 },
 			{ text: i18n.peak_2 },
-			{ text: i18n.peak_3 },
-			{ text: i18n.peak_4 }
+			{ text: i18n.peak_3 }
 		];
 
 
 		this.popup = new PopupManager(this);
-		const lunghezzaMax = 180; // Valore massimo del grafico 
+		const lunghezzaMax = 127; // Valore massimo del grafico 
 		let picchiTrovati = 0;
 
 		//popup per spiegare il gioco 
@@ -79,7 +77,6 @@ class GraficoGame extends Phaser.Scene {
 
 
 		if (this.input.keyboard) {
-			console.log("Impostando i listener per i tasti...");
 			this.input.keyboard.on('keydown-ENTER', () => {
 				//avvia scansione con animazione visibile
 				let startX = this.rectangle_1.x;
@@ -96,14 +93,14 @@ class GraficoGame extends Phaser.Scene {
 					loop: -1,
 					//deve accelerare e decelerare
 					onComplete: () => {
-						console.log("Scansione completata!");
+						// console.log("Scansione completata!");
 					}
 				});
 			});
 
 			this.input.keyboard.on('keydown-SPACE', () => {
 				//ferma scansione e valuta posizione
-				console.log("SPAZIO premuto! Posizione rettangolo: " + this.rectangle_1.x);
+				// console.log("SPAZIO premuto! Posizione rettangolo: " + this.rectangle_1.x);
 				tween.pause();
 				if(this.rectangle_1.x <= picchi[0].x+4 && this.rectangle_1.x >= picchi[0].x-4	&&  picchi[0].found == false){
 					this.popup.queuePopup(risposte[0].text);
@@ -123,14 +120,7 @@ class GraficoGame extends Phaser.Scene {
 					picchiTrovati++;
 					picchi[2].found = true;
 					
-				}else if(this.rectangle_1.x <= picchi[3].x+4 && this.rectangle_1.x >= picchi[3].x-4	&&  picchi[3].found == false){
-					this.popup.queuePopup(risposte[3].text);
-					this.popup.showNextPopup();
-
-					picchiTrovati++;
-					picchi[3].found = true;
-					
-				}else {
+				} else {
 					const i18n = this.cache.json.get("graficoGame_i18n");
 					this.popup.queuePopup(i18n.miss);
 
@@ -150,48 +140,47 @@ class GraficoGame extends Phaser.Scene {
 		}
 
 	
-		console.log("GraficoGame scene created");
+		// console.log("GraficoGame scene created");
 
 	}
 
 	controllaPunteggio(picchiTrovati:number,tween:Phaser.Tweens.Tween){ 
-			if(picchiTrovati == 1){
+			if(picchiTrovati == 3 && !this.victoryShown){
+
+				this.victoryShown = true;
 				tween.stop();
+
 				const i18n = this.cache.json.get("graficoGame_i18n");
 				this.popup.queuePopup(i18n.victory);
-				console.log("Hai vinto il gioco!");
+				this.popup.on("queueEmpty", () => {
+					this.events.emit("grafico-complete");
+				});
+				this.popup.showNextPopup();
 
 				// Fireworks effect 
-				//TODO sistemare l'effetto provvisorio fatto da copilot
-				const fireworksCount = 8;
+				const fireworksCount = 15;
 				for (let f = 0; f < fireworksCount; f++) {
 					this.time.delayedCall(f * 100, () => {
-						const x = Phaser.Math.Between(200, 1080);
-						const y = Phaser.Math.Between(100, 400);
+						const x = Phaser.Math.Between(525, 750);
+						const y = Phaser.Math.Between(300, 400);
 
 						for (let i = 0; i < 6; i++) {
 							const particle = this.add.text(x, y, '✨', { fontSize: '12px' });
 							const angle = (i / 6) * Math.PI * 2;
-							const distance = 200;
+							const distance = 50;
 
 							this.tweens.add({
 								targets: particle,
 								x: x + Math.cos(angle) * distance,
 								y: y + Math.sin(angle) * distance,
 								alpha: 0,
-								duration: 800,
+								duration: 2000,
 								ease: 'Quad.easeOut',
 								onComplete: () => particle.destroy()
 							});
 						}
 					});
 				}
-
-				this.cameras.main.shake(300, 0.001);
-				this.time.delayedCall(2000, () => {
-					// Emetti un evento di vittoria SUBITO
-					this.events.emit('grafico-complete');
-				});
 			}
 		}
 

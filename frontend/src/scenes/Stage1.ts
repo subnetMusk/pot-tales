@@ -29,69 +29,69 @@ class Stage1 extends Phaser.Scene {
 		// background
 		this.add.image(640, 360, "BG");
 
-		// rectangle
-		const rectangle = this.add.rectangle(1306, 360, 128, 890);
+		// boundary_19
+		const boundary_19 = this.add.rectangle(1306, 360, 128, 890);
 
-		// rectangle_12
-		const rectangle_12 = this.add.rectangle(509, 482, 50, 220);
+		// boundary_18
+		const boundary_18 = this.add.rectangle(509, 482, 50, 220);
 
-		// rectangle_2
-		const rectangle_2 = this.add.rectangle(640, -147, 1204, 128);
+		// boundary_17
+		const boundary_17 = this.add.rectangle(640, -147, 1204, 128);
 
-		// rectangle_1
-		const rectangle_1 = this.add.rectangle(-26, 360, 128, 890);
+		// boundary_16
+		const boundary_16 = this.add.rectangle(-26, 360, 128, 890);
 
-		// rectangle_7
-		const rectangle_7 = this.add.rectangle(714, 308, 150, 70);
+		// boundary_15
+		const boundary_15 = this.add.rectangle(714, 308, 150, 70);
 
-		// rectangle_15
-		const rectangle_15 = this.add.rectangle(904, 800, 70, 70);
+		// boundary_14
+		const boundary_14 = this.add.rectangle(904, 800, 70, 70);
 
-		// rock_bound_1
-		const rock_bound_1 = this.add.rectangle(877, 31, 30, 25);
+		// boundary_13
+		const boundary_13 = this.add.rectangle(877, 31, 30, 25);
 
-		// rectangle_6
-		const rectangle_6 = this.add.rectangle(783, 252, 50, 70);
+		// boundary_12
+		const boundary_12 = this.add.rectangle(783, 252, 50, 70);
 
-		// rectangle_5
-		const rectangle_5 = this.add.rectangle(892, 153, 50, 70);
+		// boundary_11
+		const boundary_11 = this.add.rectangle(892, 153, 50, 70);
 
-		// rectangle_9
-		const rectangle_9 = this.add.rectangle(1041, -2, 70, 20);
+		// boundary_10
+		const boundary_10 = this.add.rectangle(1041, -2, 70, 20);
 
-		// rectangle_3
-		const rectangle_3 = this.add.rectangle(640, 868, 1204, 128);
+		// boundary_9
+		const boundary_9 = this.add.rectangle(640, 868, 1204, 128);
 
-		// rectangle_8
-		const rectangle_8 = this.add.rectangle(988.5970572476753, 23.718636567813064, 50, 70);
+		// boundary_8
+		const boundary_8 = this.add.rectangle(988.5970572476753, 23.718636567813064, 50, 70);
 
-		// rectangle_10
-		const rectangle_10 = this.add.rectangle(1078, -47, 20, 75);
+		// boundary_7
+		const boundary_7 = this.add.rectangle(1078, -47, 20, 75);
 
-		// rectangle_11
-		const rectangle_11 = this.add.rectangle(626.0930293981846, 373.87435827556254, 50, 70);
+		// boundary_6
+		const boundary_6 = this.add.rectangle(626.0930293981846, 373.87435827556254, 50, 70);
 
-		// rectangle_13
-		const rectangle_13 = this.add.rectangle(563, 649, 120, 120);
+		// boundary_5
+		const boundary_5 = this.add.rectangle(563, 649, 120, 120);
 
-		// rectangle_14
-		const rectangle_14 = this.add.rectangle(633, 741, 150, 70);
+		// boundary_4
+		const boundary_4 = this.add.rectangle(633, 741, 150, 70);
 
-		// rock_bound
-		const rock_bound = this.add.rectangle(821, 111, 40, 30);
+		// boundary_3
+		const boundary_3 = this.add.rectangle(821, 111, 40, 30);
 
-		// rock_bound1
-		const rock_bound1 = this.add.rectangle(707, 162, 80, 60);
+		// boundary_2
+		const boundary_2 = this.add.rectangle(707, 162, 80, 60);
 
-		// rectangle_4
-		const rectangle_4 = this.add.rectangle(945, 77, 75, 100);
+		// boundary_1
+		const boundary_1 = this.add.rectangle(945, 77, 75, 100);
 
 		// player
 		const player = new Player(this, 160, 90);
 		this.add.existing(player);
 
 		// lists
-		const boundaries = [rectangle_4, rock_bound1, rock_bound, rectangle_14, rectangle_13, rectangle_11, rectangle_10, rectangle_8, rectangle_3, rectangle_9, rectangle_5, rectangle_6, rock_bound_1, rectangle_15, rectangle_7, rectangle_1, rectangle_2, rectangle_12, rectangle];
+		const boundaries = [boundary_1, boundary_2, boundary_3, boundary_4, boundary_5, boundary_6, boundary_7, boundary_8, boundary_9, boundary_10, boundary_11, boundary_12, boundary_13, boundary_14, boundary_15, boundary_16, boundary_17, boundary_18, boundary_19];
 		const oggVector: Array<any> = [];
 
 		this.background_light = background_light;
@@ -116,7 +116,7 @@ class Stage1 extends Phaser.Scene {
 	private isGraficoActive: boolean = false;
 
 	async preload() {
-		this.load.pack("tutorial-pack", "assets/images/tutorial-pack.json");
+		this.load.pack("stage1-pack", "assets/images/stage1-pack.json");
 		this.load.pack("player-pack", "assets/images/player-pack.json");
 		this.load.pack("icons-pack", "assets/images/icons-pack.json");
 
@@ -146,7 +146,7 @@ class Stage1 extends Phaser.Scene {
 
 		this.sound.play("dripping_water", {
 			loop: true, 
-			volume: this.game.sound.volume * parseFloat(localStorage.getItem("musicVolume") || "1") * 0.01
+			volume: this.game.sound.volume * parseFloat(localStorage.getItem("musicVolume") || "1") * 0.02
 		});
 
 		// Applicazione delle traduzioni sui testi già presenti nella scena
@@ -225,93 +225,20 @@ class Stage1 extends Phaser.Scene {
 
 		// Abilita il movimento del giocatore una volta terminato il dialogo iniziale
 		this.popupManager.on('queueEmpty', () => {
-			this.player.movementAllowed = true;
 			this.popupManager.queuePopup(i18n.movement_hint);
+			this.popupManager.queuePopup(i18n.interact_hint);
 			this.popupManager.showNextPopup();
-
 			this.lightInteraction();
+
+			this.popupManager.on('queueEmpty', () => {
+				this.player.movementAllowed = true;
+			});
 		});
 
 		/* END-SCENE-LOGIC */
 	}
 
-	private startMinigame() {
-		// Evita di avviare più volte il gioco
-		if (this.isGraficoActive) return;
-		this.isGraficoActive = true;
-
-		// Pausa il gioco principale
-		this.scene.pause();
-		console.log("Avvio del memory game...");
-
-		// Sfocare la camera prima di avviare Memory
-		this.cameras.main.postFX.addBlur(2, 2, 2);
-
-		// Avvia il gioco
-		this.scene.launch("GraficoGame");
-
-		// Porta la scena Memory in primo piano
-		this.scene.bringToTop("GraficoGame");
-
-		// Una volta terminato il memory riprende il gioco principale
-		const memScene = this.scene.get("GraficoGame") as Phaser.Scene | undefined;
-		if (memScene) {
-			// Ascolta l'evento personalizzato di vittoria
-			memScene.events.once("grafico-complete", () => {
-				console.log("Memory game completato con successo!");
-
-				this.cameras.main.postFX.clear();				// Rimuovi il blur quando torni
-
-				this.scene.stop("GraficoGame"); 						// Ferma la scena grafico
-				this.scene.resume();
-				this.isGraficoActive = false;
-
-				// Mostra un messaggio di successo
-				const i18n = this.cache.json.get("stage1_i18n");
-				this.popupManager.queuePopup(i18n.minigame_success_1);
-				this.popupManager.queuePopup(i18n.minigame_success_2);
-				this.popupManager.showNextPopup();
-
-				this.popupManager.on("queueEmpty", () => {
-					const fadeRect = this.add.rectangle(
-						this.cameras.main.centerX,
-						this.cameras.main.centerY,
-						this.cameras.main.width,
-						this.cameras.main.height,
-						0x000000
-					);
-
-					fadeRect.setScrollFactor(0);
-					fadeRect.setDepth(10);
-					fadeRect.setAlpha(0);
-
-					this.tweens.add({
-						targets: fadeRect,
-						alpha: 0.95,
-						duration: 600,
-						ease: "Linear",
-
-						onComplete: () => {
-							this.player.interactionAllowed = false; //disabilita l'interazione
-							this.time.delayedCall(9600, () => {
-								this.tweens.add({
-									targets: fadeRect,
-									alpha: 1,
-									duration: 400,
-									ease: "Linear",
-									onComplete: () => {
-										this.sound.stopAll();
-										this.scene.start("Stage2");
-									}
-								});
-							});
-						}
-					});
-				});
-			});
-		}
-	}
-
+	// Interazione con la luce rossa ------------------------------------------------------
 	private lightsPositions: Array<{x: number, y: number}> = [
 		{x: 270, y: 100},
 		{x: 348, y: 464},
@@ -364,13 +291,16 @@ class Stage1 extends Phaser.Scene {
 				this.popupManager.queuePopup(i18n.light_2);
 				this.popupManager.showNextPopup();
 
-				this.popupManager.on("queueEmpty", () => {this.startMinigame();});
+				this.popupManager.on("queueEmpty", () => {
+					this.cameras.main.fadeOut(1000, 255, 0, 0);
+					this.sound.stopAll();
+					this.time.delayedCall(1000, () => {this.startMinigame();});
+				});
 			};
 		}
 
 		// Rende l'oggetto interagibile
 		this.oggVector.push(light);
-
 		this.currentLightIndex++;
 
 		if(this.currentLight) {
@@ -446,6 +376,75 @@ class Stage1 extends Phaser.Scene {
 		} else {
 			this.currentLight = light;
 		}
+	}
+
+	// Avvio del minigioco ---------------------------------------------------------------
+	private startMinigame() {
+		this.scene.pause();
+		// console.log("Avvio del grafico game...");
+
+		// Avvia il gioco
+		this.scene.launch("Stage1_Lab");
+
+		// Porta la scena Memory in primo piano
+		this.scene.bringToTop("Stage1_Lab");
+
+		// Una volta terminato il memory riprende il gioco principale
+		const grafScene = this.scene.get("Stage1_Lab") as Phaser.Scene | undefined;
+		if (grafScene) {
+			// Ascolta l'evento personalizzato di vittoria
+			grafScene.events.once("lab-complete", () => {this.endingSequence();});
+		}
+	}
+
+	// Scena finale dopo il completamento del minigioco ----------------------------------
+	private endingSequence() {
+		this.isGraficoActive = false;
+
+		this.scene.stop("Stage1_Lab"); 						// Ferma la scena grafico
+		this.scene.resume();
+		this.cameras.main.fadeIn(1500, 255, 0, 0);
+
+		// Mostra un messaggio di successo
+		const i18n = this.cache.json.get("stage1_i18n");
+		this.popupManager.queuePopup(i18n.minigame_success_1);
+		this.popupManager.showNextPopup();
+		this.popupManager.on("queueEmpty", () => {
+			this.popupManager.queuePopup(i18n.minigame_success_2);
+			this.popupManager.showNextPopup();
+			
+			this.cameras.main.shake(6000, 0.0012);
+			this.sound.play("earthquake", {
+				volume: this.game.sound.volume * parseFloat(localStorage.getItem("sfxVolume") || "1") * 0.01
+			});
+
+			this.popupManager.on("queueEmpty", () => {
+				const fadeRect = this.add.rectangle(
+					this.cameras.main.centerX,
+					this.cameras.main.centerY,
+					this.cameras.main.width,
+					this.cameras.main.height,
+					0x000000
+				);
+
+				fadeRect.setScrollFactor(0);
+				fadeRect.setDepth(10);
+				fadeRect.setAlpha(0);
+
+				this.tweens.add({
+					targets: fadeRect,
+					alpha: 0.98,
+					duration: 600,
+					ease: "Linear",
+
+					onComplete: () => {
+						this.player.interactionAllowed = false; //disabilita l'interazione
+						this.time.delayedCall(4000, this.cameras.main.fadeOut, [], this.cameras.main);
+						this.time.delayedCall(5000, () => {this.scene.start("Menu");});
+					}
+				});
+			});
+		});
 	}
 
 	/* END-USER-CODE */
