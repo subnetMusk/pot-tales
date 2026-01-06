@@ -273,6 +273,15 @@
                 "7e922fde-8435-4281-8e00-a21a90551bee",
                 "c66bc216-dfc8-4532-80d6-7619a808dde4"
             ]
+        },
+        {
+            "id": "9dff0c81-8bbf-4987-b7d9-72a8e99c4a3d",
+            "label": "leaderboard_button_items",
+            "objectIds": [
+                "bc85f77b-dc3d-4dae-9f9d-b66d0324f959",
+                "740b6b0c-8a36-4dc3-9451-5be9043034c2",
+                "212906bf-af42-4fd1-bca2-572ce7f12351"
+            ]
         }
     ]
 }

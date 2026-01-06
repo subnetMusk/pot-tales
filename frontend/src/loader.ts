@@ -10,7 +10,7 @@ class Boot extends Phaser.Scene {
 	}
 
 	async create() {
-		localStorage.setItem("playIntro", "false");
+		localStorage.setItem("playIntro", "true");
 		this.game.sound.volume = Number(localStorage.getItem("mainVolume") ?? "1");
 
 		const { default: Preload } = await import("./scenes/Preload");

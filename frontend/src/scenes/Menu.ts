@@ -112,6 +112,7 @@ class Menu extends Phaser.Scene {
 		// lists
 		const uI = [play_button, play_icon, fullscreen_icon, gallery_icon, gallery, gallery_button, play, leaderboard_icon, leaderboard, leaderboard_button, settings_icon, resume_icon, resume, resume_button, title];
 		const resume_button_items = [resume_icon, resume, resume_button];
+		const leaderboard_button_items = [leaderboard_icon, leaderboard, leaderboard_button];
 
 		this.settings_icon = settings_icon;
 		this.leaderboard_button = leaderboard_button;
@@ -121,6 +122,7 @@ class Menu extends Phaser.Scene {
 		this.fullscreen_icon = fullscreen_icon;
 		this.uI = uI;
 		this.resume_button_items = resume_button_items;
+		this.leaderboard_button_items = leaderboard_button_items;
 
 		this.events.emit("scene-awake");
 	}
@@ -133,6 +135,7 @@ class Menu extends Phaser.Scene {
 	private fullscreen_icon!: Phaser.GameObjects.Image;
 	private uI!: Array<Phaser.GameObjects.Rectangle|Phaser.GameObjects.Image|Phaser.GameObjects.Text>;
 	private resume_button_items!: Array<Phaser.GameObjects.Image|Phaser.GameObjects.Text|Phaser.GameObjects.Rectangle>;
+	private leaderboard_button_items!: Array<Phaser.GameObjects.Image|Phaser.GameObjects.Text|Phaser.GameObjects.Rectangle>;
 
 	/* START-USER-CODE */
 
@@ -198,25 +201,27 @@ class Menu extends Phaser.Scene {
 
 					fadeElements(this.uI.filter(el => !this.resume_button_items.includes(el)), true);
 					fadeElements(this.resume_button_items, true, 1000, undefined, resume_alpha);
+					fadeElements(this.leaderboard_button_items, true, 1000, undefined, 0.5);
 				});
 			});
 		} else {
 			fadeElements(this.uI.filter(el => !this.resume_button_items.includes(el)), true);
 			fadeElements(this.resume_button_items, true, 1000, undefined, resume_alpha);
 		}
+
 		// Apply translations
         const i18n = this.cache.json.get("menu_i18n");
         applyTranslations(this, i18n);
 
 		// add click events
-		this.leaderboard_button.setInteractive();
+		// this.leaderboard_button.setInteractive();
 		this.play_button.setInteractive();
 		this.gallery_button.setInteractive();
 		this.settings_icon.setInteractive();
 		this.fullscreen_icon.setInteractive();
 
 		this.play_button.on('pointerdown', () => {this.play_button.setStrokeStyle(4, 0x056f00);});
-		this.leaderboard_button.on('pointerdown', () => {this.leaderboard_button.setStrokeStyle(4, 0xc58f11);});
+		// this.leaderboard_button.on('pointerdown', () => {this.leaderboard_button.setStrokeStyle(4, 0xc58f11);});
 		this.gallery_button.on('pointerdown', () => {this.gallery_button.setStrokeStyle(4, 0x283593);});
 		this.settings_icon.on('pointerdown', () => {this.settings_icon.setTint(0xbdbdbd);});
 		this.fullscreen_icon.on('pointerdown', () => {this.fullscreen_icon.setTint(0xbdbdbd);});
@@ -228,7 +233,7 @@ class Menu extends Phaser.Scene {
 				this.cameras.main.once('camerafadeoutcomplete', () => {this.scene.start("Stage1");});
 			});
 		});
-		this.leaderboard_button.on('pointerup', () => {this.scene.start("Leaderboard");});
+		// this.leaderboard_button.on('pointerup', () => {this.scene.start("Leaderboard");});
 		this.gallery_button.on('pointerup', () => {this.scene.start("Gallery");});
 		this.settings_icon.on('pointerup', () => {this.scene.start("Settings");});
 		this.fullscreen_icon.on('pointerup', () => {
@@ -242,8 +247,8 @@ class Menu extends Phaser.Scene {
 		});
 
 		// add hover effects
-		this.leaderboard_button.on('pointerover', () => {this.leaderboard_button.setStrokeStyle(4, 0xecd58f);});
-		this.leaderboard_button.on('pointerout', () => {this.leaderboard_button.setStrokeStyle(2, 0xf0f8ff);});
+		// this.leaderboard_button.on('pointerover', () => {this.leaderboard_button.setStrokeStyle(4, 0xecd58f);});
+		// this.leaderboard_button.on('pointerout', () => {this.leaderboard_button.setStrokeStyle(2, 0xf0f8ff);});
 
 		this.play_button.on('pointerover', () => {this.play_button.setStrokeStyle(4, 0x72d572);});
 		this.play_button.on('pointerout', () => {this.play_button.setStrokeStyle(2, 0xf0f8ff);});

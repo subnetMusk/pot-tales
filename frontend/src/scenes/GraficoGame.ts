@@ -1,5 +1,7 @@
 import PopupManager from "../items/UI/PopupManager";
 import { applyTranslations } from "../utils";
+import VideoPlayer from "../items/UI/VideoPlayer";
+
 // You can write more code here
 
 /* START OF COMPILED CODE */
@@ -44,12 +46,33 @@ class GraficoGame extends Phaser.Scene {
 
 		this.editorCreate();
 		// Start zoomed out so the scene is invisible
-		this.cameras.main.setZoom(0.01);
-		this.cameras.main.zoomTo(5, 100);
+		this.cameras.main.setZoom(0.695);
 
 		// Applicazione delle traduzioni
 		const i18n = this.cache.json.get("graficoGame_i18n");
 		applyTranslations(this, i18n);
+
+		//Popup per spiegare il gioco 
+		this.popup = new PopupManager(this);
+		this.popup.queuePopup(i18n.welcome);
+		this.popup.queuePopup(i18n.instructions);
+
+		// Video introduttivo
+
+		// Video come finestra sullo schermo del computer
+		const videoPlayer = new VideoPlayer(this, 0, 0);
+		this.add.existing(videoPlayer);
+
+		videoPlayer.loadVideo("IR.mp4", "fill");
+		videoPlayer.play();
+		this.events.on('video-ended', () => {
+			this.time.delayedCall(750, () => {
+				videoPlayer.destroy();
+				this.cameras.main.zoomTo(5, 100);
+
+				this.popup.showNextPopup();
+			});
+		});
 
 		const picchi :{ x:number, found:boolean}[] = [
 			{ x: 592, found: false },
@@ -64,81 +87,68 @@ class GraficoGame extends Phaser.Scene {
 		];
 
 
-		this.popup = new PopupManager(this);
 		const lunghezzaMax = 127; // Valore massimo del grafico 
 		let picchiTrovati = 0;
-
-		//popup per spiegare il gioco 
-
-		this.popup.queuePopup(i18n.welcome);
-		this.popup.queuePopup(i18n.instructions);
-		this.popup.showNextPopup();
 		let tween: Phaser.Tweens.Tween;
 
+		this.popup.on("queueEmpty", () => {
+			if (this.input.keyboard) {
+				this.input.keyboard.on('keydown-ENTER', () => {
+					//avvia scansione con animazione visibile
+					let startX = this.rectangle_1.x;
+					let endX = startX + lunghezzaMax;
 
-		if (this.input.keyboard) {
-			this.input.keyboard.on('keydown-ENTER', () => {
-				//avvia scansione con animazione visibile
-				let startX = this.rectangle_1.x;
-				let endX = startX + lunghezzaMax;
+					this.input.keyboard?.off('keydown-ENTER');
 
-				this.input.keyboard?.off('keydown-ENTER');
+					tween = this.tweens.add({
+						targets: this.rectangle_1,
+						x: endX,
+						duration: 4000,
+						ease: 'linear',
+						yoyo: true,
+						loop: -1,
+						//deve accelerare e decelerare
+						onComplete: () => {
+							// console.log("Scansione completata!");
+						}
+					});
+				});
 
-				 tween = this.tweens.add({
-					targets: this.rectangle_1,
-					x: endX,
-					duration: 4000,
-					ease: 'linear',
-					yoyo: true,
-					loop: -1,
-					//deve accelerare e decelerare
-					onComplete: () => {
-						// console.log("Scansione completata!");
+				this.input.keyboard.on('keydown-SPACE', () => {
+					//ferma scansione e valuta posizione
+					// console.log("SPAZIO premuto! Posizione rettangolo: " + this.rectangle_1.x);
+					tween.pause();
+					if(this.rectangle_1.x <= picchi[0].x+4 && this.rectangle_1.x >= picchi[0].x-4	&&  picchi[0].found == false){
+						this.popup.queuePopup(risposte[0].text);
+						this.popup.showNextPopup();
+						picchiTrovati++;
+						picchi[0].found = true;
+						
+					}else if(this.rectangle_1.x <= picchi[1].x+4 && this.rectangle_1.x >= picchi[1].x-4	&&  picchi[1].found == false){
+						this.popup.queuePopup(risposte[1].text);
+						this.popup.showNextPopup();
+						picchiTrovati++;
+						picchi[1].found = true;
+						
+					}else if(this.rectangle_1.x <= picchi[2].x+4 && this.rectangle_1.x >= picchi[2].x-4	&&  picchi[2].found == false){
+						this.popup.queuePopup(risposte[2].text);
+						this.popup.showNextPopup();
+						picchiTrovati++;
+						picchi[2].found = true;
+						
+					} else {
+						const i18n = this.cache.json.get("graficoGame_i18n");
+						this.popup.queuePopup(i18n.miss);
+
 					}
+					this.popup.showNextPopup();
+					this.popup.on("popupClosed", () => {
+						this.controllaPunteggio(picchiTrovati,tween);
+						tween.resume();
+					});
 				});
-			});
-
-			this.input.keyboard.on('keydown-SPACE', () => {
-				//ferma scansione e valuta posizione
-				// console.log("SPAZIO premuto! Posizione rettangolo: " + this.rectangle_1.x);
-				tween.pause();
-				if(this.rectangle_1.x <= picchi[0].x+4 && this.rectangle_1.x >= picchi[0].x-4	&&  picchi[0].found == false){
-					this.popup.queuePopup(risposte[0].text);
-					this.popup.showNextPopup();
-					picchiTrovati++;
-					picchi[0].found = true;
-					
-				}else if(this.rectangle_1.x <= picchi[1].x+4 && this.rectangle_1.x >= picchi[1].x-4	&&  picchi[1].found == false){
-					this.popup.queuePopup(risposte[1].text);
-					this.popup.showNextPopup();
-					picchiTrovati++;
-					picchi[1].found = true;
-					
-				}else if(this.rectangle_1.x <= picchi[2].x+4 && this.rectangle_1.x >= picchi[2].x-4	&&  picchi[2].found == false){
-					this.popup.queuePopup(risposte[2].text);
-					this.popup.showNextPopup();
-					picchiTrovati++;
-					picchi[2].found = true;
-					
-				} else {
-					const i18n = this.cache.json.get("graficoGame_i18n");
-					this.popup.queuePopup(i18n.miss);
-
-				}
-				this.popup.showNextPopup();
-				this.popup.on("popupClosed", () => {
-					this.controllaPunteggio(picchiTrovati,tween);
-					tween.resume();
-				});
-
-				
-
-				
-			});
-
-			
-		}
-
+			}
+		});
 	
 		// console.log("GraficoGame scene created");
 
