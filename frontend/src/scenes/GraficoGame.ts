@@ -59,8 +59,8 @@ class GraficoGame extends Phaser.Scene {
 
 		//Popup per spiegare il gioco 
 		this.popup = new PopupManager(this);
-		this.popup.queuePopup(i18n.welcome);
-		this.popup.queuePopup(i18n.instructions);
+		this.popup.queuePopup(i18n.welcome, "hint");
+		this.popup.queuePopup(i18n.instructions, "hint");
 
 		// Video introduttivo
 

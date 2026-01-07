@@ -225,8 +225,8 @@ class Stage1 extends Phaser.Scene {
 
 		// Abilita il movimento del giocatore una volta terminato il dialogo iniziale
 		this.popupManager.on('queueEmpty', () => {
-			this.popupManager.queuePopup(i18n.movement_hint);
-			this.popupManager.queuePopup(i18n.interact_hint);
+			this.popupManager.queuePopup(i18n.movement_hint, "hint");
+			this.popupManager.queuePopup(i18n.interact_hint, "hint");
 			this.popupManager.showNextPopup();
 			this.lightInteraction();
 
@@ -377,7 +377,7 @@ class Stage1 extends Phaser.Scene {
 
 		// Mostra un messaggio di successo
 		const i18n = this.cache.json.get("stage1_i18n");
-		this.popupManager.queuePopup(i18n.minigame_success_1);
+		this.popupManager.queuePopup(i18n.minigame_success_1, "hint");
 		this.popupManager.showNextPopup();
 		this.popupManager.on("queueEmpty", () => {
 			this.popupManager.queuePopup(i18n.minigame_success_2);

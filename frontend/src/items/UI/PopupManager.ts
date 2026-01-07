@@ -1,4 +1,77 @@
+// Define popup preset configuration
+interface PopupPreset {
+    bgColor: number;
+    bgAlpha: number;
+    borderColor: number;
+    borderAlpha: number;
+    textFontSize: string;
+    textColor: string;
+    buttonWidth: number;
+    buttonHeight: number;
+    buttonBgColor: number;
+    buttonBorderColor: number;
+    buttonTextColor: string;
+    padding: number;
+    buttonMargin: number;
+    minWidth: number;
+    textWordWrapWidth: number;
+    animationDuration: number;
+    animationEase: string;
+    closeAnimationDuration: number;
+    closeAnimationEase: string;
+    showButton: boolean;
+    allowKeyClose: boolean;
+}
 
+// Preset configurations
+const POPUP_PRESETS: Record<string, PopupPreset> = {
+    default: {
+        bgColor: 0x111111,
+        bgAlpha: 0.7,
+        borderColor: 0xffffff,
+        borderAlpha: 0.8,
+        textFontSize: '8px',
+        textColor: '#ffffff',
+        buttonWidth: 40,
+        buttonHeight: 10,
+        buttonBgColor: 0x4CAF50,
+        buttonBorderColor: 0x45a049,
+        buttonTextColor: '#ffffff',
+        padding: 6,
+        buttonMargin: 6,
+        minWidth: 60,
+        textWordWrapWidth: 200,
+        animationDuration: 200,
+        animationEase: 'Power2.easeOut',
+        closeAnimationDuration: 150,
+        closeAnimationEase: 'Power2.easeIn',
+        showButton: true,
+        allowKeyClose: true,
+    },
+    hint: {
+        bgColor: 0x2c3e50,
+        bgAlpha: 0.5,
+        borderColor: 0xf39c12,
+        borderAlpha: 0.65,
+        textFontSize: '7px',
+        textColor: '#ecf0f1',
+        buttonWidth: 35,
+        buttonHeight: 9,
+        buttonBgColor: 0xf39c12,
+        buttonBorderColor: 0xe67e22,
+        buttonTextColor: '#ffffff',
+        padding: 8,
+        buttonMargin: 8,
+        minWidth: 70,
+        textWordWrapWidth: 220,
+        animationDuration: 300,
+        animationEase: 'Power2.easeOut',
+        closeAnimationDuration: 200,
+        closeAnimationEase: 'Power2.easeIn',
+        showButton: true,
+        allowKeyClose: true,
+    }
+};
 
 export default class PopupManager {
     protected scene: Phaser.Scene;
@@ -20,8 +93,8 @@ export default class PopupManager {
     }
 
     // Aggiunge un popup alla coda
-    public queuePopup(message: string) {
-        this.popupQueue.push(message);
+    public queuePopup(message: string, preset: string = 'default') {
+        this.popupQueue.push(JSON.stringify({ message, preset }));
     }
 
     // Mostra il prossimo popup della coda
@@ -32,10 +105,11 @@ export default class PopupManager {
         }
         
         // Prendi il primo messaggio dalla coda
-        const message = this.popupQueue.shift();
-        if (message) {
+        const popupData = this.popupQueue.shift();
+        if (popupData) {
+            const { message, preset } = JSON.parse(popupData);
             this.isPopupActive = true;
-            this.currentPopup = this.createInteractivePopup(message);
+            this.currentPopup = this.createInteractivePopup(message, preset);
             
             // Emetti l'evento di popup mostrato
             this.scene.events.emit('popup-shown');
@@ -55,7 +129,8 @@ export default class PopupManager {
     }
 
     // Crea il popup interattivo
-    protected createInteractivePopup(message: string): Phaser.GameObjects.Container {
+    protected createInteractivePopup(message: string, presetName: string = "default"): Phaser.GameObjects.Container {
+        const preset = POPUP_PRESETS[presetName] || POPUP_PRESETS.default;
 
         // Container per il popup
         const popup = this.scene.add.container(this.scene.scale.width / 2, this.scene.scale.height / 2);
@@ -65,75 +140,87 @@ export default class PopupManager {
         
         // Crea il testo prima per misurare le dimensioni
         const text = this.scene.add.text(0, -10, message, {
-            fontSize: '8px',
-            color: '#ffffff',
+            fontSize: preset.textFontSize,
+            color: preset.textColor,
             fontStyle: '',
             fontFamily: 'PixelifySans-VariableFont_wght',
             resolution: 5,
             align: 'center',
-            wordWrap: { width: 200 } // Larghezza massima per il wrapping
+            wordWrap: { width: preset.textWordWrapWidth }
         });
         text.setOrigin(0.5);
         
         // Calcola le dimensioni del contenitore basate sul testo
         const textWidth = text.width;
         const textHeight = text.height;
-        const padding = 6; // Padding attorno al testo
-        const buttonWidth = 40; // Larghezza del pulsante OK
-        const buttonHeight = 10; // Altezza del pulsante OK
-        const buttonY = textHeight/2 + padding + buttonHeight/2; // Posizione Y del pulsante
-        const buttonMargin = 6; // Spazio tra testo e pulsante
+        const padding = preset.padding;
+        const buttonWidth = preset.buttonWidth;
+        const buttonHeight = preset.buttonHeight;
+        const buttonMargin = preset.buttonMargin;
         
-        const containerWidth = Math.max(textWidth + padding * 2, 60); // Larghezza minima 60px
-        const containerHeight = textHeight + padding + buttonHeight + buttonMargin;
+        let containerHeight = textHeight + padding * 2;
+        if (preset.showButton) {
+            containerHeight += buttonHeight + buttonMargin;
+        }
+        
+        const containerWidth = Math.max(textWidth + padding * 2, preset.minWidth);
+        const buttonY = textHeight / 2 + padding + buttonMargin + buttonHeight / 2;
         
         const bg = this.scene.add.graphics();
-        bg.fillStyle(0x111111, 0.7);
-        bg.fillRect(-containerWidth/2, -containerHeight/2, containerWidth, containerHeight, 8);
-        bg.lineStyle(1, 0xffffff, 0.8);
-        bg.strokeRect(-containerWidth/2, -containerHeight/2, containerWidth, containerHeight, 6);
-        bg.setScrollFactor(0, 0); // Assicurati che il background sia fisso
+        bg.fillStyle(preset.bgColor, preset.bgAlpha);
+        bg.fillRect(-containerWidth/2, -containerHeight/2, containerWidth, containerHeight);
+        bg.lineStyle(1, preset.borderColor, preset.borderAlpha);
+        bg.strokeRect(-containerWidth/2, -containerHeight/2, containerWidth, containerHeight);
+        bg.setScrollFactor(0, 0);
         
         // Riposiziona il testo al centro dell'area testo
         const textY = -containerHeight/2 + padding + textHeight/2;
         text.setPosition(0, textY);
-        text.setScrollFactor(0, 0); // Assicurati che il testo sia fisso
+        text.setScrollFactor(0, 0);
 
-        
-        const okButton = this.scene.add.graphics();
-        okButton.fillStyle(0x4CAF50, 1);
-        okButton.fillRect(-buttonWidth/2, buttonY - buttonHeight/2, buttonWidth, buttonHeight);
-        okButton.lineStyle(1, 0x45a049, 1);
-        okButton.strokeRect(-buttonWidth/2, buttonY - buttonHeight/2, buttonWidth, buttonHeight, 3);
-        okButton.setInteractive(new Phaser.Geom.Rectangle(-buttonWidth/2, buttonY - buttonHeight/2, buttonWidth, buttonHeight), Phaser.Geom.Rectangle.Contains);
-        okButton.setScrollFactor(0, 0); // Assicurati che il pulsante sia fisso
-        
-        const okText = this.scene.add.text(0, buttonY, 'OK', {
-            fontSize: '8px',
-            color: '#ffffff',
-            fontFamily: 'PixelifySans-VariableFont_wght',
-            fontStyle: 'bold',
-            resolution: 5,
-            align: 'center',
-        });
-        okText.setOrigin(0.5);
-        okText.setScrollFactor(0, 0); // Assicurati che il testo del pulsante sia fisso
+        // Crea il pulsante OK solo se showButton è true nel preset
+        let okButton: Phaser.GameObjects.Graphics | null = null;
+        let okText: Phaser.GameObjects.Text | null = null;
+
+        if (preset.showButton) {
+            okButton = this.scene.add.graphics();
+            okButton.fillStyle(preset.buttonBgColor, 1);
+            okButton.fillRect(-buttonWidth/2, buttonY - buttonHeight/2, buttonWidth, buttonHeight);
+            okButton.lineStyle(1, preset.buttonBorderColor, 1);
+            okButton.strokeRect(-buttonWidth/2, buttonY - buttonHeight/2, buttonWidth, buttonHeight);
+            okButton.setInteractive(new Phaser.Geom.Rectangle(-buttonWidth/2, buttonY - buttonHeight/2, buttonWidth, buttonHeight), Phaser.Geom.Rectangle.Contains);
+            okButton.setScrollFactor(0, 0);
+            
+            okText = this.scene.add.text(0, buttonY, 'OK', {
+                fontSize: preset.textFontSize,
+                color: preset.buttonTextColor,
+                fontFamily: 'PixelifySans-VariableFont_wght',
+                fontStyle: 'bold',
+                resolution: 5,
+                align: 'center',
+            });
+            okText.setOrigin(0.5);
+            okText.setScrollFactor(0, 0);
+        }
         
         // Aggiungi tutto al container
-        popup.add([bg, text, okButton, okText]);
-        popup.setScale(0.8); // Inizia leggermente piccolo ma visibile
-        popup.setAlpha(0); // Inizia invisibile
+        const items: Phaser.GameObjects.GameObject[] = [bg, text];
+        if (okButton) items.push(okButton);
+        if (okText) items.push(okText);
+        popup.add(items);
+        popup.setScale(0.8);
+        popup.setAlpha(0);
         
         // Posiziona il popup al basso al centro dello schermo
         popup.setPosition(this.scene.scale.width / 2, (this.scene.scale.height * (1 + 1 / (2 * this.scene.cameras.main.zoom)) - containerHeight - buttonHeight - buttonMargin) * 0.5);
         
-        // Animazione senza scaling per evitare blur
+        // Animazione
         this.scene.tweens.add({
             targets: popup,
-            alpha: 1, // Da 0 a 1
-            scale: 1, // Da 0.8 a 1
-            duration: 200,
-            ease: 'Power2.easeOut'
+            alpha: 1,
+            scale: 1,
+            duration: preset.animationDuration,
+            ease: preset.animationEase
         });
         
         // Funzione per chiudere il popup (condivisa tra click e tasto Invio)
@@ -142,21 +229,23 @@ export default class PopupManager {
                 targets: popup,
                 alpha: 0,
                 y: popup.y - 5,
-                duration: 150,
-                ease: 'Power2.easeIn',
+                duration: preset.closeAnimationDuration,
+                ease: preset.closeAnimationEase,
                 onComplete: () => {
                     popup.destroy();
-                    this.onPopupClosed(); // Chiama il callback per mostrare il prossimo popup
+                    this.onPopupClosed();
                 }
             });
         };
 
         // Gestione click del pulsante OK
-        okButton.on('pointerdown', closePopup);
+        if (okButton) {
+            okButton.on('pointerdown', closePopup);
+        }
 
         // Gestione tasto Invio
         const onEnterDown = () => {
-            if (this.isPopupActive && this.currentPopup === popup) {
+            if (preset.allowKeyClose && this.isPopupActive && this.currentPopup === popup) {
                 closePopup();
             }
         };
