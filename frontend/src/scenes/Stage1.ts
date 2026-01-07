@@ -146,7 +146,7 @@ class Stage1 extends Phaser.Scene {
 
 		this.sound.play("dripping_water", {
 			loop: true, 
-			volume: this.game.sound.volume * parseFloat(localStorage.getItem("musicVolume") || "1") * 0.1
+			volume: this.game.sound.volume * parseFloat(localStorage.getItem("musicVolume") || "1")
 		});
 
 		// Applicazione delle traduzioni sui testi già presenti nella scena
@@ -156,7 +156,7 @@ class Stage1 extends Phaser.Scene {
 		// Configurazione del giocatore
 		this.player.debug(false);
 		this.player.setBoundaries(this.boundaries);
-		this.player.movementAllowed = false;
+		this.player.isMovementAllowed = false;
 
 		// Configurazione della telecamera
 		this.cameras.main.setZoom(5.0);
@@ -231,7 +231,7 @@ class Stage1 extends Phaser.Scene {
 			this.lightInteraction();
 
 			this.popupManager.on('queueEmpty', () => {
-				this.player.movementAllowed = true;
+				this.player.isMovementAllowed = true;
 			});
 		});
 
@@ -249,6 +249,8 @@ class Stage1 extends Phaser.Scene {
 	private currentLightIndex: number = 0;
 	private currentLight!: OggettoInterattivo;
 	private lightInteraction = () => {
+		this.player.isMovementAllowed = false;
+
 		// this.currentLightIndex = this.lightsPositions.length - 1; // DEBUG: attiva l'ultima luce subito
 
 		// Crea una nuova luce nella posizione successiva
@@ -286,6 +288,9 @@ class Stage1 extends Phaser.Scene {
 
 			// L'ultima luce avvierà il minigioco
 			light.interagisci = () => {
+				this.player.isMovementAllowed = false;
+				this.player.interactionAllowed = false;
+
 				const i18n = this.cache.json.get("stage1_i18n");
 				this.popupManager.queuePopup(i18n.light_1);
 				this.popupManager.queuePopup(i18n.light_2);
@@ -317,61 +322,26 @@ class Stage1 extends Phaser.Scene {
 					// Rimuovi la luce corrente
 					this.currentLight.destroy();
 					this.currentLight = light;
+
+					this.player.isMovementAllowed = true;
 				}
 			});
 
-			// Parametri per il triangolo di luce, che punta alla prossima luce (con un po' di variazione casuale)
-			const nextLight = light;
-			const angle = Phaser.Math.Angle.Between(this.currentLight.x, this.currentLight.y, nextLight.x, nextLight.y) + Phaser.Math.FloatBetween(-0.2, 0.2);
-			const amplitude = 1.0 // Apertura del triangolo
-			const finalLength = 200; // Lunghezza finale dei lati uguali
+			// Impulso sferico dal nuovo punto luce per rivelarne la posizione
+			const revealWave = this.add.circle(light.x, light.y, 1200, 0xff0000);
+			revealWave.setBlendMode(Phaser.BlendModes.ADD);
+			revealWave.setAlpha(0.2);
+			revealWave.setScale(0);
 
-			const x1 = this.currentLight.x;
-			const y1 = this.currentLight.y;
-			let x2 = x1
-			let y2 = y1
-			let x3 = x1
-			let y3 = y1
-
-			const triangle = this.add.triangle(
-				0, 0,
-				x1, y1,
-				x2, y2,
-				x3, y3,
-				0xff0000
-			);
-			triangle.setBlendMode(Phaser.BlendModes.ADD);
-			triangle.setAlpha(0.1);
-			const animData = { length: 0 };
-
-			// Anima l'allungamento del triangolo
 			this.tweens.add({
-				targets: animData,
-				length: finalLength,
-				duration: duration,
-				ease: 'Sine.easeOut',
-				onUpdate: () => {
-					// Ricalcola le posizioni dei vertici in base alla lunghezza corrente
-					const currentLength = animData.length;
-					let x2 = x1 + currentLength * Math.cos(angle - amplitude / 2);
-					let y2 = y1 + currentLength * Math.sin(angle - amplitude / 2);
-					let x3 = x1 + currentLength * Math.cos(angle + amplitude / 2);
-					let y3 = y1 + currentLength * Math.sin(angle + amplitude / 2);
-
-					// Aggiorna la geometria del triangolo
-					triangle.setTo(x1, y1, x2, y2, x3, y3);
-				},
-				onComplete: () => {
-					triangle.destroy();
-				}
-			});
-
-			// Anima il fade out
-			this.tweens.add({
-				targets: triangle,
+				targets: revealWave,
+				scale: 1,
 				alpha: 0,
-				duration: duration,
-				ease: 'Linear'
+				duration: duration * 4,
+				ease: 'Cubic.easeOut',
+				onComplete: () => {
+					revealWave.destroy();
+				}
 			});
 		} else {
 			this.currentLight = light;
@@ -415,7 +385,7 @@ class Stage1 extends Phaser.Scene {
 			
 			this.cameras.main.shake(6000, 0.0012);
 			this.sound.play("earthquake", {
-				volume: this.game.sound.volume * parseFloat(localStorage.getItem("sfxVolume") || "1") * 0.1
+				volume: this.game.sound.volume * parseFloat(localStorage.getItem("sfxVolume") || "1")
 			});
 
 			this.popupManager.on("queueEmpty", () => {

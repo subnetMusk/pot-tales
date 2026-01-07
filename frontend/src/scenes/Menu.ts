@@ -199,7 +199,7 @@ class Menu extends Phaser.Scene {
 					videoPlayer.destroy();
 					localStorage.setItem("playIntro", "false");
 
-					fadeElements(this.uI.filter(el => !this.resume_button_items.includes(el)), true);
+					fadeElements(this.uI, true);
 					fadeElements(this.resume_button_items, true, 1000, undefined, resume_alpha);
 					fadeElements(this.leaderboard_button_items, true, 1000, undefined, 0.5);
 				});
@@ -207,6 +207,7 @@ class Menu extends Phaser.Scene {
 		} else {
 			fadeElements(this.uI.filter(el => !this.resume_button_items.includes(el)), true);
 			fadeElements(this.resume_button_items, true, 1000, undefined, resume_alpha);
+			fadeElements(this.leaderboard_button_items, true, 1000, undefined, 0.5);
 		}
 
 		// Apply translations

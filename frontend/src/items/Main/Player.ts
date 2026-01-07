@@ -117,7 +117,7 @@ class Player extends Phaser.GameObjects.Container {
 	private stepSize: number = 8;					// Grandezza del passo
 	private stepDelay: number = 100;				// Attesa in ms tra i frame
 	private BoundsDebug: boolean = true;			// Se true mostra i boundaries
-    public movementAllowed: boolean = true;       	// Disabilita l'input
+    private movementAllowed: boolean = true;       	// Disabilita l'input
 	public interactionAllowed: boolean = true;  	// Disabilita l'interazione con gli oggetti	
 
 
@@ -133,6 +133,13 @@ class Player extends Phaser.GameObjects.Container {
 	lastMoveTime: number = 0;						// Tempo dell'ultimo movimento (per l'effetto a bassi fps)
 	lastStep: boolean = false;						// Ultima textura usata
 	direction: 'front' | 'back' | 'side' = 'front';	// Direzione in cui sto guardando
+
+	public set isMovementAllowed(state : boolean) {
+		this.movementAllowed = state;
+
+		// Reset della texture
+		if (!state)this.updateIdleTexture();
+	}
 
 	// Create animations for the player
 	private createPlayerAnimations() {

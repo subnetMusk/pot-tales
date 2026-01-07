@@ -75,7 +75,7 @@ class Stage2 extends Phaser.Scene {
 		// Configurazione del giocatore
 		this.player.debug(false);
 		this.player.setBoundaries(this.boundaries);
-		this.player.movementAllowed = false;
+		this.player.isMovementAllowed = false;
 
 		// Configurazione della telecamera
 		this.cameras.main.setZoom(5.0);
@@ -110,7 +110,7 @@ class Stage2 extends Phaser.Scene {
 				fadeRect.destroy()
 				this.popupManager.showNextPopup();
 				this.popupManager.on("queueEmpty", () => {
-					this.player.movementAllowed = true;
+					this.player.isMovementAllowed = true;
 				});
 			}
 		});
@@ -125,7 +125,7 @@ class Stage2 extends Phaser.Scene {
 	}
 
 	private startMinigame() {
-		this.player.movementAllowed = false;
+		this.player.isMovementAllowed = false;
 
 		// Evita di avviare più volte il gioco
 		if (this.isMemoryActive) return;

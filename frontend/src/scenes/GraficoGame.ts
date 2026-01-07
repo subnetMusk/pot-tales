@@ -35,6 +35,8 @@ class GraficoGame extends Phaser.Scene {
 	private graficoEx!: Phaser.GameObjects.Image;
 	private rectangle_1!: Phaser.GameObjects.Rectangle;
 
+	private lastPeakTime: number = 0;
+
 	private victoryShown: boolean = false;
 
 
@@ -111,31 +113,30 @@ class GraficoGame extends Phaser.Scene {
 		let tween: Phaser.Tweens.Tween;
 
 		this.popup.on("queueEmpty", () => {
-			if (this.input.keyboard) {
-				this.input.keyboard.on('keydown-ENTER', () => {
-					//avvia scansione con animazione visibile
-					let startX = this.rectangle_1.x;
-					let endX = startX + lunghezzaMax;
+			let startX = this.rectangle_1.x;
+			let endX = startX + lunghezzaMax;
 
-					this.input.keyboard?.off('keydown-ENTER');
+			this.input.keyboard?.off('keydown-ENTER');
 
-					tween = this.tweens.add({
-						targets: this.rectangle_1,
-						x: endX,
-						duration: 4000,
-						ease: 'linear',
-						yoyo: true,
-						loop: -1,
-						//deve accelerare e decelerare
-						onComplete: () => {
-							// console.log("Scansione completata!");
-						}
-					});
-				});
+			tween = this.tweens.add({
+				targets: this.rectangle_1,
+				x: endX,
+				duration: 4000,
+				ease: 'linear',
+				yoyo: true,
+				loop: -1,
+				//deve accelerare e decelerare
+				onComplete: () => {
+					// console.log("Scansione completata!");
+				}
+			});
 
-				this.input.keyboard.on('keydown-SPACE', () => {
-					//ferma scansione e valuta posizione
-					// console.log("SPAZIO premuto! Posizione rettangolo: " + this.rectangle_1.x);
+			this.input.keyboard?.on('keydown-SPACE', () => {
+				//ferma scansione e valuta posizione
+				// console.log("SPAZIO premuto! Posizione rettangolo: " + this.rectangle_1.x);
+
+				if(this.time.now - this.lastPeakTime > 500 && !this.popup.isActive){
+					this.lastPeakTime = this.time.now;
 					tween.pause();
 					if(this.rectangle_1.x <= picchi[0].x+4 && this.rectangle_1.x >= picchi[0].x-4	&&  picchi[0].found == false){
 						this.popup.queuePopup(risposte[0].text);
@@ -160,13 +161,14 @@ class GraficoGame extends Phaser.Scene {
 						this.popup.queuePopup(i18n.miss);
 
 					}
+
 					this.popup.showNextPopup();
-					this.popup.on("popupClosed", () => {
+					this.popup.on("queueEmpty", () => {
 						this.controllaPunteggio(picchiTrovati,tween);
 						tween.resume();
 					});
-				});
-			}
+				}
+			});
 		});
 	
 		// console.log("GraficoGame scene created");

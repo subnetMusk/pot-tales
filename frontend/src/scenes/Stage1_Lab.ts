@@ -96,7 +96,7 @@ class Stage1_Lab extends Phaser.Scene {
 				};
 
 				this.sound.play("keyboard", {
-					volume: this.game.sound.volume * parseFloat(localStorage.getItem("sfxVolume") || "1") * 0.1
+					volume: this.game.sound.volume * parseFloat(localStorage.getItem("sfxVolume") || "1")
 				})
 
 				this.tweens.add({
