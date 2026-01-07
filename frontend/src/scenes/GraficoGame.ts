@@ -20,9 +20,11 @@ class GraficoGame extends Phaser.Scene {
 
 		// graficoEx
 		const graficoEx = this.add.image(640, 360, "grafico");
+		graficoEx.alpha = 0;
+		this.graficoEx = graficoEx;
 
 		// rectangle_1
-		this.rectangle_1 = this.add.rectangle(581.5, 357, 1, 82, 13633030);
+		this.rectangle_1 = this.add.rectangle(532, 349.4, 2, 162.6, 13633030);
 
 		this.events.emit("scene-awake");
 	}
@@ -30,6 +32,7 @@ class GraficoGame extends Phaser.Scene {
 	/* START-USER-CODE */
 
 	private popup!: PopupManager;
+	private graficoEx!: Phaser.GameObjects.Image;
 	private rectangle_1!: Phaser.GameObjects.Rectangle;
 
 	private victoryShown: boolean = false;
@@ -68,16 +71,32 @@ class GraficoGame extends Phaser.Scene {
 		this.events.on('video-ended', () => {
 			this.time.delayedCall(750, () => {
 				videoPlayer.destroy();
-				this.cameras.main.zoomTo(5, 100);
+				this.cameras.main.alpha = 0;
 
-				this.popup.showNextPopup();
+				this.tweens.add({
+					targets: this.graficoEx,
+					alpha: 1,
+					duration: 1000,
+					ease: 'Quad.easeInOut'
+				});
+
+				this.tweens.add({
+					targets: this.cameras.main,
+					zoom: 2.5,
+					alpha: 1,
+					duration: 1000,
+					ease: 'Quad.easeInOut',
+					onComplete: () => {
+						this.popup.showNextPopup();
+					}
+				});
 			});
 		});
 
 		const picchi :{ x:number, found:boolean}[] = [
-			{ x: 592, found: false },
-			{ x: 659.5, found: false },
-			{ x: 692, found: false }
+			{ x: 553, found: false },
+			{ x: 686, found: false },
+			{ x: 753, found: false }
 		];
 
 		const risposte:{text : string}[] = [
@@ -87,7 +106,7 @@ class GraficoGame extends Phaser.Scene {
 		];
 
 
-		const lunghezzaMax = 127; // Valore massimo del grafico 
+		const lunghezzaMax = 253; // Valore massimo del grafico 
 		let picchiTrovati = 0;
 		let tween: Phaser.Tweens.Tween;
 
@@ -168,16 +187,16 @@ class GraficoGame extends Phaser.Scene {
 				this.popup.showNextPopup();
 
 				// Fireworks effect 
-				const fireworksCount = 15;
+				const fireworksCount = 30;
 				for (let f = 0; f < fireworksCount; f++) {
 					this.time.delayedCall(f * 100, () => {
-						const x = Phaser.Math.Between(525, 750);
-						const y = Phaser.Math.Between(300, 400);
+						const x = Phaser.Math.Between(425, 850);
+						const y = Phaser.Math.Between(200, 500);
 
 						for (let i = 0; i < 6; i++) {
-							const particle = this.add.text(x, y, '✨', { fontSize: '12px' });
+							const particle = this.add.text(x, y, '✨', { fontSize: '24px' });
 							const angle = (i / 6) * Math.PI * 2;
-							const distance = 50;
+							const distance = 75;
 
 							this.tweens.add({
 								targets: particle,

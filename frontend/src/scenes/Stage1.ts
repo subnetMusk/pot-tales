@@ -146,7 +146,7 @@ class Stage1 extends Phaser.Scene {
 
 		this.sound.play("dripping_water", {
 			loop: true, 
-			volume: this.game.sound.volume * parseFloat(localStorage.getItem("musicVolume") || "1") * 0.02
+			volume: this.game.sound.volume * parseFloat(localStorage.getItem("musicVolume") || "1") * 0.1
 		});
 
 		// Applicazione delle traduzioni sui testi già presenti nella scena
@@ -415,7 +415,7 @@ class Stage1 extends Phaser.Scene {
 			
 			this.cameras.main.shake(6000, 0.0012);
 			this.sound.play("earthquake", {
-				volume: this.game.sound.volume * parseFloat(localStorage.getItem("sfxVolume") || "1") * 0.01
+				volume: this.game.sound.volume * parseFloat(localStorage.getItem("sfxVolume") || "1") * 0.1
 			});
 
 			this.popupManager.on("queueEmpty", () => {
