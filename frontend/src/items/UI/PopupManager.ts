@@ -38,7 +38,7 @@ const POPUP_PRESETS: Record<string, PopupPreset> = {
         buttonBorderColor: 0x45a049,
         buttonTextColor: '#ffffff',
         padding: 6,
-        buttonMargin: 6,
+        buttonMargin: -2.5,
         minWidth: 60,
         textWordWrapWidth: 200,
         animationDuration: 200,
@@ -61,7 +61,7 @@ const POPUP_PRESETS: Record<string, PopupPreset> = {
         buttonBorderColor: 0xe67e22,
         buttonTextColor: '#ffffff',
         padding: 8,
-        buttonMargin: 8,
+        buttonMargin: -3,
         minWidth: 70,
         textWordWrapWidth: 220,
         animationDuration: 300,
@@ -159,9 +159,6 @@ export default class PopupManager {
         const buttonMargin = preset.buttonMargin;
         
         let containerHeight = textHeight + padding * 2;
-        if (preset.showButton) {
-            containerHeight += buttonHeight + buttonMargin;
-        }
         
         const containerWidth = Math.max(textWidth + padding * 2, preset.minWidth);
         const buttonY = textHeight / 2 + padding + buttonMargin + buttonHeight / 2;
