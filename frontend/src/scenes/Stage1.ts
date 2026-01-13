@@ -86,6 +86,10 @@ class Stage1 extends Phaser.Scene {
 		// boundary_1
 		const boundary_1 = this.add.rectangle(945, 77, 75, 100);
 
+		// blackMass
+		const blackMass = new OggettoInterattivo(this, 1096, 560, "black_mass", 0);
+		this.add.existing(blackMass);
+
 		// player
 		const player = new Player(this, 160, 90);
 		this.add.existing(player);
@@ -95,6 +99,7 @@ class Stage1 extends Phaser.Scene {
 		const oggVector: Array<any> = [];
 
 		this.background_light = background_light;
+		this.blackMass = blackMass;
 		this.player = player;
 		this.boundaries = boundaries;
 		this.oggVector = oggVector;
@@ -103,6 +108,7 @@ class Stage1 extends Phaser.Scene {
 	}
 
 	private background_light!: Phaser.GameObjects.Rectangle;
+	private blackMass!: OggettoInterattivo;
 	private player!: Player;
 	private boundaries!: Phaser.GameObjects.Rectangle[];
 	private oggVector!: Array<any>;
@@ -143,6 +149,16 @@ class Stage1 extends Phaser.Scene {
 			frameRate: 4,
 			repeat: -1
 		});
+
+		this.anims.create({
+			key: "black_mass_anim",
+			frames: this.anims.generateFrameNumbers("black_mass", { start: 0, end: -1 }),
+			frameRate: 8,
+			repeat: -1
+		});
+
+		// Play the black mass animation
+		this.blackMass.play("black_mass_anim");
 
 		this.sound.play("dripping_water", {
 			loop: true, 
@@ -252,7 +268,6 @@ class Stage1 extends Phaser.Scene {
 		{x: 270, y: 100},
 		{x: 348, y: 464},
 		{x: 840, y: 0},
-		{x: 1090, y: 270},
 		{x: 1096, y: 610}
 	];
 	private currentLightIndex: number = 0;
@@ -284,7 +299,7 @@ class Stage1 extends Phaser.Scene {
 			light.interagisci = () => {
 				this.player.isMovementAllowed = false;
 				this.player.interactionAllowed = false;
-				
+
 				this.popupManager.queuePopup(i18n.light_1_hint, "hint");
 				this.popupManager.queuePopup(i18n.light_1_1);
 				this.popupManager.queuePopup(i18n.light_1_2);
@@ -311,7 +326,7 @@ class Stage1 extends Phaser.Scene {
 			light.interagisci = () => {
 				this.player.isMovementAllowed = false;
 				this.player.interactionAllowed = false;
-				
+
 				this.popupManager.queuePopup(i18n.light_2_dark, "dark");
 				this.popupManager.showNextPopup();
 
@@ -320,17 +335,17 @@ class Stage1 extends Phaser.Scene {
 					this.player.interactionAllowed = true;
 				});
 			};
-		} else if(this.currentLightIndex < this.lightsPositions.length - 2) {
+		} else if(this.currentLightIndex < this.lightsPositions.length - 1) {
 			// Luci intermedie
 			light.setAlpha(0.5);
 			light.interagisci = this.lightInteraction;
-		} else if(this.currentLightIndex == this.lightsPositions.length - 2) {
+		} else {
 			// Penultima luce - dialogo con il tutorial
 			light.setAlpha(0.5);
 			light.interagisci = () => {
 				this.player.isMovementAllowed = false;
 				this.player.interactionAllowed = false;
-				
+
 				this.popupManager.queuePopup(i18n.light_3_1_dark, "dark");
 				this.popupManager.queuePopup(i18n.light_3_2_dark, "dark");
 				this.popupManager.queuePopup(i18n.light_3_3);
@@ -347,39 +362,9 @@ class Stage1 extends Phaser.Scene {
 				this.popupManager.showNextPopup();
 
 				this.popupManager.on("queueEmpty", () => {
-					this.lightInteraction();
+					// Make the black mass interactable with the minigame trigger
+					this.activateBlackMass();
 					this.player.interactionAllowed = true;
-				});
-			};
-		} else {
-			// Crea una zona luminosa attorno alla luce
-			const brightZone = this.add.circle(light.x, light.y, 100, 0xff0000);
-			brightZone.alpha = 0.01;
-			brightZone.setBlendMode(Phaser.BlendModes.ADD);
-
-			this.tweens.add({
-				targets: brightZone,
-				alpha: 0.05,
-				duration: 3000,
-				ease: 'Sine.easeInOut',
-				yoyo: true,
-				repeat: -1
-			});
-
-			// L'ultima luce avvierà il minigioco
-			light.interagisci = () => {
-				this.player.isMovementAllowed = false;
-				this.player.interactionAllowed = false;
-
-				this.popupManager.queuePopup(i18n.light_final_1);
-				this.popupManager.queuePopup(i18n.light_final_2);
-				this.popupManager.queuePopup(i18n.light_final_3);
-				this.popupManager.showNextPopup();
-
-				this.popupManager.on("queueEmpty", () => {
-					this.cameras.main.fadeOut(1000, 255, 0, 0);
-					this.sound.stopAll();
-					this.time.delayedCall(1000, () => {this.startMinigame();});
 				});
 			};
 		}
@@ -428,6 +413,46 @@ class Stage1 extends Phaser.Scene {
 		}
 	}
 
+	// Attivazione della massa nera -----------------------------------------------------
+	private activateBlackMass() {
+		const i18n = this.cache.json.get("stage1_i18n");
+
+		// Crea una zona luminosa attorno alla massa nera
+		const brightZone = this.add.circle(this.blackMass.x, this.blackMass.y, 100, 0xff0000);
+		brightZone.alpha = 0.01;
+		brightZone.setBlendMode(Phaser.BlendModes.ADD);
+
+		this.tweens.add({
+			targets: brightZone,
+			alpha: 0.05,
+			duration: 3000,
+			ease: 'Sine.easeInOut',
+			yoyo: true,
+			repeat: -1
+		});
+
+		// Configura l'interazione della massa nera per avviare il minigioco
+		this.blackMass.interagisci = () => {
+			this.player.isMovementAllowed = false;
+			this.player.interactionAllowed = false;
+
+			this.popupManager.queuePopup(i18n.light_final_1);
+			this.popupManager.queuePopup(i18n.light_final_2);
+			this.popupManager.queuePopup(i18n.light_final_3);
+			this.popupManager.showNextPopup();
+
+			this.popupManager.on("queueEmpty", () => {
+				this.cameras.main.fadeOut(1000, 255, 0, 0);
+				this.sound.stopAll();
+				this.time.delayedCall(1000, () => {this.startMinigame();});
+			});
+		};
+
+		// Aggiungi la massa nera al vettore degli oggetti interagibili
+		this.oggVector.push(this.blackMass);
+		this.player.isMovementAllowed = true;
+	}
+
 	// Avvio del minigioco ---------------------------------------------------------------
 	private startMinigame() {
 		this.scene.pause();
@@ -462,7 +487,7 @@ class Stage1 extends Phaser.Scene {
 		this.popupManager.on("queueEmpty", () => {
 			this.popupManager.queuePopup(i18n.minigame_success_2);
 			this.popupManager.showNextPopup();
-			
+
 			this.cameras.main.shake(6000, 0.0012);
 			this.sound.play("earthquake", {
 				volume: this.game.sound.volume * parseFloat(localStorage.getItem("sfxVolume") || "1")

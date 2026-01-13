@@ -7,6 +7,19 @@
                 "key": "BG"
             },
             {
+                "url": "frontend/public/assets/images/items/black_mass.png",
+                "frameConfig": {
+                    "frameWidth": 16,
+                    "frameHeight": 16,
+                    "startFrame": 0,
+                    "endFrame": -1,
+                    "spacing": 0,
+                    "margin": 0
+                },
+                "type": "spritesheet",
+                "key": "black_mass"
+            },
+            {
                 "url": [
                     "frontend/public/assets/sfx/dripping_water.mp3"
                 ],

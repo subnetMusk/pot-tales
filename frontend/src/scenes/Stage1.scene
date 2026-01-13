@@ -205,6 +205,23 @@
             "height": 100
         },
         {
+            "prefabId": "dfd624ad-310c-404d-96d2-d2307c3faaef",
+            "id": "c1d6a7be-2340-4267-aac0-2dda0526fa30",
+            "unlock": [
+                "x",
+                "y",
+                "texture"
+            ],
+            "label": "blackMass",
+            "scope": "CLASS",
+            "texture": {
+                "key": "black_mass",
+                "frame": 0
+            },
+            "x": 1096,
+            "y": 560
+        },
+        {
             "prefabId": "5a8935be-1a98-42a5-9cc4-bca49b9c51b2",
             "id": "c2e3a6c4-b355-4140-8b64-f9f16f4b1089",
             "unlock": [
