@@ -2,9 +2,9 @@
     "section1": {
         "files": [
             {
-                "url": "frontend/public/assets/images/backgrounds/stage1.png",
+                "url": "frontend/public/assets/images/backgrounds/bg-stage2.png",
                 "type": "image",
-                "key": "lake"
+                "key": "bg-stage2"
             },
             {
                 "url": "frontend/public/assets/images/ui/card.png",
@@ -18,6 +18,11 @@
                 },
                 "type": "spritesheet",
                 "key": "card"
+            },
+            {
+                "url": "frontend/public/assets/images/backgrounds/stage1.png",
+                "type": "image",
+                "key": "lake"
             }
         ]
     },

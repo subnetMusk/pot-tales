@@ -21,11 +21,15 @@ interface PopupPreset {
     closeAnimationEase: string;
     showButton: boolean;
     allowKeyClose: boolean;
+    typewriterEnabled: boolean;
+    typewriterDelay: number;
+    typewriterMode: 'letter' | 'word';
+    allowSkipTypewriter: boolean;
 }
 
-// Preset configurations
+// Configurazioni predefinite dei popup
 const POPUP_PRESETS: Record<string, PopupPreset> = {
-    default: {
+    default: { // preset standard per il personaggio principale
         bgColor: 0x111111,
         bgAlpha: 0.7,
         borderColor: 0xffffff,
@@ -47,10 +51,39 @@ const POPUP_PRESETS: Record<string, PopupPreset> = {
         closeAnimationEase: 'Power2.easeIn',
         showButton: true,
         allowKeyClose: true,
+        typewriterEnabled: true,
+        typewriterDelay: 20,
+        allowSkipTypewriter: true
     },
-    hint: {
+    dark: { // preset per il narratore, presentato come una figura oscura
+        bgColor: 0x000000,
+        bgAlpha: 0.8,
+        borderColor: 0x663399,
+        borderAlpha: 0.7,
+        textFontSize: '8px',
+        textColor: '#bdc3c7',
+        buttonWidth: 40,
+        buttonHeight: 10,
+        buttonBgColor: 0x663399,
+        buttonBorderColor: 0x5e3370,
+        buttonTextColor: '#ffffff',
+        padding: 6,
+        buttonMargin: -2.5,
+        minWidth: 60,
+        textWordWrapWidth: 200,
+        animationDuration: 100,
+        animationEase: 'Power2.easeOut',
+        closeAnimationDuration: 100,
+        closeAnimationEase: 'Power2.easeIn',
+        showButton: true,
+        allowKeyClose: true,
+        typewriterEnabled: true,
+        typewriterDelay: 40,
+        allowSkipTypewriter: true
+    },
+    hint: { // preset per suggerimenti e istruzioni
         bgColor: 0x2c3e50,
-        bgAlpha: 0.5,
+        bgAlpha: 0.8,
         borderColor: 0xf39c12,
         borderAlpha: 0.65,
         textFontSize: '7px',
@@ -70,16 +103,28 @@ const POPUP_PRESETS: Record<string, PopupPreset> = {
         closeAnimationEase: 'Power2.easeIn',
         showButton: true,
         allowKeyClose: true,
-    }
+        typewriterEnabled: false,
+        typewriterDelay: 0,
+        allowSkipTypewriter: false
+    },
 };
 
 export default class PopupManager {
     protected scene: Phaser.Scene;
+
     protected popupQueue: string[] = [];
     protected currentPopup: Phaser.GameObjects.Container | null = null;
     protected isPopupActive: boolean = false;
+
     protected enterKey?: Phaser.Input.Keyboard.Key; 
+
     protected layer: Phaser.GameObjects.Layer;
+
+    protected autoCloseTimer: Phaser.Time.TimerEvent | null = null;
+    protected popupDuration: number | 'infinite' = 'infinite';
+
+    protected typewriterTimer: Phaser.Time.TimerEvent | null = null;
+    protected isTextComplete: boolean = false;
 
     constructor(scene: Phaser.Scene) {
         this.scene = scene;
@@ -98,18 +143,20 @@ export default class PopupManager {
     }
 
     // Mostra il prossimo popup della coda
-    public showNextPopup() {
+    public showNextPopup(autoCloseDelay: number | 'infinite' = 'infinite') {
         // Se c'è già un popup attivo o la coda è vuota, non fare nulla
         if (this.isPopupActive || this.popupQueue.length === 0) {
             return;
         }
+
+        this.popupDuration = autoCloseDelay;
         
         // Prendi il primo messaggio dalla coda
         const popupData = this.popupQueue.shift();
         if (popupData) {
             const { message, preset } = JSON.parse(popupData);
             this.isPopupActive = true;
-            this.currentPopup = this.createInteractivePopup(message, preset);
+            this.currentPopup = this.createInteractivePopup(message, preset, autoCloseDelay);
             
             // Emetti l'evento di popup mostrato
             this.scene.events.emit('popup-shown');
@@ -118,18 +165,224 @@ export default class PopupManager {
 
     // Chiamata quando un popup viene chiuso
     protected onPopupClosed() {
+        // Pulisci i timer
+        if (this.typewriterTimer) {
+            this.scene.time.removeEvent(this.typewriterTimer);
+            this.typewriterTimer = null;
+        }
+
         this.isPopupActive = false;
         this.currentPopup = null;
+        this.isTextComplete = false;
         
         // Emetti l'evento di chiusura popup
         this.scene.events.emit('popup-closed');
         
         // Mostra il prossimo popup se ce ne sono altri
-        this.showNextPopup();
+        this.showNextPopup(this.popupDuration);
+    }
+
+    // Pre-calcola i word wrap inserendo \n dove necessario per evitare overflow durante il typewriter
+    protected preWrapText(message: string, maxWidth: number, fontSize: string): string {
+        // Crea un text object temporaneo per misurare
+        const tempText = this.scene.add.text(0, 0, '', {
+            fontSize: fontSize,
+            fontFamily: 'PixelifySans-VariableFont_wght',
+            resolution: 5
+        });
+
+        const words = message.split(' ');
+        const lines: string[] = [];
+        let currentLine = '';
+
+        for (let i = 0; i < words.length; i++) {
+            const word = words[i];
+            const testLine = currentLine === '' ? word : currentLine + ' ' + word;
+            
+            // Misura la larghezza della linea di test
+            tempText.setText(testLine);
+            const testWidth = tempText.width;
+
+            if (testWidth > maxWidth && currentLine !== '') {
+                // La parola eccede, aggiungi la linea corrente e inizia una nuova
+                lines.push(currentLine);
+                currentLine = word;
+            } else {
+                currentLine = testLine;
+            }
+        }
+
+        // Aggiungi l'ultima linea
+        if (currentLine !== '') {
+            lines.push(currentLine);
+        }
+
+        tempText.destroy();
+        return lines.join('\n');
+    }
+
+    // Ricerca nel testo le varie formattazioni e pause e suddivide in segmenti il testo, accompagnati dalle proprietà che ne definiscono lo stile
+    protected parseTextEffects(message: string): Array<{text: string, isBold: boolean, speedMultiplier: number, instant: boolean, pauseDuration?: number}> {
+        const segments: Array<{text: string, isBold: boolean, speedMultiplier: number, instant: boolean, pauseDuration?: number}> = [];
+        let currentPos = 0;
+        
+        // REGEX per i diversi pattern da riconoscere
+        const patterns = [
+            { regex: /\*\*(.*?)\*\*/g, isBold: true, speedMultiplier: 1, instant: true }, // **MAIUSCOLO**
+            { regex: /<<(.*?)<</g, isBold: false, speedMultiplier: 2, instant: false }, // <<lento<<
+            { regex: />>(.*?)>>/g, isBold: false, speedMultiplier: 0.5, instant: false }, // >>veloce>>
+            { regex: /\|\|/g, isBold: false, speedMultiplier: 1, instant: false, isPause: true } // || pausa
+        ];
+
+        // Trova tutte le corrispondenze per tutti i pattern
+        const matches: Array<{start: number, end: number, text: string, isBold: boolean, speedMultiplier: number, instant: boolean, isPause?: boolean}> = [];
+        patterns.forEach(pattern => {
+            const regex = new RegExp(pattern.regex.source, 'g');
+            let match;
+            while ((match = regex.exec(message)) !== null) {
+                matches.push({
+                    start: match.index,
+                    end: match.index + match[0].length,
+                    text: match[1] || '', // For pause pattern (||), there's no capture group
+                    isBold: pattern.isBold,
+                    speedMultiplier: pattern.speedMultiplier,
+                    instant: pattern.instant,
+                    isPause: (pattern as any).isPause
+                });
+            }
+        });
+        // Ordina le corrispondenze per posizione nel testo
+        matches.sort((a, b) => a.start - b.start);
+
+        // Costruisce i segmenti attraverso le corrispondenze trovate
+        matches.forEach(match => {
+            // Aggiunge eventuale testo normale prima di questa corrispondenza
+            if (currentPos < match.start) {
+                const plainText = message.substring(currentPos, match.start);
+                if (plainText) {
+                    segments.push({text: plainText, isBold: false, speedMultiplier: 1, instant: false});
+                }
+            }
+            
+            // Gestisce il separatore di pausa (||)
+            if (match.isPause) {
+                segments.push({text: '', isBold: false, speedMultiplier: 1, instant: false, pauseDuration: 500});
+                currentPos = match.end;
+                return;
+            }
+            
+            //  Aggiungi pausa prima del testo in grassetto
+            if (match.isBold && match.instant) {
+                segments.push({text: '', isBold: false, speedMultiplier: 1, instant: false, pauseDuration: 300});
+            }
+            
+            // Aggiungi il segmento formattato
+            segments.push({
+                text: match.text,
+                isBold: match.isBold,
+                speedMultiplier: match.speedMultiplier,
+                instant: match.instant
+            });
+            
+            // Aggiungi pausa dopo il testo in grassetto
+            if (match.isBold && match.instant) {
+                segments.push({text: '', isBold: false, speedMultiplier: 1, instant: false, pauseDuration: 300});
+            }
+            
+            currentPos = match.end;
+        });
+
+        // Aggiunge eventuale testo normale rimanente dopo l'ultima corrispondenza
+        if (currentPos < message.length) {
+            const plainText = message.substring(currentPos);
+            if (plainText) {
+                segments.push({text: plainText, isBold: false, speedMultiplier: 1, instant: false});
+            }
+        }
+
+        // Se non sono stati trovati segmenti, aggiungi l'intero messaggio come testo normale
+        if (segments.length === 0) {
+            segments.push({text: message, isBold: false, speedMultiplier: 1, instant: false});
+        }
+
+        return segments;
+    }
+
+    // Effetto typewriter con supporto per formattazioni e pause
+    protected typewriterEffect(
+        textObject: Phaser.GameObjects.Text,
+        fullMessage: string,
+        preset: PopupPreset,
+        onComplete: () => void
+    ): Phaser.Time.TimerEvent | null {
+        if (!preset.typewriterEnabled) {
+            textObject.setText(fullMessage);
+            onComplete();
+            return null;
+        }
+
+        // Pre-calcola il word wrap per evitare overflow durante la digitazione
+        const wrappedMessage = this.preWrapText(fullMessage, preset.textWordWrapWidth - preset.textWordWrapPadding, preset.textFontSize);
+        const textSegments = this.parseTextEffects(wrappedMessage);
+        let segmentIndex = 0;
+        let charIndex = 0;
+        let completedText = '';
+
+        const processNextChar = () => {
+            if (segmentIndex >= textSegments.length) {
+                timer.remove();
+                onComplete();
+                return;
+            }
+
+            const segment = textSegments[segmentIndex];
+            
+            // Pausa tra segmenti
+            if (segment.pauseDuration) {
+                segmentIndex++;
+                charIndex = 0;
+                timer.delay = segment.pauseDuration;
+                return;
+            }
+            
+            // Gestisce i segmenti con visualizzazione istantanea
+            if (segment.instant) {
+                completedText += segment.isBold ? segment.text.toUpperCase() : segment.text;
+                textObject.setText(completedText);
+                segmentIndex++;
+                charIndex = 0;
+                timer.delay = preset.typewriterDelay;
+                return;
+            }
+
+            // Gestisce la visualizzazione carattere per carattere
+            if (charIndex < segment.text.length) {
+                const currentChar = segment.text[charIndex];
+                const styledChar = segment.isBold ? currentChar.toUpperCase() : currentChar;
+                
+                textObject.setText(completedText + styledChar);
+                completedText += styledChar;
+                charIndex++;
+                
+                timer.delay = Math.max(10, preset.typewriterDelay * segment.speedMultiplier);
+            } else {
+                segmentIndex++;
+                charIndex = 0;
+                timer.delay = preset.typewriterDelay;
+            }
+        };
+
+        const timer = this.scene.time.addEvent({
+            delay: preset.typewriterDelay,
+            callback: processNextChar,
+            loop: true
+        });
+
+        return timer;
     }
 
     // Crea il popup interattivo
-    protected createInteractivePopup(message: string, presetName: string = "default"): Phaser.GameObjects.Container {
+    protected createInteractivePopup(message: string, presetName: string = "default", autoCloseDelay: number | 'infinite' = 'infinite'): Phaser.GameObjects.Container {
         const preset = POPUP_PRESETS[presetName] || POPUP_PRESETS.default;
 
         // Container per il popup
@@ -138,17 +391,24 @@ export default class PopupManager {
         //aggiungo il container al layer
         this.layer.add(popup);
         
-        // Crea il testo prima per misurare le dimensioni
-        const text = this.scene.add.text(0, -10, message, {
+        // Pulisce il messaggio dai caratteri jolly di formattazione
+        const cleanMessage = message
+            .replace(/\*\*(.*?)\*\*/g, '$1')
+            .replace(/<<(.*?)<</g, '$1')
+            .replace(/>>(.*?)>>/g, '$1')
+            .replace(/\|\|/g, '');
+        
+        // Crea il testo prima per misurare le dimensioni (con testo completo per layout)
+        const text = this.scene.add.text(0, -10, cleanMessage, {
             fontSize: preset.textFontSize,
             color: preset.textColor,
             fontStyle: '',
             fontFamily: 'PixelifySans-VariableFont_wght',
             resolution: 5,
-            align: 'center',
+            align: 'left',
             wordWrap: { width: preset.textWordWrapWidth }
         });
-        text.setOrigin(0.5);
+        text.setOrigin(0, 0.5);
         
         // Calcola le dimensioni del contenitore basate sul testo
         const textWidth = text.width;
@@ -172,7 +432,8 @@ export default class PopupManager {
         
         // Riposiziona il testo al centro dell'area testo
         const textY = -containerHeight/2 + padding + textHeight/2;
-        text.setPosition(0, textY);
+        const textX = -containerWidth/2 + padding;
+        text.setPosition(textX, textY);
         text.setScrollFactor(0, 0);
 
         // Crea il pulsante OK solo se showButton è true nel preset
@@ -219,9 +480,67 @@ export default class PopupManager {
             duration: preset.animationDuration,
             ease: preset.animationEase
         });
+
+        // Inizializza stato typewriter
+        this.isTextComplete = !preset.typewriterEnabled;
+
+        // Avvia typewriter dopo l'animazione del popup
+        if (preset.typewriterEnabled) {
+            text.setText(''); // Inizia con testo vuoto
+            this.scene.time.delayedCall(preset.animationDuration, () => {
+                this.typewriterTimer = this.typewriterEffect(text, message, preset, () => {
+                    this.isTextComplete = true;
+                    this.typewriterTimer = null;
+
+                    // Avvia auto-close DOPO che il testo è completo
+                    if (autoCloseDelay !== 'infinite' && typeof autoCloseDelay === 'number' && autoCloseDelay > 0) {
+                        this.autoCloseTimer = this.scene.time.delayedCall(autoCloseDelay, closePopup);
+                    }
+                });
+            });
+        } else {
+            // Se typewriter è disabilitato, avvia auto-close subito dopo l'animazione
+            if (autoCloseDelay !== 'infinite' && typeof autoCloseDelay === 'number' && autoCloseDelay > 0) {
+                this.scene.time.delayedCall(preset.animationDuration, () => {
+                    this.autoCloseTimer = this.scene.time.delayedCall(autoCloseDelay, closePopup);
+                });
+            }
+        }
         
         // Funzione per chiudere il popup (condivisa tra click e tasto Invio)
         const closePopup = () => {
+            // Se il typewriter è attivo e skip è permesso, completa il testo invece di chiudere
+            if (!this.isTextComplete && preset.allowSkipTypewriter && this.typewriterTimer) {
+                this.scene.time.removeEvent(this.typewriterTimer);
+                this.typewriterTimer = null;
+                // Apply bold to the full message
+                const segments = this.parseTextEffects(message);
+                const fullStyledText = segments.map(seg => seg.isBold ? seg.text.toUpperCase() : seg.text).join('');
+                text.setText(fullStyledText);
+                this.isTextComplete = true;
+
+                // Avvia auto-close dopo aver completato il testo
+                if (autoCloseDelay !== 'infinite' && typeof autoCloseDelay === 'number' && autoCloseDelay > 0) {
+                    this.autoCloseTimer = this.scene.time.delayedCall(autoCloseDelay, closePopup);
+                }
+                return; // Non chiudere, solo completa il testo
+            }
+
+            // Cancella i timer se esistono
+            if (this.autoCloseTimer) {
+                this.scene.time.removeEvent(this.autoCloseTimer);
+                this.autoCloseTimer = null;
+
+                if (this.popupQueue.length == 0) {
+                    this.popupDuration = 'infinite'; // resetto la durata del popup alla fine della coda
+                }
+            }
+
+            if (this.typewriterTimer) {
+                this.scene.time.removeEvent(this.typewriterTimer);
+                this.typewriterTimer = null;
+            }
+
             this.scene.tweens.add({
                 targets: popup,
                 alpha: 0,

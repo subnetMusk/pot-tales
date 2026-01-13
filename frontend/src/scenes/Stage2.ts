@@ -21,8 +21,8 @@ class Stage2 extends Phaser.Scene {
 
 	editorCreate(): void {
 
-		// lake
-		this.add.image(640, 360, "lake");
+		// bg_stage2
+		this.add.image(640, 360, "bg-stage2");
 
 		// player
 		const player = new Player(this, 640, 519);

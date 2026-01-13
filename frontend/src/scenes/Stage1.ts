@@ -218,7 +218,16 @@ class Stage1 extends Phaser.Scene {
 
 		// Inizio del dialogo iniziale dopo il risveglio
 		this.popupManager.queuePopup(i18n.wake_up_1);
-		this.popupManager.queuePopup(i18n.wake_up_2);
+		this.popupManager.queuePopup(i18n.wake_up_2_narrator, "dark");
+		this.popupManager.queuePopup(i18n.wake_up_3_narrator, "dark");
+		this.popupManager.queuePopup(i18n.wake_up_4_narrator, "dark");
+		this.popupManager.queuePopup(i18n.wake_up_5_narrator, "dark");
+		this.popupManager.queuePopup(i18n.wake_up_6_narrator, "dark");
+		this.popupManager.queuePopup(i18n.wake_up_7);
+		this.popupManager.queuePopup(i18n.wake_up_8);
+		this.popupManager.queuePopup(i18n.wake_up_9);
+		this.popupManager.queuePopup(i18n.wake_up_10);
+		this.popupManager.queuePopup(i18n.wake_up_11);
 
 		// Mostra il popup SOLO quando l'animazione del risveglio è completa
 		blackScreen.on("destroy", () => {this.popupManager.showNextPopup();});
@@ -250,6 +259,7 @@ class Stage1 extends Phaser.Scene {
 	private currentLight!: OggettoInterattivo;
 	private lightInteraction = () => {
 		this.player.isMovementAllowed = false;
+		const i18n = this.cache.json.get("stage1_i18n");
 
 		// this.currentLightIndex = this.lightsPositions.length - 1; // DEBUG: attiva l'ultima luce subito
 
@@ -267,10 +277,80 @@ class Stage1 extends Phaser.Scene {
 			ease: "Linear"
 		});
 
-		// Configura l'interazione della luce
-		if(this.currentLightIndex < this.lightsPositions.length - 1) {
+		// Configura l'interazione della luce basata sull'indice
+		if(this.currentLightIndex === 0) {
+			// Prima luce - dialogo lungo con il narratore
+			light.setAlpha(0.5);
+			light.interagisci = () => {
+				this.player.isMovementAllowed = false;
+				this.player.interactionAllowed = false;
+				
+				this.popupManager.queuePopup(i18n.light_1_hint, "hint");
+				this.popupManager.queuePopup(i18n.light_1_1);
+				this.popupManager.queuePopup(i18n.light_1_2);
+				this.popupManager.queuePopup(i18n.light_1_3_dark, "dark");
+				this.popupManager.queuePopup(i18n.light_1_4);
+				this.popupManager.queuePopup(i18n.light_1_5_dark, "dark");
+				this.popupManager.queuePopup(i18n.light_1_6);
+				this.popupManager.queuePopup(i18n.light_1_7);
+				this.popupManager.queuePopup(i18n.light_1_8_dark, "dark");
+				this.popupManager.queuePopup(i18n.light_1_9);
+				this.popupManager.queuePopup(i18n.light_1_10_dark, "dark");
+				this.popupManager.queuePopup(i18n.light_1_11_dark, "dark");
+				this.popupManager.queuePopup(i18n.light_1_12);
+				this.popupManager.showNextPopup();
+
+				this.popupManager.on("queueEmpty", () => {
+					this.lightInteraction();
+					this.player.interactionAllowed = true;
+				});
+			};
+		} else if(this.currentLightIndex === 1) {
+			// Seconda luce - solo narratore
+			light.setAlpha(0.5);
+			light.interagisci = () => {
+				this.player.isMovementAllowed = false;
+				this.player.interactionAllowed = false;
+				
+				this.popupManager.queuePopup(i18n.light_2_dark, "dark");
+				this.popupManager.showNextPopup();
+
+				this.popupManager.on("queueEmpty", () => {
+					this.lightInteraction();
+					this.player.interactionAllowed = true;
+				});
+			};
+		} else if(this.currentLightIndex < this.lightsPositions.length - 2) {
+			// Luci intermedie
 			light.setAlpha(0.5);
 			light.interagisci = this.lightInteraction;
+		} else if(this.currentLightIndex == this.lightsPositions.length - 2) {
+			// Penultima luce - dialogo con il tutorial
+			light.setAlpha(0.5);
+			light.interagisci = () => {
+				this.player.isMovementAllowed = false;
+				this.player.interactionAllowed = false;
+				
+				this.popupManager.queuePopup(i18n.light_3_1_dark, "dark");
+				this.popupManager.queuePopup(i18n.light_3_2_dark, "dark");
+				this.popupManager.queuePopup(i18n.light_3_3);
+				this.popupManager.queuePopup(i18n.light_3_4_narrator, "dark");
+				this.popupManager.queuePopup(i18n.light_3_5);
+				this.popupManager.queuePopup(i18n.light_3_6);
+				this.popupManager.queuePopup(i18n.light_3_7_narrator, "dark");
+				this.popupManager.queuePopup(i18n.light_3_8);
+				this.popupManager.queuePopup(i18n.light_3_9_narrator, "dark");
+				this.popupManager.queuePopup(i18n.light_3_10);
+				this.popupManager.queuePopup(i18n.light_3_11_narrator, "dark");
+				this.popupManager.queuePopup(i18n.light_3_12);
+				this.popupManager.queuePopup(i18n.light_3_13_narrator, "dark");
+				this.popupManager.showNextPopup();
+
+				this.popupManager.on("queueEmpty", () => {
+					this.lightInteraction();
+					this.player.interactionAllowed = true;
+				});
+			};
 		} else {
 			// Crea una zona luminosa attorno alla luce
 			const brightZone = this.add.circle(light.x, light.y, 100, 0xff0000);
@@ -291,9 +371,9 @@ class Stage1 extends Phaser.Scene {
 				this.player.isMovementAllowed = false;
 				this.player.interactionAllowed = false;
 
-				const i18n = this.cache.json.get("stage1_i18n");
-				this.popupManager.queuePopup(i18n.light_1);
-				this.popupManager.queuePopup(i18n.light_2);
+				this.popupManager.queuePopup(i18n.light_final_1);
+				this.popupManager.queuePopup(i18n.light_final_2);
+				this.popupManager.queuePopup(i18n.light_final_3);
 				this.popupManager.showNextPopup();
 
 				this.popupManager.on("queueEmpty", () => {

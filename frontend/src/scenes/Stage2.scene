@@ -12,10 +12,10 @@
     "displayList": [
         {
             "type": "Image",
-            "id": "bb69c0e4-6ea3-4d3e-9403-0f0746e1dea1",
-            "label": "lake",
+            "id": "f0a6bde4-9173-41a8-8529-0b861d3a4e60",
+            "label": "bg_stage2",
             "texture": {
-                "key": "lake"
+                "key": "bg-stage2"
             },
             "x": 640,
             "y": 360

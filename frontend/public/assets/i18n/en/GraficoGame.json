@@ -1,10 +1,14 @@
 {
-    "welcome": "Welcome to the graph game! In this game, you'll need to find the most used materials, represented by the peaks of the graph.",
-    "instructions": "Press the 'enter' key to start the scan, and press 'space' when the bar is on the highest peak",
-    "peak_1": "This is mercury, it means you have cancer",
-    "peak_2": "This is sperpa, it means your mom is a whore",
-    "peak_3": "Ohoh, this looks like crap",
-    "peak_4": "I wonder what the hell this is...",
-    "miss": "Too bad, you didn't identify the correct peak. Try again!",
-    "victory": "Congratulations! You found all the peaks of the graph and completed the game!"
+    "welcome_1": "Welcome to the beautiful||, phantasmagorical || **infrared mini-game!**",
+    "welcome_2": "Wow you really are all very enthusiastic here || … very 2004..",
+    "welcome_3_narrator": "Marvel at the <<cutting-edge technology<<, point the IR laser and || <<vibe with the bonds|<<",
+    "welcome_4": "... Is this a joke?!? || Is this really the **best** joke you had about such a complex technique?",
+    "welcome_5_narrator": "Well.. |||| yes..",
+    "instructions": "Press 'space' when the bar is on the highest peaks",
+    "peak_1": "Ohoh, this looks like crap",
+    "peak_2": "I wonder what this could be...",
+    "peak_3": "This is mercury, it means you have cancer",
+    "miss": "Too bad, you didn't identify the correct peak.|| Try again!",
+    "victory": "Congratulations!|| You found all the peaks of the graph and completed the game!",
+    "returning_1": "What's happening now???"
 }

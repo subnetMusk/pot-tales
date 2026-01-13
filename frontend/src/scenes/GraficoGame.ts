@@ -23,8 +23,13 @@ class GraficoGame extends Phaser.Scene {
 		graficoEx.alpha = 0;
 		this.graficoEx = graficoEx;
 
-		// rectangle_1
-		this.rectangle_1 = this.add.rectangle(532, 349.4, 2, 162.6, 13633030);
+		// completion text
+		this.completionText = this.add.text(750, 280, "", {});
+		this.completionText.setStyle({ "align": "center", "color": "#000000", "fontFamily": "PixelifySans-VariableFont_wght", "fontSize": "10px", "resolution": "5" });
+		this.completionText.setOrigin(0, 0.5);
+
+		// indicator
+		this.indicator = this.add.rectangle(532, 349.4, 2, 162.6, 13633030);
 
 		this.events.emit("scene-awake");
 	}
@@ -33,10 +38,19 @@ class GraficoGame extends Phaser.Scene {
 
 	private popup!: PopupManager;
 	private graficoEx!: Phaser.GameObjects.Image;
-	private rectangle_1!: Phaser.GameObjects.Rectangle;
+	private indicator!: Phaser.GameObjects.Rectangle;
+	private completionText!: Phaser.GameObjects.Text;
 
+	private picchi :{ x:number, found:boolean}[] = [
+		{ x: 553, found: false },
+		{ x: 686, found: false },
+		{ x: 753, found: false }
+	];
+
+	// Attributo che evita lo spam di picchi trovati
 	private lastPeakTime: number = 0;
 
+	// Attributo che evita di mostrare più volte il messaggio di vittoria
 	private victoryShown: boolean = false;
 
 
@@ -50,6 +64,8 @@ class GraficoGame extends Phaser.Scene {
 	create() {
 
 		this.editorCreate();
+
+		this.completionText.setText("0 / " + this.picchi.length);
 		// Start zoomed out so the scene is invisible
 		this.cameras.main.setZoom(0.695);
 
@@ -59,7 +75,11 @@ class GraficoGame extends Phaser.Scene {
 
 		//Popup per spiegare il gioco 
 		this.popup = new PopupManager(this);
-		this.popup.queuePopup(i18n.welcome, "hint");
+		this.popup.queuePopup(i18n.welcome_1, "hint");
+		this.popup.queuePopup(i18n.welcome_2);
+		this.popup.queuePopup(i18n.welcome_3_narrator, "dark");
+		this.popup.queuePopup(i18n.welcome_4);
+		this.popup.queuePopup(i18n.welcome_5_narrator, "dark");
 		this.popup.queuePopup(i18n.instructions, "hint");
 
 		// Video introduttivo
@@ -95,12 +115,6 @@ class GraficoGame extends Phaser.Scene {
 			});
 		});
 
-		const picchi :{ x:number, found:boolean}[] = [
-			{ x: 553, found: false },
-			{ x: 686, found: false },
-			{ x: 753, found: false }
-		];
-
 		const risposte:{text : string}[] = [
 			{ text: i18n.peak_1 },
 			{ text: i18n.peak_2 },
@@ -113,13 +127,13 @@ class GraficoGame extends Phaser.Scene {
 		let tween: Phaser.Tweens.Tween;
 
 		this.popup.on("queueEmpty", () => {
-			let startX = this.rectangle_1.x;
+			let startX = this.indicator.x;
 			let endX = startX + lunghezzaMax;
 
 			this.input.keyboard?.off('keydown-ENTER');
 
 			tween = this.tweens.add({
-				targets: this.rectangle_1,
+				targets: this.indicator,
 				x: endX,
 				duration: 4000,
 				ease: 'linear',
@@ -138,25 +152,26 @@ class GraficoGame extends Phaser.Scene {
 				if(this.time.now - this.lastPeakTime > 500 && !this.popup.isActive){
 					this.lastPeakTime = this.time.now;
 					tween.pause();
-					if(this.rectangle_1.x <= picchi[0].x+4 && this.rectangle_1.x >= picchi[0].x-4	&&  picchi[0].found == false){
-						this.popup.queuePopup(risposte[0].text);
-						this.popup.showNextPopup();
-						picchiTrovati++;
-						picchi[0].found = true;
-						
-					}else if(this.rectangle_1.x <= picchi[1].x+4 && this.rectangle_1.x >= picchi[1].x-4	&&  picchi[1].found == false){
-						this.popup.queuePopup(risposte[1].text);
-						this.popup.showNextPopup();
-						picchiTrovati++;
-						picchi[1].found = true;
-						
-					}else if(this.rectangle_1.x <= picchi[2].x+4 && this.rectangle_1.x >= picchi[2].x-4	&&  picchi[2].found == false){
-						this.popup.queuePopup(risposte[2].text);
-						this.popup.showNextPopup();
-						picchiTrovati++;
-						picchi[2].found = true;
-						
-					} else {
+
+					let foundPeak = false;
+					for(let i = 0; i < this.picchi.length; i++){
+						if(this.indicator.x <= this.picchi[i].x+4 && this.indicator.x >= this.picchi[i].x-4	&&  this.picchi[i].found == false){
+							this.popup.queuePopup(risposte[i].text);
+							this.popup.showNextPopup();
+
+							picchiTrovati++;
+							tween.timeScale *= 1.5;
+
+							this.completionText.setText(picchiTrovati + " / " + this.picchi.length);
+
+							this.picchi[i].found = true;
+							foundPeak = true;
+
+							break;
+						}
+					}
+
+					if(!foundPeak){
 						const i18n = this.cache.json.get("graficoGame_i18n");
 						this.popup.queuePopup(i18n.miss);
 
@@ -176,20 +191,20 @@ class GraficoGame extends Phaser.Scene {
 	}
 
 	controllaPunteggio(picchiTrovati:number,tween:Phaser.Tweens.Tween){ 
-			if(picchiTrovati == 3 && !this.victoryShown){
+			if(picchiTrovati == this.picchi.length && !this.victoryShown){
 
 				this.victoryShown = true;
 				tween.stop();
 
 				const i18n = this.cache.json.get("graficoGame_i18n");
-				this.popup.queuePopup(i18n.victory);
+				this.popup.queuePopup(i18n.victory, "dark");
 				this.popup.on("queueEmpty", () => {
 					this.events.emit("grafico-complete");
 				});
 				this.popup.showNextPopup();
 
 				// Fireworks effect 
-				const fireworksCount = 30;
+				const fireworksCount = 50;
 				for (let f = 0; f < fireworksCount; f++) {
 					this.time.delayedCall(f * 100, () => {
 						const x = Phaser.Math.Between(425, 850);

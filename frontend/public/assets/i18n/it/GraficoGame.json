@@ -1,10 +1,14 @@
 {
-    "welcome": "Benvenuto nel gioco del grafico! In questo gioco, dovrai trovare i materiali più usati, rappresentati dai picchi del grafico.",
-    "instructions": "Premi il tasto 'invio' per avviare la scansione, e premi 'spazio' quando la barra si trova sul picco maggiore",
-    "peak_1": "Questo è mercurio, significa che hai il cancro",
-    "peak_2": "Questo è sperpa, significa che tua mamma è puttana",
-    "peak_3": "Ohoh, questo sembra proprio merda",
-    "peak_4": "Chissà che cazzo è questo...",
-    "miss": "Peccato, non hai individuato il picco corretto. Riprova!",
-    "victory": "Complimenti! Hai trovato tutti i picchi del grafico e completato il gioco!"
+    "welcome_1": "Benvenuto nel bellissimo||, fantasmagorico || **mini-gioco agli infrarossi!**",
+    "welcome_2": "Wow, siete davvero tutti molto entusiasti qui||… suona molto 2004..",
+    "welcome_3_narrator": "Ammira la <<tecnologia all'avanguardia<<, punta il laser IR e || <<oscilla insieme ai legami|<<",
+    "welcome_4": "... È uno scherzo?!? || È davvero la **migliore** battuta che avevate su una tecnica così complessa?",
+    "welcome_5_narrator": "Beh.. |||| sì..",
+    "instructions": "Premi 'spazio' quando la barra si trova sui picchi più alti",
+    "peak_1": "Ohoh, questo sembra proprio merda",
+    "peak_2": "Mi chiedo cosa potrebbe essere...",
+    "peak_3": "Questo è mercurio, significa che hai il cancro",
+    "miss": "Peccato, non hai individuato il picco corretto.|| Riprova!",
+    "victory": "Complimenti!|| Hai trovato tutti i picchi del grafico e completato il gioco!",
+    "returning_1": "Che succede ora???"
 }
