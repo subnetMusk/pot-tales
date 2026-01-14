@@ -42,9 +42,9 @@ class GraficoGame extends Phaser.Scene {
 	private completionText!: Phaser.GameObjects.Text;
 
 	private picchi :{ x:number, found:boolean}[] = [
-		{ x: 553, found: false },
-		{ x: 686, found: false },
-		{ x: 753, found: false }
+		{ x: 575, found: false },
+		{ x: 701.5, found: false },
+		{ x: 740, found: false }
 	];
 
 	// Attributo che evita lo spam di picchi trovati

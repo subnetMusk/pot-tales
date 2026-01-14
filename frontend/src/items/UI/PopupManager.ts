@@ -23,7 +23,6 @@ interface PopupPreset {
     allowKeyClose: boolean;
     typewriterEnabled: boolean;
     typewriterDelay: number;
-    typewriterMode: 'letter' | 'word';
     allowSkipTypewriter: boolean;
 }
 
@@ -322,7 +321,7 @@ export default class PopupManager {
         }
 
         // Pre-calcola il word wrap per evitare overflow durante la digitazione
-        const wrappedMessage = this.preWrapText(fullMessage, preset.textWordWrapWidth - preset.textWordWrapPadding, preset.textFontSize);
+        const wrappedMessage = this.preWrapText(fullMessage, preset.textWordWrapWidth - preset.padding, preset.textFontSize);
         const textSegments = this.parseTextEffects(wrappedMessage);
         let segmentIndex = 0;
         let charIndex = 0;

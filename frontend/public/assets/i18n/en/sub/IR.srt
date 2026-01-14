@@ -1,0 +1,15 @@
+1
+00:00:00,000 --> 00:00:07,500
+In a transmittance IR spectroscopy infrared light strikes the sample
+
+2
+00:00:08,500 --> 00:00:16,000
+chemical bonds ‘retain’ the frequencies they need to vibrate
+
+3
+00:00:17,000 --> 00:00:24,500
+By measuring what remains of the outgoing light, we obtain a map of the chemical bonds present 
+
+4
+00:00:25,500 --> 00:00:33,000
+This allows us to identify the structure of the substance

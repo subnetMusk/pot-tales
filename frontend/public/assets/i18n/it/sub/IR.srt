@@ -1,0 +1,15 @@
+1
+00:00:00,000 --> 00:00:07,500
+Nella spettroscopia IR a trasmittanza la luce infrarossa colpisce il campione
+
+2
+00:00:08,500 --> 00:00:16,000
+i legami chimici 'conservano' le frequenze di cui hanno bisogno per vibrare
+
+3
+00:00:17,000 --> 00:00:24,500
+Misurando ciò che rimane della luce in uscita, otteniamo una mappa dei legami chimici presenti
+
+4
+00:00:25,500 --> 00:00:33,000
+Questo ci permette di identificare la struttura della sostanza
