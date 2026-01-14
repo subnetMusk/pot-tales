@@ -2,11 +2,6 @@
     "section1": {
         "files": [
             {
-                "url": "frontend/public/assets/images/backgrounds/stage1.png",
-                "type": "image",
-                "key": "BG"
-            },
-            {
                 "url": "frontend/public/assets/images/items/black_mass.png",
                 "frameConfig": {
                     "frameWidth": 16,
@@ -62,6 +57,11 @@
                 },
                 "type": "spritesheet",
                 "key": "red_light"
+            },
+            {
+                "url": "frontend/public/assets/images/backgrounds/stage1.png",
+                "type": "image",
+                "key": "BG"
             }
         ]
     },

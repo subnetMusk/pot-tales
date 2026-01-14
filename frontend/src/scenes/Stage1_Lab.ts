@@ -39,6 +39,8 @@ class Stage1_Lab extends Phaser.Scene {
 	// Write your code here
 
 	async preload() {
+		this.scene.add("GraficoGame", (await import("./GraficoGame")).default);
+		
 		const lang = localStorage.getItem("lang") || "en";
 		this.load.json("stage1_lab_i18n", `assets/i18n/${lang}/Stage1_Lab.json`);
 

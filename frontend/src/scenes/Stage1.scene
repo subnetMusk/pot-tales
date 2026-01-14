@@ -11,19 +11,6 @@
     },
     "displayList": [
         {
-            "type": "Rectangle",
-            "id": "080c85b0-c192-45e1-a868-ae4b9cc7aa67",
-            "label": "background_light",
-            "scope": "CLASS",
-            "x": 640,
-            "y": 360,
-            "isFilled": true,
-            "fillColor": "#ff0000",
-            "fillAlpha": 0.5,
-            "width": 1204,
-            "height": 890
-        },
-        {
             "type": "Image",
             "id": "9d0fb09f-e52a-401e-b8b1-59d7e72ca2ae",
             "label": "background",
@@ -32,177 +19,6 @@
             },
             "x": 640,
             "y": 360
-        },
-        {
-            "type": "Rectangle",
-            "id": "70364c85-6ffc-4b3f-ad33-30c6ed2cc13a",
-            "label": "boundary_19",
-            "x": 1306,
-            "y": 360,
-            "width": 128,
-            "height": 890
-        },
-        {
-            "type": "Rectangle",
-            "id": "22fc35bc-fbbb-4636-8020-84bc5bdd157e",
-            "label": "boundary_18",
-            "x": 509,
-            "y": 482,
-            "width": 50,
-            "height": 220
-        },
-        {
-            "type": "Rectangle",
-            "id": "b99abcdd-625a-4ae8-a0e5-e1e798f8f669",
-            "label": "boundary_17",
-            "x": 640,
-            "y": -147,
-            "width": 1204,
-            "height": 128
-        },
-        {
-            "type": "Rectangle",
-            "id": "d8f8ee1c-f217-41ad-a0fd-3bc03ba7496d",
-            "label": "boundary_16",
-            "x": -26,
-            "y": 360,
-            "width": 128,
-            "height": 890
-        },
-        {
-            "type": "Rectangle",
-            "id": "1f66abb0-0272-4e41-822c-391705c41db7",
-            "label": "boundary_15",
-            "x": 714,
-            "y": 308,
-            "width": 150,
-            "height": 70
-        },
-        {
-            "type": "Rectangle",
-            "id": "d6276dc8-d6d3-4d8d-b4b9-be9fed38ffd9",
-            "label": "boundary_14",
-            "x": 904,
-            "y": 800,
-            "width": 70,
-            "height": 70
-        },
-        {
-            "type": "Rectangle",
-            "id": "8a3eae46-ee66-4580-a3cd-df8ab6afcd98",
-            "label": "boundary_13",
-            "x": 877,
-            "y": 31,
-            "width": 30,
-            "height": 25
-        },
-        {
-            "type": "Rectangle",
-            "id": "fe1a445f-ccb7-4881-aae3-4ad525654ab3",
-            "label": "boundary_12",
-            "x": 783,
-            "y": 252,
-            "width": 50,
-            "height": 70
-        },
-        {
-            "type": "Rectangle",
-            "id": "ad66d849-7c69-4118-9bee-c82efe8ea0e7",
-            "label": "boundary_11",
-            "x": 892,
-            "y": 153,
-            "width": 50,
-            "height": 70
-        },
-        {
-            "type": "Rectangle",
-            "id": "0759ce5d-8471-4a5a-b587-dc17fda24ded",
-            "label": "boundary_10",
-            "x": 1041,
-            "y": -2,
-            "width": 70,
-            "height": 20
-        },
-        {
-            "type": "Rectangle",
-            "id": "43c8a5ea-d2f5-4d99-b4ad-a5d165629de1",
-            "label": "boundary_9",
-            "x": 640,
-            "y": 868,
-            "width": 1204,
-            "height": 128
-        },
-        {
-            "type": "Rectangle",
-            "id": "605f7775-5c74-4b94-bcf2-438a71b83948",
-            "label": "boundary_8",
-            "x": 988.5970572476753,
-            "y": 23.718636567813064,
-            "width": 50,
-            "height": 70
-        },
-        {
-            "type": "Rectangle",
-            "id": "50594516-0f30-44e0-8460-2e02b8d99abe",
-            "label": "boundary_7",
-            "x": 1078,
-            "y": -47,
-            "width": 20,
-            "height": 75
-        },
-        {
-            "type": "Rectangle",
-            "id": "0bcd1bb4-c452-4cf0-a6e1-145344474c04",
-            "label": "boundary_6",
-            "x": 626.0930293981846,
-            "y": 373.87435827556254,
-            "width": 50,
-            "height": 70
-        },
-        {
-            "type": "Rectangle",
-            "id": "b90c20c5-d15c-4b23-8eba-f4aa40186e38",
-            "label": "boundary_5",
-            "x": 563,
-            "y": 649,
-            "width": 120,
-            "height": 120
-        },
-        {
-            "type": "Rectangle",
-            "id": "1ed45c46-d9df-45c2-8146-6503347fbde0",
-            "label": "boundary_4",
-            "x": 633,
-            "y": 741,
-            "width": 150,
-            "height": 70
-        },
-        {
-            "type": "Rectangle",
-            "id": "1898aa19-473b-4721-8870-72aae3ae8ea8",
-            "label": "boundary_3",
-            "x": 821,
-            "y": 111,
-            "width": 40,
-            "height": 30
-        },
-        {
-            "type": "Rectangle",
-            "id": "c6e71cd7-69a1-4efb-a437-928df0c877d2",
-            "label": "boundary_2",
-            "x": 707,
-            "y": 162,
-            "width": 80,
-            "height": 60
-        },
-        {
-            "type": "Rectangle",
-            "id": "fd6e3e2b-13a0-4242-81dc-d2ecacce2114",
-            "label": "boundary_1",
-            "x": 945,
-            "y": 77,
-            "width": 75,
-            "height": 100
         },
         {
             "prefabId": "dfd624ad-310c-404d-96d2-d2307c3faaef",
@@ -218,8 +34,161 @@
                 "key": "black_mass",
                 "frame": 0
             },
-            "x": 1096,
-            "y": 560
+            "x": 682,
+            "y": 570
+        },
+        {
+            "type": "Rectangle",
+            "id": "701ff589-45e7-47d2-b0dd-1e1dac31aba2",
+            "label": "rectangle_1",
+            "x": 628,
+            "y": 331,
+            "width": 100,
+            "height": 30
+        },
+        {
+            "type": "Rectangle",
+            "id": "07c1130c-e0b5-4e03-9074-1b9ff1ecdc57",
+            "label": "rectangle",
+            "x": 668,
+            "y": 302,
+            "width": 50,
+            "height": 30
+        },
+        {
+            "type": "Rectangle",
+            "id": "0e1fdd1e-faf2-41bf-82c2-06b6fddc2ea9",
+            "label": "rectangle_2",
+            "x": 706,
+            "y": 272,
+            "width": 50,
+            "height": 30
+        },
+        {
+            "type": "Rectangle",
+            "id": "77d60649-b86a-49d5-ada0-94f7dabbb76c",
+            "label": "rectangle_3",
+            "x": 640,
+            "y": -80,
+            "width": 1200,
+            "height": 30
+        },
+        {
+            "type": "Rectangle",
+            "id": "9a9962d9-f344-40f9-b55e-246a0acdbb4e",
+            "label": "rectangle_4",
+            "x": 640,
+            "y": 800,
+            "width": 1200,
+            "height": 30
+        },
+        {
+            "type": "Rectangle",
+            "id": "1560bb35-dc76-4b0d-a64f-43084eb0f2b7",
+            "label": "rectangle_5",
+            "x": 55,
+            "y": 360,
+            "width": 30,
+            "height": 900
+        },
+        {
+            "type": "Rectangle",
+            "id": "e1ba4ecc-4bbe-4bc6-a176-a1c032a20843",
+            "label": "rectangle_6",
+            "x": 1225,
+            "y": 360,
+            "width": 30,
+            "height": 900
+        },
+        {
+            "type": "Rectangle",
+            "id": "ef91a065-485f-4245-af52-705095709f65",
+            "label": "rectangle_7",
+            "x": 489,
+            "y": 512,
+            "width": 80,
+            "height": 15
+        },
+        {
+            "type": "Rectangle",
+            "id": "cb9b29b4-34e7-4cd6-88cd-35844e1d2cda",
+            "label": "rectangle_8",
+            "x": 413,
+            "y": 445,
+            "width": 90,
+            "height": 25
+        },
+        {
+            "type": "Rectangle",
+            "id": "ae95f7e2-809f-410f-87e1-be8c7f6d1461",
+            "label": "rectangle_9",
+            "x": 372,
+            "y": 109,
+            "width": 50,
+            "height": 24
+        },
+        {
+            "type": "Rectangle",
+            "id": "be741469-2aad-4a0b-ada2-c09bad109f9f",
+            "label": "rectangle_10",
+            "x": 410,
+            "y": 161,
+            "width": 70,
+            "height": 24
+        },
+        {
+            "type": "Rectangle",
+            "id": "dc62fa57-fc4c-4ff7-9a6a-84996bc4e44d",
+            "label": "rectangle_11",
+            "x": 456,
+            "y": 297,
+            "width": 70,
+            "height": 24
+        },
+        {
+            "type": "Rectangle",
+            "id": "ddbf5b97-ded7-47a5-9e51-b629d6c1135a",
+            "label": "rectangle_12",
+            "x": 456,
+            "y": 238,
+            "width": 40,
+            "height": 24
+        },
+        {
+            "type": "Rectangle",
+            "id": "f1951011-cabb-4c46-a3c5-d64c7999c2e9",
+            "label": "rectangle_13",
+            "x": 456,
+            "y": 201,
+            "width": 30,
+            "height": 60
+        },
+        {
+            "type": "Rectangle",
+            "id": "90aac0f3-e28f-45ee-b271-47c674325abf",
+            "label": "rectangle_14",
+            "x": 400,
+            "y": 140,
+            "width": 30,
+            "height": 60
+        },
+        {
+            "type": "Rectangle",
+            "id": "fdb33919-1875-489e-a796-51ebb8443f3b",
+            "label": "rectangle_15",
+            "x": 461,
+            "y": 275,
+            "width": 30,
+            "height": 60
+        },
+        {
+            "type": "Rectangle",
+            "id": "0185bbbc-9562-4cb7-8fa7-711923c4bb9b",
+            "label": "rectangle_16",
+            "x": 545,
+            "y": 363,
+            "width": 40,
+            "height": 15
         },
         {
             "prefabId": "5a8935be-1a98-42a5-9cc4-bca49b9c51b2",
@@ -230,8 +199,8 @@
             ],
             "label": "player",
             "scope": "CLASS",
-            "x": 160,
-            "y": 90
+            "x": 355,
+            "y": 223
         }
     ],
     "plainObjects": [],
@@ -246,30 +215,31 @@
             "id": "235707ec-1cdc-4ba5-bd88-6953c1d6828c",
             "label": "boundaries",
             "objectIds": [
-                "fd6e3e2b-13a0-4242-81dc-d2ecacce2114",
-                "c6e71cd7-69a1-4efb-a437-928df0c877d2",
-                "1898aa19-473b-4721-8870-72aae3ae8ea8",
-                "1ed45c46-d9df-45c2-8146-6503347fbde0",
-                "b90c20c5-d15c-4b23-8eba-f4aa40186e38",
-                "0bcd1bb4-c452-4cf0-a6e1-145344474c04",
-                "50594516-0f30-44e0-8460-2e02b8d99abe",
-                "605f7775-5c74-4b94-bcf2-438a71b83948",
-                "43c8a5ea-d2f5-4d99-b4ad-a5d165629de1",
-                "0759ce5d-8471-4a5a-b587-dc17fda24ded",
-                "ad66d849-7c69-4118-9bee-c82efe8ea0e7",
-                "fe1a445f-ccb7-4881-aae3-4ad525654ab3",
-                "8a3eae46-ee66-4580-a3cd-df8ab6afcd98",
-                "d6276dc8-d6d3-4d8d-b4b9-be9fed38ffd9",
-                "1f66abb0-0272-4e41-822c-391705c41db7",
-                "d8f8ee1c-f217-41ad-a0fd-3bc03ba7496d",
-                "b99abcdd-625a-4ae8-a0e5-e1e798f8f669",
-                "22fc35bc-fbbb-4636-8020-84bc5bdd157e",
-                "70364c85-6ffc-4b3f-ad33-30c6ed2cc13a"
+                "0185bbbc-9562-4cb7-8fa7-711923c4bb9b",
+                "fdb33919-1875-489e-a796-51ebb8443f3b",
+                "90aac0f3-e28f-45ee-b271-47c674325abf",
+                "f1951011-cabb-4c46-a3c5-d64c7999c2e9",
+                "ddbf5b97-ded7-47a5-9e51-b629d6c1135a",
+                "dc62fa57-fc4c-4ff7-9a6a-84996bc4e44d",
+                "be741469-2aad-4a0b-ada2-c09bad109f9f",
+                "ae95f7e2-809f-410f-87e1-be8c7f6d1461",
+                "cb9b29b4-34e7-4cd6-88cd-35844e1d2cda",
+                "ef91a065-485f-4245-af52-705095709f65",
+                "e1ba4ecc-4bbe-4bc6-a176-a1c032a20843",
+                "1560bb35-dc76-4b0d-a64f-43084eb0f2b7",
+                "9a9962d9-f344-40f9-b55e-246a0acdbb4e",
+                "77d60649-b86a-49d5-ada0-94f7dabbb76c",
+                "0e1fdd1e-faf2-41bf-82c2-06b6fddc2ea9",
+                "07c1130c-e0b5-4e03-9074-1b9ff1ecdc57",
+                "701ff589-45e7-47d2-b0dd-1e1dac31aba2"
             ]
         },
         {
             "id": "119c445d-8151-4d88-83ac-55efa24fb60c",
-            "label": "oggVector"
+            "label": "oggVector",
+            "objectIds": [
+                "c1d6a7be-2340-4267-aac0-2dda0526fa30"
+            ]
         }
     ]
 }

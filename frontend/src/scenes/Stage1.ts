@@ -20,85 +20,72 @@ class Stage1 extends Phaser.Scene {
 
 	editorCreate(): void {
 
-		// background_light
-		const background_light = this.add.rectangle(640, 360, 1204, 890);
-		background_light.isFilled = true;
-		background_light.fillColor = 16711680;
-		background_light.fillAlpha = 0.5;
-
 		// background
 		this.add.image(640, 360, "BG");
 
-		// boundary_19
-		const boundary_19 = this.add.rectangle(1306, 360, 128, 890);
-
-		// boundary_18
-		const boundary_18 = this.add.rectangle(509, 482, 50, 220);
-
-		// boundary_17
-		const boundary_17 = this.add.rectangle(640, -147, 1204, 128);
-
-		// boundary_16
-		const boundary_16 = this.add.rectangle(-26, 360, 128, 890);
-
-		// boundary_15
-		const boundary_15 = this.add.rectangle(714, 308, 150, 70);
-
-		// boundary_14
-		const boundary_14 = this.add.rectangle(904, 800, 70, 70);
-
-		// boundary_13
-		const boundary_13 = this.add.rectangle(877, 31, 30, 25);
-
-		// boundary_12
-		const boundary_12 = this.add.rectangle(783, 252, 50, 70);
-
-		// boundary_11
-		const boundary_11 = this.add.rectangle(892, 153, 50, 70);
-
-		// boundary_10
-		const boundary_10 = this.add.rectangle(1041, -2, 70, 20);
-
-		// boundary_9
-		const boundary_9 = this.add.rectangle(640, 868, 1204, 128);
-
-		// boundary_8
-		const boundary_8 = this.add.rectangle(988.5970572476753, 23.718636567813064, 50, 70);
-
-		// boundary_7
-		const boundary_7 = this.add.rectangle(1078, -47, 20, 75);
-
-		// boundary_6
-		const boundary_6 = this.add.rectangle(626.0930293981846, 373.87435827556254, 50, 70);
-
-		// boundary_5
-		const boundary_5 = this.add.rectangle(563, 649, 120, 120);
-
-		// boundary_4
-		const boundary_4 = this.add.rectangle(633, 741, 150, 70);
-
-		// boundary_3
-		const boundary_3 = this.add.rectangle(821, 111, 40, 30);
-
-		// boundary_2
-		const boundary_2 = this.add.rectangle(707, 162, 80, 60);
-
-		// boundary_1
-		const boundary_1 = this.add.rectangle(945, 77, 75, 100);
-
 		// blackMass
-		const blackMass = new OggettoInterattivo(this, 1096, 560, "black_mass", 0);
+		const blackMass = new OggettoInterattivo(this, 682, 570, "black_mass", 0);
 		this.add.existing(blackMass);
 
+		// rectangle_1
+		const rectangle_1 = this.add.rectangle(628, 331, 100, 30);
+
+		// rectangle
+		const rectangle = this.add.rectangle(668, 302, 50, 30);
+
+		// rectangle_2
+		const rectangle_2 = this.add.rectangle(706, 272, 50, 30);
+
+		// rectangle_3
+		const rectangle_3 = this.add.rectangle(640, -80, 1200, 30);
+
+		// rectangle_4
+		const rectangle_4 = this.add.rectangle(640, 800, 1200, 30);
+
+		// rectangle_5
+		const rectangle_5 = this.add.rectangle(55, 360, 30, 900);
+
+		// rectangle_6
+		const rectangle_6 = this.add.rectangle(1225, 360, 30, 900);
+
+		// rectangle_7
+		const rectangle_7 = this.add.rectangle(489, 512, 80, 15);
+
+		// rectangle_8
+		const rectangle_8 = this.add.rectangle(413, 445, 90, 25);
+
+		// rectangle_9
+		const rectangle_9 = this.add.rectangle(372, 109, 50, 24);
+
+		// rectangle_10
+		const rectangle_10 = this.add.rectangle(410, 161, 70, 24);
+
+		// rectangle_11
+		const rectangle_11 = this.add.rectangle(456, 297, 70, 24);
+
+		// rectangle_12
+		const rectangle_12 = this.add.rectangle(456, 238, 40, 24);
+
+		// rectangle_13
+		const rectangle_13 = this.add.rectangle(456, 201, 30, 60);
+
+		// rectangle_14
+		const rectangle_14 = this.add.rectangle(400, 140, 30, 60);
+
+		// rectangle_15
+		const rectangle_15 = this.add.rectangle(461, 275, 30, 60);
+
+		// rectangle_16
+		const rectangle_16 = this.add.rectangle(545, 363, 40, 15);
+
 		// player
-		const player = new Player(this, 160, 90);
+		const player = new Player(this, 355, 223);
 		this.add.existing(player);
 
 		// lists
-		const boundaries = [boundary_1, boundary_2, boundary_3, boundary_4, boundary_5, boundary_6, boundary_7, boundary_8, boundary_9, boundary_10, boundary_11, boundary_12, boundary_13, boundary_14, boundary_15, boundary_16, boundary_17, boundary_18, boundary_19];
-		const oggVector: Array<any> = [];
+		const boundaries = [rectangle_16, rectangle_15, rectangle_14, rectangle_13, rectangle_12, rectangle_11, rectangle_10, rectangle_9, rectangle_8, rectangle_7, rectangle_6, rectangle_5, rectangle_4, rectangle_3, rectangle_2, rectangle, rectangle_1];
+		const oggVector = [blackMass];
 
-		this.background_light = background_light;
 		this.blackMass = blackMass;
 		this.player = player;
 		this.boundaries = boundaries;
@@ -107,11 +94,10 @@ class Stage1 extends Phaser.Scene {
 		this.events.emit("scene-awake");
 	}
 
-	private background_light!: Phaser.GameObjects.Rectangle;
 	private blackMass!: OggettoInterattivo;
 	private player!: Player;
 	private boundaries!: Phaser.GameObjects.Rectangle[];
-	private oggVector!: Array<any>;
+	private oggVector!: OggettoInterattivo[];
 
 	/* START-USER-CODE */
 
@@ -122,6 +108,8 @@ class Stage1 extends Phaser.Scene {
 	private isGraficoActive: boolean = false;
 
 	async preload() {
+		this.scene.add("Stage1_Lab", (await import("./Stage1_Lab")).default);
+
 		this.load.pack("stage1-pack", "assets/images/stage1-pack.json");
 		this.load.pack("player-pack", "assets/images/player-pack.json");
 		this.load.pack("icons-pack", "assets/images/icons-pack.json");
@@ -133,15 +121,6 @@ class Stage1 extends Phaser.Scene {
 	create() {
 
 		this.editorCreate();
-
-		this.tweens.add({
-			targets: this.background_light,
-			alpha: 0.0,
-			duration: 2000,
-			ease: 'Sine.easeInOut',
-			yoyo: true,
-			repeat: -1
-		});
 
 		this.anims.create({
 			key: "strange_light_anim",
@@ -268,7 +247,7 @@ class Stage1 extends Phaser.Scene {
 		{x: 270, y: 100},
 		{x: 348, y: 464},
 		{x: 840, y: 0},
-		{x: 1096, y: 610}
+		{x: 682, y: 540}
 	];
 	private currentLightIndex: number = 0;
 	private currentLight!: OggettoInterattivo;
