@@ -4,6 +4,7 @@ import { fadeElements } from "../utils";
 import MenuBackground from "../items/UI/MenuBackground";
 
 import {APISession} from "@/network/APISession";
+import { i } from "vite/dist/node/types.d-aGj9QkWt";
 // You can write more code here
 
 /* START OF COMPILED CODE */
@@ -109,8 +110,15 @@ class Menu extends Phaser.Scene {
 		// Title
 		const title = this.add.image(640, 150, "title");
 
+		// Demo
+		const demo = this.add.text(316, 622, "", {});
+		demo.name = "Demo";
+		demo.setOrigin(0.5, 0.5);
+		demo.text = "Demo 0.1";
+		demo.setStyle({ "color": "#f0f8ff", "fixedWidth": 500, "fontFamily": "PixelifySans-VariableFont_wght", "fontSize": "30px", "stroke": "#000000" });
+
 		// lists
-		const uI = [play_button, play_icon, fullscreen_icon, gallery_icon, gallery, gallery_button, play, leaderboard_icon, leaderboard, leaderboard_button, settings_icon, resume_icon, resume, resume_button, title];
+		const uI = [play_button, play_icon, fullscreen_icon, gallery_icon, gallery, gallery_button, play, leaderboard_icon, leaderboard, leaderboard_button, settings_icon, resume_icon, resume, resume_button, title, demo];
 		const resume_button_items = [resume_icon, resume, resume_button];
 		const leaderboard_button_items = [leaderboard_icon, leaderboard, leaderboard_button];
 
@@ -120,6 +128,7 @@ class Menu extends Phaser.Scene {
 		this.resume_button = resume_button;
 		this.play_button = play_button;
 		this.fullscreen_icon = fullscreen_icon;
+		this.demo = demo;
 		this.uI = uI;
 		this.resume_button_items = resume_button_items;
 		this.leaderboard_button_items = leaderboard_button_items;
@@ -133,6 +142,7 @@ class Menu extends Phaser.Scene {
 	private resume_button!: Phaser.GameObjects.Rectangle;
 	private play_button!: Phaser.GameObjects.Rectangle;
 	private fullscreen_icon!: Phaser.GameObjects.Image;
+	private demo!: Phaser.GameObjects.Text;
 	private uI!: Array<Phaser.GameObjects.Rectangle|Phaser.GameObjects.Image|Phaser.GameObjects.Text>;
 	private resume_button_items!: Array<Phaser.GameObjects.Image|Phaser.GameObjects.Text|Phaser.GameObjects.Rectangle>;
 	private leaderboard_button_items!: Array<Phaser.GameObjects.Image|Phaser.GameObjects.Text|Phaser.GameObjects.Rectangle>;
@@ -151,6 +161,7 @@ class Menu extends Phaser.Scene {
 
 	async create() {
 		this.editorCreate();
+
 		showElements(this.uI, false);
 
 		let resume_alpha = 0.5;
@@ -163,6 +174,7 @@ class Menu extends Phaser.Scene {
                 case 'active':
 					console.log("SESSIONE ATTIVA");
                     resume_alpha = 1;
+					this.demo.setText("Thank you for playing the demo!");
                     break;
                 case 'inactive':
                     console.log("SESSIONE INATTIVA");
@@ -213,6 +225,9 @@ class Menu extends Phaser.Scene {
 		// Apply translations
         const i18n = this.cache.json.get("menu_i18n");
         applyTranslations(this, i18n);
+		// Set demo text based on session state
+		const demoText = resume_alpha === 1 ? i18n['DemoThankYou'] : i18n['Demo'];
+		this.demo.setText(demoText);
 
 		// add click events
 		// this.leaderboard_button.setInteractive();

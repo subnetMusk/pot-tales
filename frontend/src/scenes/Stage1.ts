@@ -3,6 +3,7 @@ import Player from "@/items/Main/Player";
 import PopupManager from "../items/UI/PopupManager";
 import LetterManager  from "../items/UI/LetterManager";
 import { applyTranslations } from "../utils";
+import {APISession, CreateSessionRequest} from "../network/APISession";
 
 import OggettoInterattivo from "../items/Main/OggettoInterattivo";
 
@@ -24,7 +25,7 @@ class Stage1 extends Phaser.Scene {
 		this.add.image(640, 360, "BG");
 
 		// blackMass
-		const blackMass = new OggettoInterattivo(this, 682, 570, "black_mass", 0);
+		const blackMass = new OggettoInterattivo(this, 682, 568, "black_mass", 0);
 		this.add.existing(blackMass);
 
 		// rectangle_1
@@ -100,6 +101,7 @@ class Stage1 extends Phaser.Scene {
 	private oggVector!: OggettoInterattivo[];
 
 	/* START-USER-CODE */
+	private apiSession!: APISession;
 
 	private popupManager!: PopupManager;
 	private letterManager!: LetterManager;
@@ -107,9 +109,7 @@ class Stage1 extends Phaser.Scene {
 	// Stato del minigioco di memoria (serve per evitare riavvii multipli)
 	private isGraficoActive: boolean = false;
 
-	async preload() {
-		this.scene.add("Stage1_Lab", (await import("./Stage1_Lab")).default);
-
+	preload() {
 		this.load.pack("stage1-pack", "assets/images/stage1-pack.json");
 		this.load.pack("player-pack", "assets/images/player-pack.json");
 		this.load.pack("icons-pack", "assets/images/icons-pack.json");
@@ -121,6 +121,7 @@ class Stage1 extends Phaser.Scene {
 	create() {
 
 		this.editorCreate();
+		this.apiSession = new APISession();
 
 		this.anims.create({
 			key: "strange_light_anim",
@@ -244,7 +245,7 @@ class Stage1 extends Phaser.Scene {
 
 	// Interazione con la luce rossa ------------------------------------------------------
 	private lightsPositions: Array<{x: number, y: number}> = [
-		{x: 270, y: 100},
+		{x: 270, y: 200},
 		{x: 348, y: 464},
 		{x: 840, y: 0},
 		{x: 682, y: 540}
@@ -494,7 +495,32 @@ class Stage1 extends Phaser.Scene {
 					onComplete: () => {
 						this.player.interactionAllowed = false; //disabilita l'interazione
 						this.time.delayedCall(4000, this.cameras.main.fadeOut, [], this.cameras.main);
-						this.time.delayedCall(5000, () => {this.scene.start("Menu");});
+						this.time.delayedCall(5000, async () => {
+							const requestData: CreateSessionRequest = {
+								consentGiven: true,
+								device: navigator.userAgent.substring(0, 1024)
+							};
+
+							try {
+								console.log("Tentativo di creare la sessione...");
+								const sessione = await this.apiSession.createSession(requestData);
+
+								console.log("Sessione creata con successo:", sessione.token);
+								this.scene.start("Menu");
+
+							} catch (error) {
+								if (error instanceof Error) {
+									console.error("Creazione della sessione fallita:", error.message);
+								} else {
+									console.error("Creazione della sessione fallita (oggetto non-Error):", error);
+								}
+
+								// Mostra un errore al giocatore usando il tuo PopupManager!
+								this.popupManager.queuePopup("Errore di connessione.");
+								this.popupManager.queuePopup("Impossibile salvare i progressi.");
+								this.popupManager.showNextPopup();
+							}
+						});
 					}
 				});
 			});

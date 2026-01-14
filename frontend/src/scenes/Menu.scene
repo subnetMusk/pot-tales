@@ -234,6 +234,23 @@
             },
             "x": 640,
             "y": 150
+        },
+        {
+            "type": "Text",
+            "id": "1603cde8-fecb-42f2-a833-285d8374c58c",
+            "label": "Demo",
+            "useGameObjectName": true,
+            "scope": "CLASS",
+            "x": 316,
+            "y": 622,
+            "originX": 0.5,
+            "originY": 0.5,
+            "text": "Demo 0.1",
+            "fixedWidth": 500,
+            "fontFamily": "PixelifySans-VariableFont_wght",
+            "fontSize": "30px",
+            "color": "#f0f8ff",
+            "stroke": "#000000"
         }
     ],
     "plainObjects": [],
@@ -262,7 +279,8 @@
                 "86cf0036-7675-43db-80cd-eecc46829223",
                 "7e922fde-8435-4281-8e00-a21a90551bee",
                 "c66bc216-dfc8-4532-80d6-7619a808dde4",
-                "4bccf065-daef-4dc8-a45d-9d614fa5de34"
+                "4bccf065-daef-4dc8-a45d-9d614fa5de34",
+                "1603cde8-fecb-42f2-a833-285d8374c58c"
             ]
         },
         {
