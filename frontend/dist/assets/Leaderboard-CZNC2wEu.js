@@ -1,0 +1,1 @@
+import{M as a}from"./MenuBackground-Cs5ZQ-Ri.js";import{B as s}from"./BackButton-CYnsn2FV.js";class i extends Phaser.Scene{constructor(){super("Leaderboard")}editorCreate(){const t=new a(this,520,360);this.add.existing(t);const e=new s(this,1182,98);this.add.existing(e),e.scaleX=1.5,e.scaleY=1.5,this.events.emit("scene-awake")}create(){this.editorCreate()}}export{i as default};

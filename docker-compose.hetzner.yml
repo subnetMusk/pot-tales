@@ -1,0 +1,112 @@
+version: '3.8'
+
+networks:
+  internal_net:
+    name: internal_net
+    internal: true
+  proxy_net:
+    name: proxy_net
+    driver: bridge
+  frontend_net:
+    name: frontend_net
+    driver: bridge
+
+services:
+  proxy:
+    image: jc21/nginx-proxy-manager:2
+    container_name: nginx-proxy-manager
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+      - "18081:81"
+    env_file: .env.hetzner
+    volumes:
+      - ./docker/volumes/npm_data:/data
+      - ./docker/volumes/npm_letsencrypt:/etc/letsencrypt
+      - ./frontend/dist:/var/www/frontend:ro
+      - ./sandbox/dist:/var/www/sandbox:ro
+    networks:
+      - proxy_net
+      - frontend_net
+
+  server:
+    build:
+      context: ./server
+      dockerfile: Dockerfile
+    container_name: server
+    restart: always
+    env_file: .env.hetzner
+    volumes:
+      - ./comms:/src/comms:ro
+    networks:
+      - internal_net
+      - proxy_net
+    depends_on:
+      - db
+      - redis
+
+  db:
+    image: mongo:latest
+    container_name: db
+    env_file: .env.hetzner
+    volumes:
+      - ./docker/volumes/mongodb:/data/db
+    networks:
+      - internal_net
+
+  redis:
+    image: redis:alpine
+    container_name: redis
+    command: ["redis-server", "/usr/local/etc/redis/redis.conf"]
+    volumes:
+      - ./docker/redis/redis.conf:/usr/local/etc/redis/redis.conf:ro
+      - ./docker/redis/users.acl:/usr/local/etc/redis/users.acl:ro
+    networks:
+      - internal_net
+
+  mongo-ui:
+    image: mongo-express:latest
+    container_name: mongo-ui
+    environment:
+      - ME_CONFIG_MONGODB_SERVER=db
+      - ME_CONFIG_MONGODB_URL=mongodb://db:27017/database
+    networks:
+      - internal_net
+      - proxy_net
+    depends_on:
+      - db
+
+  redis-ui:
+    image: rediscommander/redis-commander:latest
+    container_name: redis-ui
+    environment:
+      - REDIS_HOSTS=${REDIS_UI_HOSTS}
+    networks:
+      - internal_net
+      - proxy_net
+    depends_on:
+      - redis
+
+  kibana:
+    image: docker.elastic.co/kibana/kibana:${STACK_VERSION}
+    container_name: kibana
+    environment:
+      - ELASTICSEARCH_HOSTS=https://es01:9200
+      - ELASTICSEARCH_PASSWORD=${KIBANA_SYSTEM_PASSWORD}
+      - SERVER_BASEPATH="/kibana"
+      - SERVER_REWRITEBASEPATH=true
+    networks:
+      - internal_net
+      - proxy_net
+
+  apm-server:
+    image: docker.elastic.co/apm/apm-server:${STACK_VERSION}
+    container_name: apm-server
+    command: >
+      apm-server -e
+      -E apm-server.rum.enabled=true
+      -E apm-server.rum.allow_origins=['*']
+    networks:
+      - internal_net
+      - proxy_net

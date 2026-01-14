@@ -1,0 +1,1 @@
+class r extends Phaser.GameObjects.Image{constructor(t,e,n,s,o){super(t,e??32,n??32,s||"back",o),this.setInteractive().on("pointerdown",()=>this.setTint(12237498)).on("pointerup",()=>this.scene.scene.start("Menu")).on("pointerover",()=>this.setTint(12434877)).on("pointerout",()=>this.clearTint())}}export{r as B};
