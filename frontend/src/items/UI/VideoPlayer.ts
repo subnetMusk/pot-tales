@@ -46,6 +46,21 @@ class VideoPlayer extends Phaser.GameObjects.Container {
 		progressBar.fillColor = 10883584;
 		this.add(progressBar);
 
+		// subtitleText
+		const subtitleText = scene.add.text(640, 630, "", {});
+		subtitleText.setOrigin(0.5, 0.5);
+		subtitleText.setStyle({ 
+			"align": "center", 
+			"fontFamily": "PixelifySans-VariableFont_wght", 
+			"fontSize": "28px",
+			"color": "#ffffff",
+			"stroke": "#000000",
+			"strokeThickness": 4,
+			"wordWrap": { "width": 1100 }
+		});
+		subtitleText.setVisible(false);
+		this.add(subtitleText);
+
 		// lists
 		const uI = [progressBar, progressBarBg, playButton, skip, skipIcon];
 
@@ -53,6 +68,7 @@ class VideoPlayer extends Phaser.GameObjects.Container {
 		this.skip = skip;
 		this.skipIcon = skipIcon;
 		this.progressBar = progressBar;
+        this.subtitleText = subtitleText;
 		this.uI = uI;
 
 		/* START-USER-CTR-CODE */
@@ -84,6 +100,7 @@ class VideoPlayer extends Phaser.GameObjects.Container {
 	private skip: Phaser.GameObjects.Text;
 	private skipIcon: Phaser.GameObjects.Image;
 	private progressBar: Phaser.GameObjects.Rectangle;
+	private subtitleText!: Phaser.GameObjects.Text;
 	private uI: Array<Phaser.GameObjects.Rectangle|Phaser.GameObjects.Image|Phaser.GameObjects.Text>;
 
 	/* START-USER-CODE */
@@ -93,6 +110,8 @@ class VideoPlayer extends Phaser.GameObjects.Container {
     private skipFillOverlay: Phaser.GameObjects.Graphics;
 
 	private video?: Phaser.GameObjects.Video;
+	private subtitles: Array<{start: number, end: number, text: string}> = [];
+	private currentSubtitleIndex: number = -1;
 
 	private lastPointerMove: number;
     private uiVisible: boolean;
@@ -121,6 +140,61 @@ class VideoPlayer extends Phaser.GameObjects.Container {
     }
 
     /**
+     * Parse an SRT subtitle file content into subtitle objects
+     */
+    private parseSRT(srtContent: string): Array<{start: number, end: number, text: string}> {
+        const subtitles: Array<{start: number, end: number, text: string}> = [];
+        const blocks = srtContent.trim().split(/\n\s*\n/);
+
+        for (const block of blocks) {
+            const lines = block.trim().split('\n');
+            if (lines.length < 3) continue;
+
+            // Parse timestamp line (e.g., "00:00:10,500 --> 00:00:13,000")
+            const timeLine = lines[1];
+            const timeMatch = timeLine.match(/(\d{2}):(\d{2}):(\d{2}),(\d{3})\s*-->\s*(\d{2}):(\d{2}):(\d{2}),(\d{3})/);
+
+            if (timeMatch) {
+                const startTime = parseInt(timeMatch[1]) * 3600 + parseInt(timeMatch[2]) * 60 + parseInt(timeMatch[3]) + parseInt(timeMatch[4]) / 1000;
+                const endTime = parseInt(timeMatch[5]) * 3600 + parseInt(timeMatch[6]) * 60 + parseInt(timeMatch[7]) + parseInt(timeMatch[8]) / 1000;
+                const text = lines.slice(2).join('\n');
+
+                subtitles.push({ start: startTime, end: endTime, text });
+            }
+        }
+
+        console.log(subtitles)
+        return subtitles;
+    }
+
+    /**
+     * Load subtitle file for the video based on language
+     */
+    private async loadSubtitles(videoFilename: string): Promise<void> {
+        this.subtitles = [];
+        this.currentSubtitleIndex = -1;
+        this.subtitleText.setVisible(false);
+
+        const lang = localStorage.getItem("lang") || "en";
+        const videoName = videoFilename.replace(/\.[^/.]+$/, ""); // Remove extension
+        const subtitlePath = `/assets/i18n/${lang}/sub/${videoName}.srt`;
+
+        console.log(`Loading subtitles from: ${subtitlePath}`);
+
+        try {
+            const response = await fetch(subtitlePath);
+            if (response.ok) {
+                const srtContent = await response.text();
+                console.log(`Subtitle content loaded for ${videoName}:\n${srtContent}`);
+                this.subtitles = this.parseSRT(srtContent);
+                console.log(`Loaded ${this.subtitles.length} subtitles for ${videoName}`);
+            }
+        } catch (error) {
+            console.warn(`Could not load subtitles for ${videoName}:`, error);
+        }
+    }
+
+    /**
      * Carica un file video nel player.
      * @param filename - Il nome del file video da caricare (il video deve essere nella cartella /assets/videos/).
      * @param x - La posizione x dove posizionare il video.
@@ -142,6 +216,9 @@ class VideoPlayer extends Phaser.GameObjects.Container {
         this.playButton.setTexture("play", 0);
 
         this.video.once('complete', () => {this.scene.events.emit('video-ended', this.video?.texture.key);});
+
+        // Load subtitles for this video
+        this.loadSubtitles(filename);
     }
 
     /**
@@ -180,6 +257,37 @@ class VideoPlayer extends Phaser.GameObjects.Container {
         }
     }
 
+    // Subtitle Methods
+
+    /**
+     * Update the displayed subtitle based on current video time
+     */
+    private updateSubtitles(currentTime: number): void {
+        if (this.subtitles.length === 0) return;
+
+        // Find the subtitle that should be displayed at current time
+        let foundIndex = -1;
+        for (let i = 0; i < this.subtitles.length; i++) {
+            const sub = this.subtitles[i];
+            if (sub.start <= currentTime && currentTime <= sub.end) {
+                foundIndex = i;
+                break;
+            }
+        }
+
+        // Update display if subtitle changed
+        if (foundIndex !== this.currentSubtitleIndex) {
+            this.currentSubtitleIndex = foundIndex;
+            
+            if (foundIndex >= 0) {
+                this.subtitleText.setText(this.subtitles[foundIndex].text);
+                this.subtitleText.setVisible(true);
+            } else {
+                this.subtitleText.setVisible(false);
+            }
+        }
+    }
+
     // Event Handlers
 
     private updateProgressBar = () => {
@@ -189,6 +297,9 @@ class VideoPlayer extends Phaser.GameObjects.Container {
         const current = this.video.getCurrentTime();
         const percent = duration > 0 ? current / duration : 0;
         this.progressBar.width = 1280 * percent;
+
+        // Update subtitles
+        this.updateSubtitles(current);
 
         if (this.skipHoldStart !== undefined) {
             const held = this.scene.time.now - this.skipHoldStart;

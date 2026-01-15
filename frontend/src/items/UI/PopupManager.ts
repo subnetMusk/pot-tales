@@ -23,8 +23,9 @@ interface PopupPreset {
     allowKeyClose: boolean;
     typewriterEnabled: boolean;
     typewriterDelay: number;
-    typewriterMode: 'letter' | 'word';
     allowSkipTypewriter: boolean;
+    speakerName: string;
+    speakerNameColor: string;
 }
 
 // Configurazioni predefinite dei popup
@@ -53,7 +54,9 @@ const POPUP_PRESETS: Record<string, PopupPreset> = {
         allowKeyClose: true,
         typewriterEnabled: true,
         typewriterDelay: 20,
-        allowSkipTypewriter: true
+        allowSkipTypewriter: true,
+        speakerName: 'You',
+        speakerNameColor: '#000000'
     },
     dark: { // preset per il narratore, presentato come una figura oscura
         bgColor: 0x000000,
@@ -79,7 +82,9 @@ const POPUP_PRESETS: Record<string, PopupPreset> = {
         allowKeyClose: true,
         typewriterEnabled: true,
         typewriterDelay: 40,
-        allowSkipTypewriter: true
+        allowSkipTypewriter: true,
+        speakerName: '...',
+        speakerNameColor: '#ffffff'
     },
     hint: { // preset per suggerimenti e istruzioni
         bgColor: 0x2c3e50,
@@ -105,8 +110,38 @@ const POPUP_PRESETS: Record<string, PopupPreset> = {
         allowKeyClose: true,
         typewriterEnabled: false,
         typewriterDelay: 0,
-        allowSkipTypewriter: false
+        allowSkipTypewriter: false,
+        speakerName: 'Tutorial',
+        speakerNameColor: '#ffffff'
     },
+    minigame: { // preset per i popup di risposta ai minigiochi 
+        bgColor: 0x16a085, // verde acqua
+        bgAlpha: 0.85,
+        borderColor: 0x27ae60, // verde scuro
+        borderAlpha: 0.7,
+        textFontSize: '8px',
+        textColor: '#ffffff',
+        buttonWidth: 40,
+        buttonHeight: 10,
+        buttonBgColor: 0x27ae60,
+        buttonBorderColor: 0x1e8449,
+        buttonTextColor: '#ffffff',
+        padding: 6,
+        buttonMargin: -2.5,
+        minWidth: 60,
+        textWordWrapWidth: 200,
+        animationDuration: 200,
+        animationEase: 'Power2.easeOut',
+        closeAnimationDuration: 150,
+        closeAnimationEase: 'Power2.easeIn',
+        showButton: true,
+        allowKeyClose: true,
+        typewriterEnabled: true,
+        typewriterDelay: 20,
+        allowSkipTypewriter: true,
+        speakerName: 'System',
+        speakerNameColor: '#ffffff'
+    }
 };
 
 export default class PopupManager {
@@ -322,7 +357,7 @@ export default class PopupManager {
         }
 
         // Pre-calcola il word wrap per evitare overflow durante la digitazione
-        const wrappedMessage = this.preWrapText(fullMessage, preset.textWordWrapWidth - preset.textWordWrapPadding, preset.textFontSize);
+        const wrappedMessage = this.preWrapText(fullMessage, preset.textWordWrapWidth - preset.padding, preset.textFontSize);
         const textSegments = this.parseTextEffects(wrappedMessage);
         let segmentIndex = 0;
         let charIndex = 0;
@@ -430,6 +465,29 @@ export default class PopupManager {
         bg.strokeRect(-containerWidth/2, -containerHeight/2, containerWidth, containerHeight);
         bg.setScrollFactor(0, 0);
         
+        // Create speaker name box in top-left corner
+        const speakerBoxPadding = 2;
+        const speakerText = this.scene.add.text(0, 0, preset.speakerName, {
+            fontSize: '6px',
+            color: preset.speakerNameColor,
+            fontFamily: 'PixelifySans-VariableFont_wght',
+            resolution: 5,
+            align: 'center'
+        });
+        const speakerBoxWidth = speakerText.width + speakerBoxPadding * 2;
+        const speakerBoxHeight = speakerText.height + speakerBoxPadding * 2;
+        
+        const speakerBox = this.scene.add.graphics();
+        speakerBox.fillStyle(preset.borderColor, 1);
+        speakerBox.fillRect(-containerWidth/2 + 2, -containerHeight/2 - speakerBoxHeight, speakerBoxWidth, speakerBoxHeight);
+        speakerBox.lineStyle(1, preset.borderColor, preset.borderAlpha);
+        speakerBox.strokeRect(-containerWidth/2 + 2, -containerHeight/2 - speakerBoxHeight, speakerBoxWidth, speakerBoxHeight);
+        speakerBox.setScrollFactor(0, 0);
+        
+        speakerText.setPosition(-containerWidth/2 + speakerBoxPadding + 2, -containerHeight/2 - speakerBoxHeight + speakerBoxPadding);
+        speakerText.setOrigin(0, 0);
+        speakerText.setScrollFactor(0, 0);
+        
         // Riposiziona il testo al centro dell'area testo
         const textY = -containerHeight/2 + padding + textHeight/2;
         const textX = -containerWidth/2 + padding;
@@ -462,7 +520,7 @@ export default class PopupManager {
         }
         
         // Aggiungi tutto al container
-        const items: Phaser.GameObjects.GameObject[] = [bg, text];
+        const items: Phaser.GameObjects.GameObject[] = [bg, speakerBox, speakerText, text];
         if (okButton) items.push(okButton);
         if (okText) items.push(okText);
         popup.add(items);

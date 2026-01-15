@@ -22,18 +22,6 @@
             "y": 360
         },
         {
-            "prefabId": "c6fe7923-ccfe-42a4-9540-87e443b241d0",
-            "id": "8892535a-0006-43b5-9d95-d56803585ac4",
-            "unlock": [
-                "x",
-                "y"
-            ],
-            "label": "videoPlayer",
-            "scope": "CLASS",
-            "x": 0,
-            "y": 0
-        },
-        {
             "prefabId": "75c6733d-e056-42d2-b166-e4b1e0e10aac",
             "id": "0780658b-73f8-43c0-846c-db9cdb7176dd",
             "unlock": [

@@ -23,6 +23,7 @@ export type ValidateSessionRequest = z.infer<typeof ValidateSessionRequestSchema
 
 const ValidateSessionResponseSchema = z.object({
     state: z.enum(["active", "inactive", "absent"]),
+    session: z.string().uuid().optional(),
 }).strict();
 export type ValidateSessionResponse = z.infer<typeof ValidateSessionResponseSchema>;
 // ------------------

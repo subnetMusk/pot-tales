@@ -93,6 +93,25 @@
                     "isFilled": true,
                     "fillColor": "#a61200",
                     "height": 30
+                },
+                {
+                    "type": "Text",
+                    "id": "subtitle_text",
+                    "label": "subtitleText",
+                    "scope": "CLASS",
+                    "x": 640,
+                    "y": 630,
+                    "originX": 0.5,
+                    "originY": 0.5,
+                    "text": "",
+                    "visible": false,
+                    "fixedWidth": 1100,
+                    "align": "center",
+                    "fontFamily": "PixelifySans-VariableFont_wght",
+                    "fontSize": "28px",
+                    "color": "#ffffff",
+                    "stroke": "#000000",
+                    "strokeThickness": 4
                 }
             ]
         }
