@@ -73,7 +73,7 @@ class GraficoGame extends Phaser.Scene {
 		const i18n = this.cache.json.get("graficoGame_i18n");
 		applyTranslations(this, i18n);
 
-		//Popup per spiegare il gioco 
+		// Video introduttivo
 		this.popup = new PopupManager(this);
 		this.popup.queuePopup(i18n.welcome_1, "hint");
 		this.popup.queuePopup(i18n.welcome_2);
@@ -81,8 +81,6 @@ class GraficoGame extends Phaser.Scene {
 		this.popup.queuePopup(i18n.welcome_4);
 		this.popup.queuePopup(i18n.welcome_5_narrator, "dark");
 		this.popup.queuePopup(i18n.instructions, "hint");
-
-		// Video introduttivo
 
 		// Video come finestra sullo schermo del computer
 		const videoPlayer = new VideoPlayer(this, 0, 0);
@@ -109,6 +107,7 @@ class GraficoGame extends Phaser.Scene {
 					duration: 1000,
 					ease: 'Quad.easeInOut',
 					onComplete: () => {
+						//Popup per spiegare il gioco 
 						this.popup.showNextPopup();
 					}
 				});
@@ -147,20 +146,25 @@ class GraficoGame extends Phaser.Scene {
 
 			this.input.keyboard?.on('keydown-SPACE', () => {
 				//ferma scansione e valuta posizione
-				// console.log("SPAZIO premuto! Posizione rettangolo: " + this.rectangle_1.x);
+				// console.log("SPAZIO premuto! Posizione rettangolo: " + this.indicator.x);
 
 				if(this.time.now - this.lastPeakTime > 500 && !this.popup.isActive){
+					this.sound.play("pluck", {
+							volume: this.game.sound.volume * parseFloat(localStorage.getItem("sfxVolume") || "1")
+					});
+
 					this.lastPeakTime = this.time.now;
 					tween.pause();
 
 					let foundPeak = false;
 					for(let i = 0; i < this.picchi.length; i++){
 						if(this.indicator.x <= this.picchi[i].x+4 && this.indicator.x >= this.picchi[i].x-4	&&  this.picchi[i].found == false){
-							this.popup.queuePopup(risposte[i].text);
+							this.popup.queuePopup(risposte[i].text, "minigame");
+							if(i === 1) this.popup.queuePopup(i18n.peak_2_you);
 							this.popup.showNextPopup();
 
 							picchiTrovati++;
-							tween.timeScale *= 1.5;
+							tween.timeScale *= 1.2;
 
 							this.completionText.setText(picchiTrovati + " / " + this.picchi.length);
 
@@ -173,7 +177,7 @@ class GraficoGame extends Phaser.Scene {
 
 					if(!foundPeak){
 						const i18n = this.cache.json.get("graficoGame_i18n");
-						this.popup.queuePopup(i18n.miss);
+						this.popup.queuePopup(i18n.miss, "minigame");
 
 					}
 
@@ -192,6 +196,9 @@ class GraficoGame extends Phaser.Scene {
 
 	controllaPunteggio(picchiTrovati:number,tween:Phaser.Tweens.Tween){ 
 			if(picchiTrovati == this.picchi.length && !this.victoryShown){
+				this.sound.play("success", {
+						volume: this.game.sound.volume * parseFloat(localStorage.getItem("sfxVolume") || "1")
+				});
 
 				this.victoryShown = true;
 				tween.stop();

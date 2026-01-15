@@ -1,15 +1,31 @@
 1
-00:00:00,000 --> 00:00:07,500
-In a transmittance IR spectroscopy infrared light strikes the sample
+00:00:02,000 --> 00:00:07,500
+KBr is optically transparent to IR radiation and becomes plastic under pressure,
 
 2
-00:00:08,500 --> 00:00:16,000
-chemical bonds ‘retain’ the frequencies they need to vibrate
+00:00:08,000 --> 00:00:10,000
+forming a clear, glass-like disc.
 
 3
-00:00:17,000 --> 00:00:24,500
-By measuring what remains of the outgoing light, we obtain a map of the chemical bonds present 
+00:00:11,000 --> 00:00:16,500
+This allows for sample dilution to prevent signal saturation, 
 
 4
-00:00:25,500 --> 00:00:33,000
-This allows us to identify the structure of the substance
+00:00:17,000 --> 00:00:24,500
+ensuring IR light transmits through the pellet without interference from the matrix.
+
+5
+00:00:25,500 --> 00:00:30,500
+In a transmittance IR spectroscopy infrared light strikes the sample.
+
+6
+00:00:31,000 --> 00:00:35,500
+Chemical bonds ‘retain’ the frequencies they need to vibrate,
+
+7
+00:00:36,500 --> 00:00:40,500
+By measuring what remains of the outgoing light, we obtain a map of the chemical bonds present,
+
+8
+00:00:41,000 --> 00:00:43,000
+allowing us to identify the structure of the substance.

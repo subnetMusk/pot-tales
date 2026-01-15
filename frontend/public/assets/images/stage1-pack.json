@@ -2,6 +2,11 @@
     "section1": {
         "files": [
             {
+                "url": "frontend/public/assets/images/backgrounds/stage1.png",
+                "type": "image",
+                "key": "BG"
+            },
+            {
                 "url": "frontend/public/assets/images/items/black_mass.png",
                 "frameConfig": {
                     "frameWidth": 16,
@@ -46,6 +51,13 @@
                 "key": "lab_bg"
             },
             {
+                "url": [
+                    "frontend/public/assets/sfx/pluck.mp3"
+                ],
+                "type": "audio",
+                "key": "pluck"
+            },
+            {
                 "url": "frontend/public/assets/images/items/red_light.png",
                 "frameConfig": {
                     "frameWidth": 32,
@@ -59,9 +71,11 @@
                 "key": "red_light"
             },
             {
-                "url": "frontend/public/assets/images/backgrounds/stage1.png",
-                "type": "image",
-                "key": "BG"
+                "url": [
+                    "frontend/public/assets/sfx/success.mp3"
+                ],
+                "type": "audio",
+                "key": "success"
             }
         ]
     },
