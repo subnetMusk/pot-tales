@@ -47,5 +47,42 @@ func New(m *mongo.Client, rdb *redis.Client, v *middleware.Validator, ttlMin str
 		rdb,
 	)
 
+	// --- Health Check ---
+	r.Handle("/health", val.Handler(http.HandlerFunc(HealthHandler))).Methods("GET")
+
+	// --- Log Ingestion (Frontend -> Backend -> Elastic) ---
+	r.Handle("/log", val.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Decodifica veloce del log dal frontend
+		var payload struct {
+			Category string         `json:"category"`
+			Action   string         `json:"action"`
+			Details  map[string]any `json:"details"`
+			Level    string         `json:"level"`
+		}
+		if err := helpers.ReadJSON(r, &payload); err != nil {
+			return // Fail silently per non creare loop di errori
+		}
+
+		// Arricchiamo il contesto con 'frontend.app' come dataset
+		ctx := r.Context()
+		
+		// Usiamo il logger del backend per stampare questo evento su stdout
+		// Filebeat lo raccoglierà come se fosse un log del backend, ma taggato 'frontend'
+		// Nota: ridefiniamo event.dataset qui
+		if payload.Level == "error" {
+			helpers.LogError(ctx, payload.Category, payload.Action, fmt.Errorf("frontend_error"), payload.Details)
+		} else {
+			// Usiamo LogBusiness ma forziamo il dataset nei details se necessario o lo gestiamo nel logger
+			// Per semplicità, lo logghiamo come business event, aggiungendo un campo speciale
+			if payload.Details == nil {
+				payload.Details = make(map[string]any)
+			}
+			payload.Details["event.dataset"] = "frontend.app"
+			helpers.LogBusiness(ctx, payload.Category, payload.Action, payload.Details)
+		}
+
+		w.WriteHeader(http.StatusOK)
+	}))).Methods("POST")
+
 	return r
 }

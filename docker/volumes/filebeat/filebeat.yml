@@ -1,0 +1,25 @@
+filebeat.inputs:
+  - type: container
+    paths:
+      - /var/lib/docker/containers/*/*.log
+    processors:
+      - add_docker_metadata:
+          host: "unix:///var/run/docker.sock"
+      - decode_json_fields:
+          fields: ["message"]
+          target: "" # Espande il JSON del log (msg, trace_id, level) alla radice del documento Elastic
+          overwrite_keys: true # Sovrascrive campi standard se necessario (es. timestamp)
+          process_array: false
+          max_depth: 1
+
+output.elasticsearch:
+  hosts: ["https://es01:9200"]
+  username: "${ELASTICSEARCH_USERNAME}"
+  password: "${ELASTICSEARCH_PASSWORD}"
+  ssl.certificate_authorities: ["/usr/share/filebeat/certs/ca/ca.crt"]
+
+setup.kibana:
+  host: "http://kibana:5601"
+
+logging.json: true
+logging.metrics.enabled: false

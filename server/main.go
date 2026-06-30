@@ -9,7 +9,7 @@ package main
 
 import (
 	"context"
-	"log"
+	"log/slog"
 	"net/http"
 	"os"
 	"time"
@@ -37,6 +37,12 @@ func getenv(k, d string) string {
 func main() {
 	// 1. Configurazione Ambiente
 	port := getenv("PORT", "3000")
+	env := getenv("GO_ENV", "development")
+	serviceName := getenv("ELASTIC_APM_SERVICE_NAME", "go-backend")
+
+	// Inizializza il Logger Strutturato (JSON Protocol)
+	helpers.InitLogger(serviceName, env)
+
 	mongoURI := getenv("MONGO_URI", "mongodb://db:27017")
 	mongoDBName := getenv("MONGO_DB_NAME", "game_db") // Nome del DB esplicito
 	redisURL := getenv("REDIS_URL", "redis://redis:6379")
@@ -46,7 +52,7 @@ func main() {
 	// ma lo lasciamo se il router lo richiede ancora per altre logiche.
 	ttlMin := getenv("SESSION_TTL_MIN", "30")
 
-	log.Printf("APM Agent initialized for service: %s", getenv("ELASTIC_APM_SERVICE_NAME", "go-backend"))
+	slog.Info("APM Agent initialized", "service", serviceName)
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
@@ -57,17 +63,20 @@ func main() {
 		ApplyURI(mongoURI).
 		SetMonitor(apmmongo.CommandMonitor()))
 	if err != nil {
-		log.Fatalf("mongo: %v", err)
+		slog.Error("mongo connection failed", "error", err)
+		os.Exit(1)
 	}
 
 	// Redis Client
 	redisOpt, err := redis.ParseURL(redisURL)
 	if err != nil {
-		log.Fatalf("redis parse: %v", err)
+		slog.Error("redis parse failed", "error", err)
+		os.Exit(1)
 	}
 	redisClient := redis.NewClient(redisOpt)
 	if err := redisClient.Ping(ctx).Err(); err != nil {
-		log.Fatalf("redis ping: %v", err)
+		slog.Error("redis ping failed", "error", err)
+		os.Exit(1)
 	}
 
 	// 3. Inizializzazione Services (Business Logic Layer)
@@ -85,6 +94,9 @@ func main() {
 	// Passiamo i client al router (se servono per le logiche di gioco) e il validator configurato
 	r := router.New(mongoClient, redisClient, val, ttlMin)
 
-	log.Printf("server listening on :%s with APM monitoring", port)
-	log.Fatal(http.ListenAndServe(":"+port, apmgorilla.Middleware()(r)))
+	slog.Info("server listening with APM monitoring", "port", port)
+	if err := http.ListenAndServe(":"+port, apmgorilla.Middleware()(r)); err != nil {
+		slog.Error("server failed", "error", err)
+		os.Exit(1)
+	}
 }
