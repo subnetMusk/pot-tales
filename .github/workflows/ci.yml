@@ -1,0 +1,81 @@
+name: CI
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+permissions:
+  contents: read
+
+jobs:
+  backend:
+    name: Backend Go
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: server
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.22"
+          cache-dependency-path: server/go.sum
+      - run: go vet ./...
+      - run: go build ./...
+      - run: go test ./...
+
+  frontend:
+    name: Frontend / Sandbox build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "18"
+      - name: Build frontend
+        working-directory: frontend
+        run: |
+          npm ci
+          npm run build
+      - name: Install sandbox deps
+        working-directory: sandbox
+        run: npm ci
+
+  compose-lint:
+    name: Docker Compose validation
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate compose files
+        run: |
+          docker compose -f docker-compose.dev.yml config -q
+          docker compose -f docker-compose.monitoring.yml config -q
+
+  dockerfiles:
+    name: Hadolint Dockerfiles
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        dockerfile:
+          - server/Dockerfile
+          - frontend/Dockerfile
+          - sandbox/Dockerfile
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hadolint/hadolint-action@v3.1.0
+        with:
+          dockerfile: ${{ matrix.dockerfile }}
+          failure-threshold: error
+
+  secrets-scan:
+    name: Gitleaks secret scan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
