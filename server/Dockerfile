@@ -15,7 +15,7 @@ ENV GOPRIVATE=github.com/subnetMusk/progetti_innovativi
 WORKDIR /src
 
 # Copia i file mod e installa le dipendenze in cache e Air nel GOPATH
-COPY go.mod go.sum .
+COPY go.mod go.sum ./
 RUN --mount=type=cache,target=/go/pkg/mod \
     go mod download && \
     go install github.com/cosmtrek/air@v1.52.0
