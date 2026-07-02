@@ -74,6 +74,9 @@ jobs:
   secrets-scan:
     name: Gitleaks secret scan
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read # gitleaks-action lista i commit della PR via API
     steps:
       - uses: actions/checkout@v4
         with:
