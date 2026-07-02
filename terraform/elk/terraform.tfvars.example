@@ -1,0 +1,9 @@
+# Copia in terraform.tfvars e compila (NON committare terraform.tfvars).
+elastic_password  = "VALORE_DI_ELASTIC_PASSWORD_NEL_TUO_ENV"
+filebeat_password = "GENERA_UNA_PASSWORD_DEDICATA"
+apm_secret_token  = "VALORE_DI_APM_SECRET_TOKEN_NEL_TUO_ENV"
+
+# In dev, per raggiungere es01 da fuori Docker, pubblica temporaneamente la
+# porta 9200 di es01 oppure esegui terraform da un container su internal_net.
+# elasticsearch_endpoint = "https://localhost:9200"
+# kibana_endpoint        = "http://kibana.localhost"

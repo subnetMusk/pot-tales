@@ -1,0 +1,4 @@
+# Copia in terraform.tfvars e compila con i valori reali (NON committare terraform.tfvars).
+hcloud_token   = "INSERISCI_IL_TOKEN_HCLOUD"
+ssh_public_key = "ssh-ed25519 AAAA... tua@chiave"
+admin_ip       = "1.2.3.4/32"   # il tuo IP per limitare SSH
