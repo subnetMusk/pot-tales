@@ -18,8 +18,8 @@ RUN npm run build
 
 # Stage 2: serve i file statici con Nginx
 FROM nginx:alpine
-# Rimuove la configurazione default di Nginx (opzionale, ma consigliato)
-RUN rm /etc/nginx/conf.d/default.conf
+# Sostituisce la conf di default con una che serve la SPA (fallback su index.html)
+COPY nginx.conf /etc/nginx/conf.d/default.conf
 
 # Copia i file statici generati nella directory servita da Nginx
 COPY --from=builder /app/dist /usr/share/nginx/html

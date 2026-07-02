@@ -2,12 +2,12 @@
     "section1": {
         "files": [
             {
-                "url": "frontend/public/assets/images/backgrounds/stage1.png",
+                "url": "assets/images/backgrounds/stage1.png",
                 "type": "image",
                 "key": "BG"
             },
             {
-                "url": "frontend/public/assets/images/items/black_mass.png",
+                "url": "assets/images/items/black_mass.png",
                 "frameConfig": {
                     "frameWidth": 16,
                     "frameHeight": 16,
@@ -21,44 +21,44 @@
             },
             {
                 "url": [
-                    "frontend/public/assets/sfx/dripping_water.mp3"
+                    "assets/sfx/dripping_water.mp3"
                 ],
                 "type": "audio",
                 "key": "dripping_water"
             },
             {
                 "url": [
-                    "frontend/public/assets/sfx/earthquake.mp3"
+                    "assets/sfx/earthquake.mp3"
                 ],
                 "type": "audio",
                 "key": "earthquake"
             },
             {
-                "url": "frontend/public/assets/images/ui/IR-Spectra/STR_4963.png",
+                "url": "assets/images/ui/IR-Spectra/STR_4963.png",
                 "type": "image",
                 "key": "grafico"
             },
             {
                 "url": [
-                    "frontend/public/assets/sfx/keyboard.mp3"
+                    "assets/sfx/keyboard.mp3"
                 ],
                 "type": "audio",
                 "key": "keyboard"
             },
             {
-                "url": "frontend/public/assets/images/backgrounds/laboratory.png",
+                "url": "assets/images/backgrounds/laboratory.png",
                 "type": "image",
                 "key": "lab_bg"
             },
             {
                 "url": [
-                    "frontend/public/assets/sfx/pluck.mp3"
+                    "assets/sfx/pluck.mp3"
                 ],
                 "type": "audio",
                 "key": "pluck"
             },
             {
-                "url": "frontend/public/assets/images/items/red_light.png",
+                "url": "assets/images/items/red_light.png",
                 "frameConfig": {
                     "frameWidth": 32,
                     "frameHeight": 32,
@@ -72,7 +72,7 @@
             },
             {
                 "url": [
-                    "frontend/public/assets/sfx/success.mp3"
+                    "assets/sfx/success.mp3"
                 ],
                 "type": "audio",
                 "key": "success"

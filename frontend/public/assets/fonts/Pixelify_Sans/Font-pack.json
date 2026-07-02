@@ -2,7 +2,7 @@
     "section1": {
         "files": [
             {
-                "url": "frontend/public/assets/fonts/Pixelify_Sans/PixelifySans-VariableFont_wght.ttf",
+                "url": "assets/fonts/Pixelify_Sans/PixelifySans-VariableFont_wght.ttf",
                 "format": "truetype",
                 "descriptors": {},
                 "type": "font",

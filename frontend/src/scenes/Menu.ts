@@ -286,7 +286,7 @@ class Menu extends Phaser.Scene {
 				fadeElements(this.uI, false, 1000, () => {
 					this.cameras.main.zoomTo(1.5, 1000);
 					this.cameras.main.fadeOut(1000, 0, 0, 0);
-					this.cameras.main.once('camerafadeoutcomplete', () => {this.scene.start("Tutorial");});
+					this.cameras.main.once('camerafadeoutcomplete', () => {this.scene.start("Stage1");});
 				});
 			});
 			this.resume_button.on('pointerover', () => {this.resume_button.setStrokeStyle(4, 0x70bcff);});

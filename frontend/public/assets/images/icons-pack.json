@@ -2,17 +2,17 @@
     "section1": {
         "files": [
             {
-                "url": "frontend/public/assets/images/ui/back.png",
+                "url": "assets/images/ui/back.png",
                 "type": "image",
                 "key": "back"
             },
             {
-                "url": "frontend/public/assets/images/ui/default.png",
+                "url": "assets/images/ui/default.png",
                 "type": "image",
                 "key": "default"
             },
             {
-                "url": "frontend/public/assets/images/ui/fullscreen.png",
+                "url": "assets/images/ui/fullscreen.png",
                 "frameConfig": {
                     "frameWidth": 64,
                     "frameHeight": 64,
@@ -25,17 +25,17 @@
                 "key": "fullscreen"
             },
             {
-                "url": "frontend/public/assets/images/ui/gallery-button.png",
+                "url": "assets/images/ui/gallery-button.png",
                 "type": "image",
                 "key": "gallery"
             },
             {
-                "url": "frontend/public/assets/images/ui/leaderboard-button.png",
+                "url": "assets/images/ui/leaderboard-button.png",
                 "type": "image",
                 "key": "leaderboard"
             },
             {
-                "url": "frontend/public/assets/images/ui/play-button.png",
+                "url": "assets/images/ui/play-button.png",
                 "frameConfig": {
                     "frameWidth": 32,
                     "frameHeight": 32,
@@ -48,12 +48,12 @@
                 "key": "play"
             },
             {
-                "url": "frontend/public/assets/images/ui/settings-button.png",
+                "url": "assets/images/ui/settings-button.png",
                 "type": "image",
                 "key": "settings"
             },
             {
-                "url": "frontend/public/assets/images/ui/spacebar.png",
+                "url": "assets/images/ui/spacebar.png",
                 "frameConfig": {
                     "frameWidth": 64,
                     "frameHeight": 64,
@@ -66,12 +66,12 @@
                 "key": "spacebar"
             },
             {
-                "url": "frontend/public/assets/images/ui/title.png",
+                "url": "assets/images/ui/title.png",
                 "type": "image",
                 "key": "title"
             },
             {
-                "url": "frontend/public/assets/images/backgrounds/tunnel.png",
+                "url": "assets/images/backgrounds/tunnel.png",
                 "frameConfig": {
                     "frameWidth": 64,
                     "frameHeight": 64,
@@ -84,7 +84,7 @@
                 "key": "tunnel_1"
             },
             {
-                "url": "frontend/public/assets/images/ui/volume.png",
+                "url": "assets/images/ui/volume.png",
                 "type": "image",
                 "key": "volume"
             }

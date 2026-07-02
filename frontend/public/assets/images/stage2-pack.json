@@ -2,12 +2,12 @@
     "section1": {
         "files": [
             {
-                "url": "frontend/public/assets/images/backgrounds/bg-stage2.png",
+                "url": "assets/images/backgrounds/bg-stage2.png",
                 "type": "image",
                 "key": "bg-stage2"
             },
             {
-                "url": "frontend/public/assets/images/ui/card.png",
+                "url": "assets/images/ui/card.png",
                 "frameConfig": {
                     "frameWidth": 24,
                     "frameHeight": 32,

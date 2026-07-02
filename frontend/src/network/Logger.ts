@@ -18,7 +18,7 @@ export interface LogDetails {
 
 class LoggerService {
   private static instance: LoggerService;
-  private readonly apiUrl = '/api/log';
+  private readonly apiUrl = '/log';
 
   private constructor() {
     // APM è già inizializzato nell'import

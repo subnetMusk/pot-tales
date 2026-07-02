@@ -3,7 +3,7 @@ import PopupManager from "../items/UI/PopupManager";
 
 /* START OF COMPILED CODE */
 
-class GraficoGame extends Phaser.Scene {
+class Microscopio extends Phaser.Scene {
 
     constructor() {
         super("Microscopio");
@@ -77,5 +77,5 @@ class GraficoGame extends Phaser.Scene {
 }
 
 /* END OF COMPILED CODE */
-export default GraficoGame;
+export default Microscopio;
 // You can write more code here

@@ -10,11 +10,13 @@ COPY package*.json vite.config.ts ./
 # 4. Installazione delle dipendenze in modo deterministico
 RUN npm ci
 
-# 5. Copia dei file pubblici (index.html, scripts/, sb-resources/)
+# 5. Copia sorgenti e file pubblici
+COPY index.html ./
+COPY src src
 COPY public public
 
 # 6. Espone la porta del Vite Dev Server
 EXPOSE 5173
 
 # 7. Comando di avvio: Vite in modalità development con HMR
-CMD ["npm", "run", "dev"]
+CMD ["npm", "run", "dev", "--", "--host", "0.0.0.0"]

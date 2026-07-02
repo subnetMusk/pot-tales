@@ -115,7 +115,7 @@ export class APISession {
 
         if (!response.ok) {
             if (response.status === 401) {
-                console.log("COD 401");
+                return { state: "absent" };
             }
             console.error(`Errore HTTP (validate): ${response.status} ${response.statusText}`);
             throw new Error(`Errore server: ${response.status}`);
