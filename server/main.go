@@ -37,7 +37,9 @@ func getenv(k, d string) string {
 func main() {
 	// 1. Configurazione Ambiente
 	port := getenv("PORT", "3000")
-	env := getenv("GO_ENV", "development")
+	// GO_ENV non è impostato dal compose: ripieghiamo su ELASTIC_APM_ENVIRONMENT
+	// (development/production) così l'etichetta service.environment nei log è corretta.
+	env := getenv("GO_ENV", getenv("ELASTIC_APM_ENVIRONMENT", "development"))
 	serviceName := getenv("ELASTIC_APM_SERVICE_NAME", "go-backend")
 
 	// Inizializza il Logger Strutturato (JSON Protocol)

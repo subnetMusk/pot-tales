@@ -39,7 +39,7 @@ var appRoutes = []RouteConfig{
 
 	// --- Game Feature ---
 	{http.MethodGet, "/game/position", "public/game/position.req.json", true},
-	{http.MethodPost, "/game/timer", "public/game/timer.req.json", true},
+	{http.MethodGet, "/game/timer", "public/game/timer.req.json", true},
 
 	// --- Health Feature ---
 	{http.MethodGet, "/health", "public/health/health.req.json", false},
