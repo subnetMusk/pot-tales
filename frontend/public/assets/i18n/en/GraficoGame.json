@@ -1,0 +1,16 @@
+{
+    "intro_1": "I do remember this..|| here we were preparing the samples, it was quite hard..",
+    "welcome_1": "Welcome to the beautiful||, phantasmagorical || **infrared mini-game!**",
+    "welcome_2": "Wow you really are all very enthusiastic here || … very 2004..",
+    "welcome_3_narrator": "Marvel at the <<cutting-edge technology<<, point the IR laser and || <<vibe with the bonds|<<",
+    "welcome_4": "... Is this a joke?!? || Is this really the **best** joke you had about such a complex technique?",
+    "welcome_5_narrator": "Well.. |||| yes..",
+    "instructions": "Press 'space' when the bar is on the lowest peaks",
+    "peak_1": "Right! This peak corresponds to OH stretching, which could be anything containing water and/or hydroxyls, including clays.",
+    "peak_2": "Correct! This peak corresponds to aromatic C=C stretching / carboxylates. ",
+    "peak_2_you": "Aromatic? But.. isn't this ceramics?",
+    "peak_3": "Amazing! Stretching Si—O—Si (Silicates)! Corresponds to the silicon-oxygen bonds in the crystal lattice of fired clays.",
+    "miss": "Too bad, you didn't identify the correct peak.|| Try again!",
+    "victory": "Congratulations!|| You found all the peaks of the graph and completed the game!",
+    "returning_1": "What's happening now???"
+}

@@ -11,9 +11,9 @@ class BackButton extends Phaser.GameObjects.Image {
 		/* START-USER-CTR-CODE */
 		// Write your code here.
 		this.setInteractive()
-			.on('pointerdown', () => this.setTint(0x00aaff))
+			.on('pointerdown', () => this.setTint(0xbababa))
 			.on('pointerup', () => this.scene.scene.start('Menu'))
-			.on('pointerover', () => this.setTint(0x70bcff))
+			.on('pointerover', () => this.setTint(0xbdbdbd))
 			.on('pointerout', () => this.clearTint());
 		/* END-USER-CTR-CODE */
 	}

@@ -1,5 +1,7 @@
-import { i } from "vite/dist/node/types.d-aGj9QkWt";
 import PopupManager from "../items/UI/PopupManager";
+import { applyTranslations } from "../utils";
+import VideoPlayer from "../items/UI/VideoPlayer";
+
 // You can write more code here
 
 /* START OF COMPILED CODE */
@@ -17,14 +19,17 @@ class GraficoGame extends Phaser.Scene {
 	editorCreate(): void {
 
 		// graficoEx
-		const graficoEx = this.add.image(640, 360, "graficoEx");
-		graficoEx.scaleX = 0.2;
-		graficoEx.scaleY = 0.2;
+		const graficoEx = this.add.image(640, 360, "grafico");
+		graficoEx.alpha = 0;
+		this.graficoEx = graficoEx;
 
-		// rectangle_1
-		this.rectangle_1 = this.add.rectangle(561, 360, 1, 80);
-		this.rectangle_1.isFilled = true;
-		this.rectangle_1.fillColor = 13633030;
+		// completion text
+		this.completionText = this.add.text(750, 280, "", {});
+		this.completionText.setStyle({ "align": "center", "color": "#000000", "fontFamily": "PixelifySans-VariableFont_wght", "fontSize": "10px", "resolution": "5" });
+		this.completionText.setOrigin(0, 0.5);
+
+		// indicator
+		this.indicator = this.add.rectangle(532, 349.4, 2, 162.6, 13633030);
 
 		this.events.emit("scene-awake");
 	}
@@ -32,149 +37,203 @@ class GraficoGame extends Phaser.Scene {
 	/* START-USER-CODE */
 
 	private popup!: PopupManager;
-	private rectangle_1!: Phaser.GameObjects.Rectangle;
+	private graficoEx!: Phaser.GameObjects.Image;
+	private indicator!: Phaser.GameObjects.Rectangle;
+	private completionText!: Phaser.GameObjects.Text;
+
+	private picchi :{ x:number, found:boolean}[] = [
+		{ x: 575, found: false },
+		{ x: 701.5, found: false },
+		{ x: 740, found: false }
+	];
+
+	// Attributo che evita lo spam di picchi trovati
+	private lastPeakTime: number = 0;
+
+	// Attributo che evita di mostrare più volte il messaggio di vittoria
+	private victoryShown: boolean = false;
 
 
 	// Write your code here
 
+	preload() {
+		const lang = localStorage.getItem("lang") || "en";
+		this.load.json("graficoGame_i18n", `assets/i18n/${lang}/GraficoGame.json`);
+	}
+
 	create() {
 
 		this.editorCreate();
-		this.cameras.main.setZoom(5);
-		const picchi :{ x:number, found:boolean}[] = [
-			{ x: 624, found: false },
-			{ x: 200, found: false },
-			{ x: 300, found: false },
-			{ x: 400, found: false }
-		];
 
-		const risposte:{text : string}[] = [
-			{ text: "Risposta 1" },
-			{ text: "Risposta 2" },
-			{ text: "Risposta 3" },
-			{ text: "Risposta 4" }
-		];
+		this.completionText.setText("0 / " + this.picchi.length);
+		// Start zoomed out so the scene is invisible
+		this.cameras.main.setZoom(0.695);
 
+		// Applicazione delle traduzioni
+		const i18n = this.cache.json.get("graficoGame_i18n");
+		applyTranslations(this, i18n);
 
+		// Video introduttivo
 		this.popup = new PopupManager(this);
-		const lunghezzaMax = 180; // Valore massimo del grafico 
-		let picchiTrovati = 0;
+		this.popup.queuePopup(i18n.welcome_1, "hint");
+		this.popup.queuePopup(i18n.welcome_2);
+		this.popup.queuePopup(i18n.welcome_3_narrator, "dark");
+		this.popup.queuePopup(i18n.welcome_4);
+		this.popup.queuePopup(i18n.welcome_5_narrator, "dark");
+		this.popup.queuePopup(i18n.instructions, "hint");
 
-		//popup per spiegare il gioco 
+		// Video come finestra sullo schermo del computer
+		const videoPlayer = new VideoPlayer(this, 0, 0);
+		this.add.existing(videoPlayer);
 
-		this.popup.queuePopup("Benvenuto nel gioco del grafico!,In questo gioco, dovrai trovare i materiali più usati, rappresentati dai picchi del grafico.");
-		this.popup.queuePopup("premi il tasto 'invio' per avviare la scansione, e premi 'spazio' quando la barra si trova sul picco maggiore");
-		this.popup.showNextPopup();
-		let tween: Phaser.Tweens.Tween;
+		videoPlayer.loadVideo("IR.mp4", "fill");
+		videoPlayer.play();
+		this.events.on('video-ended', () => {
+			this.time.delayedCall(750, () => {
+				videoPlayer.destroy();
+				this.cameras.main.alpha = 0;
 
+				this.tweens.add({
+					targets: this.graficoEx,
+					alpha: 1,
+					duration: 1000,
+					ease: 'Quad.easeInOut'
+				});
 
-		if (this.input.keyboard) {
-			console.log("Impostando i listener per i tasti...");
-			this.input.keyboard.on('keydown-ENTER', () => {
-				//avvia scansione con animazione visibile
-				let startX = this.rectangle_1.x;
-				let endX = startX + lunghezzaMax;
-
-				this.input.keyboard?.off('keydown-ENTER');
-
-				 tween = this.tweens.add({
-					targets: this.rectangle_1,
-					x: endX,
-					duration: 4000,
-					ease: 'linear',
-					yoyo: true,
-					loop: -1,
-					//deve accelerare e decelerare
+				this.tweens.add({
+					targets: this.cameras.main,
+					zoom: 2.5,
+					alpha: 1,
+					duration: 1000,
+					ease: 'Quad.easeInOut',
 					onComplete: () => {
-						console.log("Scansione completata!");
+						//Popup per spiegare il gioco 
+						this.popup.showNextPopup();
 					}
 				});
 			});
+		});
 
-			this.input.keyboard.on('keydown-SPACE', () => {
-				//ferma scansione e valuta posizione
-				console.log("SPAZIO premuto! Posizione rettangolo: " + this.rectangle_1.x);
-				tween.pause();
-				if(this.rectangle_1.x <= picchi[0].x+4 && this.rectangle_1.x >= picchi[0].x-4	&&  picchi[0].found == false){
-					this.popup.queuePopup("Ottimo lavoro! Hai individuato il picco corretto corrispondente a " + risposte[0].text);
-					picchiTrovati++;
-					picchi[0].found = true;
-					
-				}else if(this.rectangle_1.x <= picchi[1].x+4 && this.rectangle_1.x >= picchi[1].x-4	&&  picchi[1].found == false){
-					this.popup.queuePopup("Ottimo lavoro! Hai individuato il picco corretto corrispondente a " + risposte[1].text);
-					picchiTrovati++;
-					picchi[1].found = true;
-					
-				}else if(this.rectangle_1.x <= picchi[2].x+4 && this.rectangle_1.x >= picchi[2].x-4	&&  picchi[2].found == false){
-					this.popup.queuePopup("Ottimo lavoro! Hai individuato il picco corretto corrispondente a " + risposte[2].text);
-					picchiTrovati++;
-					picchi[2].found = true;
-					
-				}else if(this.rectangle_1.x <= picchi[3].x+4 && this.rectangle_1.x >= picchi[3].x-4	&&  picchi[3].found == false){
-					this.popup.queuePopup("Ottimo lavoro! Hai individuato il picco corretto corrispondente a " + risposte[3].text);
-					picchiTrovati++;
-					picchi[3].found = true;
-					
-				}else {
-					this.popup.queuePopup("Peccato, non hai individuato il picco corretto. Riprova!");
+		const risposte:{text : string}[] = [
+			{ text: i18n.peak_1 },
+			{ text: i18n.peak_2 },
+			{ text: i18n.peak_3 }
+		];
 
+
+		const lunghezzaMax = 253; // Valore massimo del grafico 
+		let picchiTrovati = 0;
+		let tween: Phaser.Tweens.Tween;
+
+		this.popup.on("queueEmpty", () => {
+			let startX = this.indicator.x;
+			let endX = startX + lunghezzaMax;
+
+			this.input.keyboard?.off('keydown-ENTER');
+
+			tween = this.tweens.add({
+				targets: this.indicator,
+				x: endX,
+				duration: 4000,
+				ease: 'linear',
+				yoyo: true,
+				loop: -1,
+				//deve accelerare e decelerare
+				onComplete: () => {
+					// console.log("Scansione completata!");
 				}
-				this.popup.showNextPopup();
-				this.popup.on("popupClosed", () => {
-					this.controllaPunteggio(picchiTrovati,tween);
-					tween.resume();
-				});
-
-				
-
-				
 			});
 
-			
-		}
+			this.input.keyboard?.on('keydown-SPACE', () => {
+				//ferma scansione e valuta posizione
+				// console.log("SPAZIO premuto! Posizione rettangolo: " + this.indicator.x);
 
+				if(this.time.now - this.lastPeakTime > 500 && !this.popup.isActive){
+					this.sound.play("pluck", {
+							volume: this.game.sound.volume * parseFloat(localStorage.getItem("sfxVolume") || "1")
+					});
+
+					this.lastPeakTime = this.time.now;
+					tween.pause();
+
+					let foundPeak = false;
+					for(let i = 0; i < this.picchi.length; i++){
+						if(this.indicator.x <= this.picchi[i].x+4 && this.indicator.x >= this.picchi[i].x-4	&&  this.picchi[i].found == false){
+							this.popup.queuePopup(risposte[i].text, "minigame");
+							if(i === 1) this.popup.queuePopup(i18n.peak_2_you);
+							this.popup.showNextPopup();
+
+							picchiTrovati++;
+							tween.timeScale *= 1.2;
+
+							this.completionText.setText(picchiTrovati + " / " + this.picchi.length);
+
+							this.picchi[i].found = true;
+							foundPeak = true;
+
+							break;
+						}
+					}
+
+					if(!foundPeak){
+						const i18n = this.cache.json.get("graficoGame_i18n");
+						this.popup.queuePopup(i18n.miss, "minigame");
+
+					}
+
+					this.popup.showNextPopup();
+					this.popup.on("queueEmpty", () => {
+						this.controllaPunteggio(picchiTrovati,tween);
+						tween.resume();
+					});
+				}
+			});
+		});
 	
-		console.log("GraficoGame scene created");
+		// console.log("GraficoGame scene created");
 
 	}
 
-	 controllaPunteggio(picchiTrovati:number,tween:Phaser.Tweens.Tween){ 
-			if(picchiTrovati == 1){
+	controllaPunteggio(picchiTrovati:number,tween:Phaser.Tweens.Tween){ 
+			if(picchiTrovati == this.picchi.length && !this.victoryShown){
+				this.sound.play("success", {
+						volume: this.game.sound.volume * parseFloat(localStorage.getItem("sfxVolume") || "1")
+				});
+
+				this.victoryShown = true;
 				tween.stop();
-				this.popup.queuePopup("Complimenti! Hai trovato tutti i picchi del grafico e completato il gioco!");
-					console.log("Hai vinto il gioco!");
 
-						// Fireworks effect 
-						//TODO sistemare l'effetto provvisorio fatto da copilot
-						const fireworksCount = 22;
-						for (let f = 0; f < fireworksCount; f++) {
-							this.time.delayedCall(f * 100, () => {
-								const x = Phaser.Math.Between(200, 1080);
-								const y = Phaser.Math.Between(100, 400);
+				const i18n = this.cache.json.get("graficoGame_i18n");
+				this.popup.queuePopup(i18n.victory, "dark");
+				this.popup.on("queueEmpty", () => {
+					this.events.emit("grafico-complete");
+				});
+				this.popup.showNextPopup();
 
-								for (let i = 0; i < 16; i++) {
-									const particle = this.add.text(x, y, '✨', { fontSize: '12px' });
-									const angle = (i / 16) * Math.PI * 2;
-									const distance = 200;
+				// Fireworks effect 
+				const fireworksCount = 50;
+				for (let f = 0; f < fireworksCount; f++) {
+					this.time.delayedCall(f * 100, () => {
+						const x = Phaser.Math.Between(425, 850);
+						const y = Phaser.Math.Between(200, 500);
 
-									this.tweens.add({
-										targets: particle,
-										x: x + Math.cos(angle) * distance,
-										y: y + Math.sin(angle) * distance,
-										alpha: 0,
-										duration: 1200,
-										ease: 'Quad.easeOut',
-										onComplete: () => particle.destroy()
-									});
-								}
+						for (let i = 0; i < 6; i++) {
+							const particle = this.add.text(x, y, '✨', { fontSize: '24px' });
+							const angle = (i / 6) * Math.PI * 2;
+							const distance = 75;
+
+							this.tweens.add({
+								targets: particle,
+								x: x + Math.cos(angle) * distance,
+								y: y + Math.sin(angle) * distance,
+								alpha: 0,
+								duration: 2000,
+								ease: 'Quad.easeOut',
+								onComplete: () => particle.destroy()
 							});
 						}
-
-						this.cameras.main.shake(500, 0.001);
-						this.time.delayedCall(3000, () => {
-							// Emetti un evento di vittoria SUBITO
-							this.events.emit('memory-complete');
-						});
+					});
+				}
 			}
 		}
 

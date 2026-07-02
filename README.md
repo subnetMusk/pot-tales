@@ -1,348 +1,98 @@
-# Progetti Innovativi – Piattaforma Gioco HTML5
+# Progetti Innovativi — Piattaforma Gioco HTML5
 
-Questo progetto implementa un'infrastruttura completa per lo sviluppo e deployment di un gioco HTML5 singleplayer, con un'architettura di microservizi che include monitoring, logging e gestione utenti avanzata.
+Gioco HTML5 singleplayer (Phaser 3 + TypeScript/Vite) con backend Go, persistenza
+MongoDB/Redis e stack di osservabilità Elastic (Elasticsearch, Kibana, APM, Filebeat),
+il tutto orchestrato con Docker Compose e Traefik come reverse proxy.
 
-> 🆕 **Sistema di Pulizia Aggiornato**: Il progetto ora utilizza un [Sistema di Pulizia Centralizzato](scripts/CLEANUP_SYSTEM.md) intelligente con backup automatici e modalità multiple. I vecchi script `production-cleanup.sh` e `clean_build.sh` sono stati sostituiti da `cleanup.sh` più potente e sicuro.
+## Architettura
 
-## 🎮 Architettura del Sistema
+| Componente | Tecnologia | Ruolo |
+|---|---|---|
+| Frontend | Phaser 3, TypeScript, Vite | Gioco singleplayer, build statica servita da NGINX |
+| Sandbox | Vite dev server | Ambiente di prototipazione meccaniche (solo dev) |
+| Backend | Go (Gorilla Mux) | API sessioni, stato di gioco, ingest log; validazione via JSON Schema |
+| Database | MongoDB | Profili, sessioni, stato di gioco |
+| Cache | Redis (con ACL) | Sessioni e stato temporaneo |
+| Proxy | Traefik v3 | Routing dichiarativo via file provider |
+| Monitoring | Elasticsearch, Kibana, APM, Filebeat, Fleet | Log, metriche, tracing |
 
-### **Game Frontend**
-- **HTML5 Game Engine**: Frontend TypeScript/Vite per gioco singleplayer interattivo
-- **Sandbox Environment**: Ambiente di sviluppo isolato per testing delle meccaniche
-- **Asset Management**: Gestione dinamica di sprite, audio e risorse di gioco
+Lo stack è diviso in due Compose: `docker-compose.dev.yml` (applicazione) e
+`docker-compose.monitoring.yml` (Elastic). Vedi [MONITORING_SETUP.md](MONITORING_SETUP.md).
 
-### **Backend Game Services**
-- **Game API**: Server Go con gestione progressi giocatore, salvataggi e leaderboard
-- **Session Management**: Gestione sessioni di gioco persistenti
-- **Schema Validation**: Sistema di validazione richieste tramite JSON Schema
+> Nota: `docker-compose.prod.yml` è attualmente obsoleto (risale all'era Node).
+> Va riallineato prima di un deploy reale — vedi l'avviso in testa al file.
 
-### **Game Data & Cache**
-- **MongoDB**: Database principale per profili giocatore, progressi e configurazioni
-- **Redis**: Cache ad alta velocità per sessioni e stato temporaneo di gioco
-- **Persistent Storage**: Salvataggio automatico progressi e achievement
+## Requisiti
 
-### **Infrastructure & Monitoring**
-- **Elasticsearch**: Centralizzazione log di gioco e analytics comportamentali
-- **Kibana**: Dashboard per monitoraggio performance e analytics giocatore
-- **APM Server**: Monitoring performance lato server per ottimizzazione gameplay
-- **Fluent Bit**: Aggregazione log da tutti i servizi di gioco
-- **Elastic Agent**: Monitoring infrastruttura e resource usage
+- Docker 20.10+ e Docker Compose 2.0+
+- Node.js 18+ (per build/locali; il toolchain Vite 5 non gira su Node < 18)
+- Almeno 4 GB di RAM per Elasticsearch
 
-### **Networking & Proxy**
-- **NGINX Proxy Manager**: Load balancing e SSL per domini di gioco
-- **Network Segmentation**: Isolamento traffico per sicurezza e performance
-- **CDN Ready**: Configurazione ottimizzata per distribuzione globale
-
-## 🛠 Requisiti
-
-- Docker 20.10+
-- Docker Compose 2.0+
-- Node.js 18+ (per build locali)
-- Almeno 4GB RAM per Elasticsearch e cache di gioco
-
----
-
-## ⚙️ Sviluppo
-
-Per avviare l'ambiente di sviluppo completo:
+## Avvio sviluppo
 
 ```bash
-./scripts/dev-reinstall.sh
+# 1. Applicazione (crea anche le reti condivise)
+docker compose -f docker-compose.dev.yml up -d
+
+# 2. (opzionale) Monitoring Elastic
+./scripts/start-monitoring.sh
 ```
 
-Questo script:
-- Reinstalla tutte le dipendenze
-- Builda frontend di gioco e sandbox di sviluppo
-- Configura database e cache per testing
-- Avvia tutti i servizi di monitoring
-- Configura proxy per accesso locale
-
----
-
-## 🚀 Produzione
-
-### **Pulizia Pre-Produzione**
-
-⚠️ **Prima del deployment produzione**, esegui la pulizia selettiva dei dati di sviluppo:
-
-```bash
-./scripts/cleanup.sh --production
-```
-
-Questo comando:
-- **Backup automatico** di tutte le configurazioni critiche
-- **Rimuove solo dati di sviluppo**: Database giocatori, log, cache di testing
-- **Preserva tutto il resto**: Domini, SSL, configurazioni servizi, dashboard Kibana
-- **Verifica integrità** configurazioni dopo la pulizia
-- **Output dettagliato** con conferme di sicurezza
-
-### **Deployment Produzione**
-
-Per il deployment in produzione:
-
-```bash
-./scripts/prod-rebuild.sh
-```
-
-Questo script:
-- Pulisce completamente l'ambiente di sviluppo
-- Builda il frontend in modalità produzione ottimizzata
-- Avvia i servizi usando `docker-compose.prod.yml` (senza sandbox)
-- Configura monitoring completo per analytics
-- Ottimizza performance per carico multi-utente
-
-**Workflow completo produzione**:
-1. `./scripts/cleanup.sh --production` - Pulizia selettiva dati sviluppo
-2. `./scripts/check-persistent-config.sh` - Verifica configurazioni
-3. `./scripts/prod-rebuild.sh` - Deploy ottimizzato
-
-> 💡 **Nuovo Sistema**: Usa il [Sistema di Pulizia Centralizzato](scripts/CLEANUP_SYSTEM.md) per gestione avanzata e backup automatici
-
-**Nota**: Lo script utilizza la configurazione produzione che esclude il sandbox di sviluppo e include ottimizzazioni specifiche per performance.
-
-### **Aggiornamenti Rapidi**
-
-Aggiornamenti rapidi frontend in produzione:
-
-```bash
-./scripts/update_frontend.sh
-```
-
----
-
-## 🌐 Accesso ai Servizi
-
-### **Applicazioni di Gioco**
-- **Game Frontend**: http://localhost (production game)
-- **Game Development**: http://localhost (dev con hot reload)
-- **Game API**: Endpoint REST accessibili dal frontend
-
-### **Tools di Sviluppo**
-- **NGINX Proxy Manager**: http://localhost:18081 (admin/changeme)
-  - Gestione domini e SSL
-  - Load balancing configuration
-
-### **Monitoring & Analytics**
-- **Kibana**: http://kibana.localhost (elastic/m6OHmMuiqNrV1i25Jz3Z)
-  - Game analytics dashboard
-  - Performance monitoring
-  - Player behavior analysis
-- **APM Monitoring**: http://apm.localhost
-  - Server performance metrics
-  - API response times
-  - Error tracking
-
-### **Database Management**
-- **MongoDB Express**: http://mongo-ui.localhost
-  - Player profiles management
-  - Game data administration
-- **Redis Commander**: http://redis-ui.localhost
-  - Session monitoring
-  - Cache performance
-
----
-
-## 🎯 Game Development Features
-
-### **Singleplayer Experience**
-- Progressive gameplay con difficoltà adattiva
-- Salvataggio automatico progressi locali
-- Sistema achievement e unlock progressivi
-
-### **Player Management**
-- Sessioni di gioco persistenti
-- Profili giocatore con progression tracking
-- Sistema salvataggio cloud-ready per continuità
-
-### **Performance Optimization**
-- Cache intelligente per asset di gioco
-- Preloading dinamico risorse per smooth gameplay
-- Ottimizzazione rendering per 60fps costanti
-
-### **Schema Validation System**
-- Validazione automatica API tramite JSON Schema (`comms/server/public/`)
-- Route whitelisting per sicurezza
-- Structured error handling con codici specifici
-
-### **Analytics & Monitoring**
-- Tracking eventi di gioco in tempo reale
-- Analisi pattern comportamento giocatore
-- Monitoring performance client-side
-- Log aggregation per debugging e optimization
-
-### **📊 Logging & Analytics System**
-
-Il sistema di logging integrato permette monitoraggio completo del gioco:
-
-**Fluent Bit Integration**:
-- Aggregazione automatica log da tutti i servizi
-- Identificazione container per filtering service-specific
-- Parser specializzati per log MongoDB, NGINX, Go server
-
-**Elasticsearch Storage**:
-- Index `docker_logs` per log infrastruttura
-- Structured logging con metadati enrichment
-- Retention policies configurabili
-
-**Kibana Dashboards**:
-- **Game Performance**: Monitoring FPS, load times, crash rates
-- **Player Analytics**: Progression tracking, completion rates  
-- **System Health**: Resource usage, API response times
-- **Error Tracking**: Bug tracking e debugging assistance
-
-**Event Logging Examples**:
-```typescript
-// Frontend game events
-analytics.logEvent('level_completed', {
-  level: 3,
-  completion_time: 45.2,
-  score: 1250,
-  player_deaths: 2
-});
-
-analytics.logEvent('achievement_unlocked', {
-  achievement_id: 'first_boss_defeated',
-  level: 5,
-  session_duration: 1200
-});
-```
-
-```go
-// Server structured logging
-log.WithFields(logrus.Fields{
-    "player_id": playerID,
-    "action": "save_progress",
-    "level": currentLevel,
-    "score": newScore,
-}).Info("Player progress saved successfully")
-```
-
----
-
-## 🔧 Configurazione
-
-### **Environment Variables**
-Configurazione centralizzata in `.env`:
-
-```bash
-# Variabili principali per gaming
-VITE_API_SERVER=http://server:3000    # Backend API
-ELASTIC_APM_SERVICE_NAME=game-backend  # Monitoring
-MONGODB_HOST=db                        # Database giocatori
-REDIS_URL=redis://app:password@redis   # Cache sessioni
-
-# NPM Registry per gestione pacchetti privati
-NPM_EMAIL=dev.progettiinnovativi.2025@gmail.com
-NPM_PASSWORD=MmkjJTaz@GTn8p
-```
-
-### **Game Configuration**
-- **APM**: Application Performance Monitoring configuration in `docker/volumes/README.md`
-- **Logging**: Configurazione log di gioco in `docker/volumes/fluent-bit/`
-- **Database**: Schema giocatori e punteggi via MongoDB Express
-- **Proxy**: Domini personalizzati in NGINX Proxy Manager
-
----
-
-## 🧹 Maintenance
-
-### **Backup Game Data**
-```bash
-# Backup automatico database giocatori
-docker exec db mongodump --out /data/backup/$(date +%Y%m%d)
-```
-
-### **Cleanup Development**
-```bash
-./scripts/clean-all.sh
-```
-
-Rimuove:
-- Cache di sviluppo
-- Container temporanei
-- Build artifacts
-- Log di sviluppo
-
----
-
-## 🔍 Troubleshooting
-
-### **Game Performance Issues**
-```bash
-# Verifica stato servizi
-docker-compose -f docker-compose.dev.yml ps
-
-# Log specifici per debugging
-docker logs server --tail 50 -f      # API server logs
-docker logs frontend --tail 50 -f    # Frontend build logs
-docker logs redis --tail 50 -f       # Cache operations
-```
-
-### **Verifica Configurazione**
-```bash
-./scripts/check-persistent-config.sh
-```
-
-### **Problemi Comuni Gaming**
-- **Lag multiplayer**: Controlla Redis performance e network latency
-- **Asset loading slow**: Verifica cache frontend e CDN configuration
-- **Player data loss**: Check MongoDB persistence e backup status
-- **Authentication fails**: Verifica JWT token configuration e Redis sessions
-
----
-
-## 📊 Game Analytics
-
-### **Player Metrics**
-- Session duration e retention
-- Level completion rates
-- Churn prediction
-
-### **Technical Metrics**
-- API response times per endpoint
-- Database query performance
-- Cache hit rates
-- Error tracking e debugging
-
-### **Business Intelligence**
-- Revenue per player
-- Feature usage analytics
-- A/B testing results
-- Performance benchmarking
-
----
-
-## 📚 Documentazione Tecnica
-
-- **[Game Architecture & Best Practices](GAME_ARCHITECTURE.md)** - Guida completa sviluppo, pattern architetturali e best practices
-- **[Scripts Guide](scripts/README.md)** - Automazione deployment e quick reference
-- **[Infrastructure Config](docker/volumes/README.md)** - Configurazioni servizi e volumi persistenti
-
----
-
-## 🚀 Contributing
-
-### **Development Workflow**
-1. **Setup ambiente**: `./scripts/dev-reinstall.sh`
-2. **Implementa feature** in sandbox environment per prototipazione rapida
-3. **Test su frontend reale**: Verifica funzionalità nel frontend principale, non solo sandbox
-4. **Monitoring obbligatorio**: Configura APM tracking per nuove funzionalità
-5. **Verifica analytics**: Controlla che eventi siano tracciati correttamente in Kibana
-6. **Performance validation**: Esegui test performance e verifica metriche
-7. **Deploy produzione**: `./scripts/prod-rebuild.sh` dopo validation completa
-
-### **Code Quality Standards**
-- Tutti i commits devono passare performance tests completi
-- **APM tracking obbligatorio** per ogni nuovo endpoint/feature
-- **Analytics events** obbligatori per interazioni utente significative
-- **Testing su frontend reale** richiesto, non solo in sandbox
-- Documentation aggiornata per ogni modifica architetturale
-- Schema validation aggiornata per nuovi endpoint API
-
-### **Performance Requirements**
-- FPS minimo: 50fps (target: 60fps)
-- Tempo caricamento livello: <2 secondi
-- Risposta API: <100ms (95th percentile)
-- Memory usage: <100MB per sessione di gioco
-
-Riferimenti completi in **[Game Architecture Guide](GAME_ARCHITECTURE.md)**.
+Reinstallazione completa delle dipendenze e rebuild: `./scripts/dev-reinstall.sh`.
+
+## Accesso ai servizi
+
+| Servizio | URL |
+|---|---|
+| Frontend gioco | http://localhost |
+| Dashboard Traefik (dev) | http://localhost:8080 |
+| Kibana | http://kibana.localhost |
+| APM | http://apm.localhost |
+| Mongo Express | http://mongo-ui.localhost |
+| Redis Commander | http://redis-ui.localhost |
+| Sandbox (dev) | http://localhost/sandbox/ |
+
+Setup completo e valori di sviluppo in [SETUP.md](SETUP.md); dettaglio variabili
+in [ENV_GUIDE.md](ENV_GUIDE.md).
+
+## Produzione
+
+`docker-compose.prod.yml` e `./scripts/prod-rebuild.sh` esistono ma vanno
+riallineati allo stack attuale (backend Go + Traefik) prima dell'uso.
+Per la pulizia pre-deploy dei dati di sviluppo: `./scripts/cleanup.sh --production`
+(con backup automatico). Dettagli in [scripts/README.md](scripts/README.md).
+
+## Backend: API
+
+Le rotte sono dichiarate in una whitelist con validazione JSON Schema
+(`server/middleware/validator.go`, schemi in `comms/server/public/`):
+
+| Metodo | Rotta | Auth | Descrizione |
+|---|---|---|---|
+| POST | `/auth/session` | no | Crea sessione (cookie `session_token`) |
+| GET | `/auth/validate` | sì | Verifica sessione |
+| GET | `/game/position` | sì | Stato posizione/scena |
+| GET | `/game/timer` | sì | Tempo di gioco |
+| GET | `/health` | no | Stato server/Mongo/Redis |
+| POST | `/log` | no | Ingest eventi dal frontend -> Elastic |
+
+L'autenticazione usa session token (cookie + cache Redis/Mongo), non JWT
+(`JWT_SECRET` in `.env` è un residuo non usato).
+
+## Logging e analytics
+
+- Backend: log strutturati JSON (ECS-like) su stdout, vedi `server/helpers/logger.go`.
+- Frontend: eventi inviati a `POST /log` e ristampati dal backend come dataset
+  `frontend.app`.
+- Filebeat raccoglie i log dei container e li invia a Elasticsearch (indici `filebeat-*`);
+  Kibana e APM per dashboard e tracing.
+
+## Documentazione
+
+- [GAME_ARCHITECTURE.md](GAME_ARCHITECTURE.md) — architettura e pattern del gioco
+- [MONITORING_SETUP.md](MONITORING_SETUP.md) — stack Elastic, gestione e fragilità note
+- [ENV_GUIDE.md](ENV_GUIDE.md) — variabili d'ambiente
+- [scripts/README.md](scripts/README.md) — script di automazione
+
+> I PDF in `docs/` sono export datati delle versioni precedenti di questi documenti
+> e possono risultare disallineati.

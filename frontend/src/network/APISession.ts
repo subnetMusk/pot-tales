@@ -23,6 +23,7 @@ export type ValidateSessionRequest = z.infer<typeof ValidateSessionRequestSchema
 
 const ValidateSessionResponseSchema = z.object({
     state: z.enum(["active", "inactive", "absent"]),
+    session: z.string().uuid().optional(),
 }).strict();
 export type ValidateSessionResponse = z.infer<typeof ValidateSessionResponseSchema>;
 // ------------------
@@ -114,7 +115,7 @@ export class APISession {
 
         if (!response.ok) {
             if (response.status === 401) {
-                console.log("COD 401");
+                return { state: "absent" };
             }
             console.error(`Errore HTTP (validate): ${response.status} ${response.statusText}`);
             throw new Error(`Errore server: ${response.status}`);

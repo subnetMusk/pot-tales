@@ -13,7 +13,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"log"
+	"log/slog"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -39,10 +39,14 @@ var appRoutes = []RouteConfig{
 
 	// --- Game Feature ---
 	{http.MethodGet, "/game/position", "public/game/position.req.json", true},
-	{http.MethodPost, "/game/timer", "public/game/timer.req.json", true},
+	{http.MethodGet, "/game/timer", "public/game/timer.req.json", true},
 
 	// --- Health Feature ---
 	{http.MethodGet, "/health", "public/health/health.req.json", false},
+
+	// --- Logging Feature ---
+	// Endpoint per ricevere log dal frontend. Senza auth stretto per loggare errori di login.
+	{http.MethodPost, "/log", "", false}, // Schema opzionale per ora
 }
 
 // Validator mantiene lo stato necessario per la validazione.
@@ -63,7 +67,7 @@ func MustNew(baseDir string, sm *helpers.SessionManager) *Validator {
 		sessionMgr:   sm,
 	}
 
-	log.Printf("[middleware] Initializing schemas from baseDir: %s", baseDir)
+	slog.Info("initializing schemas", "baseDir", baseDir)
 
 	for _, route := range appRoutes {
 		// Chiave univoca per la rotta: "METHOD /path"
@@ -85,9 +89,9 @@ func MustNew(baseDir string, sm *helpers.SessionManager) *Validator {
 				panic(fmt.Sprintf("Invalid schema for %s: %v", key, err))
 			}
 			v.routesSchema[key] = schema
-			log.Printf("[middleware] Registered: %s (Auth: %t, Schema: OK)", key, route.RequiresAuth)
+			slog.Info("route registered", "route", key, "auth_required", route.RequiresAuth, "schema", "OK")
 		} else {
-			log.Printf("[middleware] Registered: %s (Auth: %t, No Schema)", key, route.RequiresAuth)
+			slog.Info("route registered", "route", key, "auth_required", route.RequiresAuth, "schema", "NONE")
 		}
 	}
 

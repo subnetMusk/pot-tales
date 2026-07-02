@@ -3,7 +3,7 @@
 
 /* START OF COMPILED CODE */
 
-class OggettoInterattivo extends Phaser.GameObjects.Image {
+class OggettoInterattivo extends Phaser.GameObjects.Sprite {
 
 	constructor(scene: Phaser.Scene, x?: number, y?: number, texture?: string, frame?: number | string) {
 		super(scene, x ?? 0, y ?? 0, texture || "default", frame);

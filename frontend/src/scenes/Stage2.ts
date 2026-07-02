@@ -21,10 +21,8 @@ class Stage2 extends Phaser.Scene {
 
 	editorCreate(): void {
 
-		// lake
-		const lake = this.add.image(640, 360, "lake");
-		lake.scaleX = 10;
-		lake.scaleY = 10;
+		// bg_stage2
+		this.add.image(640, 360, "bg-stage2");
 
 		// player
 		const player = new Player(this, 640, 519);
@@ -77,7 +75,7 @@ class Stage2 extends Phaser.Scene {
 		// Configurazione del giocatore
 		this.player.debug(false);
 		this.player.setBoundaries(this.boundaries);
-		this.player.movementAllowed = false;
+		this.player.isMovementAllowed = false;
 
 		// Configurazione della telecamera
 		this.cameras.main.setZoom(5.0);
@@ -99,8 +97,8 @@ class Stage2 extends Phaser.Scene {
 		fadeRect.setScrollFactor(0);
 		fadeRect.setDepth(10);
 
-		this.popupManager.queuePopup("Where am I?");
-		this.popupManager.queuePopup("This is vicious...");
+		this.popupManager.queuePopup(i18n.wake_up_1);
+		this.popupManager.queuePopup(i18n.wake_up_2);
 
 
 		this.tweens.add({
@@ -112,14 +110,14 @@ class Stage2 extends Phaser.Scene {
 				fadeRect.destroy()
 				this.popupManager.showNextPopup();
 				this.popupManager.on("queueEmpty", () => {
-					this.player.movementAllowed = true;
+					this.player.isMovementAllowed = true;
 				});
 			}
 		});
 
 		this.pool_center.interagisci = () => {
-			this.popupManager.queuePopup("C'è qualcosa di luccicante sul fondo...");
-			this.popupManager.queuePopup("Forse dovrei indagare più a fondo...");
+			this.popupManager.queuePopup(i18n.pool_1);
+			this.popupManager.queuePopup(i18n.pool_2);
 			this.popupManager.showNextPopup();
 
 			this.popupManager.on("queueEmpty", () => {this.startMinigame();});
@@ -127,7 +125,7 @@ class Stage2 extends Phaser.Scene {
 	}
 
 	private startMinigame() {
-		this.player.movementAllowed = false;
+		this.player.isMovementAllowed = false;
 
 		// Evita di avviare più volte il gioco
 		if (this.isMemoryActive) return;
@@ -157,8 +155,9 @@ class Stage2 extends Phaser.Scene {
 				this.isMemoryActive = false;
 
 				this.cameras.main.shake(10000, 0.0004); 
-				
-				this.popupManager.queuePopup("Che sta succedendo?");
+
+				const i18n = this.cache.json.get("Stage2_i18n");
+				this.popupManager.queuePopup(i18n.shaking);
 				this.popupManager.showNextPopup();
 
 				this.popupManager.on("queueEmpty", () => {

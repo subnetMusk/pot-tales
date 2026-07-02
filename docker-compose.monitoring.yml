@@ -21,7 +21,7 @@ networks:
     external: true
     name: internal_net
   
-  # Bridge network used by NGINX Proxy Manager to communicate with backend services
+  # Bridge network used by Traefik to communicate with backend services
   proxy_net:
     external: true
     name: proxy_net
@@ -39,7 +39,7 @@ services:
     image: docker.elastic.co/elasticsearch/elasticsearch:${STACK_VERSION}
     container_name: setup-certs
     env_file:
-      - docker/env/.env
+      - .env
     networks:
       - internal_net
     volumes:
@@ -125,7 +125,7 @@ services:
     container_name: es01
     image: docker.elastic.co/elasticsearch/elasticsearch:${STACK_VERSION}
     env_file:
-      - docker/env/.env
+      - .env
     networks:
       - internal_net
     volumes:
@@ -174,10 +174,10 @@ services:
       es01:
         condition: service_healthy
     env_file:
-      - docker/env/.env
+      - .env
     networks:
       - internal_net                                            # so it can reach Elasticsearch and communicate securely with it using the certs
-      - proxy_net                                               # so NPM can proxy requests to it in order to access the Kibana UI
+      - proxy_net                                               # so Traefik can route requests to the Kibana UI
       - kibana_net                                              # gives Kibana internet access for integrations
     image: docker.elastic.co/kibana/kibana:${STACK_VERSION}
     labels:
@@ -188,7 +188,7 @@ services:
       - kibanadata:/usr/share/kibana/data                       # volume with persistent Kibana data (e.g. saved objects, sessions, etc.)
       - ./docker/volumes/kibana/config/kibana.yml:/usr/share/kibana/config/kibana.yml:ro # custom Kibana config file, mounted read-only
     expose:
-      - "5601"                                     # expose Kibana UI port to the host (proxied by NPM)
+      - "5601"                                     # expose Kibana UI port to Traefik
     environment:
       - SERVER_NAME=kibana                                      # set the server name and Kibana will in the URLs it generates
       - SERVER_HOST=0.0.0.0                                     # listen on all network interfaces of the container where Kibana is running
@@ -203,7 +203,7 @@ services:
       - XPACK_ENCRYPTEDSAVEDOBJECTS_ENCRYPTIONKEY=${KIBANA_ENCRYPTION_KEY} # encryption key for encrypted saved objects (like saved passwords)
       - XPACK_REPORTING_ENCRYPTIONKEY=${KIBANA_ENCRYPTION_KEY}         # encryption key for reporting, used to encrypt
       - XPACK_REPORTING_KIBANASERVER_HOSTNAME=localhost         # the host name that we want to use for generating reports (like PDF, CSV, etc.)
-      # If we want to enable TLS communication between Kibana and NPM
+      # If we want to enable TLS communication between Kibana and Traefik
       - SERVER_SSL_ENABLED=false                                # set to true to enable TLS for Kibana server (NPM to Kibana communication)
       - SERVER_SSL_CERTIFICATE=/usr/share/kibana/config/certs/kibana/kibana.crt
       - SERVER_SSL_KEY=/usr/share/kibana/config/certs/kibana/kibana.key
@@ -234,7 +234,7 @@ services:
       es01:
         condition: service_healthy
     env_file:
-      - docker/env/.env
+      - .env
     # We use an Elastic Agent image that will be run as the Fleet Server
     image: docker.elastic.co/beats/elastic-agent:${STACK_VERSION}
     container_name: fleet-server
@@ -286,13 +286,13 @@ services:
       es01:
         condition: service_healthy
     env_file:
-      - docker/env/.env
+      - .env
     image: docker.elastic.co/beats/elastic-agent:${STACK_VERSION}
     container_name: apm-agent
     restart: unless-stopped
     networks:
       - internal_net
-      - proxy_net       # if we want NPM to be able to proxy requests to the APM server
+      - proxy_net       # so Traefik can route requests to the APM server
     expose:
       - "8200"
     volumes:
@@ -327,7 +327,7 @@ services:
       es01:
         condition: service_healthy
     env_file:
-      - docker/env/.env
+      - .env
     image: docker.elastic.co/beats/elastic-agent:${STACK_VERSION}
     container_name: infra-agent
     restart: unless-stopped
@@ -352,32 +352,23 @@ services:
       - ELASTICSEARCH_CA=/usr/share/elastic-agent/certs/ca/ca.crt
       - ELASTIC_AGENT_TAGS=infra,internal           # used fot filtering
 
-  # Fluent-bit
-  fluent-bit:
+  # Filebeat (Log Collector)
+  filebeat:
     depends_on:
       es01:
         condition: service_healthy
-    env_file:
-      - docker/env/.env
-    image: fluent/fluent-bit:2.2
-    container_name: fluent-bit
+    image: docker.elastic.co/beats/filebeat:${STACK_VERSION}
+    container_name: filebeat
+    user: root # Necessario per leggere /var/lib/docker e il socket
     restart: unless-stopped
-    user: root
     networks:
       - internal_net
     environment:
-      # These credential will be used by the output of Fluent-bit
       - ELASTICSEARCH_USERNAME=${ELASTICSEARCH_USERNAME}
       - ELASTICSEARCH_PASSWORD=${ELASTICSEARCH_PASSWORD}
     volumes:
-      - certs:/fluent-bit/certs:ro
-      # Thanks to that it can access the JSON logs of the container
+      - certs:/usr/share/filebeat/certs:ro
       - /var/lib/docker/containers:/var/lib/docker/containers:ro
-      # System logs
-      - /var/log:/var/log:ro
-      # Configuration files
-      - ./docker/volumes/fluent-bit:/fluent-bit/etc:ro
-      - ./docker/volumes/fluent-bit-db:/fluent-bit/db
-      # Metadata
       - /var/run/docker.sock:/var/run/docker.sock:ro
-      - ./docker/volumes/npm_data:/npm_data:ro
+      - ./docker/volumes/filebeat/filebeat.yml:/usr/share/filebeat/filebeat.yml:ro
+    command: filebeat -e -strict.perms=false

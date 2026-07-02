@@ -1,5 +1,6 @@
 import { Sleeping } from "matter";
 import MemoryCard from "../items/UI/MemoryCard";
+import { applyTranslations } from "../utils";
 // You can write more code here
 
 /* START OF COMPILED CODE */
@@ -30,9 +31,19 @@ class Memory extends Phaser.Scene {
 
 	// Write your code here
 
+	preload() {
+		const lang = localStorage.getItem("lang") || "en";
+		this.load.json("memory_i18n", `assets/i18n/${lang}/Memory.json`);
+	}
+
 	create() {
 
 		this.editorCreate();
+
+		// Applicazione delle traduzioni
+		const i18n = this.cache.json.get("memory_i18n");
+		applyTranslations(this, i18n);
+
 		const numCards = 24; 						// Numero totale di carte nel gioco
 		// Enum con i numeri delle carte
 		const cardData: { code: number }[] = [
@@ -113,7 +124,8 @@ class Memory extends Phaser.Scene {
 			//delay per mostrare la seconda carta girata
 			this.time.delayedCall(1000, () => {
 				if(this.cards[carteGirate[0].getId()].isSister(card)){
-					console.log("Hai trovato una coppia!");
+					const i18n = this.cache.json.get("memory_i18n");
+					console.log(i18n.pair_found);
 
 					//TODO sistemare l'effetto provvisorio fatto da copilot
 					const cardX = (carteGirate[0].x + carteGirate[1].x) / 2;
@@ -144,7 +156,8 @@ class Memory extends Phaser.Scene {
 					carteGirate[1].setVisible(false);
 					carteGirate = [];
 					if(coppieTrovate === numCards/2){
-						console.log("Hai vinto il gioco!");
+						const i18n = this.cache.json.get("memory_i18n");
+						console.log(i18n.victory);
 
 						// Fireworks effect 
 						//TODO sistemare l'effetto provvisorio fatto da copilot
@@ -182,7 +195,8 @@ class Memory extends Phaser.Scene {
 						});
 					}
 				}else{
-					console.log("Le carte non sono uguali.");
+					const i18n = this.cache.json.get("memory_i18n");
+					console.log(i18n.not_match);
 					carteGirate[0].flip();
 					carteGirate[1].flip();
 					carteGirate = [];

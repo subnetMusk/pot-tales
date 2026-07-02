@@ -1,3 +1,14 @@
+# ⚠️  ATTENZIONE: QUESTO FILE È OBSOLETO / NON ALLINEATO ALLO STACK ATTUALE ⚠️
+# Risale all'epoca in cui il backend era Node e il proxy era un nginx statico.
+# Problemi noti rispetto a docker-compose.dev.yml:
+#   - proxy: usa nginx:alpine + ${NGINX_CONFIG} + ./proxy/certs + ./proxy/proxy_params,
+#     percorsi/variabili che NON esistono più (lo stack attuale usa Traefik).
+#   - server: imposta NODE_ENV e monta ./server/public, residui dell'era Node:
+#     il backend ora è Go (binario /server, vedi server/Dockerfile), niente public/.
+#   - mancano redis e il mount di ./comms (richiesti dal backend Go).
+# TODO: riallineare la produzione al modello dev prima di un deploy reale.
+# Vedi README.md (sezione Produzione) e MONITORING_SETUP.md.
+
 version: "3.9"
 
 networks:
@@ -23,7 +34,7 @@ services:
     ports:
       - "80:80"
     env_file:
-      - docker/env/.env
+      - .env
     volumes:
       - ${NGINX_CONFIG}:/etc/nginx/nginx.conf:ro
       - ./proxy/certs:/etc/nginx/certs:ro
@@ -45,7 +56,7 @@ services:
       - internal_net
       - proxy_net
     env_file:
-      - docker/env/.env
+      - .env
     environment:
       - NODE_ENV=production
       - PORT=3000

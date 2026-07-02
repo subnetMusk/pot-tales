@@ -1,20 +1,20 @@
 # Monitoring Stack - Setup e Gestione
 
-## 📋 Panoramica
+## Panoramica
 
 Il sistema di monitoring è stato configurato per funzionare **indipendentemente** dall'applicazione principale, permettendo di:
-- ✅ Avviare l'app senza monitoring (sviluppo veloce, risorse ridotte)
-- ✅ Avviare il monitoring separatamente quando serve
-- ✅ Fermare il monitoring mantenendo l'app attiva
-- ✅ Condividere la stessa configurazione `.env`
+- Avviare l'app senza monitoring (sviluppo veloce, risorse ridotte)
+- Avviare il monitoring separatamente quando serve
+- Fermare il monitoring mantenendo l'app attiva
+- Condividere la stessa configurazione `.env`
 
-## 🏗️ Architettura
+## Architettura
 
 ### Due Docker Compose Separati
 
 #### `docker-compose.dev.yml` - Applicazione Principale
 Servizi core dell'applicazione:
-- NGINX Proxy Manager (reverse proxy)
+- Traefik (reverse proxy)
 - Server (Go backend API)
 - MongoDB + Mongo Express
 - Redis + Redis Commander
@@ -28,18 +28,34 @@ Servizi di observability e monitoring:
 - Fleet Server (agent management)
 - APM Agent (application performance monitoring)
 - Infrastructure Agent (system metrics)
-- Fluent Bit (log aggregation)
+- Filebeat (raccolta dei log dei container Docker -> Elasticsearch)
 
 ### Reti Condivise
 
 Entrambi i compose condividono le reti:
 - `internal_net` - Comunicazione sicura interna
-- `proxy_net` - Accesso via NGINX Proxy Manager
+- `proxy_net` - Accesso via Traefik
 
 Il monitoring aggiunge:
 - `kibana_net` - Accesso internet per Kibana (integrazioni)
 
-## 🚀 Utilizzo
+## Fragilità note e debito tecnico (ELK)
+
+Lo stack ELK funziona ma ha alcuni punti fragili da conoscere **prima** di metterci mano. Sono elencati qui per evitare di "romperlo per sbaglio".
+
+1. **Race sui certificati all'avvio.** In `docker-compose.monitoring.yml` il servizio `es01` dipende da `setup` con `condition: service_started` (non `service_healthy`/`service_completed_successfully`). Questo perché `setup` resta in attesa che ES sia raggiungibile per impostare la password di `kibana_system`, mentre ES a sua volta dipende da `setup`: usare `service_completed_successfully` creerebbe un **deadlock**. Il prezzo è una possibile race in cui `es01` parte prima che i certificati siano scritti. Pattern corretto di riferimento: la compose ufficiale Elastic con `setup` che diventa *healthy* quando i certificati esistono (`[ -f config/certs/es01/es01.crt ]`) ed `es01` che dipende da `setup: service_healthy`. **Da rivedere con calma**, testando, prima di toccare le `depends_on`.
+
+2. **Token di enrollment Fleet hardcoded e identici.** In `.env` `FLEET_ENROLLMENT_TOKEN`, `FLEET_ENROLLMENT_TOKEN_APM` e `FLEET_ENROLLMENT_TOKEN_INFRA` hanno lo **stesso valore placeholder**. I token reali sono per-policy: generarli con il modulo [terraform/elk](terraform/elk/README.md) (`terraform output`) o da Kibana (Fleet -> Enrollment tokens), e copiarli nel `.env`.
+
+3. **Standalone vs Fleet (RISOLTO).** La config standalone (`elastic-agent.yml` + `ELASTIC_AGENT_STANDALONE`) è stata rimossa: gli agent sono gestiti da Fleet (`FLEET_ENROLL=1`). Resta aperto il tema dei token di enrollment (punto 2).
+
+4. **`kibana.yml` ripulito.** Il file puntava a `http://elasticsearch:9200` (host inesistente, senza TLS) e definiva una `encryptionKey` diversa da `KIBANA_ENCRYPTION_KEY`: configurazione contraddittoria che reggeva solo perché le env del compose prevalgono. Ora `kibana.yml` contiene **solo** ciò che non è già passato via env (server, apm, fleet); connessione ES ed encryption key arrivano dal compose.
+
+5. **Filebeat usa il superuser `elastic`.** `filebeat.yml` si autentica con `ELASTICSEARCH_USERNAME/PASSWORD` (l'utente `elastic`). Il modulo [terraform/elk](terraform/elk/README.md) crea l'utente dedicato `filebeat_writer` con soli privilegi di scrittura sugli indici dei log: usarlo in produzione.
+
+6. **Segreti in chiaro.** L'unico `.env` in root contiene password e token in chiaro (ELASTIC/KIBANA/APM). I vecchi backup che li duplicavano sono stati rimossi dal versionamento; resta consigliata la **rotazione** delle credenziali e, a regime, l'uso di un secret manager.
+
+## Utilizzo
 
 ### Avvio Servizi
 
@@ -76,9 +92,9 @@ docker compose -f docker-compose.dev.yml up -d
 ./scripts/stop-monitoring.sh
 
 # Risultato:
-# ✓ Monitoring stack fermato
-# ✓ App continua a funzionare
-# ✓ Dati Elasticsearch preservati (volumi Docker)
+# Monitoring stack fermato
+# App continua a funzionare
+# Dati Elasticsearch preservati (volumi Docker)
 ```
 
 #### Stop Solo Applicazione (Mantieni Monitoring)
@@ -97,11 +113,11 @@ docker compose -f docker-compose.dev.yml down
 docker compose -f docker-compose.dev.yml down
 ```
 
-## 🔧 Configurazione
+## Configurazione
 
 ### File .env Condiviso
 
-Entrambi i compose leggono da: `docker/env/.env`
+Entrambi i compose leggono dall'unico file `.env` in root.
 
 #### Variabili Aggiunte per Monitoring
 
@@ -144,20 +160,20 @@ Il monitoring mantiene dati persistenti in:
 
 **Nota**: Questi volumi NON vengono cancellati con `docker compose down`
 
-## 📊 Accesso ai Servizi
+## Accesso ai Servizi
 
 ### Dopo Avvio Completo
 
-#### Via NGINX Proxy Manager
+#### Via Traefik (sottodomini *.localhost)
 - **Kibana Dashboard**: `http://kibana.localhost`
 - **APM Server**: `http://apm.localhost`
-- **Mongo Express**: `http://mongo.localhost`
-- **Redis Commander**: `http://redis.localhost`
+- **Mongo Express**: `http://mongo-ui.localhost`
+- **Redis Commander**: `http://redis-ui.localhost`
 
 #### Porte Dirette (Localhost)
-- **NGINX Proxy Manager Admin**: `http://localhost:18081`
-- **App Frontend**: `http://localhost:80` (via proxy)
-- **Sandbox Dev Server**: `http://localhost:5173` (dev mode)
+- **Dashboard Traefik**: `http://localhost:8080` (solo dev)
+- **App Frontend**: `http://localhost` (via proxy)
+- **Sandbox Dev Server**: `http://sandbox.localhost`
 
 #### Servizi Interni (Solo Container Network)
 - **Elasticsearch**: `https://es01:9200`
@@ -165,7 +181,7 @@ Il monitoring mantiene dati persistenti in:
 - **Redis**: `redis://redis:6379`
 - **Backend API**: `http://server:3000`
 
-## 🔍 Monitoring e Debug
+## Monitoring e Debug
 
 ### Verificare Stato Servizi
 
@@ -209,8 +225,8 @@ docker logs kibana -f --tail 50
 # APM Agent
 docker logs apm-agent -f --tail 50
 
-# Fluent Bit (log aggregation)
-docker logs fluent-bit -f --tail 50
+# Filebeat (raccolta log container)
+docker logs filebeat -f --tail 50
 ```
 
 ### Health Check
@@ -227,7 +243,7 @@ curl -u elastic:m6OHmMuiqNrV1i25Jz3Z \
 curl -I http://localhost:5601/api/status
 ```
 
-## ⚡ Performance e Risorse
+## Performance e Risorse
 
 ### Consumo Risorse Stimato
 
@@ -256,7 +272,7 @@ docker compose -f docker-compose.dev.yml up -d
 ./scripts/stop-monitoring.sh
 ```
 
-## 🛠️ Troubleshooting
+## Troubleshooting
 
 ### Problema: Monitoring non parte
 
@@ -333,7 +349,7 @@ docker volume rm progetti_innovativi_esdata01
 ./scripts/start-monitoring.sh
 ```
 
-## 📚 Best Practices
+## Best Practices
 
 ### Sviluppo Quotidiano
 
@@ -383,7 +399,7 @@ curl http://localhost:5601/api/status
 docker compose -f docker-compose.dev.yml down
 ```
 
-## 🔗 Link Utili
+## Link Utili
 
 - [ENV_GUIDE.md](ENV_GUIDE.md) - Guida variabili environment
 - [scripts/README.md](scripts/README.md) - Documentazione script

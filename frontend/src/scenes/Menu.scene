@@ -32,8 +32,8 @@
             },
             "x": 1182,
             "y": 622,
-            "scaleX": 1.5,
-            "scaleY": 1.5
+            "scaleX": 2,
+            "scaleY": 2
         },
         {
             "type": "Rectangle",
@@ -74,7 +74,9 @@
                 "key": "leaderboard"
             },
             "x": 478,
-            "y": 532
+            "y": 532,
+            "scaleX": 2,
+            "scaleY": 2
         },
         {
             "type": "Rectangle",
@@ -115,7 +117,9 @@
                 "key": "gallery"
             },
             "x": 478,
-            "y": 447
+            "y": 447,
+            "scaleX": 2,
+            "scaleY": 2
         },
         {
             "type": "Rectangle",
@@ -158,7 +162,9 @@
                 "frame": 0
             },
             "x": 478,
-            "y": 362
+            "y": 362,
+            "scaleX": 2,
+            "scaleY": 2
         },
         {
             "type": "Rectangle",
@@ -200,7 +206,9 @@
                 "frame": 0
             },
             "x": 478,
-            "y": 277
+            "y": 277,
+            "scaleX": 2,
+            "scaleY": 2
         },
         {
             "type": "Image",
@@ -219,15 +227,30 @@
         },
         {
             "type": "Image",
-            "id": "83388f7e-c90d-4b51-ac31-bf50d871a138",
+            "id": "4bccf065-daef-4dc8-a45d-9d614fa5de34",
             "label": "Title",
             "texture": {
-                "key": "default"
+                "key": "title"
             },
             "x": 640,
-            "y": 150,
-            "scaleX": 15,
-            "scaleY": 3
+            "y": 150
+        },
+        {
+            "type": "Text",
+            "id": "1603cde8-fecb-42f2-a833-285d8374c58c",
+            "label": "Demo",
+            "useGameObjectName": true,
+            "scope": "CLASS",
+            "x": 316,
+            "y": 622,
+            "originX": 0.5,
+            "originY": 0.5,
+            "text": "Demo 0.1",
+            "fixedWidth": 500,
+            "fontFamily": "PixelifySans-VariableFont_wght",
+            "fontSize": "30px",
+            "color": "#f0f8ff",
+            "stroke": "#000000"
         }
     ],
     "plainObjects": [],
@@ -255,7 +278,9 @@
                 "cd866935-4696-4d3d-aae6-65725956c783",
                 "86cf0036-7675-43db-80cd-eecc46829223",
                 "7e922fde-8435-4281-8e00-a21a90551bee",
-                "c66bc216-dfc8-4532-80d6-7619a808dde4"
+                "c66bc216-dfc8-4532-80d6-7619a808dde4",
+                "4bccf065-daef-4dc8-a45d-9d614fa5de34",
+                "1603cde8-fecb-42f2-a833-285d8374c58c"
             ]
         },
         {
@@ -265,6 +290,15 @@
                 "86cf0036-7675-43db-80cd-eecc46829223",
                 "7e922fde-8435-4281-8e00-a21a90551bee",
                 "c66bc216-dfc8-4532-80d6-7619a808dde4"
+            ]
+        },
+        {
+            "id": "9dff0c81-8bbf-4987-b7d9-72a8e99c4a3d",
+            "label": "leaderboard_button_items",
+            "objectIds": [
+                "bc85f77b-dc3d-4dae-9f9d-b66d0324f959",
+                "740b6b0c-8a36-4dc3-9451-5be9043034c2",
+                "212906bf-af42-4fd1-bca2-572ce7f12351"
             ]
         }
     ]

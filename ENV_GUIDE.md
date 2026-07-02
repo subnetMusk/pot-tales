@@ -1,13 +1,19 @@
 # Environment Configuration Guide
 
-This project uses centralized environment variable configuration through `.env` files.
+This project uses a single root `.env` at runtime and a committed `.env.example`
+as the safe template.
 
 ## File Structure
 
-- **`.env`** (root directory) - Main environment file loaded by Docker Compose
-- **`docker/env/.env`** - Identical copy for services that explicitly reference this path
+- **`.env.example`** - Template versionato, senza segreti reali.
+- **`.env`** - File locale non versionato. Docker Compose lo usa sia per la
+  sostituzione delle `${VAR}` nei file compose sia come `env_file` iniettato nei
+  container.
+- **`secrets/*.enc.env`** - File cifrati con SOPS/age per ambienti condivisi o
+  produzione.
 
-Both files contain identical content and should be kept in sync.
+In passato esistevano copie duplicate (`docker/env/.env`, `sandbox/.env`): sono
+state consolidate nella root.
 
 ## Variable Categories
 
@@ -15,7 +21,7 @@ Both files contain identical content and should be kept in sync.
 - **PORT, MONGO_URI, JWT_SECRET** - Core API configuration
 - **SESSION_TTL_MIN, SCHEMA_DIR_SERVER** - Session and validation settings
 
-### Redis Configuration  
+### Redis Configuration
 - **REDIS_APP_PASS, REDIS_URL** - Backend service credentials (full access)
 - **REDIS_FE_PASS, REDIS_FE_URL** - Frontend service credentials (read-only)
 - **REDIS_UI_HOSTS** - Redis Commander web interface configuration
@@ -41,8 +47,23 @@ Both files contain identical content and should be kept in sync.
 
 ## Usage
 
-All Docker Compose services automatically load variables from the root `.env` file.
-Some services may explicitly reference `docker/env/.env` through `env_file` directives.
+Per lo sviluppo locale:
+
+```bash
+cp .env.example .env
+```
+
+Poi compila i valori mancanti. Tutti i servizi Docker Compose caricano le
+variabili dall'unico `.env` in root (via sostituzione `${VAR}` e `env_file`).
+
+Per valori condivisi o di produzione:
+
+```bash
+cp .sops.yaml.example .sops.yaml
+# sostituisci il recipient age placeholder
+sops --encrypt .env > secrets/prod.enc.env
+sops --decrypt secrets/prod.enc.env > .env
+```
 
 ## Persistent Configuration
 
@@ -50,15 +71,14 @@ All critical configurations and data are persisted to local directories in `dock
 
 ### Configuration Files (Always Preserved)
 - **Kibana**: `docker/volumes/kibana/config/kibana.yml` - Dashboard and analytics settings
-- **Elastic Agent**: `docker/volumes/elastic-agent/elastic-agent.yml` - Log collection configuration  
 - **Redis**: `docker/redis/redis.conf` and `docker/redis/users.acl` - Cache and ACL settings
-- **Fluent Bit**: `docker/volumes/fluent-bit/` - Log processing and parsing rules
+- **Filebeat**: `docker/volumes/filebeat/` - Raccolta log dei container Docker
 
 ### Data Directories (Always Preserved)
 - **Kibana Data**: `docker/volumes/kibana/data/` - Dashboards, visualizations, Fleet settings
 - **Elasticsearch**: `docker/volumes/logs/esdata/` - Search indices, Fleet policies, APM data
 - **MongoDB**: `docker/volumes/mongodb/` - Application database
-- **NGINX Proxy Manager**: `docker/volumes/npm_data/` - Reverse proxy configurations and SSL certificates
+- **Traefik**: `docker/traefik/traefik.yml` - Config reverse proxy (routing dichiarativo via label)
 
 ### Scripts
 - **Configuration Check**: `./scripts/check-persistent-config.sh` - Verifies all persistent data integrity
@@ -67,5 +87,6 @@ All critical configurations and data are persisted to local directories in `dock
 ## Security Notes
 
 - Change all default passwords before production deployment
-- Use Docker secrets for sensitive values in production
+- Keep `.env` out of git
+- Use SOPS/age for shared and production secrets
 - Rotate APM tokens and authentication credentials regularly

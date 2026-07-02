@@ -2,9 +2,22 @@
     "section1": {
         "files": [
             {
-                "url": "frontend/public/assets/images/backgrounds/liquid_lake.png",
+                "url": "assets/images/backgrounds/bg-stage2.png",
                 "type": "image",
-                "key": "lake"
+                "key": "bg-stage2"
+            },
+            {
+                "url": "assets/images/ui/card.png",
+                "frameConfig": {
+                    "frameWidth": 24,
+                    "frameHeight": 32,
+                    "startFrame": 0,
+                    "endFrame": -1,
+                    "spacing": 0,
+                    "margin": 0
+                },
+                "type": "spritesheet",
+                "key": "card"
             }
         ]
     },

@@ -1,0 +1,8 @@
+.terraform/
+.terraform.lock.hcl
+*.tfstate
+*.tfstate.*
+crash.log
+# Variabili reali: mai versionarle (tieni solo l'esempio)
+*.tfvars
+!*.tfvars.example

@@ -77,7 +77,7 @@ class Stage3 extends Phaser.Scene {
 	private isMemoryActive: boolean = false;
 
 	async preload() {
-		this.load.pack("tutorial-pack", "assets/images/tutorial-pack.json");
+		this.load.pack("stage3-pack", "assets/images/stage3-pack.json");
 		this.load.pack("player-pack", "assets/images/player-pack.json");
 		this.load.pack("icons-pack", "assets/images/icons-pack.json");
 
@@ -130,7 +130,7 @@ class Stage3 extends Phaser.Scene {
 				fadeRect.destroy()
 				this.popupManager.showNextPopup();
 				this.popupManager.on("queueEmpty", () => {
-					this.player.movementAllowed = true;
+					this.player.isMovementAllowed = true;
 				});
 			}
 		});
@@ -141,7 +141,7 @@ class Stage3 extends Phaser.Scene {
 	}
 
 	private startMinigame() {
-		this.player.movementAllowed = false;
+		this.player.isMovementAllowed = false;
 
 		// Evita di avviare più volte il gioco
 		if (this.isMemoryActive) return;

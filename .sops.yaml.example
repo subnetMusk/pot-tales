@@ -1,0 +1,12 @@
+# Copy this file to .sops.yaml after generating/choosing the age recipient.
+# Do not leave the placeholder recipient in the real file.
+#
+# Generate a key:
+#   age-keygen -o ~/.config/sops/age/keys.txt
+#
+# Print the public recipient:
+#   age-keygen -y ~/.config/sops/age/keys.txt
+
+creation_rules:
+  - path_regex: ^secrets/.*\.enc\.env$
+    age: age1replace_with_real_team_or_deploy_recipient

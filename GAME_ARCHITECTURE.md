@@ -2,21 +2,21 @@
 
 Questo documento centralizza tutte le best practices, pattern architetturali e linee guida per lo sviluppo del gioco HTML5 singleplayer.
 
-## 📋 Indice
+## Indice
 
-- [🏗️ Architettura Generale](#️-architettura-generale)
-- [💻 Frontend Development](#-frontend-development)
-- [🔧 Backend Development](#-backend-development)
-- [🔒 Security & Validation](#-security--validation)
-- [📊 Monitoring & Analytics](#-monitoring--analytics)
-- [⚡ Performance Optimization](#-performance-optimization)
-- [🧪 Testing Strategy](#-testing-strategy)
-- [🚀 Deployment & CI/CD](#-deployment--cicd)
-- [📚 Development Workflow](#-development-workflow)
+- [ Architettura Generale](#-architettura-generale)
+- [ Frontend Development](#-frontend-development)
+- [ Backend Development](#-backend-development)
+- [ Security & Validation](#-security--validation)
+- [ Monitoring & Analytics](#-monitoring--analytics)
+- [ Performance Optimization](#-performance-optimization)
+- [ Testing Strategy](#-testing-strategy)
+- [ Deployment & CI/CD](#-deployment--cicd)
+- [ Development Workflow](#-development-workflow)
 
 ---
 
-## 🏗️ Architettura Generale
+## Architettura Generale
 
 ### **Comunicazione tra Servizi**
 
@@ -24,16 +24,16 @@ Il sistema utilizza una rete Docker Compose strutturata con isolamento di sicure
 
 **Network Segmentation**:
 - `internal_net`: Comunicazione sicura backend-database (isolata da internet)
-- `proxy_net`: NGINX Proxy Manager ↔ Backend services  
-- `frontend_net`: NGINX Proxy Manager ↔ Frontend applications
+- `proxy_net`: Traefik -> servizi backend
+- `frontend_net`: Traefik -> applicazioni frontend
 - `kibana_net`: Kibana con accesso internet per Elastic Package Registry
 
 **Service Communication**:
-- **Frontend → Server**: HTTP via NGINX Proxy Manager (`localhost` → `server:3000`)
-- **Sandbox → Server**: HTTP via NGINX Proxy Manager (mirror del frontend per testing)
-- **Frontend → Redis**: Connessione diretta con utente `frontend` (read-only access)
-- **Server → MongoDB**: Connessione diretta su `internal_net`
-- **Server → Redis**: Connessione con utente `app` (full access)
+- **Frontend -> Server**: HTTP via Traefik (`localhost` -> frontend; path API -> `server:3000`)
+- **Sandbox -> Server**: HTTP via Traefik (`sandbox.localhost`)
+- **Frontend -> Redis**: Connessione diretta con utente `frontend` (read-only access)
+- **Server -> MongoDB**: Connessione diretta su `internal_net`
+- **Server -> Redis**: Connessione con utente `app` (full access)
 
 ### **Redis ACL Configuration**
 
@@ -44,7 +44,7 @@ Accesso controllato tramite `docker/redis/users.acl`:
 
 ---
 
-## 💻 Frontend Development
+## Frontend Development
 
 ### **Stack Tecnologico**
 
@@ -89,7 +89,7 @@ Gli schemi JSON in `comms/frontend/` definiscono contratti di comunicazione.
 
 ---
 
-## 🔧 Backend Development
+## Backend Development
 
 ### **Stack Tecnologico**
 
@@ -120,7 +120,7 @@ Gli schemi JSON in `comms/frontend/` definiscono contratti di comunicazione.
 
 ---
 
-## 🔒 Security & Validation
+## Security & Validation
 
 ### **Schema-Based API Security**
 
@@ -148,7 +148,7 @@ Accesso controllato tramite ACL:
 
 ---
 
-## 📊 Monitoring & Analytics
+## Monitoring & Analytics
 
 ### **Elastic APM Integration**
 
@@ -164,10 +164,10 @@ Accesso controllato tramite ACL:
 
 ### **Log Aggregation**
 
-**Fluent Bit**: Container log collection e parsing
-- Automatic service identification tramite `container_name.lua`
-- Custom parsers per MongoDB, NGINX, Go server logs
-- Storage in Elasticsearch con service metadata
+**Filebeat**: raccolta dei log dei container Docker
+- Metadati Docker per identificare il servizio (`add_docker_metadata`)
+- Decodifica del JSON dei log applicativi alla radice del documento
+- Storage in Elasticsearch (indici `filebeat-*`)
 
 **Kibana Dashboards**: `http://kibana.localhost`
 - Game performance metrics
@@ -176,7 +176,7 @@ Accesso controllato tramite ACL:
 
 ---
 
-## ⚡ Performance Optimization
+## Performance Optimization
 
 ### **Frontend Performance**
 
@@ -204,7 +204,7 @@ Accesso controllato tramite ACL:
 
 ---
 
-## 🧪 Testing Strategy
+## Testing Strategy
 
 ### **Frontend Testing**
 
@@ -239,7 +239,7 @@ Accesso controllato tramite ACL:
 
 ---
 
-## 🚀 Deployment & CI/CD
+## Deployment & CI/CD
 
 ### **Environment Management**
 
@@ -248,7 +248,7 @@ Accesso controllato tramite ACL:
 - Hot reload per development (frontend + sandbox)
 - Full monitoring stack
 
-**Production**: `docker-compose.prod.yml`  
+**Production**: `docker-compose.prod.yml`
 - Exclude sandbox per security e performance
 - Optimized builds
 - Production-grade configuration
@@ -300,17 +300,15 @@ Il nuovo `cleanup.sh` offre modalità multiple con backup automatici:
 
 **Dati Rimossi** (solo sviluppo/testing):
 - `docker/volumes/mongodb/*` - Database giocatori di sviluppo
-- `docker/volumes/logs/esdata/*` - Indici Elasticsearch di sviluppo
 - `docker/volumes/logs/mongodb/*` - Log MongoDB di sviluppo
-- `docker/volumes/fluent-bit-db/*.db*` - Cache log processing
+- Named volume `esdata01` - Indici Elasticsearch di sviluppo
 
 **Sempre Preservato**:
-- `docker/volumes/npm_data/` - Configurazioni proxy e domini
-- `docker/volumes/npm_letsencrypt/` - Certificati SSL
-- `docker/volumes/fluent-bit/` - Configurazione log aggregation
+- `docker/traefik/traefik.yml` - Configurazione reverse proxy
+- `docker/volumes/filebeat/filebeat.yml` - Configurazione Filebeat
 - `docker/volumes/kibana/config/` - Configurazione Kibana
 - Dashboard Kibana (con backup automatico)
-- `.env` files - Variabili ambiente
+- `.env` - Variabili ambiente (unico file in root)
 
 **Workflow Deployment**:
 1. **Dashboard Backup**: `./scripts/kibana-dashboard-manager.sh export`
@@ -318,11 +316,11 @@ Il nuovo `cleanup.sh` offre modalità multiple con backup automatici:
 3. **Config Verification**: `./scripts/check-persistent-config.sh`
 4. **Production Deploy**: `./scripts/prod-rebuild.sh`
 
-> 📖 **Documentazione Completa**: [Sistema di Pulizia Centralizzato](scripts/CLEANUP_SYSTEM.md)
+>  **Documentazione Completa**: [Sistema di Pulizia Centralizzato](scripts/CLEANUP_SYSTEM.md)
 
 ---
 
-## 📚 Development Workflow
+## Development Workflow
 
 ### **Feature Development Process**
 

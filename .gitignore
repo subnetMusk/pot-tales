@@ -8,9 +8,10 @@ dist/
 build/
 temp/
 
-# Env
-# .env
-#.env.*
+# Go
+server/tmp/
+server/server
+*.test
 
 # Editor
 .vscode/
@@ -24,21 +25,34 @@ temp/
 .DS_Store
 Thumbs.db
 .MACOSX
+# non cancellatela pls
+Icon?
 
 # Docker
 *.pid
 
-# non tracciare mai i certificati reali
+# ---- Segreti / config locale (NON committare) ----
+# .env in chiaro: mai committarli. I file SOPS cifrati (*.enc.env) invece
+# SONO versionati: e' proprio lo scopo del flusso SOPS+age.
+.env
+!.env.example
+secrets/*.env
+!secrets/*.enc.env
+backups/
+
+# ---- Certificati ----
 proxy/certs/*.pem
-# ma salva il placeholder per tenere la cartella nel repo
 !proxy/certs/.gitkeep
 
-
+# ---- Dati runtime dei volumi Docker (mai versionare) ----
+# MongoDB
 docker/volumes/mongodb/*
 !docker/volumes/mongodb/.gitkeep
-
+# Elasticsearch / log shipper data
 docker/volumes/logs/*
 !docker/volumes/logs/.gitkeep
-
-# non cancellatela pls
-Icon?
+docker/volumes/esdata/
+# Kibana runtime (uuid, sessioni, saved objects su disco)
+docker/volumes/kibana/data/
+# Fleet server data
+docker/volumes/fleetserverdata/

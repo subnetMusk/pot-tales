@@ -1,0 +1,90 @@
+{
+    "section1": {
+        "files": [
+            {
+                "url": "assets/images/backgrounds/stage1.png",
+                "type": "image",
+                "key": "BG"
+            },
+            {
+                "url": "assets/images/items/black_mass.png",
+                "frameConfig": {
+                    "frameWidth": 16,
+                    "frameHeight": 16,
+                    "startFrame": 0,
+                    "endFrame": -1,
+                    "spacing": 0,
+                    "margin": 0
+                },
+                "type": "spritesheet",
+                "key": "black_mass"
+            },
+            {
+                "url": [
+                    "assets/sfx/dripping_water.mp3"
+                ],
+                "type": "audio",
+                "key": "dripping_water"
+            },
+            {
+                "url": [
+                    "assets/sfx/earthquake.mp3"
+                ],
+                "type": "audio",
+                "key": "earthquake"
+            },
+            {
+                "url": "assets/images/ui/IR-Spectra/STR_4963.png",
+                "type": "image",
+                "key": "grafico"
+            },
+            {
+                "url": [
+                    "assets/sfx/keyboard.mp3"
+                ],
+                "type": "audio",
+                "key": "keyboard"
+            },
+            {
+                "url": "assets/images/backgrounds/laboratory.png",
+                "type": "image",
+                "key": "lab_bg"
+            },
+            {
+                "url": [
+                    "assets/sfx/pluck.mp3"
+                ],
+                "type": "audio",
+                "key": "pluck"
+            },
+            {
+                "url": "assets/images/items/red_light.png",
+                "frameConfig": {
+                    "frameWidth": 32,
+                    "frameHeight": 32,
+                    "startFrame": 0,
+                    "endFrame": -1,
+                    "spacing": 0,
+                    "margin": 0
+                },
+                "type": "spritesheet",
+                "key": "red_light"
+            },
+            {
+                "url": [
+                    "assets/sfx/success.mp3"
+                ],
+                "type": "audio",
+                "key": "success"
+            }
+        ]
+    },
+    "meta": {
+        "app": "Phaser Editor 2D - Asset Pack Editor",
+        "contentType": "phasereditor2d.pack.core.AssetContentType",
+        "url": "https://phasereditor2d.com",
+        "version": 2,
+        "showAllFilesInBlocks": false,
+        "visible": true
+    }
+}

@@ -31,8 +31,8 @@ echo ""
 cd "$PROJECT_ROOT"
 
 # Check if .env file exists
-if [ ! -f "docker/env/.env" ]; then
-    echo -e "${RED}Error: docker/env/.env file not found!${NC}"
+if [ ! -f ".env" ]; then
+    echo -e "${RED}Error: .env file not found!${NC}"
     echo -e "${YELLOW}Please create the .env file with required configuration.${NC}"
     exit 1
 fi
@@ -120,8 +120,8 @@ docker compose -f docker-compose.monitoring.yml ps
 
 echo ""
 echo -e "${BLUE}Access points:${NC}"
-echo -e "  Kibana: ${GREEN}http://kibana.localhost${NC} (via NGINX Proxy Manager)"
+echo -e "  Kibana: ${GREEN}http://kibana.localhost${NC} (via Traefik)"
 echo -e "  Elasticsearch: ${GREEN}https://es01:9200${NC} (internal only)"
-echo -e "  APM Server: ${GREEN}http://apm.localhost${NC} (via NGINX Proxy Manager)"
+echo -e "  APM Server: ${GREEN}http://apm.localhost${NC} (via Traefik)"
 echo ""
-echo -e "${YELLOW}Note:${NC} Make sure NGINX Proxy Manager is configured with proper proxy hosts."
+echo -e "${YELLOW}Note:${NC} Make sure Traefik is running on proxy_net."

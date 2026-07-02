@@ -13,12 +13,182 @@
         {
             "type": "Image",
             "id": "9d0fb09f-e52a-401e-b8b1-59d7e72ca2ae",
-            "label": "bG",
+            "label": "background",
             "texture": {
                 "key": "BG"
             },
-            "x": 540,
+            "x": 640,
             "y": 360
+        },
+        {
+            "prefabId": "dfd624ad-310c-404d-96d2-d2307c3faaef",
+            "id": "c1d6a7be-2340-4267-aac0-2dda0526fa30",
+            "unlock": [
+                "x",
+                "y",
+                "texture"
+            ],
+            "label": "blackMass",
+            "scope": "CLASS",
+            "texture": {
+                "key": "black_mass",
+                "frame": 0
+            },
+            "x": 682,
+            "y": 570
+        },
+        {
+            "type": "Rectangle",
+            "id": "701ff589-45e7-47d2-b0dd-1e1dac31aba2",
+            "label": "rectangle_1",
+            "x": 628,
+            "y": 331,
+            "width": 100,
+            "height": 30
+        },
+        {
+            "type": "Rectangle",
+            "id": "07c1130c-e0b5-4e03-9074-1b9ff1ecdc57",
+            "label": "rectangle",
+            "x": 668,
+            "y": 302,
+            "width": 50,
+            "height": 30
+        },
+        {
+            "type": "Rectangle",
+            "id": "0e1fdd1e-faf2-41bf-82c2-06b6fddc2ea9",
+            "label": "rectangle_2",
+            "x": 706,
+            "y": 272,
+            "width": 50,
+            "height": 30
+        },
+        {
+            "type": "Rectangle",
+            "id": "77d60649-b86a-49d5-ada0-94f7dabbb76c",
+            "label": "rectangle_3",
+            "x": 640,
+            "y": -80,
+            "width": 1200,
+            "height": 30
+        },
+        {
+            "type": "Rectangle",
+            "id": "9a9962d9-f344-40f9-b55e-246a0acdbb4e",
+            "label": "rectangle_4",
+            "x": 640,
+            "y": 800,
+            "width": 1200,
+            "height": 30
+        },
+        {
+            "type": "Rectangle",
+            "id": "1560bb35-dc76-4b0d-a64f-43084eb0f2b7",
+            "label": "rectangle_5",
+            "x": 55,
+            "y": 360,
+            "width": 30,
+            "height": 900
+        },
+        {
+            "type": "Rectangle",
+            "id": "e1ba4ecc-4bbe-4bc6-a176-a1c032a20843",
+            "label": "rectangle_6",
+            "x": 1225,
+            "y": 360,
+            "width": 30,
+            "height": 900
+        },
+        {
+            "type": "Rectangle",
+            "id": "ef91a065-485f-4245-af52-705095709f65",
+            "label": "rectangle_7",
+            "x": 489,
+            "y": 512,
+            "width": 80,
+            "height": 15
+        },
+        {
+            "type": "Rectangle",
+            "id": "cb9b29b4-34e7-4cd6-88cd-35844e1d2cda",
+            "label": "rectangle_8",
+            "x": 413,
+            "y": 445,
+            "width": 90,
+            "height": 25
+        },
+        {
+            "type": "Rectangle",
+            "id": "ae95f7e2-809f-410f-87e1-be8c7f6d1461",
+            "label": "rectangle_9",
+            "x": 372,
+            "y": 109,
+            "width": 50,
+            "height": 24
+        },
+        {
+            "type": "Rectangle",
+            "id": "be741469-2aad-4a0b-ada2-c09bad109f9f",
+            "label": "rectangle_10",
+            "x": 410,
+            "y": 161,
+            "width": 70,
+            "height": 24
+        },
+        {
+            "type": "Rectangle",
+            "id": "dc62fa57-fc4c-4ff7-9a6a-84996bc4e44d",
+            "label": "rectangle_11",
+            "x": 456,
+            "y": 297,
+            "width": 70,
+            "height": 24
+        },
+        {
+            "type": "Rectangle",
+            "id": "ddbf5b97-ded7-47a5-9e51-b629d6c1135a",
+            "label": "rectangle_12",
+            "x": 456,
+            "y": 238,
+            "width": 40,
+            "height": 24
+        },
+        {
+            "type": "Rectangle",
+            "id": "f1951011-cabb-4c46-a3c5-d64c7999c2e9",
+            "label": "rectangle_13",
+            "x": 456,
+            "y": 201,
+            "width": 30,
+            "height": 60
+        },
+        {
+            "type": "Rectangle",
+            "id": "90aac0f3-e28f-45ee-b271-47c674325abf",
+            "label": "rectangle_14",
+            "x": 400,
+            "y": 140,
+            "width": 30,
+            "height": 60
+        },
+        {
+            "type": "Rectangle",
+            "id": "fdb33919-1875-489e-a796-51ebb8443f3b",
+            "label": "rectangle_15",
+            "x": 461,
+            "y": 275,
+            "width": 30,
+            "height": 60
+        },
+        {
+            "type": "Rectangle",
+            "id": "0185bbbc-9562-4cb7-8fa7-711923c4bb9b",
+            "label": "rectangle_16",
+            "x": 545,
+            "y": 363,
+            "width": 40,
+            "height": 15
         },
         {
             "prefabId": "5a8935be-1a98-42a5-9cc4-bca49b9c51b2",
@@ -29,23 +199,8 @@
             ],
             "label": "player",
             "scope": "CLASS",
-            "x": 160,
-            "y": 90
-        },
-        {
-            "prefabId": "dfd624ad-310c-404d-96d2-d2307c3faaef",
-            "id": "b6f790ec-3589-41a7-9be2-ebe9fd43b91d",
-            "unlock": [
-                "x",
-                "y",
-                "number"
-            ],
-            "label": "strange_light",
-            "displayName": "Strange Light",
-            "scope": "CLASS",
-            "number": 1,
-            "x": 470,
-            "y": 299
+            "x": 355,
+            "y": 223
         }
     ],
     "plainObjects": [],
@@ -58,13 +213,32 @@
     "lists": [
         {
             "id": "235707ec-1cdc-4ba5-bd88-6953c1d6828c",
-            "label": "boundaries"
+            "label": "boundaries",
+            "objectIds": [
+                "0185bbbc-9562-4cb7-8fa7-711923c4bb9b",
+                "fdb33919-1875-489e-a796-51ebb8443f3b",
+                "90aac0f3-e28f-45ee-b271-47c674325abf",
+                "f1951011-cabb-4c46-a3c5-d64c7999c2e9",
+                "ddbf5b97-ded7-47a5-9e51-b629d6c1135a",
+                "dc62fa57-fc4c-4ff7-9a6a-84996bc4e44d",
+                "be741469-2aad-4a0b-ada2-c09bad109f9f",
+                "ae95f7e2-809f-410f-87e1-be8c7f6d1461",
+                "cb9b29b4-34e7-4cd6-88cd-35844e1d2cda",
+                "ef91a065-485f-4245-af52-705095709f65",
+                "e1ba4ecc-4bbe-4bc6-a176-a1c032a20843",
+                "1560bb35-dc76-4b0d-a64f-43084eb0f2b7",
+                "9a9962d9-f344-40f9-b55e-246a0acdbb4e",
+                "77d60649-b86a-49d5-ada0-94f7dabbb76c",
+                "0e1fdd1e-faf2-41bf-82c2-06b6fddc2ea9",
+                "07c1130c-e0b5-4e03-9074-1b9ff1ecdc57",
+                "701ff589-45e7-47d2-b0dd-1e1dac31aba2"
+            ]
         },
         {
             "id": "119c445d-8151-4d88-83ac-55efa24fb60c",
             "label": "oggVector",
             "objectIds": [
-                "b6f790ec-3589-41a7-9be2-ebe9fd43b91d"
+                "c1d6a7be-2340-4267-aac0-2dda0526fa30"
             ]
         }
     ]

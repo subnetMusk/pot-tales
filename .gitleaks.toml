@@ -1,0 +1,19 @@
+# Config gitleaks: regole di default + allowlist per i percorsi storici.
+# I .env di sviluppo non sono piu' versionati, ma restano nella HISTORY del
+# repo (la CI scansiona tutti i commit con fetch-depth 0): senza allowlist lo
+# scan fallirebbe su segreti gia' noti e destinati alla rotazione.
+# I file secrets/*.enc.env sono cifrati con SOPS: il contenuto e' opaco ma
+# l'alta entropia puo' far scattare falsi positivi.
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Percorsi storici con valori dev (da ruotare in prod) e file SOPS cifrati"
+paths = [
+  '''^\.env$''',
+  '''^docker/env/\.env$''',
+  '''^sandbox/\.env$''',
+  '''^backups/''',
+  '''^secrets/.*\.enc\.env$''',
+]

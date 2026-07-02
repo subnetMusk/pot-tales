@@ -1,18 +1,25 @@
-elasticsearch:
-  hosts: [ "http://elasticsearch:9200" ]
-  username: "kibana_system"
-  password: "eJL-r*4rNjRioOwWPEMT"
+# ==============================================================================
+# Kibana config
+# ------------------------------------------------------------------------------
+# ATTENZIONE: la connessione a Elasticsearch (host, credenziali, CA TLS) e le
+# encryption key sono iniettate dalle variabili d'ambiente in
+# docker-compose.monitoring.yml (ELASTICSEARCH_HOSTS=https://es01:9200,
+# ELASTICSEARCH_USERNAME/PASSWORD, ELASTICSEARCH_SSL_CERTIFICATEAUTHORITIES,
+# XPACK_*_ENCRYPTIONKEY=${KIBANA_ENCRYPTION_KEY}).
+#
+# NON ridefinirle qui: in passato questo file puntava a "http://elasticsearch:9200"
+# (host inesistente, senza TLS) e usava una encryptionKey diversa da quella
+# dell'env, creando una configurazione contraddittoria. Qui teniamo SOLO le
+# impostazioni che NON sono già passate via env.
+# ==============================================================================
 
 server:
   name: kibana
   host: "0.0.0.0"
   ssl:
-    enabled: false
+    enabled: false   # TLS NPM->Kibana gestito dal reverse proxy
 
 xpack:
-  encryptedSavedObjects:
-    encryptionKey: "anotherExtremelyExtremelySecureKeyThatIsLong!"
-
   apm:
     ui:
       enabled: true

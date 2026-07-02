@@ -2,47 +2,17 @@
     "section1": {
         "files": [
             {
-                "url": "frontend/public/assets/images/items/Acorn.png",
-                "type": "image",
-                "key": "Acorn"
-            },
-            {
-                "url": "frontend/public/assets/images/items/Antler.png",
-                "type": "image",
-                "key": "Antler"
-            },
-            {
-                "url": "frontend/public/assets/images/ui/back.png",
+                "url": "assets/images/ui/back.png",
                 "type": "image",
                 "key": "back"
             },
             {
-                "url": "frontend/public/assets/images/items/Cerastoderma_edule.png",
-                "type": "image",
-                "key": "Cerastoderma_edule"
-            },
-            {
-                "url": "frontend/public/assets/images/items/Cerithium_vulgatum.png",
-                "type": "image",
-                "key": "Cerithium_vulgatum"
-            },
-            {
-                "url": "frontend/public/assets/images/ui/default.png",
+                "url": "assets/images/ui/default.png",
                 "type": "image",
                 "key": "default"
             },
             {
-                "url": "frontend/public/assets/images/items/Edible freshwater mollusks.png",
-                "type": "image",
-                "key": "Edible freshwater mollusks"
-            },
-            {
-                "url": "frontend/public/assets/images/items/Fishbone.png",
-                "type": "image",
-                "key": "Fishbone"
-            },
-            {
-                "url": "frontend/public/assets/images/ui/fullscreen.png",
+                "url": "assets/images/ui/fullscreen.png",
                 "frameConfig": {
                     "frameWidth": 64,
                     "frameHeight": 64,
@@ -55,50 +25,20 @@
                 "key": "fullscreen"
             },
             {
-                "url": "frontend/public/assets/images/ui/gallery.png",
+                "url": "assets/images/ui/gallery-button.png",
                 "type": "image",
                 "key": "gallery"
             },
             {
-                "url": "frontend/public/assets/images/items/Grain.png",
-                "type": "image",
-                "key": "Grain"
-            },
-            {
-                "url": "frontend/public/assets/images/items/grape.png",
-                "type": "image",
-                "key": "grape"
-            },
-            {
-                "url": "frontend/public/assets/images/items/Hazelnut.png",
-                "type": "image",
-                "key": "Hazelnut"
-            },
-            {
-                "url": "frontend/public/assets/images/ui/leaderboard.png",
+                "url": "assets/images/ui/leaderboard-button.png",
                 "type": "image",
                 "key": "leaderboard"
             },
             {
-                "url": "frontend/public/assets/images/items/Lentil.png",
-                "type": "image",
-                "key": "Lentil"
-            },
-            {
-                "url": "frontend/public/assets/images/items/Limpets.png",
-                "type": "image",
-                "key": "Limpets"
-            },
-            {
-                "url": "frontend/public/assets/images/items/Marine snail.png",
-                "type": "image",
-                "key": "Marine snail"
-            },
-            {
-                "url": "frontend/public/assets/images/ui/play.png",
+                "url": "assets/images/ui/play-button.png",
                 "frameConfig": {
-                    "frameWidth": 64,
-                    "frameHeight": 64,
+                    "frameWidth": 32,
+                    "frameHeight": 32,
                     "startFrame": 0,
                     "endFrame": -1,
                     "spacing": 0,
@@ -108,17 +48,12 @@
                 "key": "play"
             },
             {
-                "url": "frontend/public/assets/images/items/salt.png",
-                "type": "image",
-                "key": "salt"
-            },
-            {
-                "url": "frontend/public/assets/images/ui/settings.png",
+                "url": "assets/images/ui/settings-button.png",
                 "type": "image",
                 "key": "settings"
             },
             {
-                "url": "frontend/public/assets/images/ui/spacebar.png",
+                "url": "assets/images/ui/spacebar.png",
                 "frameConfig": {
                     "frameWidth": 64,
                     "frameHeight": 64,
@@ -131,17 +66,12 @@
                 "key": "spacebar"
             },
             {
-                "url": "frontend/public/assets/images/items/Sulfur.png",
+                "url": "assets/images/ui/title.png",
                 "type": "image",
-                "key": "Sulfur"
+                "key": "title"
             },
             {
-                "url": "frontend/public/assets/images/items/Tortoise_shell.png",
-                "type": "image",
-                "key": "Tortoise_shell"
-            },
-            {
-                "url": "frontend/public/assets/images/backgrounds/tunnel.png",
+                "url": "assets/images/backgrounds/tunnel.png",
                 "frameConfig": {
                     "frameWidth": 64,
                     "frameHeight": 64,
@@ -154,39 +84,9 @@
                 "key": "tunnel_1"
             },
             {
-                "url": "frontend/public/assets/images/items/Unio elongatulus.png",
-                "type": "image",
-                "key": "Unio elongatulus"
-            },
-            {
-                "url": "frontend/public/assets/images/items/Vicia_faba.png",
-                "type": "image",
-                "key": "Vicia_faba"
-            },
-            {
-                "url": "frontend/public/assets/images/ui/volume.png",
+                "url": "assets/images/ui/volume.png",
                 "type": "image",
                 "key": "volume"
-            },
-            {
-                "url": "frontend/public/assets/images/items/wine jar.png",
-                "type": "image",
-                "key": "wine jar"
-            },
-            {
-                "url": "frontend/public/assets/images/items/wooden_bowl.png",
-                "type": "image",
-                "key": "wooden_bowl"
-            },
-            {
-                "url": "frontend/public/assets/images/items/wooden_cup.png",
-                "type": "image",
-                "key": "wooden_cup"
-            },
-            {
-                "url": "frontend/public/assets/images/items/wooden_ladle.png",
-                "type": "image",
-                "key": "wooden_ladle"
             }
         ]
     },
