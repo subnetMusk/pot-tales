@@ -1,10 +1,10 @@
-# 🧹 Sistema di Pulizia e Gestione Centralizzato
+# Sistema di Pulizia e Gestione Centralizzato
 
 Questo documento descrive il nuovo sistema centralizzato per la gestione, pulizia e backup delle configurazioni del progetto.
 
-## 📜 Script Disponibili
+## Script Disponibili
 
-### 🎯 `scripts/cleanup.sh` - Script di Pulizia Centralizzato
+### `scripts/cleanup.sh` - Script di Pulizia Centralizzato
 
 Sostituisce i vecchi `clean_build.sh` e `production-cleanup.sh` con un sistema intelligente e modulare.
 
@@ -12,7 +12,7 @@ Sostituisce i vecchi `clean_build.sh` e `production-cleanup.sh` con un sistema i
 # Modalità sviluppo (default) - pulizia completa per dev
 ./scripts/cleanup.sh --dev
 
-# Modalità produzione - pulizia selettiva preservando configurazioni  
+# Modalità produzione - pulizia selettiva preservando configurazioni
 ./scripts/cleanup.sh --production
 
 # Modalità leggera - solo cache e build artifacts
@@ -23,13 +23,13 @@ Sostituisce i vecchi `clean_build.sh` e `production-cleanup.sh` con un sistema i
 ```
 
 **Caratteristiche:**
-- ✅ **Backup automatico** configurazioni critiche prima della pulizia
-- ✅ **Protezione intelligente** di certificati SSL, configurazioni NGINX, Kibana
-- ✅ **Modalità multiple** per diversi scenari d'uso
-- ✅ **Verifica integrità** configurazioni dopo pulizia
-- ✅ **Output colorato** e informativo
+- **Backup automatico** configurazioni critiche prima della pulizia
+- **Protezione intelligente** di certificati SSL, configurazioni NGINX, Kibana
+- **Modalità multiple** per diversi scenari d'uso
+- **Verifica integrità** configurazioni dopo pulizia
+- **Output colorato** e informativo
 
-### 🔄 `scripts/dev-reinstall.sh` - Reinstallazione Sviluppo
+### `scripts/dev-reinstall.sh` - Reinstallazione Sviluppo
 
 Ricostruzione completa dell'ambiente di sviluppo usando il nuovo sistema centralizzato.
 
@@ -38,13 +38,13 @@ Ricostruzione completa dell'ambiente di sviluppo usando il nuovo sistema central
 ```
 
 **Processo:**
-1. 🧹 Pulizia completa via `cleanup.sh --dev`
-2. 📦 Reinstallazione dipendenze JavaScript (frontend, sandbox)
-3. 🐹 Aggiornamento moduli Go in container
-4. 🐳 Ricostruzione immagini Docker da zero
-5. 🚀 Avvio stack e verifica stato servizi
+1.  Pulizia completa via `cleanup.sh --dev`
+2.  Reinstallazione dipendenze JavaScript (frontend, sandbox)
+3.  Aggiornamento moduli Go in container
+4.  Ricostruzione immagini Docker da zero
+5.  Avvio stack e verifica stato servizi
 
-### 📊 `scripts/kibana-dashboard-manager.sh` - Gestione Dashboard Kibana
+### `scripts/kibana-dashboard-manager.sh` - Gestione Dashboard Kibana
 
 Sistema completo per backup e ripristino delle dashboard Kibana personalizzate.
 
@@ -65,7 +65,7 @@ Sistema completo per backup e ripristino delle dashboard Kibana personalizzate.
 ./scripts/kibana-dashboard-manager.sh protect
 ```
 
-## 📁 Struttura Backup e Protezione
+## Struttura Backup e Protezione
 
 ### Configurazioni Protette Automaticamente
 
@@ -74,30 +74,27 @@ Il sistema preserva automaticamente:
 ```
 docker/volumes/
 ├── kibana/
-│   ├── config/kibana.yml          ✅ Sempre preservato
-│   ├── snapshots/                 ✅ Backup automatici
-│   └── protected-dashboards/      ✅ Export dashboard
-├── npm_data/                      ✅ Configurazioni NGINX Proxy Manager
-├── npm_letsencrypt/               ✅ Certificati SSL Let's Encrypt
-└── fluent-bit/fluent-bit.conf     ✅ Configurazione log aggregation
+│   ├── config/kibana.yml           Sempre preservato
+│   ├── snapshots/                  Backup automatici
+│   └── protected-dashboards/       Export dashboard
+└── filebeat/filebeat.yml           Configurazione raccolta log
 ```
 
 ### Directory di Backup
 
 ```
 backups/
-├── config-YYYYMMDD_HHMMSS/       📦 Backup automatici pre-pulizia
+├── config-YYYYMMDD_HHMMSS/        Backup automatici pre-pulizia
 │   ├── kibana-config/
 │   ├── kibana-dashboards/
-│   ├── npm-configs.tar.gz
 │   ├── .env
 │   └── docker-env
 └── docker/volumes/kibana/
-    ├── snapshots/                 📸 Snapshot configurazioni Kibana
-    └── protected-dashboards/      🛡️  Export dashboard personalizzate
+    ├── snapshots/                  Snapshot configurazioni Kibana
+    └── protected-dashboards/        Export dashboard personalizzate
 ```
 
-## 🔄 Workflow Raccomandato
+## Workflow Raccomandato
 
 ### Per Sviluppo Quotidiano
 
@@ -145,7 +142,7 @@ docker compose -f docker-compose.prod.yml ps
 ./scripts/dev-reinstall.sh
 ```
 
-## 🚨 Cosa Fare in Caso di Errori
+## Cosa Fare in Caso di Errori
 
 ### Kibana Non Si Avvia
 
@@ -170,12 +167,13 @@ docker restart kibana
 # 1. Verifica backup
 ls -la backups/config-*/
 
-# 2. Ripristina da backup più recente
+# 2. Ripristina da backup più recente (env e config Kibana)
 cd backups/config-YYYYMMDD_HHMMSS/
-tar -xzf npm-configs.tar.gz -C ../../docker/volumes/npm_data/
+cp .env ../../.env
+cp -r kibana-config/* ../../docker/volumes/kibana/config/
 
-# 3. Riavvia NGINX Proxy Manager
-docker restart nginx-proxy-manager
+# 3. Riavvia i servizi
+docker compose -f docker-compose.dev.yml up -d
 ```
 
 ### Dashboard Kibana Perse
@@ -190,33 +188,33 @@ docker restart nginx-proxy-manager
 # 3. Se nessun backup, ricrea dashboard manualmente
 ```
 
-## 📋 Checklist Pre-Produzione
+## Checklist Pre-Produzione
 
 Prima del deployment in produzione, assicurati:
 
-- [ ] ✅ **Backup dashboard**: `./scripts/kibana-dashboard-manager.sh export`
-- [ ] ✅ **Pulizia selettiva**: `./scripts/cleanup.sh --production`
-- [ ] ✅ **Configurazioni verificate**: Kibana, NGINX, SSL ancora presenti
-- [ ] ✅ **Credenziali aggiornate**: File `.env` con password produzione
-- [ ] ✅ **Test servizi**: Tutti i container si avviano correttamente
+- [ ]  **Backup dashboard**: `./scripts/kibana-dashboard-manager.sh export`
+- [ ]  **Pulizia selettiva**: `./scripts/cleanup.sh --production`
+- [ ]  **Configurazioni verificate**: Kibana, NGINX, SSL ancora presenti
+- [ ]  **Credenziali aggiornate**: File `.env` con password produzione
+- [ ]  **Test servizi**: Tutti i container si avviano correttamente
 
-## 🎯 Vantaggi del Nuovo Sistema
+## Vantaggi del Nuovo Sistema
 
-1. **🛡️ Sicurezza**: Backup automatici prima di ogni pulizia
-2. **🎛️ Controllo**: Modalità multiple per diversi scenari
-3. **📊 Visibilità**: Output dettagliato e colorato
-4. **🔄 Automazione**: Meno comandi manuali, meno errori
-5. **📦 Modularità**: Script specializzati per compiti specifici
-6. **🧪 Testing**: Verifica automatica dello stato post-operazione
+1. ** Sicurezza**: Backup automatici prima di ogni pulizia
+2. ** Controllo**: Modalità multiple per diversi scenari
+3. ** Visibilità**: Output dettagliato e colorato
+4. ** Automazione**: Meno comandi manuali, meno errori
+5. ** Modularità**: Script specializzati per compiti specifici
+6. ** Testing**: Verifica automatica dello stato post-operazione
 
-## 💡 Tips e Best Practices
+## Tips e Best Practices
 
-- 🕐 **Esporta dashboard regolarmente** durante lo sviluppo
-- 🧹 **Usa `--soft`** per pulizie quotidiane, preserva tutto
-- 🚀 **Usa `--production`** solo per deployment live  
-- 📋 **Controlla sempre i log** dopo operazioni di pulizia/restart
-- 💾 **Mantieni backup multipli** delle configurazioni critiche
-- 🔍 **Testa in locale** prima di applicare in produzione
+- **Esporta dashboard regolarmente** durante lo sviluppo
+- **Usa `--soft`** per pulizie quotidiane, preserva tutto
+- **Usa `--production`** solo per deployment live
+- **Controlla sempre i log** dopo operazioni di pulizia/restart
+- **Mantieni backup multipli** delle configurazioni critiche
+- **Testa in locale** prima di applicare in produzione
 
 ---
 

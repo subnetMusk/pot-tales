@@ -122,12 +122,10 @@ print_separator() {
 check_environment_files() {
     print_separator "ENVIRONMENT CONFIGURATION"
     
-    # Main environment file
-    check_file "$PROJECT_ROOT/.env" "Main environment file"
-    
-    # Docker environment file
-    check_file "$PROJECT_ROOT/docker/env/.env" "Docker environment file"
-    
+    # Environment file unico (in root, usato sia da Compose per la sostituzione
+    # ${...} sia come env_file dei container)
+    check_file "$PROJECT_ROOT/.env" "Environment file (root)"
+
     # Verify key configurations exist
     if [[ -f "$PROJECT_ROOT/.env" ]]; then
         check_file_content "$PROJECT_ROOT/.env" "ELASTICSEARCH_PASSWORD=" "Elasticsearch password"
@@ -137,25 +135,12 @@ check_environment_files() {
     fi
 }
 
-check_nginx_proxy_manager() {
-    print_separator "NGINX PROXY MANAGER PERSISTENCE"
-    
-    # Check NPM data directory
-    check_directory "$PROJECT_ROOT/docker/volumes/npm_data" "NPM data directory"
-    
-    # Check SSL certificates directory
-    check_directory "$PROJECT_ROOT/docker/volumes/npm_letsencrypt" "NPM SSL certificates"
-    
-    # Check Docker volumes
-    check_docker_volume "progetti_innovativi_npm_data" "NPM data volume"
-    check_docker_volume "progetti_innovativi_npm_letsencrypt" "NPM SSL volume"
-    
-    # Check SQLite database
-    if [[ -d "$PROJECT_ROOT/docker/volumes/npm_data" ]]; then
-        find "$PROJECT_ROOT/docker/volumes/npm_data" -name "*.sqlite" -o -name "database.sqlite" | while read -r db_file; do
-            check_file "$db_file" "NPM SQLite database"
-        done
-    fi
+check_traefik() {
+    print_separator "TRAEFIK (REVERSE PROXY) CONFIG"
+
+    # La config Traefik e' versionata nel repo (routing via label sui container),
+    # quindi non c'e' stato runtime da persistere come con NPM.
+    check_file "$PROJECT_ROOT/docker/traefik/traefik.yml" "Traefik static config"
 }
 
 check_elasticsearch() {
@@ -219,34 +204,18 @@ check_apm_server() {
 }
 
 check_elastic_agent() {
-    print_separator "ELASTIC AGENT PERSISTENCE"
-    
-    # Check Elastic Agent configuration
-    check_file "$PROJECT_ROOT/docker/volumes/elastic-agent/elastic-agent.yml" "Elastic Agent configuration"
-    
-    # Verify agent config content
-    if [[ -f "$PROJECT_ROOT/docker/volumes/elastic-agent/elastic-agent.yml" ]]; then
-        check_file_content "$PROJECT_ROOT/docker/volumes/elastic-agent/elastic-agent.yml" "outputs:" "Agent output configuration"
-        check_file_content "$PROJECT_ROOT/docker/volumes/elastic-agent/elastic-agent.yml" "inputs:" "Agent input configuration"
-    fi
+    print_separator "ELASTIC AGENT (FLEET-MANAGED)"
+
+    # Gli agent sono gestiti da Fleet: la configurazione vive nelle policy su
+    # Kibana/Elasticsearch, non in un file locale. Nessun file da verificare qui.
+    echo "  Agent gestiti da Fleet: nessun file di config locale."
 }
 
-check_fluent_bit() {
-    print_separator "FLUENT BIT PERSISTENCE"
-    
-    # Check Fluent Bit configuration files
-    check_file "$PROJECT_ROOT/docker/volumes/fluent-bit/fluent-bit.conf" "Fluent Bit main configuration"
-    check_file "$PROJECT_ROOT/docker/volumes/fluent-bit/parsers.conf" "Fluent Bit parsers configuration"
-    
-    # Check Fluent Bit database directory
-    check_directory "$PROJECT_ROOT/docker/volumes/fluent-bit-db" "Fluent Bit database directory"
-    
-    # Check for database files
-    if [[ -d "$PROJECT_ROOT/docker/volumes/fluent-bit-db" ]]; then
-        find "$PROJECT_ROOT/docker/volumes/fluent-bit-db" -name "*.db" | while read -r db_file; do
-            check_file "$db_file" "Fluent Bit database file"
-        done
-    fi
+check_filebeat() {
+    print_separator "FILEBEAT PERSISTENCE"
+
+    # Filebeat raccoglie i log dei container e li invia a Elasticsearch.
+    check_file "$PROJECT_ROOT/docker/volumes/filebeat/filebeat.yml" "Filebeat configuration"
 }
 
 check_mongodb() {
@@ -312,8 +281,8 @@ check_frontend_rum() {
         check_file_content "$PROJECT_ROOT/frontend/src/main.ts" "window.apm" "RUM global exposure"
     fi
     
-    # Check RUM environment variables (check both .env files)
-    local env_files=("$PROJECT_ROOT/.env" "$PROJECT_ROOT/docker/env/.env")
+    # Check RUM environment variables
+    local env_files=("$PROJECT_ROOT/.env")
     local rum_vars_found=false
     
     for env_file in "${env_files[@]}"; do
@@ -343,9 +312,9 @@ check_docker_compose() {
     if [[ -f "$PROJECT_ROOT/docker-compose.dev.yml" ]]; then
         check_file_content "$PROJECT_ROOT/docker-compose.dev.yml" "elasticsearch:" "Elasticsearch service"
         check_file_content "$PROJECT_ROOT/docker-compose.dev.yml" "kibana:" "Kibana service"
-        check_file_content "$PROJECT_ROOT/docker-compose.dev.yml" "apm-server:" "APM Server service"
-        check_file_content "$PROJECT_ROOT/docker-compose.dev.yml" "elastic-agent:" "Elastic Agent service"
-        check_file_content "$PROJECT_ROOT/docker-compose.dev.yml" "fluent-bit:" "Fluent Bit service"
+        check_file_content "$PROJECT_ROOT/docker-compose.monitoring.yml" "apm-agent:" "APM Agent service"
+        check_file_content "$PROJECT_ROOT/docker-compose.monitoring.yml" "infra-agent:" "Fleet-managed infra agent service"
+        check_file_content "$PROJECT_ROOT/docker-compose.monitoring.yml" "filebeat:" "Filebeat service"
         check_file_content "$PROJECT_ROOT/docker-compose.dev.yml" "volumes:" "Volume definitions"
     fi
 }
@@ -374,12 +343,12 @@ main() {
     
     # Run all checks
     check_environment_files
-    check_nginx_proxy_manager
+    check_traefik
     check_elasticsearch
     check_kibana
     check_apm_server
     check_elastic_agent
-    check_fluent_bit
+    check_filebeat
     check_mongodb
     check_redis
     check_redis_commander
@@ -424,13 +393,13 @@ if [[ "${1:-}" == "--help" ]] || [[ "${1:-}" == "-h" ]]; then
     echo "remain intact after running dev-reinstall.sh"
     echo ""
     echo "Checks include:"
-    echo "  - Environment variables (.env files)"
-    echo "  - NGINX Proxy Manager data and SSL certificates"
+    echo "  - Environment variables (.env)"
+    echo "  - Traefik routing configuration"
     echo "  - Elasticsearch data and indices"
     echo "  - Kibana configuration and data"
     echo "  - APM Server and RUM configurations"
-    echo "  - Elastic Agent configuration"
-    echo "  - Fluent Bit logs and configuration"
+    echo "  - Fleet-managed Elastic Agent configuration"
+    echo "  - Filebeat log collection"
     echo "  - MongoDB data and init scripts"
     echo "  - Redis configuration and ACL"
     echo "  - Docker Compose service definitions"

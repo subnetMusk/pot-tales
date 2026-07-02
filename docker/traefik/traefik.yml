@@ -1,0 +1,25 @@
+# Traefik v3 - configurazione statica (sviluppo)
+# Routing dichiarativo nel file dinamico montato in /etc/traefik/dynamic.yml.
+# In prod: aggiungere l'entrypoint websecure (:443) e un certresolver ACME.
+
+api:
+  dashboard: true
+  insecure: true        # dashboard su :8080 senza auth -> SOLO sviluppo
+
+entryPoints:
+  web:
+    address: ":80"
+
+providers:
+  file:
+    filename: /etc/traefik/dynamic.yml
+    watch: true
+
+# I servizi che parlano HTTPS internamente (APM con cert self-signed) vengono
+# raggiunti saltando la verifica del certificato: accettabile solo in sviluppo.
+serversTransport:
+  insecureSkipVerify: true
+
+log:
+  level: INFO
+accessLog: {}

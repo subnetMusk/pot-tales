@@ -38,7 +38,7 @@ fi
 
 # List of monitoring containers to stop
 MONITORING_CONTAINERS=(
-    "fluent-bit"
+    "filebeat"
     "infra-agent"
     "apm-agent"
     "fleet-server"
@@ -64,7 +64,7 @@ for container in "${MONITORING_CONTAINERS[@]}"; do
         echo -e "${RED}✗${NC} $container is still running"
         RUNNING_CONTAINERS=$((RUNNING_CONTAINERS + 1))
     else
-        echo -e "${GREEN}✓${NC} $container stopped"
+        echo -e "${GREEN}OK${NC} $container stopped"
     fi
 done
 

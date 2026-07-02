@@ -11,11 +11,10 @@ set -euo pipefail
 #   --soft       : Pulizia leggera (solo cache e build artifacts)
 #
 # Preserva sempre:
-#   - Configurazioni NGINX Proxy Manager
-#   - Certificati SSL Let's Encrypt  
-#   - Configurazioni Kibana
+#   - Configurazioni Kibana (config + dashboard/Fleet sul volume)
 #   - File environment (.env)
-#   - Dashboard Kibana (se protette)
+# Nota: la config del proxy (Traefik), Filebeat ed ELK e' versionata nel repo,
+# non serve backupparla a parte.
 ###############################################################################
 
 _ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -69,15 +68,8 @@ backup_critical_configs() {
         print_success "Backup dashboard Kibana"
     fi
     
-    # Backup NGINX Proxy Manager configs essenziali
-    if [ -d "docker/volumes/npm_data" ]; then
-        tar -czf "$backup_dir/npm-configs.tar.gz" docker/volumes/npm_data/database.sqlite docker/volumes/npm_data/keys.json 2>/dev/null || true
-        print_success "Backup configurazioni NGINX Proxy Manager"
-    fi
-    
-    # Backup environment files
+    # Backup environment file (unico, in root)
     cp .env "$backup_dir/" 2>/dev/null || true
-    cp docker/env/.env "$backup_dir/docker-env" 2>/dev/null || true
     print_success "Backup file environment"
     
     print_info "Backup salvato in: $backup_dir"
@@ -139,12 +131,6 @@ clean_development_data() {
         print_success "Log MongoDB sviluppo rimossi"
     fi
     
-    # Fluent Bit cache
-    if [ -d "docker/volumes/fluent-bit-db" ]; then
-        rm -rf docker/volumes/fluent-bit-db/*.db*
-        print_success "Cache Fluent Bit rimossa"
-    fi
-    
     # Kibana: PRESERVATO COMPLETAMENTE per evitare perdita configurazioni
     # La directory docker/volumes/kibana/ non viene mai toccata durante la pulizia
     # per mantenere intatte tutte le configurazioni, dashboard e impostazioni Fleet
@@ -176,22 +162,16 @@ clean_production_data() {
         configs_ok=false
     fi
     
-    if [ -d "docker/volumes/npm_data" ]; then
-        print_success "Configurazioni NGINX Proxy Manager preservate"
+    if [ -f "docker/traefik/traefik.yml" ]; then
+        print_success "Configurazione Traefik presente"
     else
-        print_warning "Directory NGINX Proxy Manager non trovata"
+        print_warning "Configurazione Traefik non trovata"
     fi
-    
-    if [ -d "docker/volumes/npm_letsencrypt" ]; then
-        print_success "Certificati SSL preservati"
+
+    if [ -f "docker/volumes/filebeat/filebeat.yml" ]; then
+        print_success "Configurazione Filebeat presente"
     else
-        print_warning "Directory certificati SSL non trovata"
-    fi
-    
-    if [ -f "docker/volumes/fluent-bit/fluent-bit.conf" ]; then
-        print_success "Configurazione Fluent Bit preservata"
-    else
-        print_warning "Configurazione Fluent Bit non trovata"
+        print_warning "Configurazione Filebeat non trovata"
     fi
     
     if [ "$configs_ok" = true ]; then
@@ -209,7 +189,7 @@ clean_full() {
     
     echo -e "${RED}ATTENZIONE: Questa operazione cancellerà:"
     echo "• Tutti i container e volumi Docker"
-    echo "• Tutte le configurazioni (NGINX, Kibana, SSL)"
+    echo "• Tutte le configurazioni runtime (Kibana, dati volumi)"
     echo "• Tutti i dati (database, log, cache)"
     echo "• Tutti gli artifacts di build"
     echo -e "${NC}"

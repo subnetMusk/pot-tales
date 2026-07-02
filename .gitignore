@@ -32,8 +32,12 @@ Icon?
 *.pid
 
 # ---- Segreti / config locale (NON committare) ----
-# I .env restano volutamente versionati come esempio condiviso del team,
-# ma i backup automatici contengono segreti vecchi: mai tracciarli.
+# .env in chiaro: mai committarli. I file SOPS cifrati (*.enc.env) invece
+# SONO versionati: e' proprio lo scopo del flusso SOPS+age.
+.env
+!.env.example
+secrets/*.env
+!secrets/*.enc.env
 backups/
 
 # ---- Certificati ----
@@ -52,8 +56,3 @@ docker/volumes/esdata/
 docker/volumes/kibana/data/
 # Fleet server data
 docker/volumes/fleetserverdata/
-# NGINX Proxy Manager: SQLite, chiavi, log e vhost generati a runtime
-docker/volumes/npm_data/*
-!docker/volumes/npm_data/.gitkeep
-docker/volumes/npm_letsencrypt/*
-!docker/volumes/npm_letsencrypt/.gitkeep
