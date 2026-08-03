@@ -1,0 +1,30 @@
+# Revisori notificati automaticamente sulle modifiche a infrastruttura,
+# configurazione e componenti che regolano sicurezza e persistenza.
+
+# Infrastruttura e orchestrazione
+/docker-compose*.yml            @subnetMusk
+/docker/                        @subnetMusk
+/swarm-prototype/               @subnetMusk
+/terraform/                     @subnetMusk
+/.github/                       @subnetMusk
+/scripts/                       @subnetMusk
+
+# Build e dipendenze
+**/Dockerfile                   @subnetMusk
+**/.dockerignore                @subnetMusk
+/server/go.mod                  @subnetMusk
+/server/go.sum                  @subnetMusk
+
+# Configurazione e segreti
+/.env.example                   @subnetMusk
+/secrets/                       @subnetMusk
+
+# Backend: componenti che regolano sicurezza e persistenza
+/server/main.go                  @subnetMusk
+/server/helpers/networks.go      @subnetMusk
+/server/helpers/mongo.go         @subnetMusk
+/server/helpers/session_utils.go @subnetMusk
+/server/middleware/              @subnetMusk
+
+# Test
+/server/**/*_test.go            @subnetMusk
