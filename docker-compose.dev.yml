@@ -44,6 +44,12 @@ services:
       - server
       - sandbox
       - frontend
+    mem_limit: 512m
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
 
   # Go backend API service
   server:
@@ -73,6 +79,12 @@ services:
     depends_on:
       - db
       - redis
+    mem_limit: 512m
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
 
   # Redis in-memory database with ACL
   redis:
@@ -88,6 +100,12 @@ services:
       - "6379"
     networks:
       - internal_net
+    mem_limit: 512m
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
 
   # MongoDB database with init scripts and log bind
   db:
@@ -103,6 +121,12 @@ services:
       - ./docker/volumes/mongodb:/data/db:delegated
       - ./docker/init-db:/docker-entrypoint-initdb.d:ro
       - ./docker/volumes/logs/mongodb:/var/log/mongodb
+    mem_limit: 2g
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
 
   # MongoDB Web UI (mongo-express)
   mongo-ui:
@@ -119,6 +143,12 @@ services:
       - db
     expose:
       - "8081"
+    mem_limit: 256m
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
 
   # Redis Web UI (redis-commander)
   redis-ui:
@@ -136,6 +166,12 @@ services:
       - redis
     expose:
       - "8081"
+    mem_limit: 256m
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
 
   # Vite sandbox frontend dev server
   sandbox:
@@ -158,6 +194,12 @@ services:
     command: npm run dev -- --host 0.0.0.0
     depends_on:
       - server
+    mem_limit: 1g
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
 
   # Production frontend build (served statically by NGINX)
   frontend:
@@ -177,6 +219,12 @@ services:
       - "80"
     depends_on:
       - server
+    mem_limit: 512m
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
 
 
 ############################

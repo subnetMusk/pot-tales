@@ -56,11 +56,21 @@ http:
   services:
     frontend:
       loadBalancer:
+        healthCheck:
+          path: /
+          interval: "15s"
+          timeout: "3s"
         servers:
           - url: "http://frontend:80"
 
     api:
       loadBalancer:
+        # Verifica applicativa: esclude dal bilanciamento un server che
+        # risponde in modo non valido pur avendo il processo attivo.
+        healthCheck:
+          path: /health
+          interval: "10s"
+          timeout: "3s"
         servers:
           - url: "http://server:3000"
 
@@ -81,6 +91,10 @@ http:
 
     kibana:
       loadBalancer:
+        healthCheck:
+          path: /api/status
+          interval: "30s"
+          timeout: "5s"
         servers:
           - url: "http://kibana:5601"
 
