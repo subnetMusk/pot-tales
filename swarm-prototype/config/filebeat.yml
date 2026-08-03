@@ -1,0 +1,28 @@
+# Configurazione di Filebeat, distribuita come Swarm `config`.
+#
+# Non include `setup.kibana`: l'avvio non dipende dalla disponibilita' di
+# Kibana. Filebeat dispone di retry nativi verso Elasticsearch e si riconnette
+# autonomamente quando il nodo diventa disponibile.
+
+filebeat.inputs:
+  - type: container
+    paths:
+      - /var/lib/docker/containers/*/*.log
+    processors:
+      - add_docker_metadata:
+          host: "unix:///var/run/docker.sock"
+      - decode_json_fields:
+          fields: ["message"]
+          target: ""
+          overwrite_keys: true
+          process_array: false
+          max_depth: 1
+
+output.elasticsearch:
+  hosts: ["https://es01:9200"]
+  username: "${ELASTICSEARCH_USERNAME}"
+  password: "${ELASTICSEARCH_PASSWORD}"
+  ssl.certificate_authorities: ["/usr/share/filebeat/certs/ca/ca.crt"]
+
+logging.json: true
+logging.metrics.enabled: false

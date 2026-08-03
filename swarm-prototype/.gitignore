@@ -1,0 +1,4 @@
+# Secret generati da gate.sh e output delle esecuzioni: non versionati.
+secrets/
+runs/
+.fault-drill-state
