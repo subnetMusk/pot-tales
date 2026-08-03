@@ -1,9 +1,25 @@
-# Copia in terraform.tfvars e compila (NON committare terraform.tfvars).
+# Copia in terraform.tfvars e compila. terraform.tfvars non va versionato.
+
 elastic_password  = "VALORE_DI_ELASTIC_PASSWORD_NEL_TUO_ENV"
 filebeat_password = "GENERA_UNA_PASSWORD_DEDICATA"
 apm_secret_token  = "VALORE_DI_APM_SECRET_TOKEN_NEL_TUO_ENV"
 
-# In dev, per raggiungere es01 da fuori Docker, pubblica temporaneamente la
-# porta 9200 di es01 oppure esegui terraform da un container su internal_net.
+# Canale di notifica delle regole di alerting.
+telegram_webhook_url = "https://api.telegram.org/bot<TOKEN>/sendMessage"
+telegram_chat_id     = "IDENTIFICATIVO_CHAT"
+
+# Endpoint dei servizi. Per raggiungere es01 dall'esterno della rete Docker,
+# pubblicare la porta 9200 oppure eseguire terraform da un container collegato
+# alla stessa rete.
 # elasticsearch_endpoint = "https://localhost:9200"
 # kibana_endpoint        = "http://kibana.localhost"
+
+# URL con cui gli agenti RUM raggiungono il server APM.
+# apm_server_url = "http://apm.localhost"
+
+# Verifica del certificato TLS. Impostare a false con una CA valida.
+# insecure_tls = true
+
+# Soglie di alerting.
+# logs_index_pattern   = "logs-*"
+# error_rate_threshold = 25

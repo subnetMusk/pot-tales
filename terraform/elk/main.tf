@@ -1,10 +1,10 @@
 # ============================================================
-# ELK as-code: configurazione dello stack Elastic via Terraform
+# Configurazione dello stack Elastic via Terraform
 # ------------------------------------------------------------
-# Risolve i punti fragili documentati in MONITORING_SETUP.md:
-#  - utenza dedicata per Filebeat (niente superuser elastic)   [fragilita' 5]
-#  - Fleet policy + enrollment token generati, non hardcoded   [fragilita' 2]
-#  - retention dei log (ILM) definita e versionata
+# Gestisce come risorse versionate:
+#  - utenza dedicata per Filebeat, con privilegi minimi
+#  - policy Fleet ed enrollment token, generati anziche' fissati
+#  - politica di retention dei log (ILM)
 # ============================================================
 
 # ---------- Utente dedicato per Filebeat ----------
@@ -66,14 +66,17 @@ resource "elasticstack_fleet_integration_policy" "apm" {
   integration_name    = elasticstack_fleet_integration.apm.name
   integration_version = elasticstack_fleet_integration.apm.version
 
-  input {
-    input_id = "apm-apm"
-    vars_json = jsonencode({
-      host         = "0.0.0.0:8200"
-      url          = "http://apm.localhost"
-      secret_token = var.apm_secret_token
-      enable_rum   = true
-    })
+  # Dal provider 0.16 il blocco `input { input_id = ... }` e' sostituito dalla
+  # mappa `inputs`.
+  inputs = {
+    "apm-apm" = {
+      vars = jsonencode({
+        host         = "0.0.0.0:8200"
+        url          = var.apm_server_url
+        secret_token = var.apm_secret_token
+        enable_rum   = true
+      })
+    }
   }
 }
 

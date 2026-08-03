@@ -43,8 +43,43 @@ variable "apm_secret_token" {
 variable "apm_package_version" {
   description = "Versione del package Fleet 'apm' (allineata a STACK_VERSION)"
   type        = string
-  default     = "8.11.0"
+  default     = "8.19.19"
 }
+
+variable "apm_server_url" {
+  description = "URL con cui gli agenti RUM raggiungono il server APM."
+  type        = string
+  default     = "http://apm.localhost"
+}
+
+# ---------- Alerting ----------
+
+variable "telegram_webhook_url" {
+  description = "URL completo della Bot API di Telegram, token incluso: https://api.telegram.org/bot<TOKEN>/sendMessage. E' un segreto perche' contiene il token."
+  type        = string
+  sensitive   = true
+}
+
+variable "telegram_chat_id" {
+  description = "Identificativo della chat Telegram che riceve le notifiche."
+  type        = string
+  sensitive   = true
+}
+
+variable "logs_index_pattern" {
+  description = "Pattern degli indici su cui valutano le regole di alerting"
+  type        = string
+  default     = "logs-*"
+}
+
+variable "error_rate_threshold" {
+  description = "Numero di eventi di livello error in 5 minuti oltre il quale scatta l'allarme. Da tarare sul carico osservato."
+  type        = number
+  default     = 25
+}
+
+
+
 
 variable "system_package_version" {
   description = "Versione del package Fleet 'system'"
