@@ -67,7 +67,7 @@ restare coerenti con `docker/redis/users.acl` (password Redis hardcoded li'):
 | `REDIS_APP_PASS` | `app-password` | Utente Redis backend (RW) |
 | `REDIS_FE_PASS` | `fe-password` | Utente Redis frontend (RO) |
 | `SESSION_TTL_MIN` | `30` | Durata sessione (minuti) |
-| `STACK_VERSION` | `8.11.0` | Versione Elastic Stack |
+| `STACK_VERSION` | `8.19.19` | Versione Elastic Stack (restare sulla linea 8.x) |
 | `ELASTIC_PASSWORD` | `m6OHmMuiqNrV1i25Jz3Z` | Utente `elastic` (superuser) |
 | `KIBANA_SYSTEM_PASSWORD` | `eJL-r*4rNjRioOwWPEMT` | Utente `kibana_system` |
 | `KIBANA_UI_USERNAME` / `KIBANA_UI_PASSWORD` | `kibana_admin` / `changeme123` | Login UI Kibana |
@@ -81,8 +81,8 @@ monitoring e' attivo.
 ## Build locale (senza Docker)
 
 ```bash
-cd frontend && npm ci && npm run build     # richiede Node 18+
-cd ../server && go build ./...             # richiede Go 1.22+
+cd frontend && npm ci && npm run build     # richiede Node 24+
+cd ../server && go build ./...             # richiede Go 1.26+
 ```
 
 ## Produzione: segreti con SOPS

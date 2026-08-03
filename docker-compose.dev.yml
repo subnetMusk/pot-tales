@@ -26,7 +26,7 @@ services:
 
   # Traefik – reverse proxy con routing dichiarativo via file provider
   proxy:
-    image: traefik:v3.1
+    image: traefik:v3.7.10@sha256:9c3b91d5fb7770853ca5c1124a23c34bf2d9b47ffaebeab2614cbaf410dcb2ac
     container_name: traefik
     restart: unless-stopped
     command:
@@ -76,7 +76,7 @@ services:
 
   # Redis in-memory database with ACL
   redis:
-    image: redis:alpine
+    image: redis:8.10.0-alpine@sha256:978f0e01593e65eed801f2402944efcd936d43b5027e4908a7897baf88ed6241
     container_name: redis
     env_file:
       - .env
@@ -91,7 +91,7 @@ services:
 
   # MongoDB database with init scripts and log bind
   db:
-    image: mongo:latest
+    image: mongo:8.2.12@sha256:e0ce8c35124d4a9f9785532d1f268f39e9728ffa1cb38f46fa482436424c4bd3
     container_name: db
     env_file:
       - .env
@@ -106,7 +106,7 @@ services:
 
   # MongoDB Web UI (mongo-express)
   mongo-ui:
-    image: mongo-express:latest
+    image: mongo-express:1.0.2@sha256:1b23d7976f0210dbec74045c209e52fbb26d29b2e873d6c6fa3d3f0ae32c2a64
     container_name: mongo-ui
     restart: unless-stopped
     environment:
@@ -122,7 +122,8 @@ services:
 
   # Redis Web UI (redis-commander)
   redis-ui:
-    image: rediscommander/redis-commander:latest
+    # L'immagine upstream pubblica solo il tag `latest`, pinnato per digest.
+    image: rediscommander/redis-commander:latest@sha256:19cd0c49f418779fa2822a0496c5e6516d0c792effc39ed20089e6268477e40a
     container_name: redis-ui
     platform: linux/amd64
     restart: unless-stopped

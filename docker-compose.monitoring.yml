@@ -36,7 +36,7 @@ networks:
 services:
   # Setup certificates volume for use by other services
   setup:
-    image: docker.elastic.co/elasticsearch/elasticsearch:${STACK_VERSION}
+    image: docker.elastic.co/elasticsearch/elasticsearch:${STACK_VERSION}@${ES_IMAGE_DIGEST}
     container_name: setup-certs
     env_file:
       - .env
@@ -123,7 +123,7 @@ services:
       setup:
         condition: service_started   # certs service, once that it has created the certs, can exit, so we wait for it to complete successfully, not just to be healthy beacuse it would always fail
     container_name: es01
-    image: docker.elastic.co/elasticsearch/elasticsearch:${STACK_VERSION}
+    image: docker.elastic.co/elasticsearch/elasticsearch:${STACK_VERSION}@${ES_IMAGE_DIGEST}
     env_file:
       - .env
     networks:
@@ -179,7 +179,7 @@ services:
       - internal_net                                            # so it can reach Elasticsearch and communicate securely with it using the certs
       - proxy_net                                               # so Traefik can route requests to the Kibana UI
       - kibana_net                                              # gives Kibana internet access for integrations
-    image: docker.elastic.co/kibana/kibana:${STACK_VERSION}
+    image: docker.elastic.co/kibana/kibana:${STACK_VERSION}@${KIBANA_IMAGE_DIGEST}
     labels:
       - co.elastic.logs/module=kibana
     container_name: kibana
@@ -236,7 +236,7 @@ services:
     env_file:
       - .env
     # We use an Elastic Agent image that will be run as the Fleet Server
-    image: docker.elastic.co/beats/elastic-agent:${STACK_VERSION}
+    image: docker.elastic.co/beats/elastic-agent:${STACK_VERSION}@${ELASTIC_AGENT_IMAGE_DIGEST}
     container_name: fleet-server
     volumes:
       - certs:/usr/share/elastic-agent/certs:ro
@@ -287,7 +287,7 @@ services:
         condition: service_healthy
     env_file:
       - .env
-    image: docker.elastic.co/beats/elastic-agent:${STACK_VERSION}
+    image: docker.elastic.co/beats/elastic-agent:${STACK_VERSION}@${ELASTIC_AGENT_IMAGE_DIGEST}
     container_name: apm-agent
     restart: unless-stopped
     networks:
@@ -328,7 +328,7 @@ services:
         condition: service_healthy
     env_file:
       - .env
-    image: docker.elastic.co/beats/elastic-agent:${STACK_VERSION}
+    image: docker.elastic.co/beats/elastic-agent:${STACK_VERSION}@${ELASTIC_AGENT_IMAGE_DIGEST}
     container_name: infra-agent
     restart: unless-stopped
     networks:
@@ -357,7 +357,7 @@ services:
     depends_on:
       es01:
         condition: service_healthy
-    image: docker.elastic.co/beats/filebeat:${STACK_VERSION}
+    image: docker.elastic.co/beats/filebeat:${STACK_VERSION}@${FILEBEAT_IMAGE_DIGEST}
     container_name: filebeat
     user: root # Necessario per leggere /var/lib/docker e il socket
     restart: unless-stopped
@@ -371,4 +371,6 @@ services:
       - /var/lib/docker/containers:/var/lib/docker/containers:ro
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - ./docker/volumes/filebeat/filebeat.yml:/usr/share/filebeat/filebeat.yml:ro
-    command: filebeat -e -strict.perms=false
+    # Il flag richiede due trattini: nella forma con un solo trattino viene
+    # interpretato come cluster di shorthand e l'avvio fallisce.
+    command: filebeat -e --strict.perms=false

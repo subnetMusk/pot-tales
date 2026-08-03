@@ -93,7 +93,7 @@ Gli schemi JSON in `comms/frontend/` definiscono contratti di comunicazione.
 
 ### **Stack Tecnologico**
 
-**Server**: Go 1.22 con Gorilla Mux router
+**Server**: Go 1.26 con Gorilla Mux router
 - Redis client (go-redis/v9) per caching e sessioni
 - MongoDB driver per persistenza dati
 - Elastic APM per monitoring performance

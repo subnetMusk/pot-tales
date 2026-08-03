@@ -5,7 +5,7 @@
 // ---------------------------------------------------
 module github.com/subnetMusk/progetti_innovativi/server
 
-go 1.22
+go 1.26
 
 require (
 	// UUID generator for session tokens

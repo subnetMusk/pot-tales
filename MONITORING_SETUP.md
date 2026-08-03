@@ -127,7 +127,11 @@ Le seguenti variabili sono state aggiunte al file `.env`:
 ################################################################################
 # ELASTICSEARCH CLUSTER
 ################################################################################
-STACK_VERSION=8.11.0                           # Versione Elastic Stack
+STACK_VERSION=8.19.19                          # Versione Elastic Stack (linea 8.x)
+ES_IMAGE_DIGEST=sha256:...                     # digest delle 4 immagini Elastic,
+KIBANA_IMAGE_DIGEST=sha256:...                 # da riallineare a ogni cambio di
+ELASTIC_AGENT_IMAGE_DIGEST=sha256:...          # STACK_VERSION (valori in .env.example)
+FILEBEAT_IMAGE_DIGEST=sha256:...
 CLUSTER_NAME=docker-cluster                    # Nome cluster ES
 ES_MEM_LIMIT=1073741824                        # Limite memoria ES (1GB)
 
