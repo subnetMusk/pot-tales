@@ -13,6 +13,7 @@ import (
 	"errors"
 	"log"
 	"net/http"
+	"os"
 	"time"
 
 	"github.com/redis/go-redis/v9"
@@ -116,9 +117,31 @@ func (sm *SessionManager) refreshSessionAsync(token string) {
 
 // --- Helper Stateless (Funzioni pure di utilità HTTP) ---
 
-// ExtractToken legge il cookie "session_token".
+// SessionCookieName è il nome dell'unico cookie impostato dal backend.
+const SessionCookieName = "session_token"
+
+// cookieSecure vale true salvo COOKIE_SECURE="false". Il default marca il
+// cookie come Secure, quindi il browser lo invia solo su HTTPS; va disattivato
+// negli ambienti serviti su HTTP, dove altrimenti il cookie viene scartato.
+var cookieSecure = os.Getenv("COOKIE_SECURE") != "false"
+
+// NewSessionCookie costruisce il cookie di sessione con i relativi attributi
+// di sicurezza, mantenendoli definiti in un unico punto.
+func NewSessionCookie(value string, expires time.Time) *http.Cookie {
+	return &http.Cookie{
+		Name:     SessionCookieName,
+		Value:    value,
+		Path:     "/",
+		Expires:  expires,
+		HttpOnly: true,
+		Secure:   cookieSecure,
+		SameSite: http.SameSiteLaxMode,
+	}
+}
+
+// ExtractToken legge il cookie di sessione.
 func ExtractToken(r *http.Request) (string, error) {
-	c, err := r.Cookie("session_token")
+	c, err := r.Cookie(SessionCookieName)
 	if err != nil {
 		return "", ErrTokenMissing
 	}
@@ -142,6 +165,11 @@ func DeleteCookies(w http.ResponseWriter, r *http.Request, names ...string) {
 			Expires:  time.Unix(0, 0),
 			MaxAge:   -1,
 			HttpOnly: true,
+			// Gli attributi devono combaciare con quelli del cookie da
+			// invalidare: il browser identifica un cookie anche per Path,
+			// Secure e SameSite, e con attributi diversi ne creerebbe uno nuovo
+			// lasciando valido quello originale.
+			Secure:   cookieSecure,
 			SameSite: http.SameSiteLaxMode,
 		})
 	}

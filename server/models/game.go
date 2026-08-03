@@ -12,6 +12,9 @@ import "time"
 type GameState struct {
 	ID string `bson:"_id"` // Session Token
 
+	// Regge l'indice TTL di ritenzione dati, come in SessionDoc.
+	CreatedAt time.Time `bson:"created_at"`
+
 	// Dati di Gameplay (Posizione + Tempo accumulato)
 	Data struct {
 		SceneID         string  `bson:"scene_id"`

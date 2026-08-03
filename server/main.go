@@ -9,9 +9,13 @@ package main
 
 import (
 	"context"
+	"errors"
 	"log/slog"
 	"net/http"
 	"os"
+	"os/signal"
+	"strconv"
+	"syscall"
 	"time"
 
 	"github.com/redis/go-redis/v9"
@@ -30,6 +34,16 @@ import (
 func getenv(k, d string) string {
 	if v := os.Getenv(k); v != "" {
 		return v
+	}
+	return d
+}
+
+func getenvInt(k string, d int) int {
+	if v := os.Getenv(k); v != "" {
+		if n, err := strconv.Atoi(v); err == nil {
+			return n
+		}
+		slog.Warn("valore non numerico, uso il default", "var", k, "value", v, "default", d)
 	}
 	return d
 }
@@ -53,6 +67,10 @@ func main() {
 	// Nota: ttlMin potrebbe non servire più qui se è hardcodato in helpers,
 	// ma lo lasciamo se il router lo richiede ancora per altre logiche.
 	ttlMin := getenv("SESSION_TTL_MIN", "30")
+
+	// Ritenzione dei documenti su Mongo, distinta dalla durata della sessione.
+	// Vedi helpers.EnsureIndexes.
+	retention := time.Duration(getenvInt("DATA_RETENTION_DAYS", 45)) * 24 * time.Hour
 
 	slog.Info("APM Agent initialized", "service", serviceName)
 
@@ -82,8 +100,15 @@ func main() {
 	}
 
 	// 3. Inizializzazione Services (Business Logic Layer)
-	// Selezioniamo la collection specifica per le sessioni
-	sessionCol := mongoClient.Database(mongoDBName).Collection("sessions")
+	db := mongoClient.Database(mongoDBName)
+
+	// La creazione degli indici non è bloccante: il servizio resta funzionante
+	// anche senza, con la sola conseguenza che i documenti non scadono.
+	if err := helpers.EnsureIndexes(ctx, db, retention); err != nil {
+		slog.Error("mongo index setup failed, continuing", "error", err)
+	}
+
+	sessionCol := helpers.JournaledCollection(db, helpers.SessionsCollection)
 
 	// Creiamo il Manager che incapsula la logica di sessione
 	sessionMgr := helpers.NewSessionManager(redisClient, sessionCol)
@@ -96,9 +121,67 @@ func main() {
 	// Passiamo i client al router (se servono per le logiche di gioco) e il validator configurato
 	r := router.New(mongoClient, redisClient, val, ttlMin)
 
-	slog.Info("server listening with APM monitoring", "port", port)
-	if err := http.ListenAndServe(":"+port, apmgorilla.Middleware()(r)); err != nil {
+	// Timeout espliciti su ogni fase della richiesta. Senza, una connessione
+	// che non completa mai la propria fase tiene occupata una goroutine a
+	// tempo indefinito.
+	srv := &http.Server{
+		Addr:    ":" + port,
+		Handler: apmgorilla.Middleware()(r),
+
+		// Tempo massimo per ricevere gli header, che chiude le connessioni
+		// aperte senza inviare dati (Slowloris).
+		ReadHeaderTimeout: 5 * time.Second,
+		ReadTimeout:       15 * time.Second,
+		WriteTimeout:      30 * time.Second,
+		// Durata di una connessione keep-alive inattiva.
+		IdleTimeout: 60 * time.Second,
+		// Tetto sugli header, indipendente dal tetto sul body applicato dal
+		// middleware di validazione.
+		MaxHeaderBytes: 1 << 16, // 64 KB
+	}
+
+	// 6. Avvio e arresto controllato.
+	// Lo shutdown lascia completare le richieste in volo invece di troncarle
+	// alla chiusura del processo.
+	serverErr := make(chan error, 1)
+	go func() {
+		slog.Info("server listening with APM monitoring", "port", port)
+		if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
+			serverErr <- err
+		}
+	}()
+
+	stop := make(chan os.Signal, 1)
+	signal.Notify(stop, os.Interrupt, syscall.SIGTERM)
+
+	select {
+	case err := <-serverErr:
 		slog.Error("server failed", "error", err)
 		os.Exit(1)
+	case sig := <-stop:
+		slog.Info("shutdown requested", "signal", sig.String())
 	}
+
+	// Il grace period resta sotto i 10 secondi che Docker concede di default
+	// fra SIGTERM e SIGKILL, così l'arresto ha modo di completarsi.
+	shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 8*time.Second)
+	defer shutdownCancel()
+
+	if err := srv.Shutdown(shutdownCtx); err != nil {
+		slog.Error("graceful shutdown failed", "error", err)
+	}
+
+	// Contesto separato: se Shutdown ha consumato l'intero grace period,
+	// shutdownCtx risulta già scaduto e la disconnessione fallirebbe.
+	closeCtx, closeCancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer closeCancel()
+
+	if err := mongoClient.Disconnect(closeCtx); err != nil {
+		slog.Error("mongo disconnect failed", "error", err)
+	}
+	if err := redisClient.Close(); err != nil {
+		slog.Error("redis close failed", "error", err)
+	}
+
+	slog.Info("shutdown complete")
 }

@@ -11,12 +11,14 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"log/slog"
 	"net/http"
 	"os"
 	"path/filepath"
+	"strconv"
 
 	"github.com/santhosh-tekuri/jsonschema/v5"
 	"github.com/subnetMusk/progetti_innovativi/server/helpers"
@@ -98,9 +100,28 @@ func MustNew(baseDir string, sm *helpers.SessionManager) *Validator {
 	return v
 }
 
+// maxBodyBytes limita la quantità di dati letti dal corpo di una richiesta.
+// Senza un tetto, la lettura completa del body permette a un singolo client di
+// far crescere la memoria del processo in modo arbitrario. Configurabile con
+// MAX_BODY_BYTES.
+var maxBodyBytes = func() int64 {
+	if v := os.Getenv("MAX_BODY_BYTES"); v != "" {
+		if n, err := strconv.ParseInt(v, 10, 64); err == nil && n > 0 {
+			return n
+		}
+	}
+	return 64 << 10
+}()
+
 // Handler è il middleware principale che intercetta le richieste.
 func (v *Validator) Handler(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Applicato prima di qualunque lettura. Sostituendo r.Body, il limite
+		// vale anche per gli handler a valle.
+		if r.Body != nil {
+			r.Body = http.MaxBytesReader(w, r.Body, maxBodyBytes)
+		}
+
 		key := r.Method + " " + r.URL.Path
 		config, allowed := v.routesConfig[key]
 
@@ -138,6 +159,15 @@ func (v *Validator) Handler(next http.Handler) http.Handler {
 		// 3. Schema Validation (Se presente)
 		if schema, hasSchema := v.routesSchema[key]; hasSchema {
 			if err := validateBody(r, schema); err != nil {
+				// Il superamento del limite non è un errore di schema e va
+				// segnalato con un codice di stato distinto.
+				var tooLarge *http.MaxBytesError
+				if errors.As(err, &tooLarge) {
+					helpers.WriteJSON(w, http.StatusRequestEntityTooLarge, map[string]string{
+						"error": "request body too large",
+					})
+					return
+				}
 				helpers.WriteJSON(w, http.StatusBadRequest, map[string]string{
 					"error":   "schema validation failed",
 					"details": err.Error(),
@@ -155,7 +185,9 @@ func (v *Validator) Handler(next http.Handler) http.Handler {
 func validateBody(r *http.Request, schema *jsonschema.Schema) error {
 	bodyBytes, err := io.ReadAll(r.Body)
 	if err != nil {
-		return fmt.Errorf("unable to read body")
+		// Propagato così com'è per permettere al chiamante di distinguere il
+		// superamento del limite dagli altri errori di lettura.
+		return err
 	}
 
 	// Gestione body vuoto per endpoint che si aspettano JSON (es. "{}")

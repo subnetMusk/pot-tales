@@ -49,9 +49,11 @@ func registerAuth(r *mux.Router, m *mongo.Client, rd *redis.Client, ttlMinutes s
 	// Riferimento al Database
 	db := m.Database("game_db")
 
+	// Write concern j:true su entrambe le collection. Vedi
+	// helpers.JournaledCollection.
 	svc := &authSvc{
-		sessionCol: db.Collection("sessions"),
-		gameCol:    db.Collection("game_states"), // <--- NUOVO: Collezione gioco
+		sessionCol: helpers.JournaledCollection(db, helpers.SessionsCollection),
+		gameCol:    helpers.JournaledCollection(db, helpers.GameStatesCollection),
 		rdb:        rd,
 		ttl:        ttlDuration,
 	}
@@ -77,12 +79,8 @@ func (a *authSvc) create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// 2. Estrazione IP Reale (Security enforcement)
-	realIP := helpers.GetRealIP(r)
-
-	// --- QUI POSSIAMO INSERIRE LOGICHE DI BAN ---
-	// if isBanned(realIP) { return 403 }
-	// --------------------------------------------
+	// 2. IP del client, anonimizzato prima della persistenza.
+	clientIP := helpers.AnonymizeIP(helpers.GetRealIP(r))
 
 	// 3. Generazione Identità
 	token := uuid.NewString()
@@ -96,14 +94,16 @@ func (a *authSvc) create(w http.ResponseWriter, r *http.Request) {
 		ExpiresAt: expiresAt,
 		Active:    true,
 		// Campi Sicurezza salvati
-		Device:       reqPayload.Device,
-		ClientIP:     realIP,               // <--- QUELLO CHE CONTA (Nginx Header)
-		ReportedIP:   reqPayload.IPAddress, // Quello che dice il client (metadata)
+		Device: reqPayload.Device,
+		// reqPayload.IPAddress non viene persistito: e' un valore dichiarato dal
+		// client, quindi non verificabile e ridondante rispetto a ClientIP.
+		// Resta accettato dallo schema per compatibilita' con i client esistenti.
+		ClientIP:     clientIP,
 		ConsentGiven: reqPayload.ConsentGiven,
 	}
 
 	// 5. Preparazione GameState (uguale a prima)
-	gameDoc := models.GameState{ID: token}
+	gameDoc := models.GameState{ID: token, CreatedAt: now}
 	gameDoc.Data.SceneID = "Tutorial_End"
 	gameDoc.Data.X = 0.0
 	gameDoc.Data.Y = 0.0
@@ -134,14 +134,7 @@ func (a *authSvc) create(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// 9. Risposta
-	http.SetCookie(w, &http.Cookie{
-		Name:     "session_token",
-		Value:    token,
-		Path:     "/",
-		Expires:  expiresAt,
-		HttpOnly: true,
-		SameSite: http.SameSiteLaxMode,
-	})
+	http.SetCookie(w, helpers.NewSessionCookie(token, expiresAt))
 
 	helpers.WriteJSON(w, http.StatusCreated, map[string]any{
 		"token":   token,

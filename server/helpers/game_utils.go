@@ -28,7 +28,7 @@ type GameManager struct {
 func NewGameManager(rdb *redis.Client, db *mongo.Database) *GameManager {
 	return &GameManager{
 		rdb:     rdb,
-		gameCol: db.Collection("game_states"),
+		gameCol: JournaledCollection(db, GameStatesCollection),
 	}
 }
 
