@@ -1,0 +1,10 @@
+{
+  "log-driver": "json-file",
+  "log-opts": {
+    "max-size": "10m",
+    "max-file": "3",
+    "compress": "true"
+  },
+  "data-root": "/srv/docker",
+  "storage-driver": "overlay2"
+}
