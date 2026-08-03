@@ -1,0 +1,53 @@
+# CrowdSec con Traefik 3.7
+
+Ambiente minimo per verificare l'integrazione fra CrowdSec e Traefik tramite il
+bouncer plugin: LAPI, Traefik e un backend di prova.
+
+```bash
+docker compose up -d
+curl -s -o /dev/null -w '%{http_code}\n' http://localhost:18080/
+docker compose exec crowdsec cscli decisions add --ip <IP> --duration 5m --type ban
+```
+
+## Risultati
+
+Verificato con Traefik 3.7.10, CrowdSec 1.7.8 e bouncer plugin 1.7.1.
+
+| Verifica | Esito |
+|---|---|
+| Caricamento del plugin | riuscito |
+| Blocco di un IP con decisione attiva | 403 entro pochi secondi |
+| Ripristino dopo rimozione della decisione | riuscito |
+| Comportamento con LAPI non raggiungibile | dipende da `updateMaxFailure` |
+
+## Comportamento con LAPI non raggiungibile
+
+Con la configurazione predefinita, l'arresto di CrowdSec porta il bouncer a
+rispondere 403 a ogni richiesta. Il valore `updateMaxFailure` vale `0` di
+default: al primo aggiornamento fallito lo stream viene marcato non integro e
+tutte le richieste vengono bloccate.
+
+Impostando `updateMaxFailure: -1` la condizione di stream non integro non viene
+mai attivata e il bouncer continua a decidere sulla base dell'ultima lista di
+decisioni ricevuta.
+
+Verificato in entrambe le direzioni: con `-1`, CrowdSec arrestato e Traefik
+riavviato senza aver mai raggiunto la LAPI, le richieste ricevono 200; a
+CrowdSec riavviato, una nuova decisione produce nuovamente 403.
+
+La scelta determina quale comportamento si preferisce in caso di
+indisponibilita' del servizio di decisione: interruzione completa del traffico
+oppure perdita della sola protezione aggiuntiva.
+
+## Dipendenza da rete in fase di avvio
+
+Il bouncer e' un plugin Traefik, cioe' sorgente Go interpretato che Traefik
+scarica da GitHub all'avvio. Il proxy dipende quindi dalla raggiungibilita' di
+GitHub al momento della partenza, salvo che il plugin risulti gia' presente in
+`plugins-storage`.
+
+## Perimetro
+
+Nessuna collezione di rilevamento installata: la verifica riguarda il percorso
+fra decisione e applicazione del blocco, non la qualita' del rilevamento. La
+configurazione delle collezioni e le eventuali allowlist restano da definire.
