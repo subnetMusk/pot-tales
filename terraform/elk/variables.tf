@@ -81,6 +81,12 @@ variable "error_rate_threshold" {
 
 
 
+variable "fleet_server_package_version" {
+  description = "Versione del package Fleet 'fleet_server'"
+  type        = string
+  default     = "1.5.0"
+}
+
 variable "system_package_version" {
   description = "Versione del package Fleet 'system'"
   type        = string

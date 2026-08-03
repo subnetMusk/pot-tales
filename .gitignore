@@ -56,3 +56,6 @@ docker/volumes/esdata/
 docker/volumes/kibana/data/
 # Fleet server data
 docker/volumes/fleetserverdata/
+
+# Token Fleet generati da scripts/fleet-bootstrap.sh
+.env.fleet*

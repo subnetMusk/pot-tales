@@ -27,6 +27,27 @@ del progetto (es. `./scripts/dev-reinstall.sh`). Usano l'unico file `.env` in ro
 | `check-mongodb.sh` | Controllo rapido dello stato di MongoDB. |
 | `fix-mongodb.sh` | Riparazione di un MongoDB corrotto. |
 
+## Bootstrap del monitoring
+
+| Script | Cosa fa |
+|---|---|
+| `fleet-bootstrap.sh` | Inizializza Fleet, applica la configurazione Terraform e genera i file `.env.fleet.*` con gli enrollment token letti dagli agenti. |
+
+Gli agenti Elastic si registrano presentando un enrollment token, che esiste
+solo dopo che Kibana ha inizializzato Fleet e sono state create le policy: su
+un'installazione vuota non e' noto in anticipo e non puo' essere scritto a mano
+nella configurazione. Lo script esegue le fasi nell'ordine necessario ed e'
+idempotente, quindi puo' essere eseguito a ogni avvio.
+
+```bash
+docker compose -f docker-compose.monitoring.yml up -d setup es01 kibana
+./scripts/fleet-bootstrap.sh
+docker compose -f docker-compose.monitoring.yml up -d
+```
+
+I file generati non sono versionati. In loro assenza gli agenti non si
+registrano e vengono riavviati, mentre il resto dello stack resta funzionante.
+
 ## Manutenzione e verifica
 
 | Script | Cosa fa |

@@ -44,6 +44,34 @@ resource "elasticstack_elasticsearch_index_lifecycle" "logs" {
   }
 }
 
+# ---------- Fleet: policy del Fleet Server ----------
+#
+# Dichiarata qui con un identificativo esplicito invece di dipendere dalla
+# policy che Kibana crea automaticamente: l'identificativo e' cosi' noto prima
+# dell'avvio e puo' essere passato all'agente che assume il ruolo di server.
+
+resource "elasticstack_fleet_agent_policy" "fleet_server" {
+  name            = "fleet-server-policy"
+  policy_id       = "fleet-server-policy"
+  namespace       = "default"
+  description     = "Policy dell'agente che esegue il Fleet Server"
+  monitor_logs    = true
+  monitor_metrics = true
+}
+
+resource "elasticstack_fleet_integration" "fleet_server" {
+  name    = "fleet_server"
+  version = var.fleet_server_package_version
+}
+
+resource "elasticstack_fleet_integration_policy" "fleet_server" {
+  name                = "fleet-server"
+  namespace           = "default"
+  agent_policy_id     = elasticstack_fleet_agent_policy.fleet_server.policy_id
+  integration_name    = elasticstack_fleet_integration.fleet_server.name
+  integration_version = elasticstack_fleet_integration.fleet_server.version
+}
+
 # ---------- Fleet: policy APM ----------
 
 resource "elasticstack_fleet_agent_policy" "apm" {
@@ -124,4 +152,8 @@ data "elasticstack_fleet_enrollment_tokens" "apm" {
 
 data "elasticstack_fleet_enrollment_tokens" "infra" {
   policy_id = elasticstack_fleet_agent_policy.infra.policy_id
+}
+
+data "elasticstack_fleet_enrollment_tokens" "fleet_server" {
+  policy_id = elasticstack_fleet_agent_policy.fleet_server.policy_id
 }
