@@ -19,6 +19,7 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
+	"time"
 
 	"github.com/santhosh-tekuri/jsonschema/v5"
 	"github.com/subnetMusk/progetti_innovativi/server/helpers"
@@ -30,25 +31,34 @@ type RouteConfig struct {
 	Path         string
 	SchemaFile   string // Path relativo a baseDir (es. "public/auth/login.req.json")
 	RequiresAuth bool   // Se true, blocca la richiesta se la sessione non è valida
+
+	// Quota richieste per sessione nella finestra configurata. Zero disattiva
+	// il controllo.
+	//
+	// La quota e' per sessione e non per indirizzo: un indirizzo pubblico e'
+	// condiviso da tutti gli utenti dietro lo stesso NAT, quindi un limite per
+	// indirizzo penalizzerebbe utenti estranei a chi lo supera.
+	QuotaPerWindow int64
 }
 
 // Configurazione delle rotte esposte.
 // I percorsi JSON includono "public/" come da struttura del file system.
 var appRoutes = []RouteConfig{
 	// --- Auth Feature ---
-	{http.MethodPost, "/auth/session", "public/auth/session.req.json", false},
-	{http.MethodGet, "/auth/validate", "public/auth/validate.req.json", true},
+	// La creazione di sessioni ha un controllo dedicato nel proprio handler.
+	{http.MethodPost, "/auth/session", "public/auth/session.req.json", false, 0},
+	{http.MethodGet, "/auth/validate", "public/auth/validate.req.json", true, 600},
 
 	// --- Game Feature ---
-	{http.MethodGet, "/game/position", "public/game/position.req.json", true},
-	{http.MethodGet, "/game/timer", "public/game/timer.req.json", true},
+	{http.MethodGet, "/game/position", "public/game/position.req.json", true, 1200},
+	{http.MethodGet, "/game/timer", "public/game/timer.req.json", true, 1200},
 
 	// --- Health Feature ---
-	{http.MethodGet, "/health", "public/health/health.req.json", false},
+	{http.MethodGet, "/health", "public/health/health.req.json", false, 0},
 
 	// --- Logging Feature ---
 	// Endpoint per ricevere log dal frontend. Senza auth stretto per loggare errori di login.
-	{http.MethodPost, "/log", "", false}, // Schema opzionale per ora
+	{http.MethodPost, "/log", "", false, 0}, // Schema opzionale per ora
 }
 
 // Validator mantiene lo stato necessario per la validazione.
@@ -58,6 +68,17 @@ type Validator struct {
 
 	// Iniezione del Service: Il middleware non conosce i DB, parla solo col Manager.
 	sessionMgr *helpers.SessionManager
+
+	// Quote per sessione. Assente nei test, che non esercitano questo aspetto.
+	limiter     *helpers.RateLimiter
+	quotaWindow time.Duration
+}
+
+// WithQuota abilita le quote per sessione sulle rotte che le dichiarano.
+func (v *Validator) WithQuota(limiter *helpers.RateLimiter, window time.Duration) *Validator {
+	v.limiter = limiter
+	v.quotaWindow = window
+	return v
 }
 
 // MustNew inizializza il middleware.
@@ -154,6 +175,24 @@ func (v *Validator) Handler(next http.Handler) http.Handler {
 			// Iniettiamo l'ID nel contesto per gli handler successivi
 			ctx := context.WithValue(r.Context(), helpers.UserIDKey, validTokenID)
 			r = r.WithContext(ctx)
+
+			// D. Quota per sessione
+			if v.limiter != nil && config.QuotaPerWindow > 0 {
+				quotaKey := "quota:" + key + ":" + validTokenID
+				ok, count, reset := v.limiter.Allow(ctx, quotaKey, config.QuotaPerWindow, v.quotaWindow)
+				if !ok {
+					helpers.LogBusiness(ctx, "security", "session_quota_exceeded", map[string]any{
+						"route": key,
+						"count": count,
+						"limit": config.QuotaPerWindow,
+					})
+					w.Header().Set("Retry-After", strconv.Itoa(int(reset.Seconds())))
+					helpers.WriteJSON(w, http.StatusTooManyRequests, map[string]string{
+						"error": "session quota exceeded",
+					})
+					return
+				}
+			}
 		}
 
 		// 3. Schema Validation (Se presente)

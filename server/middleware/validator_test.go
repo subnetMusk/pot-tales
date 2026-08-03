@@ -24,7 +24,7 @@ func validatorConRotte(rotte ...RouteConfig) *Validator {
 // Il limite deve valere anche per gli handler che leggono il body per conto
 // proprio, non solo per la validazione di schema.
 func TestLimiteSulBodyValeAnchePerGliHandler(t *testing.T) {
-	v := validatorConRotte(RouteConfig{http.MethodPost, "/log", "", false})
+	v := validatorConRotte(RouteConfig{Method: http.MethodPost, Path: "/log"})
 
 	var readErr error
 	next := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -44,7 +44,7 @@ func TestLimiteSulBodyValeAnchePerGliHandler(t *testing.T) {
 }
 
 func TestBodySottoIlLimitePassa(t *testing.T) {
-	v := validatorConRotte(RouteConfig{http.MethodPost, "/log", "", false})
+	v := validatorConRotte(RouteConfig{Method: http.MethodPost, Path: "/log"})
 
 	var letti int
 	var readErr error
@@ -70,7 +70,7 @@ func TestBodySottoIlLimitePassa(t *testing.T) {
 // Una rotta non dichiarata nella whitelist non deve essere raggiungibile,
 // anche se un handler è registrato nel router.
 func TestRottaFuoriWhitelistRisponde404(t *testing.T) {
-	v := validatorConRotte(RouteConfig{http.MethodGet, "/health", "", false})
+	v := validatorConRotte(RouteConfig{Method: http.MethodGet, Path: "/health"})
 
 	chiamato := false
 	next := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -92,7 +92,7 @@ func TestRottaFuoriWhitelistRisponde404(t *testing.T) {
 
 // Il metodo fa parte della chiave di whitelist.
 func TestMetodoSbagliatoRisponde404(t *testing.T) {
-	v := validatorConRotte(RouteConfig{http.MethodGet, "/game/timer", "", true})
+	v := validatorConRotte(RouteConfig{Method: http.MethodGet, Path: "/game/timer", RequiresAuth: true})
 
 	next := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		t.Fatal("handler a valle invocato con metodo non dichiarato")
@@ -109,7 +109,7 @@ func TestMetodoSbagliatoRisponde404(t *testing.T) {
 }
 
 func TestRottaAutenticataSenzaCookieRisponde401(t *testing.T) {
-	v := validatorConRotte(RouteConfig{http.MethodGet, "/game/timer", "", true})
+	v := validatorConRotte(RouteConfig{Method: http.MethodGet, Path: "/game/timer", RequiresAuth: true})
 
 	next := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		t.Fatal("handler a valle invocato senza sessione valida")

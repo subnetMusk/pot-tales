@@ -14,7 +14,6 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
-	"strconv"
 	"syscall"
 	"time"
 
@@ -31,46 +30,29 @@ import (
 	"github.com/subnetMusk/progetti_innovativi/server/router"
 )
 
-func getenv(k, d string) string {
-	if v := os.Getenv(k); v != "" {
-		return v
-	}
-	return d
-}
-
-func getenvInt(k string, d int) int {
-	if v := os.Getenv(k); v != "" {
-		if n, err := strconv.Atoi(v); err == nil {
-			return n
-		}
-		slog.Warn("valore non numerico, uso il default", "var", k, "value", v, "default", d)
-	}
-	return d
-}
-
 func main() {
 	// 1. Configurazione Ambiente
-	port := getenv("PORT", "3000")
+	port := helpers.Env("PORT", "3000")
 	// GO_ENV non è impostato dal compose: ripieghiamo su ELASTIC_APM_ENVIRONMENT
 	// (development/production) così l'etichetta service.environment nei log è corretta.
-	env := getenv("GO_ENV", getenv("ELASTIC_APM_ENVIRONMENT", "development"))
-	serviceName := getenv("ELASTIC_APM_SERVICE_NAME", "go-backend")
+	env := helpers.Env("GO_ENV", helpers.Env("ELASTIC_APM_ENVIRONMENT", "development"))
+	serviceName := helpers.Env("ELASTIC_APM_SERVICE_NAME", "go-backend")
 
 	// Inizializza il Logger Strutturato (JSON Protocol)
 	helpers.InitLogger(serviceName, env)
 
-	mongoURI := getenv("MONGO_URI", "mongodb://db:27017")
-	mongoDBName := getenv("MONGO_DB_NAME", "game_db") // Nome del DB esplicito
-	redisURL := getenv("REDIS_URL", "redis://redis:6379")
-	schemaDirServer := getenv("SCHEMA_DIR_SERVER", "/src/comms/server")
+	mongoURI := helpers.Env("MONGO_URI", "mongodb://db:27017")
+	mongoDBName := helpers.Env("MONGO_DB_NAME", "game_db") // Nome del DB esplicito
+	redisURL := helpers.Env("REDIS_URL", "redis://redis:6379")
+	schemaDirServer := helpers.Env("SCHEMA_DIR_SERVER", "/src/comms/server")
 
 	// Nota: ttlMin potrebbe non servire più qui se è hardcodato in helpers,
 	// ma lo lasciamo se il router lo richiede ancora per altre logiche.
-	ttlMin := getenv("SESSION_TTL_MIN", "30")
+	ttlMin := helpers.Env("SESSION_TTL_MIN", "30")
 
 	// Ritenzione dei documenti su Mongo, distinta dalla durata della sessione.
 	// Vedi helpers.EnsureIndexes.
-	retention := time.Duration(getenvInt("DATA_RETENTION_DAYS", 45)) * 24 * time.Hour
+	retention := time.Duration(helpers.EnvInt("DATA_RETENTION_DAYS", 45)) * 24 * time.Hour
 
 	slog.Info("APM Agent initialized", "service", serviceName)
 
@@ -115,7 +97,13 @@ func main() {
 
 	// 4. Inizializzazione Middleware (Application Layer)
 	// Iniettiamo il SessionManager nel middleware invece dei DB grezzi
-	val := middleware.MustNew(schemaDirServer, sessionMgr)
+	// Le quote per sessione sono applicate dal middleware sulle rotte che le
+	// dichiarano.
+	val := middleware.MustNew(schemaDirServer, sessionMgr).
+		WithQuota(
+			helpers.NewRateLimiter(redisClient),
+			time.Duration(helpers.EnvInt("SESSION_QUOTA_WINDOW_MIN", 10))*time.Minute,
+		)
 
 	// 5. Setup Router e Server
 	// Passiamo i client al router (se servono per le logiche di gioco) e il validator configurato
