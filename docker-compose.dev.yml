@@ -39,7 +39,8 @@ services:
       - frontend_net
     volumes:
       - ./docker/traefik/traefik.yml:/etc/traefik/traefik.yml:ro
-      - ./docker/traefik/dynamic.yml:/etc/traefik/dynamic.yml:ro
+      - ./docker/traefik/dynamic:/etc/traefik/dynamic:ro
+      - traefik_logs:/var/log/traefik
     depends_on:
       - server
       - sandbox
@@ -232,3 +233,4 @@ services:
 ############################
 volumes:
   esdata: {}              # Persistent data for Elasticsearch
+  traefik_logs: {}        # Access log, sorgente per l'analisi di sicurezza

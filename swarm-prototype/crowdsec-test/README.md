@@ -19,6 +19,36 @@ Verificato con Traefik 3.7.10, CrowdSec 1.7.8 e bouncer plugin 1.7.1.
 | Blocco di un IP con decisione attiva | 403 entro pochi secondi |
 | Ripristino dopo rimozione della decisione | riuscito |
 | Comportamento con LAPI non raggiungibile | dipende da `updateMaxFailure` |
+| Analisi degli access log di Traefik | 182 righe lette, 182 interpretate, 0 non interpretate |
+| Rilevamento automatico | 4 scenari attivati su traffico di scansione |
+| Emissione automatica della decisione | ban creato senza intervento |
+| Durata graduata sulla recidiva | quarta decisione a 60 minuti anziche' 15 |
+
+## Catena di rilevamento
+
+Con `crowdsecurity/traefik` e `crowdsecurity/base-http-scenarios` installate,
+60 richieste a percorsi inesistenti da uno stesso indirizzo hanno attivato
+`http-probing`, `http-crawl-non_statics`, `http-wordpress-scan` e
+`http-admin-interface-probing`, producendo una decisione di ban applicata dal
+bouncer: 403 per l'indirizzo colpito, 200 per gli altri.
+
+La durata segue `duration_expr` nei profili e cresce con il numero di decisioni
+gia' emesse per lo stesso indirizzo: la quarta e' stata emessa per 60 minuti
+invece dei 15 iniziali.
+
+## Due comportamenti da conoscere
+
+**Gli indirizzi privati sono in whitelist.** La collection
+`crowdsecurity/whitelists`, installata di serie, scarta il traffico proveniente
+da reti private: in una prova da rete locale tutte le righe risultano
+`whitelisted` e nessuno scenario si attiva. Per esercitare il rilevamento
+serve un indirizzo pubblico.
+
+**L'indirizzo osservato e' quello che Traefik registra come `ClientHost`.**
+Quando Traefik e' il punto di ingresso coincide con il client reale. In questo
+ambiente di prova l'entrypoint dichiara `forwardedHeaders.trustedIPs` per poter
+simulare un client pubblico tramite header; una configurazione del genere non va
+riportata in produzione, dove renderebbe l'indirizzo dichiarabile dal client.
 
 ## Comportamento con LAPI non raggiungibile
 

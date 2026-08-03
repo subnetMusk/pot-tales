@@ -1,0 +1,30 @@
+# Profili di rimediazione.
+#
+# La durata cresce con il numero di decisioni gia' emesse per lo stesso
+# indirizzo: un primo episodio isolato costa poco, la recidiva costa di piu'.
+# Dietro un NAT condiviso un ban colpisce tutti gli utenti che escono da quel
+# indirizzo, quindi la prima soglia e' volutamente breve.
+#
+# Non e' prevista rimediazione con captcha: richiede un fornitore esterno
+# configurato nel bouncer e le relative chiavi.
+
+name: ip_remediation_graduata
+filters:
+  - Alert.Remediation == true && Alert.GetScope() == "Ip"
+decisions:
+  - type: ban
+    duration: 15m
+duration_expr: "Sprintf('%dm', (GetDecisionsCount(Alert.GetValue()) + 1) * 15)"
+on_success: break
+
+---
+
+# Gli allarmi con ambito diverso da un singolo indirizzo non producono
+# decisioni automatiche: restano visibili con `cscli alerts list`.
+name: default_range_remediation
+filters:
+  - Alert.Remediation == true && Alert.GetScope() == "Range"
+decisions:
+  - type: ban
+    duration: 1h
+on_success: break

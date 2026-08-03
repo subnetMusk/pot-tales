@@ -1,0 +1,13 @@
+# Sorgenti analizzate dal motore.
+#
+# L'etichetta `type` seleziona il parser: `traefik` accetta sia il formato
+# Common Log sia JSON.
+#
+# poll_without_inotify serve quando il file e' su un volume condiviso, dove gli
+# eventi inotify non sono garantiti.
+
+filenames:
+  - /var/log/traefik/access.log
+labels:
+  type: traefik
+poll_without_inotify: true

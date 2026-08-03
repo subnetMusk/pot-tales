@@ -4,6 +4,12 @@
 entryPoints:
   web:
     address: ":80"
+    # Solo per questo ambiente di prova: consente di simulare un client
+    # pubblico. In produzione il proxy e' il punto di ingresso e l'indirizzo
+    # osservato e' gia' quello reale.
+    forwardedHeaders:
+      trustedIPs:
+        - 172.16.0.0/12
 
 providers:
   file:
@@ -12,6 +18,12 @@ providers:
 
 log:
   level: INFO
+
+# Sorgente analizzata dal motore di rilevamento.
+accessLog:
+  filePath: /var/log/traefik/access.log
+  format: json
+  bufferingSize: 0
 
 # I plugin Traefik sono sorgente Go interpretato e vengono scaricati da GitHub
 # all'avvio. Una versione non compatibile con il Traefik in uso produce un

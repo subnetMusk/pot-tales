@@ -1,0 +1,67 @@
+# Overlay di sicurezza: motore CrowdSec e middleware bouncer su Traefik.
+#
+# Separato dal compose principale perche' aggiunge una dipendenza di rete
+# all'avvio del proxy: il bouncer e' un plugin Traefik, cioe' sorgente
+# interpretato scaricato da GitHub, e la sua indisponibilita' impedisce
+# l'avvio.
+#
+#   docker compose -f docker-compose.dev.yml -f docker-compose.security.yml up -d
+#
+# Il motore analizza gli access log di Traefik ed emette decisioni; il bouncer
+# le applica leggendole da una cache locale, quindi la dimensione della lista
+# non incide sulla latenza delle richieste.
+
+services:
+
+  crowdsec:
+    image: crowdsecurity/crowdsec:v1.7.8
+    container_name: crowdsec
+    restart: unless-stopped
+    environment:
+      # Parser e scenari per Traefik e per gli attacchi HTTP generici.
+      COLLECTIONS: "crowdsecurity/traefik crowdsecurity/http-cve crowdsecurity/base-http-scenarios"
+      # Chiave del bouncer, letta da .env.
+      BOUNCER_KEY_traefik: ${CROWDSEC_BOUNCER_KEY}
+      # Central API: riceve la blocklist comunitaria e invia i segnali di
+      # attacco rilevati localmente. Comporta traffico verso un servizio
+      # esterno.
+      DISABLE_ONLINE_API: "${CROWDSEC_DISABLE_ONLINE_API:-false}"
+    volumes:
+      - crowdsec_data:/var/lib/crowdsec/data
+      - crowdsec_config:/etc/crowdsec
+      - ./docker/crowdsec/acquis.yaml:/etc/crowdsec/acquis.d/traefik.yaml:ro
+      - ./docker/crowdsec/profiles.yaml:/etc/crowdsec/profiles.yaml:ro
+      # Sola lettura: il motore analizza, non scrive.
+      - traefik_logs:/var/log/traefik:ro
+    networks:
+      - proxy_net
+    expose:
+      - "8080"
+    mem_limit: 512m
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  proxy:
+    volumes:
+      # Il provider a directory non e' ricorsivo: il frammento va montato
+      # direttamente fra i file dinamici.
+      - ./docker/traefik/security/crowdsec.yml:/etc/traefik/dynamic/crowdsec.yml:ro
+    # Plugin e middleware sono dichiarati come argomenti anziche' nella
+    # configurazione statica: cosi' l'avvio del proxy senza questo overlay non
+    # dipende dal download del plugin.
+    command:
+      - --configfile=/etc/traefik/traefik.yml
+      - --experimental.plugins.crowdsec.modulename=github.com/maxlerebourg/crowdsec-bouncer-traefik-plugin
+      - --experimental.plugins.crowdsec.version=v1.7.1
+      - --entrypoints.web.http.middlewares=crowdsec@file
+    environment:
+      - CROWDSEC_BOUNCER_KEY=${CROWDSEC_BOUNCER_KEY}
+    depends_on:
+      - crowdsec
+
+volumes:
+  crowdsec_data: {}
+  crowdsec_config: {}

@@ -1,0 +1,32 @@
+# Middleware bouncer CrowdSec.
+#
+# Montato solo dall'overlay di sicurezza e applicato all'entrypoint, quindi
+# vale per tutti i router senza doverli elencare.
+
+http:
+  middlewares:
+    crowdsec:
+      plugin:
+        crowdsec:
+          enabled: "true"
+          # In modalita' stream il bouncer mantiene in memoria l'elenco delle
+          # decisioni e lo aggiorna periodicamente, invece di interrogare la
+          # LAPI a ogni richiesta.
+          crowdsecMode: stream
+          crowdsecLapiHost: crowdsec:8080
+          crowdsecLapiScheme: http
+          crowdsecLapiKey: "{{ env `CROWDSEC_BOUNCER_KEY` }}"
+          updateIntervalSeconds: 30
+          # Numero di aggiornamenti falliti oltre il quale lo stream viene
+          # considerato non integro. Con il default (0) la condizione scatta al
+          # primo fallimento e ogni richiesta viene bloccata finche' la LAPI non
+          # torna raggiungibile. Con -1 la condizione non scatta e il bouncer
+          # continua a decidere sulla base della cache locale.
+          updateMaxFailure: -1
+          remediationStatusCode: 403
+          # Reti da cui accettare gli header di inoltro, coerenti con quelle
+          # dichiarate al backend.
+          forwardedHeadersTrustedIps:
+            - 10.0.0.0/8
+            - 172.16.0.0/12
+            - 192.168.0.0/16

@@ -16,15 +16,16 @@ services:
   crowdsec:
     image: crowdsecurity/crowdsec:v1.7.8
     environment:
-      # Nessuna collezione installata: la verifica riguarda il percorso fra
-      # decisione e blocco, non il rilevamento.
-      COLLECTIONS: ""
+      COLLECTIONS: "crowdsecurity/traefik crowdsecurity/base-http-scenarios"
       # Chiave fissa, ambiente di prova non persistente.
       BOUNCER_KEY_traefik: prova-bouncer-key
       DISABLE_ONLINE_API: "true"
     volumes:
       - crowdsec-db:/var/lib/crowdsec/data
       - crowdsec-config:/etc/crowdsec
+      - ../../docker/crowdsec/acquis.yaml:/etc/crowdsec/acquis.d/traefik.yaml:ro
+      - ../../docker/crowdsec/profiles.yaml:/etc/crowdsec/profiles.yaml:ro
+      - traefik-logs:/var/log/traefik:ro
     networks:
       - test
 
@@ -37,6 +38,7 @@ services:
     volumes:
       - ./traefik.yml:/etc/traefik/traefik.yml:ro
       - ./dynamic.yml:/etc/traefik/dynamic.yml:ro
+      - traefik-logs:/var/log/traefik
     networks:
       - test
 
@@ -51,3 +53,4 @@ networks:
 volumes:
   crowdsec-db:
   crowdsec-config:
+  traefik-logs:
