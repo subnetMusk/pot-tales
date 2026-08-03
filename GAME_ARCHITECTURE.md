@@ -314,7 +314,8 @@ Il nuovo `cleanup.sh` offre modalità multiple con backup automatici:
 1. **Dashboard Backup**: `./scripts/kibana-dashboard-manager.sh export`
 2. **Data Cleanup**: `./scripts/cleanup.sh --production`
 3. **Config Verification**: `./scripts/check-persistent-config.sh`
-4. **Production Deploy**: `./scripts/prod-rebuild.sh`
+4. **Production Deploy**: procedura non ancora definita, vedi
+   [README.md](README.md)
 
 >  **Documentazione Completa**: [Sistema di Pulizia Centralizzato](scripts/CLEANUP_SYSTEM.md)
 
@@ -332,7 +333,7 @@ Il nuovo `cleanup.sh` offre modalità multiple con backup automatici:
 6. **Testing**: Verifica funzionalità su frontend reale (non solo sandbox)
 7. **APM Monitoring**: Configura tracking per nuove features (solo frontend, non sandbox)
 8. **Performance Validation**: Test response times e resource usage
-9. **Production Deploy**: `./scripts/prod-rebuild.sh`
+9. **Production Deploy**: procedura da definire (vedi sopra)
 
 ### **Code Quality Standards**
 

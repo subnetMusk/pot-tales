@@ -57,8 +57,13 @@ in [ENV_GUIDE.md](ENV_GUIDE.md).
 
 ## Produzione
 
-`docker-compose.prod.yml` e `./scripts/prod-rebuild.sh` esistono ma vanno
-riallineati allo stack attuale (backend Go + Traefik) prima dell'uso.
+Non esiste al momento una procedura di deploy utilizzabile.
+`docker-compose.prod.yml` non e' allineato allo stack corrente (presuppone un
+backend Node e non prevede Traefik) e va riscritto prima dell'uso.
+
+Una configurazione dello stack per Docker Swarm, con i relativi script di
+verifica, si trova in [swarm-prototype/](swarm-prototype/).
+
 Per la pulizia pre-deploy dei dati di sviluppo: `./scripts/cleanup.sh --production`
 (con backup automatico). Dettagli in [scripts/README.md](scripts/README.md).
 

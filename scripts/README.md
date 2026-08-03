@@ -36,9 +36,9 @@ del progetto (es. `./scripts/dev-reinstall.sh`). Usano l'unico file `.env` in ro
 
 ## Produzione
 
-| Script | Cosa fa |
-|---|---|
-| `prod-rebuild.sh` | Deploy produzione via `docker-compose.prod.yml`. Nota: quel compose e' obsoleto e va riallineato (Go + Traefik) prima dell'uso. |
+Nessuno script di deploy disponibile. La procedura sara' definita insieme allo
+stack di produzione; una configurazione per Docker Swarm si trova in
+[swarm-prototype/](../swarm-prototype/).
 
 ## Utility asset (Python)
 
