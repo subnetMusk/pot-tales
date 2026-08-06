@@ -39,6 +39,9 @@ Icon?
 secrets/*.env
 !secrets/*.enc.env
 backups/
+# Configurazione delle unita' systemd: solo i modelli sono versionati, i file
+# compilati contengono URL di ping, token e password.
+provisioning/**/*.env
 
 # ---- Certificati ----
 proxy/certs/*.pem

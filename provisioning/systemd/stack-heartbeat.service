@@ -1,0 +1,11 @@
+[Unit]
+Description=Battito verso il servizio di sorveglianza esterno
+After=docker.service
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+EnvironmentFile=-/etc/stack-surveillance.env
+ExecStart=/usr/local/bin/stack-heartbeat.sh
+TimeoutStartSec=60
+StateDirectory=stack-surveillance

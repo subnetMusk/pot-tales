@@ -1,0 +1,16 @@
+[Unit]
+Description=Interrogazione periodica dell'indice degli allarmi
+
+[Timer]
+# Il ritardo di recapito e' la somma di questa cadenza e dell'intervallo di
+# valutazione delle regole. Due minuti mantengono il totale sotto i cinque,
+# che e' il margine entro cui un degrado resta gestibile durante un evento.
+OnBootSec=3min
+OnUnitActiveSec=2min
+
+# Il recapito verso l'esterno non e' garantito: se fallisce, il marcatore non
+# avanza e gli allarmi vengono ritentati al ciclo successivo.
+Persistent=false
+
+[Install]
+WantedBy=timers.target
