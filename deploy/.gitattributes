@@ -1,0 +1,7 @@
+# Questi file entrano nei container come Swarm `config`: il contenuto viene
+# consegnato ai nodi cosi' com'e' nel working tree del manager. Con terminatori
+# CRLF gli script fallirebbero con `bad interpreter` e i file di configurazione
+# porterebbero il carattere in piu' dentro i valori.
+*.sh text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf
