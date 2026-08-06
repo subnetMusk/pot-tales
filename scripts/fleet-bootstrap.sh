@@ -20,7 +20,15 @@
 #
 #   ./fleet-bootstrap.sh
 #
-# Variabili riconosciute: KIBANA_URL, ELASTIC_PASSWORD, TF_DIR, OUTPUT_FILE.
+# Due destinazioni possibili per i token, secondo come gira lo stack:
+#
+#   file    file di ambiente locali, letti come env_file dai servizi Compose
+#   volume  volume Docker condiviso, letto dagli agenti in swarm mode, dove
+#           env_file non e' supportato e i secret devono esistere al momento
+#           del deploy
+#
+# Variabili riconosciute: KIBANA_URL, ELASTIC_PASSWORD, TF_DIR, OUTPUT_FILE,
+# TOKEN_SINK, TOKEN_VOLUME.
 # ==============================================================================
 set -euo pipefail
 
@@ -31,8 +39,13 @@ KIBANA_URL=${KIBANA_URL:-http://localhost:5601}
 ELASTIC_USER=${ELASTICSEARCH_USERNAME:-elastic}
 TF_DIR=${TF_DIR:-terraform/elk}
 OUTPUT_FILE=${OUTPUT_FILE:-.env.fleet}
+TOKEN_SINK=${TOKEN_SINK:-file}
+TOKEN_VOLUME=${TOKEN_VOLUME:-elkproto_fleettokens}
 WAIT_TIMEOUT=${WAIT_TIMEOUT:-300}
 TF_IMAGE=${TF_IMAGE:-hashicorp/terraform:1.14}
+# Rete su cui eseguire Terraform. Con lo stack in swarm mode i servizi non
+# sono raggiungibili dall'host, quindi va indicata la rete dello stack.
+TF_NETWORK=${TF_NETWORK:-host}
 
 log() { printf '%s  %s\n' "$(date +%H:%M:%S)" "$*"; }
 
@@ -76,9 +89,18 @@ fi
 # ------------------------------------------------------------- 3. configurazione
 log "applico la configurazione Terraform in $TF_DIR"
 tf() {
-  docker run --rm --network host \
+  # MSYS_NO_PATHCONV: su Git Bash per Windows un argomento che inizia con "/"
+  # viene riscritto come percorso Windows, e i percorsi interni al contenitore
+  # diventerebbero invalidi. Sui sistemi Linux la variabile non ha effetto.
+  MSYS_NO_PATHCONV=1 docker run --rm --network "$TF_NETWORK" \
     -v "$(pwd)/$TF_DIR:/tf" -w /tf \
     -e "TF_VAR_elastic_password=$ELASTIC_PASSWORD" \
+    -e "TF_VAR_elasticsearch_endpoint=${TF_VAR_elasticsearch_endpoint:-}" \
+    -e "TF_VAR_kibana_endpoint=${TF_VAR_kibana_endpoint:-}" \
+    -e "TF_VAR_filebeat_password=${TF_VAR_filebeat_password:-}" \
+    -e "TF_VAR_apm_secret_token=${TF_VAR_apm_secret_token:-}" \
+    -e "TF_VAR_telegram_webhook_url=${TF_VAR_telegram_webhook_url:-}" \
+    -e "TF_VAR_telegram_chat_id=${TF_VAR_telegram_chat_id:-}" \
     "$TF_IMAGE" "$@"
 }
 
@@ -103,17 +125,17 @@ for pair in "FLEET_TOKEN:$FLEET_TOKEN" "APM_TOKEN:$APM_TOKEN" "INFRA_TOKEN:$INFR
   fi
 done
 
-# Un file per agente, ciascuno con la sola variabile che quell'agente legge.
-# Un file unico richiederebbe di rimappare il nome della variabile nel compose,
-# reintroducendo l'interpolazione che questo meccanismo evita.
+# Un file per agente, ciascuno con la sola variabile o il solo valore che
+# quell'agente legge. Un file unico richiederebbe di rimappare il nome della
+# variabile a valle, reintroducendo l'indirezione che questo meccanismo evita.
 umask 077
-OUT_DIR=$(dirname "$OUTPUT_FILE")
-BASE=$(basename "$OUTPUT_FILE")
 
-write_env() {
-  local suffix=$1
+write_file_sink() {
+  local out_dir base path
+  out_dir=$(dirname "$OUTPUT_FILE")
+  base=$(basename "$OUTPUT_FILE")
+  path="$out_dir/$base.$1"
   shift
-  local path="$OUT_DIR/$BASE.$suffix"
   {
     echo "# Generato da scripts/fleet-bootstrap.sh. Non modificare a mano."
     printf '%s\n' "$@"
@@ -121,10 +143,34 @@ write_env() {
   log "scritto $path"
 }
 
-write_env server \
-  "FLEET_SERVER_POLICY_ID=$POLICY_ID" \
-  "FLEET_ENROLLMENT_TOKEN=$FLEET_TOKEN"
-write_env apm "FLEET_ENROLLMENT_TOKEN=$APM_TOKEN"
-write_env infra "FLEET_ENROLLMENT_TOKEN=$INFRA_TOKEN"
+# In swarm mode i token finiscono su un volume condiviso: gli agenti lo leggono
+# in sola lettura e ripartono finche' il file che li riguarda non compare.
+write_volume_sink() {
+  local nome=$1 valore=$2
+  printf '%s' "$valore" | docker run --rm -i \
+    -v "$TOKEN_VOLUME:/out" \
+    alpine:3.24@sha256:28bd5fe8b56d1bd048e5babf5b10710ebe0bae67db86916198a6eec434943f8b \
+    sh -c "cat > /out/$nome.token && chmod 0444 /out/$nome.token"
+  log "scritto $nome.token nel volume $TOKEN_VOLUME"
+}
+
+case "$TOKEN_SINK" in
+  file)
+    write_file_sink server \
+      "FLEET_SERVER_POLICY_ID=$POLICY_ID" \
+      "FLEET_ENROLLMENT_TOKEN=$FLEET_TOKEN"
+    write_file_sink apm "FLEET_ENROLLMENT_TOKEN=$APM_TOKEN"
+    write_file_sink infra "FLEET_ENROLLMENT_TOKEN=$INFRA_TOKEN"
+    ;;
+  volume)
+    write_volume_sink server "$FLEET_TOKEN"
+    write_volume_sink apm "$APM_TOKEN"
+    write_volume_sink infra "$INFRA_TOKEN"
+    ;;
+  *)
+    log "TOKEN_SINK non riconosciuta: $TOKEN_SINK"
+    exit 1
+    ;;
+esac
 
 log "bootstrap completato: gli agenti possono essere avviati"

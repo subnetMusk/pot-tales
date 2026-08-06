@@ -54,16 +54,10 @@ variable "apm_server_url" {
 
 # ---------- Alerting ----------
 
-variable "telegram_webhook_url" {
-  description = "URL completo della Bot API di Telegram, token incluso: https://api.telegram.org/bot<TOKEN>/sendMessage. E' un segreto perche' contiene il token."
+variable "alert_index" {
+  description = "Indice su cui le regole scrivono gli allarmi. Viene letto dal processo di notifica esterno."
   type        = string
-  sensitive   = true
-}
-
-variable "telegram_chat_id" {
-  description = "Identificativo della chat Telegram che riceve le notifiche."
-  type        = string
-  sensitive   = true
+  default     = "alerts-infra"
 }
 
 variable "logs_index_pattern" {
@@ -78,25 +72,34 @@ variable "error_rate_threshold" {
   default     = 25
 }
 
+variable "fleet_output_host" {
+  description = "Endpoint Elasticsearch usato dagli agenti Fleet. Deve essere risolvibile dai container, non dall'host."
+  type        = string
+  default     = "https://es01:9200"
+}
 
-
+variable "fleet_output_ca" {
+  description = "Percorso della CA dentro i container degli agenti, usato per verificare il certificato di Elasticsearch."
+  type        = string
+  default     = "/usr/share/elastic-agent/certs/ca/ca.crt"
+}
 
 variable "fleet_server_package_version" {
   description = "Versione del package Fleet 'fleet_server'"
   type        = string
-  default     = "1.5.0"
+  default     = "1.6.1"
 }
 
 variable "system_package_version" {
   description = "Versione del package Fleet 'system'"
   type        = string
-  default     = "1.62.1"
+  default     = "2.6.3"
 }
 
 variable "docker_package_version" {
   description = "Versione del package Fleet 'docker'"
   type        = string
-  default     = "2.11.0"
+  default     = "2.15.2"
 }
 
 variable "log_retention" {

@@ -4,22 +4,26 @@
 # Definite come risorse versionate cosi' da essere ricreabili su una
 # istanza Kibana vuota senza configurazione manuale.
 #
-# Kibana non dispone di un connettore Telegram nativo: si usa il
-# connettore webhook generico verso la Bot API.
+# Con licenza basic gli unici connettori abilitati sono `.index` e
+# `.server-log`; webhook, email e i connettori verso servizi esterni
+# richiedono almeno gold. Verificato interrogando
+# /api/actions/connector_types sull'istanza in uso.
+#
+# Le regole scrivono quindi su un indice dedicato, e la consegna verso
+# l'esterno e' compito del processo di notifica che gira fuori dalla
+# macchina. Non e' un ripiego: quel processo serve comunque, perche' un
+# notificatore che vive sulla stessa macchina che sta monitorando tace
+# proprio quando la macchina non risponde.
 # ============================================================
 
-resource "elasticstack_kibana_action_connector" "telegram" {
-  name              = "telegram-degrado"
-  connector_type_id = ".webhook"
+resource "elasticstack_kibana_action_connector" "alert_index" {
+  name              = "alert-index"
+  connector_type_id = ".index"
 
-  # L'URL contiene il token del bot ed e' quindi un valore sensibile.
   config = jsonencode({
-    url     = var.telegram_webhook_url
-    method  = "post"
-    hasAuth = false
-    headers = {
-      "Content-Type" = "application/json"
-    }
+    index              = var.alert_index
+    refresh            = true
+    executionTimeField = "@timestamp"
   })
 }
 
@@ -55,13 +59,14 @@ resource "elasticstack_kibana_alerting_rule" "error_rate" {
   })
 
   actions {
-    id    = elasticstack_kibana_action_connector.telegram.connector_id
+    id    = elasticstack_kibana_action_connector.alert_index.connector_id
     group = "query matched"
     params = jsonencode({
-      body = jsonencode({
-        chat_id = var.telegram_chat_id
-        text    = "[DEGRADO] Backend: tasso di errori sopra ${var.error_rate_threshold} in 5 minuti."
-      })
+      documents = [{
+        severity = "warning"
+        rule     = "backend_error_rate"
+        message  = "Tasso di errori del backend sopra ${var.error_rate_threshold} in 5 minuti"
+      }]
     })
   }
 }
@@ -94,13 +99,14 @@ resource "elasticstack_kibana_alerting_rule" "ingest_fermo" {
   })
 
   actions {
-    id    = elasticstack_kibana_action_connector.telegram.connector_id
+    id    = elasticstack_kibana_action_connector.alert_index.connector_id
     group = "query matched"
     params = jsonencode({
-      body = jsonencode({
-        chat_id = var.telegram_chat_id
-        text    = "[CRITICO] Nessun log ricevuto negli ultimi 15 minuti: la pipeline di ingestione e' ferma."
-      })
+      documents = [{
+        severity = "critical"
+        rule     = "ingest_stalled"
+        message  = "Nessun log ricevuto negli ultimi 15 minuti: pipeline di ingestione ferma"
+      }]
     })
   }
 }

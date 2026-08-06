@@ -44,6 +44,25 @@ resource "elasticstack_elasticsearch_index_lifecycle" "logs" {
   }
 }
 
+# ---------- Fleet: destinazione dei dati ----------
+#
+# Senza questa risorsa gli agenti usano la destinazione predefinita di Kibana,
+# che punta a localhost: dentro un container quell'indirizzo e' il container
+# stesso, quindi la connessione a Elasticsearch fallisce. E' una configurazione
+# che va dichiarata, non ereditata.
+
+resource "elasticstack_fleet_output" "default" {
+  name                 = "elasticsearch-interno"
+  type                 = "elasticsearch"
+  hosts                = [var.fleet_output_host]
+  default_integrations = true
+  default_monitoring   = true
+
+  config_yaml = yamlencode({
+    "ssl.certificate_authorities" = [var.fleet_output_ca]
+  })
+}
+
 # ---------- Fleet: policy del Fleet Server ----------
 #
 # Dichiarata qui con un identificativo esplicito invece di dipendere dalla
@@ -97,7 +116,7 @@ resource "elasticstack_fleet_integration_policy" "apm" {
   # Dal provider 0.16 il blocco `input { input_id = ... }` e' sostituito dalla
   # mappa `inputs`.
   inputs = {
-    "apm-apm" = {
+    "apmserver-apm" = {
       vars = jsonencode({
         host         = "0.0.0.0:8200"
         url          = var.apm_server_url
