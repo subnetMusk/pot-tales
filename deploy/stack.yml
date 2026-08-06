@@ -26,7 +26,13 @@ configs:
   prod_traefik_yml:
     file: ./config/traefik.yml
   prod_routes_yml:
-    file: ./config/routes.yml
+    file: ./config/dynamic/routes.yml
+  prod_middlewares_yml:
+    file: ./config/dynamic/middlewares.yml
+  prod_tls_yml:
+    file: ./config/dynamic/tls.yml
+  prod_crowdsec_middleware:
+    file: ./config/dynamic/crowdsec.yml
   prod_crowdsec_acquis:
     file: ../docker/crowdsec/acquis.yaml
   prod_crowdsec_profiles:
@@ -64,18 +70,32 @@ secrets:
     file: ../secrets/redis_password
   crowdsec_bouncer_key:
     file: ../secrets/crowdsec_bouncer_key
+  # Elenchi di utenze in formato htpasswd. Le credenziali che accettano sono le
+  # stesse con cui Kibana autentica: l'intestazione di autorizzazione non viene
+  # rimossa dal proxy, quindi attraversa e vale anche a valle.
+  dashboard_users:
+    file: ../secrets/dashboard_users
+  dashboard_users_esercizio:
+    file: ../secrets/dashboard_users_esercizio
+  dashboard_users_evento:
+    file: ../secrets/dashboard_users_evento
 
 volumes:
   certs:
   esdata01:
   kibanadata:
   fleetserverdata:
+  apmagentdata:
+  infraagentdata:
   # Popolato dal bootstrap con gli enrollment token. Gli agenti lo leggono in
   # sola lettura e ripartono finche' non compare il file che li riguarda.
   fleettokens:
   mongodata:
   redisdata:
   traefik_logs:
+  # Certificato e chiave emessi automaticamente: perderli significa
+  # richiederli di nuovo, e l'autorita' applica un limite di frequenza.
+  acme:
   crowdsec_data:
   crowdsec_config:
 
@@ -111,9 +131,10 @@ services:
       # rende esplicito che l'avvio del proxy dipende da quel download.
       - --experimental.plugins.crowdsec.modulename=github.com/maxlerebourg/crowdsec-bouncer-traefik-plugin
       - --experimental.plugins.crowdsec.version=v1.7.1
-      - --entrypoints.web.http.middlewares=crowdsec@file
+      - --entrypoints.websecure.http.middlewares=crowdsec@file
     environment:
       APP_HOST: "${APP_HOST:-localhost}"
+      ACME_EMAIL: "${ACME_EMAIL}"
     ports:
       # `mode: host` esplicito: la sintassi breve userebbe `ingress`, il cui
       # routing mesh applica SNAT e sostituisce l'indirizzo del client con
@@ -122,10 +143,14 @@ services:
       - target: 80
         published: 80
         mode: host
+      - target: 443
+        published: 443
+        mode: host
     networks:
       - edge
     volumes:
       - traefik_logs:/var/log/traefik
+      - acme:/acme
     configs:
       - source: prod_traefik_yml
         target: /etc/traefik/traefik.yml
@@ -133,9 +158,27 @@ services:
       - source: prod_routes_yml
         target: /etc/traefik/dynamic/routes.yml
         mode: 0444
+      - source: prod_middlewares_yml
+        target: /etc/traefik/dynamic/middlewares.yml
+        mode: 0444
+      - source: prod_tls_yml
+        target: /etc/traefik/dynamic/tls.yml
+        mode: 0444
+      - source: prod_crowdsec_middleware
+        target: /etc/traefik/dynamic/crowdsec.yml
+        mode: 0444
     secrets:
       - source: crowdsec_bouncer_key
         target: crowdsec_bouncer_key
+        mode: 0444
+      - source: dashboard_users
+        target: dashboard_users
+        mode: 0444
+      - source: dashboard_users_esercizio
+        target: dashboard_users_esercizio
+        mode: 0444
+      - source: dashboard_users_evento
+        target: dashboard_users_evento
         mode: 0444
     healthcheck:
       # L'immagine non contiene shell ne' client HTTP: la verifica passa dal
@@ -532,10 +575,17 @@ services:
       ELASTICSEARCH_USERNAME: kibana_system
       ELASTICSEARCH_SSL_CERTIFICATEAUTHORITIES: /usr/share/kibana/config/certs/ca/ca.crt
       SERVER_SSL_ENABLED: "false"
+      # Servizio su sottopercorso dell'hostname unico. Senza `rewriteBasePath`
+      # gli URL che Kibana genera punterebbero fuori dal percorso; con esso
+      # Kibana si aspetta di ricevere il prefisso, quindi il proxy non lo
+      # rimuove.
+      SERVER_BASEPATH: /osservabilita
+      SERVER_REWRITEBASEPATH: "true"
+      SERVER_PUBLICBASEURL: "https://${APP_HOST:-localhost}/osservabilita"
     healthcheck:
       test:
         - CMD-SHELL
-        - curl -s -o /dev/null -w '%{http_code}' http://localhost:5601/api/status | grep -q 200
+        - curl -s -o /dev/null -w '%{http_code}' http://localhost:5601/osservabilita/api/status | grep -q 200
       interval: 10s
       timeout: 10s
       retries: 60
@@ -657,3 +707,105 @@ services:
           memory: 1G
         reservations:
           memory: 256M
+
+  # Endpoint di telemetria applicativa e RUM. Vive su una policy propria, quindi
+  # su un agente distinto dal fleet-server: e' il servizio che il proxy raggiunge
+  # sul percorso dedicato.
+  apm-agent:
+    image: docker.elastic.co/beats/elastic-agent:8.19.19@sha256:a08d3a06e6eb84374186c2d338e7c431a3e3356be6f824878b498baea34f0a6d
+    hostname: apm-agent
+    networks:
+      - elastic
+      - edge
+    volumes:
+      - certs:/usr/share/elastic-agent/certs:ro
+      - apmagentdata:/usr/share/elastic-agent/data
+      - fleettokens:/fleet:ro
+    configs:
+      - source: prod_agent_entrypoint
+        target: /agent-entrypoint.sh
+        mode: 0555
+    secrets:
+      - source: elastic_password
+        target: elastic_password
+        uid: "1000"
+        gid: "0"
+        mode: 0400
+    entrypoint: ["/agent-entrypoint.sh"]
+    environment:
+      TOKEN_FILE: /fleet/apm.token
+      ELASTIC_PASSWORD_FILE: /run/secrets/elastic_password
+      FLEET_ENROLL: "1"
+      FLEET_URL: https://fleet-server:8220
+      FLEET_CA: /usr/share/elastic-agent/certs/ca/ca.crt
+      ELASTICSEARCH_CA: /usr/share/elastic-agent/certs/ca/ca.crt
+      ELASTIC_AGENT_TAGS: apm,internal
+      # L'endpoint presenta un certificato della CA interna. La terminazione
+      # verso l'esterno resta al proxy; questo protegge il tratto interno.
+      APM_SERVER_SSL_ENABLED: "true"
+      APM_SERVER_SSL_CERTIFICATE: /usr/share/elastic-agent/certs/apm-agent/apm-agent.crt
+      APM_SERVER_SSL_KEY: /usr/share/elastic-agent/certs/apm-agent/apm-agent.key
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - curl -sSf --cacert /usr/share/elastic-agent/certs/ca/ca.crt https://localhost:8200/ >/dev/null
+      interval: 15s
+      timeout: 10s
+      retries: 40
+      start_period: 60s
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: any
+        delay: 15s
+      resources:
+        limits:
+          memory: 1G
+        reservations:
+          memory: 256M
+
+  # Metriche dell'host e dei container. Monta il filesystem di sistema in sola
+  # lettura sotto /hostfs, che e' il percorso che le integrazioni si aspettano.
+  infra-agent:
+    image: docker.elastic.co/beats/elastic-agent:8.19.19@sha256:a08d3a06e6eb84374186c2d338e7c431a3e3356be6f824878b498baea34f0a6d
+    hostname: infra-agent
+    user: root
+    networks:
+      - elastic
+    volumes:
+      - certs:/usr/share/elastic-agent/certs:ro
+      - infraagentdata:/usr/share/elastic-agent/data
+      - fleettokens:/fleet:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - /sys/fs/cgroup:/hostfs/sys/fs/cgroup:ro
+      - /proc:/hostfs/proc:ro
+      - /:/hostfs:ro
+    configs:
+      - source: prod_agent_entrypoint
+        target: /agent-entrypoint.sh
+        mode: 0555
+    secrets:
+      - source: elastic_password
+        target: elastic_password
+        uid: "0"
+        gid: "0"
+        mode: 0400
+    entrypoint: ["/agent-entrypoint.sh"]
+    environment:
+      TOKEN_FILE: /fleet/infra.token
+      ELASTIC_PASSWORD_FILE: /run/secrets/elastic_password
+      FLEET_ENROLL: "1"
+      FLEET_URL: https://fleet-server:8220
+      FLEET_CA: /usr/share/elastic-agent/certs/ca/ca.crt
+      ELASTICSEARCH_CA: /usr/share/elastic-agent/certs/ca/ca.crt
+      ELASTIC_AGENT_TAGS: infra,internal
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: any
+        delay: 15s
+      resources:
+        limits:
+          memory: 512M
+        reservations:
+          memory: 128M

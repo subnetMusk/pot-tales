@@ -1,0 +1,136 @@
+# Instradamento di produzione.
+#
+# Rispetto allo sviluppo mancano sandbox, interfaccia di MongoDB e interfaccia
+# di Redis: sono strumenti di lavoro e non hanno ragione di essere raggiungibili
+# da una macchina esposta.
+#
+# Tutti i router stanno su `websecure`. L'entrypoint in chiaro reindirizza e non
+# serve nulla, tranne la verifica del dominio richiesta dall'autorita' di
+# certificazione, che Traefik gestisce con priorita' maggiore.
+#
+# L'hostname arriva da APP_HOST.
+
+http:
+  routers:
+
+    # Tutto cio' che non corrisponde a una regola piu' specifica e' l'
+    # applicazione: e' il router con priorita' minima.
+    frontend:
+      rule: "Host(`{{ env "APP_HOST" }}`)"
+      entryPoints:
+        - websecure
+      priority: 1
+      middlewares:
+        - intestazioni-sicurezza
+        - politica-contenuti
+        - compressione
+        - limite-richieste
+        - richieste-in-volo
+      service: frontend
+
+    api:
+      rule: "Host(`{{ env "APP_HOST" }}`) && (PathPrefix(`/auth`) || PathPrefix(`/game`) || PathPrefix(`/health`) || PathPrefix(`/log`))"
+      entryPoints:
+        - websecure
+      priority: 100
+      middlewares:
+        - intestazioni-sicurezza
+        - politica-contenuti
+        - compressione
+        - tetto-corpo
+        - limite-richieste
+        - richieste-in-volo
+        - interruttore
+      service: api
+
+    telemetria:
+      rule: "Host(`{{ env "APP_HOST" }}`) && PathPrefix(`/telemetria`)"
+      entryPoints:
+        - websecure
+      priority: 90
+      middlewares:
+        - intestazioni-sicurezza
+        - telemetria-prefisso
+        - tetto-corpo
+        - limite-telemetria
+      service: telemetria
+
+    # ---------------------------------------------------------------------
+    # Dashboard: due platee, due percorsi, due elenchi di utenze.
+    #
+    # La credenziale accettata qui e' la stessa che Kibana riceve, perche'
+    # l'intestazione di autorizzazione non viene rimossa dal proxy. Chi possiede
+    # quella divulgativa non supera il controllo sul percorso tecnico, e anche
+    # se lo superasse Kibana non gli concederebbe lo Space.
+    # ---------------------------------------------------------------------
+
+    dashboard-esercizio:
+      rule: "Host(`{{ env "APP_HOST" }}`) && PathPrefix(`/osservabilita/s/esercizio`)"
+      entryPoints:
+        - websecure
+      priority: 200
+      middlewares:
+        - intestazioni-dashboard
+        - dashboard-auth-esercizio
+        - limite-dashboard
+      service: dashboard
+
+    dashboard-evento:
+      rule: "Host(`{{ env "APP_HOST" }}`) && PathPrefix(`/osservabilita/s/evento`)"
+      entryPoints:
+        - websecure
+      priority: 200
+      middlewares:
+        - intestazioni-dashboard
+        - dashboard-auth-evento
+        - limite-dashboard
+      service: dashboard
+
+    # Risorse statiche e chiamate non legate a uno Space. Accetta entrambe le
+    # platee; il controllo per Space resta a carico di Kibana.
+    dashboard-comune:
+      rule: "Host(`{{ env "APP_HOST" }}`) && PathPrefix(`/osservabilita`)"
+      entryPoints:
+        - websecure
+      priority: 150
+      middlewares:
+        - intestazioni-dashboard
+        - dashboard-auth-comune
+        - limite-dashboard
+      service: dashboard
+
+  services:
+    frontend:
+      loadBalancer:
+        healthCheck:
+          path: /
+          interval: "15s"
+          timeout: "3s"
+        servers:
+          - url: "http://frontend:80"
+
+    api:
+      loadBalancer:
+        # Verifica applicativa: esclude dal bilanciamento un server che
+        # risponde in modo non valido pur avendo il processo attivo.
+        healthCheck:
+          path: /health
+          interval: "10s"
+          timeout: "3s"
+        servers:
+          - url: "http://server:3000"
+
+    telemetria:
+      loadBalancer:
+        serversTransport: telemetria
+        servers:
+          - url: "https://apm-agent:8200"
+
+    dashboard:
+      loadBalancer:
+        healthCheck:
+          path: /osservabilita/api/status
+          interval: "30s"
+          timeout: "5s"
+        servers:
+          - url: "http://kibana:5601"
