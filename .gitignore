@@ -36,8 +36,11 @@ Icon?
 # SONO versionati: e' proprio lo scopo del flusso SOPS+age.
 .env
 !.env.example
-secrets/*.env
+# I secret in chiaro non entrano mai nel repository: vengono generati sulla
+# macchina. Restano versionati solo i file cifrati con SOPS e la guida.
+secrets/*
 !secrets/*.enc.env
+!secrets/README.md
 backups/
 # Configurazione delle unita' systemd: solo i modelli sono versionati, i file
 # compilati contengono URL di ping, token e password.

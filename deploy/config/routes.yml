@@ -1,0 +1,46 @@
+# Instradamento di produzione.
+#
+# Rispetto allo sviluppo mancano sandbox, interfaccia di MongoDB e interfaccia
+# di Redis: sono strumenti di lavoro e non hanno ragione di essere raggiungibili
+# da una macchina esposta.
+#
+# L'hostname arriva da APP_HOST. I middleware di bordo — limitazione di banda,
+# richieste in volo, interruttore, compressione, intestazioni di sicurezza — non
+# sono ancora dichiarati: appartengono al passo successivo.
+
+http:
+  routers:
+    frontend:
+      rule: "Host(`{{ env "APP_HOST" }}`)"
+      entryPoints:
+        - web
+      priority: 1
+      service: frontend
+
+    api:
+      rule: "Host(`{{ env "APP_HOST" }}`) && (PathPrefix(`/auth`) || PathPrefix(`/game`) || PathPrefix(`/health`) || PathPrefix(`/log`))"
+      entryPoints:
+        - web
+      priority: 100
+      service: api
+
+  services:
+    frontend:
+      loadBalancer:
+        healthCheck:
+          path: /
+          interval: "15s"
+          timeout: "3s"
+        servers:
+          - url: "http://frontend:80"
+
+    api:
+      loadBalancer:
+        # Verifica applicativa: esclude dal bilanciamento un server che
+        # risponde in modo non valido pur avendo il processo attivo.
+        healthCheck:
+          path: /health
+          interval: "10s"
+          timeout: "3s"
+        servers:
+          - url: "http://server:3000"

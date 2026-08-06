@@ -1,0 +1,53 @@
+# Traefik v3 — configurazione statica di produzione.
+#
+# Differenze rispetto alla configurazione di sviluppo, tutte deliberate:
+#
+#   - l'API di amministrazione non e' esposta. In sviluppo la porta 8080 serve
+#     la dashboard senza autenticazione e **scavalca router e middleware**:
+#     qualunque difesa dichiarata sui router non la riguarda
+#   - nessun `serversTransport.insecureSkipVerify` globale. La verifica si
+#     disattiva solo sul trasporto usato per l'endpoint di telemetria, che
+#     presenta un certificato emesso dalla CA interna
+#
+# L'entrypoint su 443 e i middleware di bordo non sono ancora dichiarati:
+# appartengono al passo successivo e richiedono la decisione sull'autorita' di
+# certificazione.
+
+api:
+  dashboard: false
+  insecure: false
+
+entryPoints:
+  web:
+    address: ":80"
+  # Entrypoint dedicato alla verifica di salute, non pubblicato dallo stack:
+  # raggiungibile solo dall'interno del contenitore. Tenerlo separato da `web`
+  # evita di esporre pubblicamente un endpoint che dichiara lo stato del proxy.
+  ping:
+    address: ":8082"
+
+# L'immagine di Traefik non contiene una shell ne' un client HTTP: la verifica
+# passa dal sottocomando `healthcheck`, che richiede questo endpoint attivo.
+ping:
+  entryPoint: ping
+
+providers:
+  file:
+    directory: /etc/traefik/dynamic
+    watch: true
+
+log:
+  level: INFO
+
+# Access log su file in formato JSON: e' la sorgente che CrowdSec analizza per
+# rilevare scansioni e tentativi ripetuti. Gli header sono scartati per
+# impostazione predefinita, tranne User-Agent, su cui si basano alcuni scenari.
+accessLog:
+  filePath: /var/log/traefik/access.log
+  format: json
+  bufferingSize: 100
+  fields:
+    headers:
+      defaultMode: drop
+      names:
+        User-Agent: keep

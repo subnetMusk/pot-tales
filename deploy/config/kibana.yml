@@ -1,0 +1,19 @@
+# Configurazione di Kibana, distribuita come Swarm `config`.
+#
+# Non include la sezione xpack.fleet: Fleet non fa parte di questo stack e la
+# sua presenza comporterebbe il download di pacchetti all'avvio.
+#
+# Connessione a Elasticsearch, credenziali e chiavi di cifratura arrivano
+# dall'ambiente e dai secret.
+
+server:
+  name: kibana
+  host: "0.0.0.0"
+  ssl:
+    enabled: false
+
+xpack:
+  apm:
+    ui:
+      enabled: true
+    serviceMapEnabled: true
