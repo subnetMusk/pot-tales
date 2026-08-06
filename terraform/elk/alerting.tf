@@ -14,6 +14,16 @@
 # macchina. Non e' un ripiego: quel processo serve comunque, perche' un
 # notificatore che vive sulla stessa macchina che sta monitorando tace
 # proprio quando la macchina non risponde.
+#
+# Ogni documento dichiara due campi che il notificatore usa per instradare:
+#
+#   check    classe di guasto a cui l'allarme appartiene. Le notifiche del
+#            servizio esterno sono legate alla transizione di stato: su una
+#            destinazione unica, un allarme che arriva mentre la precedente
+#            e' ancora in guasto non produrrebbe alcuna notifica.
+#   status   `alert` porta la classe in guasto, `recovered` la riarma. Senza
+#            l'azione di rientro una classe resterebbe in guasto per sempre
+#            dopo il primo allarme, e il secondo passerebbe in silenzio.
 # ============================================================
 
 resource "elasticstack_kibana_action_connector" "alert_index" {
@@ -65,7 +75,23 @@ resource "elasticstack_kibana_alerting_rule" "error_rate" {
       documents = [{
         severity = "warning"
         rule     = "backend_error_rate"
+        check    = "app-degradation"
+        status   = "alert"
         message  = "Tasso di errori del backend sopra ${var.error_rate_threshold} in 5 minuti"
+      }]
+    })
+  }
+
+  actions {
+    id    = elasticstack_kibana_action_connector.alert_index.connector_id
+    group = "recovered"
+    params = jsonencode({
+      documents = [{
+        severity = "info"
+        rule     = "backend_error_rate"
+        check    = "app-degradation"
+        status   = "recovered"
+        message  = "Tasso di errori del backend rientrato sotto ${var.error_rate_threshold}"
       }]
     })
   }
@@ -105,7 +131,23 @@ resource "elasticstack_kibana_alerting_rule" "ingest_fermo" {
       documents = [{
         severity = "critical"
         rule     = "ingest_stalled"
+        check    = "observability"
+        status   = "alert"
         message  = "Nessun log ricevuto negli ultimi 15 minuti: pipeline di ingestione ferma"
+      }]
+    })
+  }
+
+  actions {
+    id    = elasticstack_kibana_action_connector.alert_index.connector_id
+    group = "recovered"
+    params = jsonencode({
+      documents = [{
+        severity = "info"
+        rule     = "ingest_stalled"
+        check    = "observability"
+        status   = "recovered"
+        message  = "Ingestione dei log ripresa"
       }]
     })
   }
