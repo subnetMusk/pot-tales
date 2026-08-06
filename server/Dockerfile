@@ -1,8 +1,16 @@
 ###############################################################################
-# Costruisce un binario statico per produzione e include Air per il dev hot-reload
+# Backend Go: binario statico per la produzione, con Air per la ricarica a caldo
+# nello stadio di sviluppo.
+#
+# Il contesto di build e' la radice del repository, non questa directory: oltre
+# al modulo Go l'immagine deve contenere gli schemi di validazione in `comms/`,
+# che vivono fuori da `server/` perche' sono un contratto condiviso. Montarli
+# dall'host renderebbe l'immagine non avviabile da sola, e in swarm mode un bind
+# mount relativo non si traduce in un percorso valido sul nodo che schedula il
+# task: sarebbe un blocco all'avvio, non un degrado.
 ###############################################################################
 
-# --- build stage: cross-compile e installazione di Air per hot-reload ----
+# --- stadio di compilazione: cross-compilazione e Air per la ricarica a caldo -
 # Immagini pinnate per digest.
 FROM --platform=$BUILDPLATFORM golang:1.26.5-alpine@sha256:0178a641fbb4858c5f1b48e34bdaabe0350a330a1b1149aabd498d0699ff5fb2 AS builder
 ARG TARGETOS
@@ -16,7 +24,7 @@ ENV GOPRIVATE=github.com/subnetMusk/progetti_innovativi
 WORKDIR /src
 
 # Copia i file mod e installa le dipendenze in cache e Air nel GOPATH
-COPY go.mod go.sum ./
+COPY server/go.mod server/go.sum ./
 # Il module path canonico di air e' github.com/air-verse/air
 RUN --mount=type=cache,target=/go/pkg/mod \
     go mod download && \
@@ -30,18 +38,23 @@ ENV PATH="/go/bin:${PATH}"
 # -x: mostra i comandi interni eseguiti da go build
 ENV GOFLAGS="-v -x"
 
-# Copia tutto il codice sorgente nell’immagine
-COPY . .
+# Copia il codice sorgente del backend
+COPY server/ ./
 
 # Compila il binario statico con cross-compilazione
 RUN CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH \
     go build -o /server .
 
-# --- runtime stage: immagine leggera per produzione ----------------------
+# --- stadio di esecuzione: immagine leggera per la produzione ----------------
 FROM alpine:3.24@sha256:28bd5fe8b56d1bd048e5babf5b10710ebe0bae67db86916198a6eec434943f8b
 
 # Copia il binario compilato dal builder
 COPY --from=builder /server /server
+
+# Schemi di validazione delle richieste. Il percorso corrisponde al valore
+# predefinito di SCHEMA_DIR_SERVER, cosi' l'immagine parte senza configurazione
+# aggiuntiva; la variabile resta impostabile per sovrascriverlo.
+COPY comms/ /src/comms/
 
 # Definisce la porta di ascolto e il comando di avvio
 ENV PORT=3000

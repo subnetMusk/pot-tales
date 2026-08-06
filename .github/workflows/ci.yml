@@ -107,10 +107,14 @@ jobs:
     strategy:
       matrix:
         include:
+          # Il backend si costruisce dalla radice: l'immagine deve includere
+          # anche gli schemi in `comms/`, esterni a `server/`.
           - name: server
-            context: ./server
+            context: .
+            file: ./server/Dockerfile
           - name: frontend
             context: ./frontend
+            file: ./frontend/Dockerfile
     steps:
       - uses: actions/checkout@v4
 
@@ -138,6 +142,7 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           context: ${{ matrix.context }}
+          file: ${{ matrix.file }}
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}

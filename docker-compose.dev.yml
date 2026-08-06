@@ -55,8 +55,10 @@ services:
   # Go backend API service
   server:
     build:
-      context: ./server
-      dockerfile: Dockerfile
+      # Il contesto e' la radice: l'immagine include anche gli schemi in
+      # `comms/`, che stanno fuori da `server/`.
+      context: .
+      dockerfile: server/Dockerfile
       target: builder
     container_name: server
     networks:
