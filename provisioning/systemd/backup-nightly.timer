@@ -1,0 +1,22 @@
+[Unit]
+Description=Cadenza notturna della copia di sicurezza
+
+[Timer]
+# Le 03:30 nel fuso dell'host. Lo schedule configurato sul servizio di
+# sorveglianza deve indicare lo stesso orario e lo stesso fuso, altrimenti il
+# check allarmerebbe per un ritardo che non esiste: verificare con
+# `timedatectl` che l'host sia su Europe/Rome prima di abilitare il timer.
+OnCalendar=*-*-* 03:30:00
+
+# Una macchina spenta all'orario previsto esegue la copia al primo avvio utile.
+# Senza questo, un riavvio notturno salterebbe la copia in silenzio, e il
+# silenzio e' proprio cio' su cui il check allarma.
+Persistent=true
+
+# Margine sul minuto esatto: l'orario preciso non ha alcun valore, e distribuire
+# l'avvio evita di sovrapporsi ad altre attivita' pianificate allo scoccare
+# della mezz'ora.
+RandomizedDelaySec=300
+
+[Install]
+WantedBy=timers.target
