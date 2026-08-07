@@ -16,7 +16,9 @@ set -uo pipefail
 
 STACK=${STACK:-elkproto}
 HERE="$(cd "$(dirname "$0")" && pwd)"
-cd "$HERE"
+# Un cd fallito lascerebbe lo script a operare nella directory sbagliata,
+# che e' esattamente il momento in cui i comandi distruttivi fanno danno.
+cd "$HERE" || exit 1
 STATE=".fault-drill-state"
 
 case "${1:-inject}" in

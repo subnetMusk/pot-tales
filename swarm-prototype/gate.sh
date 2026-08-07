@@ -23,7 +23,9 @@ MODE=${2:-cold}
 TIMEOUT=${TIMEOUT:-900}
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
-cd "$HERE"
+# Un cd fallito lascerebbe lo script a operare nella directory sbagliata,
+# che e' esattamente il momento in cui i comandi distruttivi fanno danno.
+cd "$HERE" || exit 1
 
 SERVICES=(es01 kibana filebeat)
 mkdir -p runs

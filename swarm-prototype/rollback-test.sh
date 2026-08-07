@@ -19,7 +19,9 @@ SVC="${STACK}_es01"
 TIMEOUT=${TIMEOUT:-240}
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
-cd "$HERE"
+# Un cd fallito lascerebbe lo script a operare nella directory sbagliata,
+# che e' esattamente il momento in cui i comandi distruttivi fanno danno.
+cd "$HERE" || exit 1
 
 log() { printf '%s  %s\n' "$(date +%H:%M:%S)" "$*"; }
 

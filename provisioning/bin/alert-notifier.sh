@@ -30,6 +30,9 @@
 set -uo pipefail
 
 CONF=${CONF:-/etc/stack-surveillance.env}
+# Il percorso e' parametrico di proposito, quindi l'analizzatore non puo'
+# seguirlo: la direttiva glielo dichiara invece di lasciarlo protestare.
+# shellcheck source=/dev/null
 [ -r "$CONF" ] && . "$CONF"
 
 HC_BASE=${HC_BASE:-https://hc-ping.com}

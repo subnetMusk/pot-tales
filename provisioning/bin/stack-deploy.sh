@@ -21,6 +21,9 @@
 set -uo pipefail
 
 CONF=${CONF:-/etc/stack-deploy.env}
+# Il percorso e' parametrico di proposito, quindi l'analizzatore non puo'
+# seguirlo: la direttiva glielo dichiara invece di lasciarlo protestare.
+# shellcheck source=/dev/null
 [ -r "$CONF" ] && . "$CONF"
 
 STACK_DIR=${STACK_DIR:-/srv/progetti_innovativi/deploy}
