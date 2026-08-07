@@ -315,11 +315,32 @@ dashboards-export: ## Esporta i saved object di uno Space (SPAZIO=esercizio|even
 	@test -n "$(NOME)" || { echo "manca NOME"; exit 1; }
 	./terraform/elk/dashboards/export.sh $(SPAZIO) $(NOME)
 
+# Terraform gira nel container ancorato per digest, come il resto delle
+# verifiche: nessuna dipendenza da un binario installato sull'host.
+#
+# Due parametri dipendono dalla macchina e non dal codice:
+#   TF_NETWORK    rete da cui Kibana e' raggiungibile. Con lo stack in swarm
+#                 mode i servizi non sono visibili dall'host.
+#   TF_STATE_DIR  directory dello stato. Il default tiene lo stato nella copia
+#                 di lavoro, accettabile per una prova locale; sulla macchina in
+#                 servizio va indicata la directory dedicata (vedi
+#                 terraform/README.md).
+TF_NETWORK   ?= host
+TF_STATE_DIR ?= $(CURDIR)/terraform/elk
+
+TF_DASHBOARDS := $(DOCKER) run --rm --network $(TF_NETWORK) \
+	-v "$(CURDIR)/terraform/elk":/tf -w /tf \
+	-v "$(TF_STATE_DIR)":/stato \
+	-e TF_VAR_elastic_password -e TF_VAR_filebeat_password -e TF_VAR_apm_secret_token \
+	$(TERRAFORM_IMAGE)
+
 # Reimporta applicando il modulo. Le sole risorse toccate sono le importazioni,
 # purche' il resto della configurazione sia gia' applicato.
 .PHONY: dashboards-import
 dashboards-import: ## Reimporta gli export versionati applicando il modulo Terraform
-	cd terraform/elk && terraform apply \
+	@test -n "$$TF_VAR_elastic_password" || { echo "manca TF_VAR_elastic_password nell'ambiente"; exit 1; }
+	$(TF_DASHBOARDS) init -input=false -reconfigure -backend-config=path=/stato/terraform.tfstate
+	$(TF_DASHBOARDS) apply -input=false \
 		-target=elasticstack_kibana_import_saved_objects.esercizio \
 		-target=elasticstack_kibana_import_saved_objects.evento
 
