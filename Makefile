@@ -171,7 +171,7 @@ go-cover: ## Misura la copertura del backend, per pacchetto e totale
 .PHONY: lint-shell
 lint-shell: ## Analizza gli script di infrastruttura
 	$(DOCKER) run --rm -v "$(CURDIR)":/mnt -w /mnt $(SHELLCHECK_IMAGE) \
-		--severity=warning provisioning/bin/*.sh swarm-prototype/*.sh deploy/config/*.sh
+		--severity=warning provisioning/bin/*.sh ci/*-drill.sh swarm-prototype/*.sh deploy/config/*.sh
 
 # `scripts/` raccoglie utilita' precedenti a questo lavoro e produce oltre
 # settecento segnalazioni. Tenerle nel controllo bloccante renderebbe la
@@ -268,6 +268,54 @@ image-landing: ## Costruisce l'immagine della pagina di ingresso
 .PHONY: runtime-check
 runtime-check: ## Avvia gli artefatti costruiti e li interroga davvero
 	./ci/runtime-check.sh
+
+##@ Dati
+
+# Lo stato per giocatore nasce da eventi pubblici non ripetibili: e' piccolo e
+# di breve durata, ma non ricostruibile. L'esportazione non e' quindi una
+# comodita' analitica, ed e' l'unico meccanismo con cui i dati sopravvivono
+# alla dismissione della macchina.
+#
+# I target di prova girano su MongoDB ed Elasticsearch veri, avviati per
+# l'occasione: un'esportazione mai riletta e un ripristino mai eseguito sono
+# ipotesi, non procedure.
+
+.PHONY: data-export
+data-export: ## Esporta indici Elastic in NDJSON compresso e stato di gioco con mongodump
+	./provisioning/bin/data-export.sh
+
+.PHONY: data-backup
+data-backup: ## Esegue lo snapshot LVM e l'archivio portabile
+	./provisioning/bin/data-backup.sh
+
+.PHONY: data-restore
+data-restore: ## Ripristino guidato: MODO=sicurezza|ripristino|ricreazione (ARCHIVIO=... se ripristino)
+	@case "$(MODO)" in \
+		sicurezza) \
+			FORCE=$(FORCE) ./provisioning/bin/data-restore.sh --metti-in-sicurezza ;; \
+		ripristino) \
+			[ -n "$(ARCHIVIO)" ] || { echo "indicare ARCHIVIO=<percorso>"; exit 1; }; \
+			FORCE=$(FORCE) ./provisioning/bin/data-restore.sh --ripristina "$(ARCHIVIO)" ;; \
+		ricreazione) \
+			FORCE=$(FORCE) ./provisioning/bin/data-restore.sh --ricrea ;; \
+		*) \
+			echo "MODO=sicurezza|ripristino|ricreazione"; \
+			echo "la messa in sicurezza va sempre per prima: una ricreazione"; \
+			echo "affrettata distrugge l'unica copia rimasta"; \
+			exit 1 ;; \
+	esac
+
+.PHONY: export-drill
+export-drill: ## Prova l'esportazione su basi dati locali e ne verifica il contenuto
+	./ci/export-drill.sh
+
+.PHONY: backup-drill
+backup-drill: ## Prova l'archivio portabile e il recapito al servizio di sorveglianza
+	./ci/backup-drill.sh
+
+.PHONY: restore-drill
+restore-drill: ## Cronometra le tre strade di ripristino su basi dati locali
+	./ci/restore-drill.sh
 
 ##@ Deploy
 
