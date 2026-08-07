@@ -351,17 +351,54 @@ stack-remove: ## Rimuove lo stack di produzione lasciando i volumi (FORCE=1 salt
 fleet-bootstrap: ## Registra le policy Fleet e genera gli enrollment token
 	./scripts/fleet-bootstrap.sh
 
+# Le dashboard si compongono a mano su Kibana, perche' hanno bisogno di dati
+# veri. Cio' che si versiona e' il loro export: i file NDJSON stanno in
+# terraform/elk/dashboards/, uno per Space, e Terraform li reimporta.
+#
+# L'esportazione richiede KIBANA_PASSWORD nell'ambiente. Passarla sulla riga di
+# comando la lascerebbe nella cronologia della shell.
 .PHONY: dashboards-export
-dashboards-export: ## Esporta i saved object di Kibana in NDJSON
-	./scripts/kibana-dashboard-manager.sh export
+dashboards-export: ## Esporta i saved object di uno Space (SPAZIO=esercizio|evento NOME=nome)
+	@test -n "$(SPAZIO)" || { echo "manca SPAZIO (esercizio|evento)"; exit 1; }
+	@test -n "$(NOME)" || { echo "manca NOME"; exit 1; }
+	./terraform/elk/dashboards/export.sh $(SPAZIO) $(NOME)
 
+# Terraform gira nel container ancorato per digest, come il resto delle
+# verifiche: nessuna dipendenza da un binario installato sull'host.
+#
+# Due parametri dipendono dalla macchina e non dal codice:
+#   TF_NETWORK    rete da cui Kibana e' raggiungibile. Con lo stack in swarm
+#                 mode i servizi non sono visibili dall'host.
+#   TF_STATE_DIR  directory dello stato. Il default tiene lo stato nella copia
+#                 di lavoro, accettabile per una prova locale; sulla macchina in
+#                 servizio va indicata la directory dedicata (vedi
+#                 terraform/README.md).
+TF_NETWORK   ?= host
+TF_STATE_DIR ?= $(CURDIR)/terraform/elk
+
+TF_DASHBOARDS := $(DOCKER) run --rm --network $(TF_NETWORK) \
+	-v "$(CURDIR)/terraform/elk":/tf -w /tf \
+	-v "$(TF_STATE_DIR)":/stato \
+	-e TF_VAR_elastic_password -e TF_VAR_filebeat_password -e TF_VAR_apm_secret_token \
+	$(TERRAFORM_IMAGE)
+
+# Reimporta applicando il modulo. Le sole risorse toccate sono le importazioni,
+# purche' il resto della configurazione sia gia' applicato.
 .PHONY: dashboards-import
-dashboards-import: ## Reimporta i saved object di Kibana da NDJSON
-	./scripts/kibana-dashboard-manager.sh import
+dashboards-import: ## Reimporta gli export versionati applicando il modulo Terraform
+	@test -n "$$TF_VAR_elastic_password" || { echo "manca TF_VAR_elastic_password nell'ambiente"; exit 1; }
+	$(TF_DASHBOARDS) init -input=false -reconfigure -backend-config=path=/stato/terraform.tfstate
+	$(TF_DASHBOARDS) apply -input=false \
+		-target=elasticstack_kibana_import_saved_objects.esercizio \
+		-target=elasticstack_kibana_import_saved_objects.evento
 
 .PHONY: dashboards-list
-dashboards-list: ## Elenca i saved object presenti su Kibana
-	./scripts/kibana-dashboard-manager.sh list
+dashboards-list: ## Elenca gli export versionati e la versione di Kibana che li ha prodotti
+	@for f in terraform/elk/dashboards/*/*.ndjson; do \
+		[ -e "$$f" ] || { echo "nessun export versionato"; break; }; \
+		versione=$$(cat "$$f.versione" 2>/dev/null || echo "VERSIONE ASSENTE"); \
+		printf '%-60s %s\n' "$$f" "$$versione"; \
+	done
 
 ##@ Prove di guasto
 
