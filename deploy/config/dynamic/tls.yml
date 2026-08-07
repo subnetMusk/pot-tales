@@ -24,7 +24,7 @@ tls:
       # Una richiesta senza indicazione del nome server non corrisponde ad
       # alcun certificato: rifiutarla evita di servire il certificato
       # predefinito a chi sta sondando l'indirizzo IP.
-      sniStrict: true
+      sniStrict: {{ env "TRAEFIK_SNI_STRICT" }}
 
 # Se il dipartimento fornisce un certificato proprio, si dichiara qui e si
 # toglie `certResolver` dall'entrypoint nella configurazione statica.

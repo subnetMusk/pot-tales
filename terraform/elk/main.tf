@@ -122,6 +122,12 @@ resource "elasticstack_fleet_integration_policy" "apm" {
         url          = var.apm_server_url
         secret_token = var.apm_secret_token
         enable_rum   = true
+        # Queste chiavi provengono dalla specifica del package APM esposta da
+        # Kibana. Le variabili d'ambiente del container non modificano una
+        # configurazione distribuita da Fleet.
+        tls_enabled     = true
+        tls_certificate = "/usr/share/elastic-agent/certs/apm-agent/apm-agent.crt"
+        tls_key         = "/usr/share/elastic-agent/certs/apm-agent/apm-agent.key"
       })
     }
   }
@@ -151,8 +157,10 @@ resource "elasticstack_fleet_integration_policy" "system" {
 }
 
 resource "elasticstack_fleet_integration" "docker" {
-  name    = "docker"
-  version = var.docker_package_version
+  name = "docker"
+  # Kibana 8.19 rifiuta 2.15.2 come non piu' installabile. La versione e' stata
+  # letta dall'endpoint EPM della stessa istanza su cui viene applicata.
+  version = "2.15.3"
 }
 
 resource "elasticstack_fleet_integration_policy" "docker" {
@@ -161,6 +169,44 @@ resource "elasticstack_fleet_integration_policy" "docker" {
   agent_policy_id     = elasticstack_fleet_agent_policy.infra.policy_id
   integration_name    = elasticstack_fleet_integration.docker.name
   integration_version = elasticstack_fleet_integration.docker.version
+
+  # Gli identificatori di input e stream e la variabile `hosts` sono quelli
+  # esposti dalla specifica del package Docker installato su Kibana. La policy
+  # indirizza ogni metricset al proxy e non al socket locale dell'agent.
+  inputs = {
+    "docker-docker/metrics" = {
+      streams = {
+        "docker.container" = {
+          vars = jsonencode({ hosts = ["tcp://socket-proxy:2375"] })
+        }
+        "docker.cpu" = {
+          vars = jsonencode({ hosts = ["tcp://socket-proxy:2375"] })
+        }
+        "docker.diskio" = {
+          vars = jsonencode({ hosts = ["tcp://socket-proxy:2375"] })
+        }
+        "docker.event" = {
+          vars = jsonencode({ hosts = ["tcp://socket-proxy:2375"] })
+        }
+        "docker.healthcheck" = {
+          vars = jsonencode({ hosts = ["tcp://socket-proxy:2375"] })
+        }
+        "docker.image" = {
+          enabled = false
+          vars    = jsonencode({ hosts = ["tcp://socket-proxy:2375"] })
+        }
+        "docker.info" = {
+          vars = jsonencode({ hosts = ["tcp://socket-proxy:2375"] })
+        }
+        "docker.memory" = {
+          vars = jsonencode({ hosts = ["tcp://socket-proxy:2375"] })
+        }
+        "docker.network" = {
+          vars = jsonencode({ hosts = ["tcp://socket-proxy:2375"] })
+        }
+      }
+    }
+  }
 }
 
 # ---------- Enrollment token (input per il .env) ----------

@@ -1,14 +1,13 @@
 #!/bin/bash
-# Filebeat non supporta il suffisso _FILE sulle variabili d'ambiente e non
-# legge credenziali da file, quindi il valore del secret viene esportato qui.
-#
-# Il segreto resta leggibile in /proc/<pid>/environ all'interno del container.
-# L'alternativa che evita il passaggio dall'ambiente e' la keystore di Beats.
+# Carica le credenziali nella keystore nativa di Beats. Il secret non entra
+# nell'ambiente del processo Filebeat e non e' leggibile da /proc/<pid>/environ.
 set -euo pipefail
 
-export ELASTICSEARCH_USERNAME=elastic
-ELASTICSEARCH_PASSWORD="$(cat /run/secrets/elastic_password)"
-export ELASTICSEARCH_PASSWORD
+filebeat keystore create --force --strict.perms=false >/dev/null
+printf '%s' elastic |
+  filebeat keystore add ELASTICSEARCH_USERNAME --stdin --force --strict.perms=false
+filebeat keystore add ELASTICSEARCH_PASSWORD --stdin --force --strict.perms=false \
+  < /run/secrets/elastic_password
 
 # Il flag richiede due trattini: nella forma con un solo trattino viene
 # interpretato come cluster di shorthand e l'avvio fallisce.
