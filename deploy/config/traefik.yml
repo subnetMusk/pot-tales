@@ -57,7 +57,6 @@ ping:
 certificatesResolvers:
   principale:
     acme:
-      email: "${ACME_EMAIL}"
       storage: /acme/acme.json
       # Verifica sulla porta 80. Il router di verifica ha priorita' maggiore
       # del reindirizzamento dichiarato sull'entrypoint, quindi la richiesta di

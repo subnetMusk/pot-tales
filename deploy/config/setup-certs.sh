@@ -41,6 +41,9 @@ instances:
   - name: fleet-server
     dns: [ fleet-server, localhost ]
     ip:  [ 127.0.0.1 ]
+  - name: apm-agent
+    dns: [ apm-agent, localhost ]
+    ip:  [ 127.0.0.1 ]
 EOF
   bin/elasticsearch-certutil cert --silent --pem \
     -out "$CERTS/certs.zip" \
