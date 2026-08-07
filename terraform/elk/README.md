@@ -1,8 +1,9 @@
 # ELK as-code (provider elasticstack)
 
 Configura lo stack Elastic GIA' AVVIATO (`docker-compose.monitoring.yml`) in
-modo ripetibile, invece che a mano da Kibana. E' il complemento del modulo di
-provisioning host in `terraform/` (hcloud).
+modo ripetibile, invece che a mano da Kibana. L'host non e' provisionato da
+Terraform: e' una macchina virtuale fornita da terzi, preparata dagli script in
+`provisioning/`. Questo modulo agisce solo sull'API dello stack.
 
 ## Cosa gestisce
 

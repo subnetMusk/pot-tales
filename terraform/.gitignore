@@ -1,7 +1,14 @@
 .terraform/
+# File di blocco dello stato: transitorio, ma resta sul disco se un apply viene
+# interrotto. Il pattern `.terraform/` sopra non lo copre, perche' vale per la
+# directory.
+.terraform.tfstate.lock.info
 *.tfstate
 *.tfstate.*
 crash.log
 # Variabili reali: mai versionarle (tieni solo l'esempio)
 *.tfvars
 !*.tfvars.example
+# Piani salvati: contengono in chiaro gli stessi valori sensibili dello stato,
+# anche quando `terraform plan` li ha mostrati oscurati a schermo.
+*.tfplan
