@@ -138,9 +138,9 @@ ES_MEM_LIMIT=1073741824                        # Limite memoria ES (1GB)
 ################################################################################
 # SECURITY
 ################################################################################
-ELASTIC_PASSWORD=m6OHmMuiqNrV1i25Jz3Z         # Password elastic user
-KIBANA_PASSWORD=eJL-r*4rNjRioOwWPEMT          # Password kibana_system user
-KIBANA_ENCRYPTION_KEY=a7a6311933d3503b...     # Chiave encryption Kibana
+ELASTIC_PASSWORD=<generato da provisioning/bin/generate-secrets.sh>         # Password elastic user
+KIBANA_PASSWORD=<generato da provisioning/bin/generate-secrets.sh>          # Password kibana_system user
+KIBANA_ENCRYPTION_KEY=<generato da provisioning/bin/generate-secrets.sh>     # Chiave encryption Kibana
 
 ################################################################################
 # KIBANA
@@ -237,7 +237,7 @@ docker logs filebeat -f --tail 50
 
 #### Elasticsearch
 ```bash
-curl -u elastic:m6OHmMuiqNrV1i25Jz3Z \
+curl -u "elastic:$ELASTIC_PASSWORD" \
   --cacert docker/volumes/certs/ca/ca.crt \
   https://localhost:9200/_cluster/health
 ```
