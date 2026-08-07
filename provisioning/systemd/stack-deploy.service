@@ -1,0 +1,25 @@
+[Unit]
+Description=Deploy dello stack di produzione in swarm mode
+Requires=docker.service
+After=docker.service
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=oneshot
+# Lo stato resta attivo dopo l'uscita: il comando applica una descrizione e
+# termina, ma cio' che ha creato continua a girare. Senza, l'unita' risulterebbe
+# inattiva pur avendo lo stack in servizio.
+RemainAfterExit=true
+EnvironmentFile=-/etc/stack-deploy.env
+ExecStart=/usr/local/bin/stack-deploy.sh
+
+# Il demone puo' non avere ancora completato l'inizializzazione dello swarm
+# quando l'unita' parte: riprovare e' piu' semplice che modellare la
+# dipendenza, e converge nello stesso tempo.
+Restart=on-failure
+RestartSec=20s
+TimeoutStartSec=300
+
+[Install]
+WantedBy=multi-user.target

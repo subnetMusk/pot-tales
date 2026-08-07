@@ -41,25 +41,65 @@ verifica va fatta prima di installare qualunque cosa.
 | `docker/daemon.json` | `/etc/docker/daemon.json` |
 | `systemd/journald.conf.d/10-persistent.conf` | `/etc/systemd/journald.conf.d/` |
 | `systemd/diagnostic-bundle.service` | `/etc/systemd/system/` |
+| `systemd/stack-deploy.service` | `/etc/systemd/system/` |
+| `systemd/fleet-bootstrap.service` | `/etc/systemd/system/` |
 | `systemd/stack-heartbeat.service`, `.timer` | `/etc/systemd/system/` |
 | `systemd/alert-notifier.service`, `.timer` | `/etc/systemd/system/` |
 | `bin/*.sh` | `/usr/local/bin/` |
 | `systemd/stack-surveillance.env.example` | `/etc/stack-surveillance.env`, compilato e a `0600` |
+| `systemd/stack-deploy.env.example` | `/etc/stack-deploy.env`, compilato e a `0600` |
 
 ```bash
 sudo install -m 0644 docker/daemon.json /etc/docker/daemon.json
 sudo install -m 0644 -D systemd/journald.conf.d/10-persistent.conf \
      /etc/systemd/journald.conf.d/10-persistent.conf
 sudo install -m 0644 systemd/*.service systemd/*.timer /etc/systemd/system/
-sudo install -m 0755 bin/diagnostic-bundle.sh bin/stack-heartbeat.sh \
-     bin/alert-notifier.sh /usr/local/bin/
+sudo install -m 0755 bin/*.sh /usr/local/bin/
 
 sudo systemctl restart systemd-journald
 sudo systemctl daemon-reload
 sudo systemctl enable diagnostic-bundle.service
+sudo systemctl enable stack-deploy.service fleet-bootstrap.service
 sudo systemctl enable --now stack-heartbeat.timer alert-notifier.timer
 sudo systemctl restart docker
 ```
+
+## Avvio non presidiato
+
+Il primo giorno di apertura al pubblico non e' presidiato: tutto cio' che
+richiede una persona per partire va considerato non funzionante quel giorno. La
+macchina deve quindi portare in servizio lo stack da sola dopo un riavvio.
+
+Tre passaggi, in ordine di dipendenza.
+
+```bash
+# 1. Secret. Idempotente: quelli gia' presenti non vengono toccati, perche'
+#    rigenerarli invaliderebbe le credenziali con cui i servizi si sono
+#    registrati. Gli elenchi di utenze delle dashboard si compilano a mano.
+sudo ./bin/generate-secrets.sh /srv/progetti_innovativi/secrets
+
+# 2. Parametri del deploy: hostname, recapito per il certificato, immagini
+#    riferite per digest.
+sudo "${EDITOR:-vi}" /etc/stack-deploy.env
+
+# 3. Da qui in poi il riavvio della macchina basta.
+sudo systemctl start stack-deploy.service
+```
+
+`stack-deploy.service` applica `deploy/stack.yml` a ogni avvio. Il comando e'
+idempotente, quindi rieseguirlo su uno stack gia' in servizio aggiorna soltanto
+cio' che e' cambiato: il file dello stack resta la sola descrizione di cio' che
+deve girare.
+
+Lo script rifiuta di procedere se un'immagine non e' ancorata per digest, e se
+un file di secret e' assente o vuoto. Entrambi i controlli servono a far
+fallire il deploy prima di iniziare, invece di lasciare lo stack applicato a
+meta'.
+
+`fleet-bootstrap.service` segue e registra le policy, riprovando finche' Kibana
+non risponde. Non serve attendere: gli agenti escono e vengono rischedulati
+finche' il token che li riguarda non compare sul volume condiviso, quindi lo
+stack converge da solo con un solo deploy.
 
 ## Sorveglianza
 

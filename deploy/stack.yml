@@ -110,6 +110,12 @@ networks:
     driver: overlay
     internal: true
 
+  # Accesso mediato al socket Docker. Rete a se' stante: chi vi appartiene puo'
+  # interrogare il demone attraverso il filtro, e nessun altro.
+  socket:
+    driver: overlay
+    internal: true
+
   # Osservabilita'. `attachable` consente al bootstrap di Fleet e alla
   # diagnostica durante un incidente di collegarsi dall'esterno dello stack.
   elastic:
@@ -254,12 +260,46 @@ services:
   # Applicazione
   # ===========================================================================
 
+  # Pagina di ingresso comunicata ai visitatori. Non dipende da nulla: nessuna
+  # rete oltre al bordo, nessun secret, nessun volume. E' la sola cosa che puo'
+  # ancora rispondere quando il resto e' fermo.
+  landing:
+    image: ${LANDING_IMAGE}
+    networks:
+      - edge
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://localhost/nginx-health || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: any
+        delay: 10s
+      resources:
+        limits:
+          memory: 128M
+        reservations:
+          memory: 32M
+      update_config:
+        order: start-first
+        failure_action: rollback
+        monitor: 30s
+        max_failure_ratio: 0
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
   frontend:
     image: ${FRONTEND_IMAGE}
     networks:
       - edge
     healthcheck:
-      test: ["CMD-SHELL", "wget -q -O /dev/null http://localhost/ || exit 1"]
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://localhost/nginx-health || exit 1"]
       interval: 15s
       timeout: 5s
       retries: 5
@@ -426,6 +466,42 @@ services:
         failure_action: rollback
         monitor: 30s
         max_failure_ratio: 0
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # Espone una porzione dell'API del demone Docker in sola lettura. Montare il
+  # socket direttamente equivale a concedere il controllo della macchina: chi lo
+  # raggiunge puo' avviare un contenitore privilegiato con il filesystem
+  # dell'host montato. Il filtro riduce la superficie ai soli endpoint che i
+  # consumatori usano davvero.
+  socket-proxy:
+    image: tecnativa/docker-socket-proxy:0.3.0@sha256:9e4b9e7517a6b660f2cc903a19b257b1852d5b3344794e3ea334ff00ae677ac2
+    networks:
+      - socket
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    environment:
+      # Tutto cio' che non e' dichiarato resta negato. In particolare POST, che
+      # e' cio' che trasforma la lettura in controllo.
+      POST: "0"
+      CONTAINERS: "1"
+      INFO: "1"
+      EVENTS: "1"
+      PING: "1"
+      VERSION: "1"
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: any
+        delay: 10s
+      resources:
+        limits:
+          memory: 64M
+        reservations:
+          memory: 16M
     logging:
       driver: json-file
       options:
@@ -612,10 +688,13 @@ services:
     user: root
     networks:
       - elastic
+      - socket
     volumes:
       - certs:/usr/share/filebeat/certs:ro
+      # I file di log dei container restano un montaggio: sono la sorgente da
+      # leggere, e nessuna API li espone. L'arricchimento con i metadati passa
+      # invece dal proxy.
       - /var/lib/docker/containers:/var/lib/docker/containers:ro
-      - /var/run/docker.sock:/var/run/docker.sock:ro
     configs:
       - source: prod_filebeat_yml
         target: /usr/share/filebeat/filebeat.yml
@@ -776,6 +855,11 @@ services:
       - certs:/usr/share/elastic-agent/certs:ro
       - infraagentdata:/usr/share/elastic-agent/data
       - fleettokens:/fleet:ro
+      # Montaggio ancora diretto. L'integrazione Docker riceve l'indirizzo del
+      # demone dalla policy Fleet, non dall'ambiente del contenitore, quindi
+      # spostarla sul filtro richiede di dichiarare la variabile giusta nella
+      # policy. La chiave va letta dalla specifica del pacchetto su una Kibana
+      # in servizio: indovinarla e' gia' costato quattro difetti sul bootstrap.
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - /sys/fs/cgroup:/hostfs/sys/fs/cgroup:ro
       - /proc:/hostfs/proc:ro

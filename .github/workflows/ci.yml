@@ -72,6 +72,7 @@ jobs:
           - server/Dockerfile
           - frontend/Dockerfile
           - sandbox/Dockerfile
+          - landing/Dockerfile
     steps:
       - uses: actions/checkout@v4
       - uses: hadolint/hadolint-action@v3.1.0
@@ -115,6 +116,9 @@ jobs:
           - name: frontend
             context: ./frontend
             file: ./frontend/Dockerfile
+          - name: landing
+            context: ./landing
+            file: ./landing/Dockerfile
     steps:
       - uses: actions/checkout@v4
 

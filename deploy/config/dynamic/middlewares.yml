@@ -94,6 +94,13 @@ http:
       circuitBreaker:
         expression: "NetworkErrorRatio() > 0.30 || ResponseCodeRatio(500, 600, 0, 600) > 0.30"
 
+    # La pagina serve se stessa alla radice: il prefisso su cui e' esposta va
+    # rimosso prima di inoltrare.
+    landing-prefisso:
+      stripPrefix:
+        prefixes:
+          - "/info"
+
     # ---------------------------------------------------------------------
     # Telemetria
     # ---------------------------------------------------------------------
