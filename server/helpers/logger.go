@@ -44,6 +44,14 @@ func InitLogger(name, environment string) {
 func getEnrichedLogger(ctx context.Context) *slog.Logger {
 	logger := globalLogger
 
+	// Se l'inizializzazione non e' avvenuta, si ripiega sul logger predefinito.
+	// Senza, la prima riga registrata prima di InitLogger dereferenzia un
+	// puntatore nullo: dentro un handler HTTP il panico non produce un errore
+	// leggibile ma una connessione chiusa, che il client vede come rete caduta.
+	if logger == nil {
+		logger = slog.Default()
+	}
+
 	// 1. APM Tracing Correlation
 	tx := apm.TransactionFromContext(ctx)
 	if tx != nil {

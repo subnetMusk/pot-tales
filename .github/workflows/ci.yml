@@ -45,8 +45,14 @@ jobs:
       - run: make go-vet
       - run: make go-build
       - run: make go-test
+      # I test di integrazione avviano MongoDB e Redis: gli handler dipendono da
+      # tipi concreti e non sono sostituibili con doppi, quindi l'unico modo di
+      # esercitarli e' farli girare contro basi dati vere.
+      - run: make go-test-integration
+      # La copertura si misura sulla stessa esecuzione: contarla senza i test di
+      # integrazione descriverebbe meta' del codice.
       - name: Copertura
-        run: make go-cover-gate
+        run: make go-cover-full
 
   frontend:
     name: Frontend

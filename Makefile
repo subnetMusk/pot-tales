@@ -29,14 +29,15 @@ STACK_FILE  ?= deploy/stack.yml
 STACK_NAME  ?= pi
 SECRETS_DIR ?= secrets
 
-# Copertura. L'obiettivo dichiarato e' 85%; il punto di partenza misurato e'
-# 20,4%. Imporre subito l'obiettivo produrrebbe una pipeline stabilmente rossa,
-# e una pipeline sempre rossa smette di essere letta.
+# Copertura. Il pavimento e' imposto, l'obiettivo e' dichiarato: quando la
+# misura supera stabilmente l'obiettivo, il pavimento si alza.
 #
-# Il gate applica quindi un pavimento che puo' solo salire: ogni volta che i test
-# lo superano stabilmente, si alza. La soglia obiettivo resta scritta qui perche'
-# la distanza sia visibile a ogni esecuzione, non dimenticata.
-COVERAGE_FLOOR  ?= 20
+# La misura che conta comprende i test di integrazione, perche' gli handler
+# dipendono da tipi concreti e senza basi dati reali resterebbero non
+# esercitati. Il punto di ingresso e' escluso dal conteggio: contiene cablaggio,
+# e coprirlo asserirebbe di aver chiamato le funzioni nell'ordine in cui le si
+# chiama.
+COVERAGE_FLOOR  ?= 85
 COVERAGE_TARGET ?= 85
 
 # Salta la conferma sui target distruttivi. Serve all'automazione, non alle
@@ -127,7 +128,7 @@ security-up: ## Avvia lo stack di sviluppo con l'overlay di sicurezza CrowdSec
 ##@ Verifica
 
 .PHONY: verify
-verify: verify-fast go-cover lint-terraform ## Batteria completa di verifiche locali
+verify: verify-fast lint-terraform terraform-validate lint-workflows go-test-integration go-cover-full scan-secrets ## Batteria completa di verifiche locali
 
 .PHONY: verify-fast
 verify-fast: go-fmt go-vet go-build go-test lint-shell lint-docker lint-compose lint-stack ## Verifiche rapide, senza copertura
@@ -148,13 +149,24 @@ go-build: ## Compila il backend
 go-test: ## Esegue i test del backend con il rilevatore di corse critiche
 	$(GO_RUN) go test -race ./...
 
+# I test di integrazione richiedono MongoDB e Redis veri. Sono dietro un tag di
+# compilazione: senza, ogni esecuzione della suite dipenderebbe da due servizi
+# esterni, e un guasto di ambiente sarebbe indistinguibile da una regressione.
+.PHONY: go-test-integration
+go-test-integration: ## Esegue i test che richiedono MongoDB e Redis veri
+	./ci/integration-test.sh
+
+# Copertura complessiva: con il tag, la stessa esecuzione comprende i test
+# unitari e quelli di integrazione, e `-coverpkg` conta le righe esercitate
+# indirettamente. E' la misura che descrive quanto codice viene davvero
+# attraversato, non quanto ne tocca il test del suo stesso pacchetto.
+.PHONY: go-cover-full
+go-cover-full: ## Misura la copertura complessiva con MongoDB e Redis veri
+	COVERAGE_FLOOR=$(COVERAGE_FLOOR) COVERAGE_TARGET=$(COVERAGE_TARGET) COMANDO='/src/ci/coverage-gate.sh' ./ci/integration-test.sh
+
 .PHONY: go-cover
 go-cover: ## Misura la copertura del backend, per pacchetto e totale
 	$(GO_RUN) sh -c 'go test -coverprofile=/tmp/cover.out ./... >/dev/null 2>&1; go tool cover -func=/tmp/cover.out | tail -20'
-
-.PHONY: go-cover-gate
-go-cover-gate: ## Impone il pavimento di copertura (COVERAGE_FLOOR, obiettivo COVERAGE_TARGET)
-	$(GO_RUN) sh -c 'COVERAGE_FLOOR=$(COVERAGE_FLOOR) COVERAGE_TARGET=$(COVERAGE_TARGET) /src/ci/coverage-gate.sh'
 
 .PHONY: lint-shell
 lint-shell: ## Analizza gli script di infrastruttura

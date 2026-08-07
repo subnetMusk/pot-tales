@@ -17,7 +17,21 @@ PAVIMENTO=${COVERAGE_FLOOR:-20}
 OBIETTIVO=${COVERAGE_TARGET:-85}
 PROFILO=${COVERAGE_PROFILE:-/tmp/cover.out}
 
-go test -coverprofile="$PROFILO" ./... >/dev/null 2>&1
+go test ${GO_TAGS:+-tags=$GO_TAGS} -coverpkg=./... -coverprofile="$PROFILO" ./... >/dev/null 2>&1
+
+# Il punto di ingresso e' escluso dal conteggio.
+#
+# Contiene cablaggio: legge la configurazione, apre le connessioni, assembla i
+# componenti nell'ordine in cui vanno assemblati. Un test che lo attraversa
+# asserisce di aver chiamato le funzioni nell'ordine in cui le si chiama, il che
+# non distingue una versione corretta da una sbagliata. Cio' che conta davvero
+# di quel file — che l'assemblaggio produca un servizio funzionante — e'
+# verificato avviandolo, non misurandolo.
+ESCLUSI=${COVERAGE_EXCLUDE:-'/server/main\.go:'}
+FILTRATO="${PROFILO}.filtrato"
+head -1 "$PROFILO" > "$FILTRATO"
+grep -vE "$ESCLUSI" "$PROFILO" | tail -n +2 >> "$FILTRATO"
+PROFILO="$FILTRATO"
 
 totale=$(go tool cover -func="$PROFILO" | tail -1 | grep -oE '[0-9]+\.[0-9]+' | tail -1)
 if [ -z "$totale" ]; then
@@ -37,7 +51,10 @@ if [ "$sotto" = "1" ]; then
   exit 1
 fi
 
-if [ "$raggiunto" = "1" ]; then
+# Il suggerimento ha senso solo finche' il pavimento e' sotto l'obiettivo:
+# ripeterlo quando coincidono sarebbe rumore a ogni esecuzione.
+sotto_obiettivo=$(awk -v p="$PAVIMENTO" -v o="$OBIETTIVO" 'BEGIN { print (p < o) ? 1 : 0 }')
+if [ "$raggiunto" = "1" ] && [ "$sotto_obiettivo" = "1" ]; then
   echo "obiettivo raggiunto: alzare COVERAGE_FLOOR a $OBIETTIVO"
 fi
 
