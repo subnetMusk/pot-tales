@@ -1,0 +1,27 @@
+# Copia di sicurezza notturna: snapshot LVM e archivio portabile.
+#
+# Recapita l'esito al check `backup-nightly` sul servizio di sorveglianza
+# esterno. Il check ha uno schedule di calendario, quindi allarma anche quando
+# l'unita' non parte affatto: un guasto che si manifesta come silenzio non
+# sarebbe altrimenti osservabile.
+
+[Unit]
+Description=Copia di sicurezza notturna dei dati applicativi
+After=docker.service
+Requires=docker.service
+
+[Service]
+Type=oneshot
+EnvironmentFile=-/etc/stack-data.env
+EnvironmentFile=-/etc/stack-surveillance.env
+ExecStart=/usr/local/bin/data-backup.sh --check backup-nightly
+
+# Le stesse priorita' ridotte dell'esportazione, e per la stessa ragione: la
+# copia puo' sovrapporsi a un'apertura serale prolungata, e in quel caso a
+# rallentare deve essere la copia.
+Nice=19
+IOSchedulingClass=idle
+CPUWeight=20
+IOWeight=10
+
+TimeoutStartSec=2h
