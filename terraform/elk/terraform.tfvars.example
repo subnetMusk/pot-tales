@@ -21,3 +21,39 @@ apm_secret_token  = "VALORE_DI_APM_SECRET_TOKEN_NEL_TUO_ENV"
 # alert_index          = "alerts-infra"
 # logs_index_pattern   = "logs-*"
 # error_rate_threshold = 25
+
+# ---------------------------------------------------------------------------
+# Utenze delle dashboard
+# ---------------------------------------------------------------------------
+# Devono corrispondere, nome per nome e password per password, alle righe dei
+# file htpasswd distribuiti come secret. Il bordo verifica la credenziale e non
+# rimuove l'intestazione di autorizzazione, quindi la stessa credenziale
+# autentica poi l'utente su Kibana:
+#
+#   utenze_esercizio -> secrets/dashboard_users_esercizio
+#   utenze_evento    -> secrets/dashboard_users_evento
+#   entrambe         -> secrets/dashboard_users  (unione delle due platee)
+#
+# Un nome presente da un lato solo produce una richiesta di credenziali che non
+# si chiude, oppure un accesso respinto dal bordo.
+
+# utenze_esercizio = {
+#   operatore = "GENERA_UNA_PASSWORD_DEDICATA"
+# }
+
+# utenze_evento = {
+#   divulgazione = "GENERA_UNA_PASSWORD_DEDICATA"
+# }
+
+# ---------------------------------------------------------------------------
+# Indici visibili a ciascuna platea
+# ---------------------------------------------------------------------------
+# I due elenchi non devono intersecarsi: con licenza basic la sicurezza a
+# livello di documento non e' disponibile, quindi il confine fra le platee e'
+# solo quello sull'indice.
+# indici_esercizio = ["filebeat-*", "logs-*", "metrics-*", "traces-apm*"]
+# indici_evento    = ["logs-frontend.app-*"]
+
+# Versione di Kibana, allineata a STACK_VERSION del .env. Valida gli export
+# delle dashboard prima di reimportarli.
+# kibana_version = "8.19.19"
