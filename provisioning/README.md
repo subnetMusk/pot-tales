@@ -45,24 +45,30 @@ verifica va fatta prima di installare qualunque cosa.
 | `systemd/fleet-bootstrap.service` | `/etc/systemd/system/` |
 | `systemd/stack-heartbeat.service`, `.timer` | `/etc/systemd/system/` |
 | `systemd/alert-notifier.service`, `.timer` | `/etc/systemd/system/` |
-| `bin/*.sh` | `/usr/local/bin/` |
+| `systemd/data-export.service` | `/etc/systemd/system/` |
+| `systemd/backup-nightly.service`, `.timer` | `/etc/systemd/system/` |
+| `bin/*.sh`, `bin/*.py` | `/usr/local/bin/` |
 | `systemd/stack-surveillance.env.example` | `/etc/stack-surveillance.env`, compilato e a `0600` |
 | `systemd/stack-deploy.env.example` | `/etc/stack-deploy.env`, compilato e a `0600` |
+| `systemd/stack-data.env.example` | `/etc/stack-data.env`, compilato e a `0600` |
 
 ```bash
 sudo install -m 0644 docker/daemon.json /etc/docker/daemon.json
 sudo install -m 0644 -D systemd/journald.conf.d/10-persistent.conf \
      /etc/systemd/journald.conf.d/10-persistent.conf
 sudo install -m 0644 systemd/*.service systemd/*.timer /etc/systemd/system/
-sudo install -m 0755 bin/*.sh /usr/local/bin/
+sudo install -m 0755 bin/*.sh bin/*.py /usr/local/bin/
 
 sudo systemctl restart systemd-journald
 sudo systemctl daemon-reload
 sudo systemctl enable diagnostic-bundle.service
 sudo systemctl enable stack-deploy.service fleet-bootstrap.service
-sudo systemctl enable --now stack-heartbeat.timer alert-notifier.timer
+sudo systemctl enable --now stack-heartbeat.timer alert-notifier.timer backup-nightly.timer
 sudo systemctl restart docker
 ```
+
+`data-export.service` non viene abilitata: non ha timer e non deve partire da
+sola, la avvia l'operatore.
 
 ## Avvio non presidiato
 
@@ -188,6 +194,190 @@ producano un allarme mentre un'assenza prolungata lo produce.
 Al primo avvio, in assenza del marcatore, il recapito parte dall'istante
 corrente: un indice gia' popolato produrrebbe altrimenti una raffica di
 notifiche su eventi conclusi.
+
+## Dati: esportazione, copia, ripristino
+
+Lo stato per giocatore nasce da eventi pubblici non ripetibili. E' piccolo e di
+breve durata, ma **non ricostruibile**: non esiste modo di rifarlo se va perso.
+Ne discendono tre meccanismi distinti, che rispondono a domande diverse e non
+si sostituiscono a vicenda.
+
+| Meccanismo | Risponde a | Comando |
+|---|---|---|
+| Esportazione | i dati devono sopravvivere alla macchina | `data-export.sh` |
+| Copia di sicurezza | i dati devono sopravvivere a un guasto | `data-backup.sh` |
+| Ripristino | il servizio deve tornare su | `data-restore.sh` |
+
+### Esportazione
+
+Contenuto integrale in due formati, scelti per due esigenze diverse.
+
+| Sorgente | Formato | Perche' |
+|---|---|---|
+| Elasticsearch | NDJSON compresso, uno per indice | conserva i campi annidati senza perdite, si rilegge da uno strumento di analisi o reindicizzando altrove |
+| MongoDB | archivio nativo di `mongodump` | unico formato che riporta in vita lo stato di gioco con i tipi originali |
+
+CSV e Parquet non vengono prodotti: sono derivabili dall'NDJSON a posteriori,
+fuori dalla macchina, e aggiungerli qui sarebbe una dipendenza in piu' nella
+catena che produce l'unica copia esistente.
+
+Lo scorrimento degli indici usa **point-in-time e `search_after`**. Il
+point-in-time congela l'insieme dei segmenti al momento dell'apertura, quindi
+il risultato resta coerente mentre l'indice continua a ricevere documenti, che
+e' la condizione normale quando l'esportazione parte durante un'apertura al
+pubblico.
+
+I flussi di dati sono risolti negli indici che li compongono. E' il caso di
+tutto cio' che raccoglie Elastic Agent: quegli indici si chiamano `.ds-...` e
+sono nascosti, e una risoluzione che non li raggiunga produrrebbe
+un'esportazione vuota senza segnalare alcun errore. I file corrispondenti
+vengono scritti **senza il punto iniziale**, altrimenti un `scp <dir>/*` al
+momento del prelievo li salterebbe in silenzio portandosi via tutto tranne gli
+archivi piu' grandi.
+
+**L'attivazione non passa dal web.** Un'unita' `oneshot` avviata dall'operatore
+produce gli archivi. Esporre un percorso HTTP che avvia un processo sulla
+macchina sarebbe la superficie piu' pericolosa dell'intero sistema, e non
+compra nulla che una connessione di amministrazione non dia gia'.
+
+```bash
+sudo systemctl start data-export.service
+journalctl -u data-export.service -f
+```
+
+**Il freno.** L'esportazione resta possibile in qualsiasi momento, incluse le
+finestre di apertura al pubblico. Scorrere l'intero dataset compete per cache e
+banda di disco con la stessa Elasticsearch che sta ricevendo la telemetria,
+quindi: esecuzione singola protetta da lock, priorita' di CPU e di I/O ridotte,
+scorrimento a lotti con pausa fra l'uno e l'altro.
+
+Su Elasticsearch la leva che conta e' **la cadenza dei lotti**, non la quota di
+CPU del client: il lavoro pesante lo fa il cluster leggendo i segmenti. Le
+priorita' dichiarate nell'unita' governano lo script, non il lavoro, perche' lo
+scorrimento avviene dentro contenitori che appartengono al cgroup del demone
+Docker. Il freno effettivo e' quindi espresso dallo script, con `LOTTO`,
+`PAUSA`, `CPU_QUOTA` e la lettura sequenziale di `mongodump`.
+
+**Requisito per il bordo, non coperto qui.** Gli archivi finiscono in
+`EXPORT_DEST` (`/srv/export` per impostazione predefinita), una directory nota.
+Servirli e' compito del router di bordo, che deve esporli **in sola lettura,
+dietro autenticazione, senza elencare la directory e senza alcun percorso che
+avvii la produzione di un archivio**. Il percorso di generazione e quello di
+consegna restano separati.
+
+### Copia di sicurezza
+
+Due meccanismi con ruoli distinti.
+
+**Snapshot LVM, primario.** Cattura in un istante l'intero volume che ospita i
+dati Docker, quindi MongoDB ed Elasticsearch insieme, senza fermare le
+scritture. Con il journaling attivo e file dati e journal sullo stesso volume,
+uno snapshot a livello di volume cattura dati e journal come unita' singola e
+al ripristino MongoDB rigioca il journal: **`fsyncLock` non serve** e non viene
+eseguito, perche' bloccherebbe le scritture per tutta la durata della copia,
+che e' esattamente cio' che si vuole evitare durante un'apertura.
+
+Il motivo per cui lo snapshot precede `mongodump`: su un'istanza standalone
+`mongodump` non ha consistenza point-in-time fra collezioni, perche' `--oplog`
+richiede un replica set. Un dump preso durante le scritture puo' contenere una
+sessione senza il relativo stato di gioco.
+
+Lo snapshot richiede **spazio non allocato nel volume group**. Se
+`setup-volumes.sh` ha assegnato tutto lo spazio ai volumi, lo snapshot non e'
+creabile e la copia primaria semplicemente non esiste: lo script lo dichiara
+come guasto invece di proseguire in silenzio. Uno snapshot che esaurisce il
+proprio spazio copy-on-write viene invalidato dal kernel, resta elencato e non
+e' piu' ripristinabile, quindi `lvs` va letto e non presunto.
+
+**`mongodump`, portabile.** Destinato al prelievo manuale a evento concluso: si
+rilegge su un'altra macchina e su un'altra installazione, cosa che uno snapshot
+non consente. E' l'unico dei due che costituisce un off-host reale, e dipende
+dalla presenza di una persona.
+
+Nessuno dei due copre la perdita della macchina: per quella servono gli
+snapshot della VM lato infrastruttura.
+
+### Check `backup-nightly`
+
+Il timer esegue la copia alle 03:30. Il check sul servizio esterno **non viene
+creato da qui**: l'accesso al pannello e' dell'operatore, e questi sono i
+valori da impostare.
+
+| Campo | Valore |
+|---|---|
+| Slug | `backup-nightly` |
+| Tipo di schedule | calendario (cron) |
+| Espressione | `30 3 * * *` |
+| Fuso orario | `Europe/Rome` |
+| Tolleranza | 1 ora |
+
+Lo schedule del check e quello del timer devono indicare lo stesso orario e lo
+stesso fuso, altrimenti il check allarmerebbe per un ritardo che non esiste:
+verificare con `timedatectl` che l'host sia su `Europe/Rome`. La tolleranza di
+un'ora copre l'attesa dell'archivio su un dataset cresciuto piu' del previsto
+senza rendere il check inutile.
+
+L'endpoint si costruisce come gli altri, `<base>/<chiave>/backup-nightly`, con
+la stessa `HC_PING_KEY` gia' presente in `/etc/stack-surveillance.env`: un
+secondo file la duplicherebbe, e una rotazione che ne aggiorna uno solo
+lascerebbe un percorso muto senza che nulla lo segnali. Lo script manda il
+suffisso di inizio prima di cominciare, cosi' il servizio misura la durata
+dell'esecuzione e non solo la sua avvenuta conclusione.
+
+Vale qui quanto detto per il battito: **l'URL di ping e' una credenziale**. Chi
+la possiede puo' inviare esiti falsi e tenere spenta la sorveglianza su una
+copia che non viene piu' prodotta.
+
+### Ripristino
+
+Quando la base dati si corrompe durante un'apertura, due obiettivi entrano in
+conflitto: rimettere in piedi il servizio e salvare i dati. Le strade sono tre
+e l'ordine non e' negoziabile.
+
+```bash
+# 1. Sempre per prima. Opera sul volume e non sul processo, quindi funziona
+#    anche quando mongod non parte piu'.
+sudo data-restore.sh --metti-in-sicurezza
+
+# 2. Recupera i dati fino al momento della copia.
+sudo data-restore.sh --ripristina /srv/backup/mongodump/<stamp>/mongo/game_db.archive.gz
+
+# 3. Ultima scelta: la piu' rapida per tornare operativi, e distrugge cio' che
+#    non e' stato messo al sicuro al passo 1.
+sudo data-restore.sh --ricrea
+```
+
+Lo svuotamento porta via anche gli indici, che il backend crea all'avvio: dopo
+una ricreazione il servizio applicativo va riavviato, altrimenti i documenti
+nuovi nascerebbero senza indice di ritenzione e nulla lo segnalerebbe.
+
+I tre tempi vanno misurati **prima** di doverli confrontare sotto pressione.
+`make restore-drill` li misura su basi dati locali seminate con documenti nella
+forma che il backend scrive davvero.
+
+### Verifica
+
+I tre percorsi si provano su MongoDB ed Elasticsearch veri, avviati per
+l'occasione su una rete dedicata. Un'esportazione mai riletta e un ripristino
+mai eseguito sono ipotesi, non procedure.
+
+```bash
+make export-drill    # esporta e rilegge quanto esportato
+make backup-drill    # archivio portabile e forma degli endpoint di recapito
+make restore-drill   # cronometra le tre strade
+```
+
+Le prove non si fermano alla presenza dei file: contano i documenti per indice,
+verificano che gli identificatori siano distinti — uno scorrimento sbagliato
+produrrebbe ripetizioni che il solo conteggio non distingue — e rileggono
+l'archivio di MongoDB reinserendolo in una base dati separata, indice di
+ritenzione compreso.
+
+Restano fuori dalla prova automatica due cose, per ragioni di ambiente e non di
+disegno: lo **snapshot LVM**, che richiede un volume group con spazio non
+allocato, e il **certificato dell'autorita' privata** del cluster. Della prima
+la prova copre il comportamento in assenza di LVM, che deve essere un guasto
+dichiarato e non un successo silenzioso.
 
 ## Cosa copre e cosa no
 
