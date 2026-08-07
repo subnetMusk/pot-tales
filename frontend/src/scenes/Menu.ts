@@ -4,13 +4,13 @@ import { fadeElements } from "../utils";
 import MenuBackground from "../items/UI/MenuBackground";
 
 import {APISession} from "@/network/APISession";
-import { i } from "vite/dist/node/types.d-aGj9QkWt";
+
 // You can write more code here
 
 /* START OF COMPILED CODE */
 
 class Menu extends Phaser.Scene {
-
+	
 	constructor() {
 		super("Menu");
 
@@ -109,9 +109,11 @@ class Menu extends Phaser.Scene {
 
 		// Title
 		const title = this.add.image(640, 150, "title");
+		title.scaleX = 2;
+		title.scaleY = 2;
 
 		// Demo
-		const demo = this.add.text(316, 622, "", {});
+		const demo = this.add.text(316, 680, "", {});
 		demo.name = "Demo";
 		demo.setOrigin(0.5, 0.5);
 		demo.text = "Demo 0.1";
@@ -236,7 +238,7 @@ class Menu extends Phaser.Scene {
 		this.settings_icon.setInteractive();
 		this.fullscreen_icon.setInteractive();
 
-		this.play_button.on('pointerdown', () => {this.play_button.setStrokeStyle(4, 0x056f00);});
+		this.play_button.on('pointerdown', () => {this.play_button.setStrokeStyle(4, 0xb24232);});
 		// this.leaderboard_button.on('pointerdown', () => {this.leaderboard_button.setStrokeStyle(4, 0xc58f11);});
 		this.gallery_button.on('pointerdown', () => {this.gallery_button.setStrokeStyle(4, 0x283593);});
 		this.settings_icon.on('pointerdown', () => {this.settings_icon.setTint(0xbdbdbd);});
@@ -266,7 +268,7 @@ class Menu extends Phaser.Scene {
 		// this.leaderboard_button.on('pointerover', () => {this.leaderboard_button.setStrokeStyle(4, 0xecd58f);});
 		// this.leaderboard_button.on('pointerout', () => {this.leaderboard_button.setStrokeStyle(2, 0xf0f8ff);});
 
-		this.play_button.on('pointerover', () => {this.play_button.setStrokeStyle(4, 0x72d572);});
+		this.play_button.on('pointerover', () => {this.play_button.setStrokeStyle(4, 0xf98170);});
 		this.play_button.on('pointerout', () => {this.play_button.setStrokeStyle(2, 0xf0f8ff);});
 
 		this.gallery_button.on('pointerover', () => {this.gallery_button.setStrokeStyle(4, 0x8fd3f1);});

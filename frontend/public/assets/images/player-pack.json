@@ -2,9 +2,40 @@
     "section1": {
         "files": [
             {
+                "url": "assets/images/characters/player_idle64.png",
+                "frameConfig": {
+                    "frameWidth": 64,
+                    "frameHeight": 64,
+                    "startFrame": 0,
+                    "endFrame": -1,
+                    "spacing": 0,
+                    "margin": 0
+                },
+                "type": "spritesheet",
+                "key": "big_player_idle"
+            },
+            {
+                "url": "assets/images/characters/player_walk_side64.png",
+                "frameConfig": {
+                    "frameWidth": 64,
+                    "frameHeight": 64,
+                    "startFrame": 0,
+                    "endFrame": -1,
+                    "spacing": 0,
+                    "margin": 0
+                },
+                "type": "spritesheet",
+                "key": "big_player_walk_side"
+            },
+            {
                 "url": "assets/images/backgrounds/darkMask.png",
                 "type": "image",
                 "key": "darkMask"
+            },
+            {
+                "url": "assets/images/ui/player_ui.png",
+                "type": "image",
+                "key": "player_ui"
             },
             {
                 "url": "assets/images/characters/player_idle.png",
@@ -18,19 +49,6 @@
                 },
                 "type": "spritesheet",
                 "key": "player_idle"
-            },
-            {
-                "url": "assets/images/characters/player_idle64.png",
-                "frameConfig": {
-                    "frameWidth": 64,
-                    "frameHeight": 64,
-                    "startFrame": 0,
-                    "endFrame": -1,
-                    "spacing": 0,
-                    "margin": 0
-                },
-                "type": "spritesheet",
-                "key": "big_player_idle"
             },
             {
                 "url": "assets/images/characters/player_walk_down.png",
@@ -57,19 +75,6 @@
                 },
                 "type": "spritesheet",
                 "key": "player_walk_side"
-            },
-            {
-                "url": "assets/images/characters/player_walk_side64.png",
-                "frameConfig": {
-                    "frameWidth": 64,
-                    "frameHeight": 64,
-                    "startFrame": 0,
-                    "endFrame": -1,
-                    "spacing": 0,
-                    "margin": 0
-                },
-                "type": "spritesheet",
-                "key": "big_player_walk_side"
             },
             {
                 "url": "assets/images/characters/player_walk_up.png",

@@ -233,7 +233,9 @@
                 "key": "title"
             },
             "x": 640,
-            "y": 150
+            "y": 150,
+            "scaleX": 2,
+            "scaleY": 2
         },
         {
             "type": "Text",

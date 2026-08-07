@@ -121,13 +121,20 @@ class Stage1 extends Phaser.Scene {
 	create() {
 
 		this.editorCreate();
+		this.player.setDepth(10);
 		this.apiSession = new APISession();
 
 		this.anims.create({
 			key: "strange_light_anim",
-			frames: this.anims.generateFrameNumbers("red_light", { start: 0, end: 3 }),
-			frameRate: 4,
+			frames: this.anims.generateFrameNumbers("red_light", { start: 0, end: 5 }),
+			frameRate: 8,
 			repeat: -1
+		});
+
+		this.anims.create({
+			key: "strange_light_anim_fade",
+			frames: this.anims.generateFrameNumbers("red_light", { start: 0, end: -1 }),
+			frameRate: 8
 		});
 
 		this.anims.create({
@@ -263,6 +270,7 @@ class Stage1 extends Phaser.Scene {
 		light.setScale(0);
 		light.play("strange_light_anim");
 		this.add.existing(light);
+		light.setDepth(this.player.depth - 1);
 
 		// Animazione di comparsa della luce
 		this.tweens.add({
@@ -302,7 +310,7 @@ class Stage1 extends Phaser.Scene {
 			};
 		} else if(this.currentLightIndex === 1) {
 			// Seconda luce - solo narratore
-			light.setAlpha(0.5);
+			light.setAlpha(0.8);
 			light.interagisci = () => {
 				this.player.isMovementAllowed = false;
 				this.player.interactionAllowed = false;
@@ -317,11 +325,11 @@ class Stage1 extends Phaser.Scene {
 			};
 		} else if(this.currentLightIndex < this.lightsPositions.length - 1) {
 			// Luci intermedie
-			light.setAlpha(0.5);
+			light.setAlpha(0.8);
 			light.interagisci = this.lightInteraction;
 		} else {
 			// Penultima luce - dialogo con il tutorial
-			light.setAlpha(0.5);
+			light.setAlpha(0.8);
 			light.interagisci = () => {
 				this.player.isMovementAllowed = false;
 				this.player.interactionAllowed = false;
@@ -360,9 +368,9 @@ class Stage1 extends Phaser.Scene {
 			this.tweens.add({
 				targets: this.currentLight,
 				alpha: 0,
-				scale: 0,
 				ease: "Linear",
 				duration: duration,
+				onStart: () => this.currentLight.play("strange_light_anim_fade"),
 				onComplete: () => {
 					// Rimuovi la luce corrente
 					this.currentLight.destroy();
@@ -375,7 +383,7 @@ class Stage1 extends Phaser.Scene {
 			// Impulso sferico dal nuovo punto luce per rivelarne la posizione
 			const revealWave = this.add.circle(light.x, light.y, 1200, 0xff0000);
 			revealWave.setBlendMode(Phaser.BlendModes.ADD);
-			revealWave.setAlpha(0.2);
+			revealWave.setAlpha(0.3);
 			revealWave.setScale(0);
 
 			this.tweens.add({
@@ -391,6 +399,20 @@ class Stage1 extends Phaser.Scene {
 		} else {
 			this.currentLight = light;
 		}
+
+		// Ripeti il pulse radar ogni 15 secondi finché la luce è attiva
+		this.time.addEvent({
+			delay: 15000,
+			loop: true,
+			callback: () => {
+				if (!light.active) return;
+				const wave = this.add.circle(light.x, light.y, 1200, 0xff0000);
+				wave.setBlendMode(Phaser.BlendModes.ADD);
+				wave.setAlpha(0.2);
+				wave.setScale(0);
+				this.tweens.add({ targets: wave, scale: 1, alpha: 0, duration: 10000, ease: 'Cubic.easeOut', onComplete: () => wave.destroy() });
+			}
+		});
 	}
 
 	// Attivazione della massa nera -----------------------------------------------------

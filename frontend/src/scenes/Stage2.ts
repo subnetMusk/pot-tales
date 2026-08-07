@@ -28,26 +28,23 @@ class Stage2 extends Phaser.Scene {
 		const player = new Player(this, 640, 519);
 		this.add.existing(player);
 
-		// pool_center
-		const pool_center = new OggettoInterattivo(this, 640, 360);
-		this.add.existing(pool_center);
-
 		// lists
 		const boundaries: Array<any> = [];
-		const oggVector = [pool_center];
+		const oggVector: Array<any> = [];
+		const slowAreas: Array<any> = [];
 
 		this.player = player;
-		this.pool_center = pool_center;
 		this.boundaries = boundaries;
 		this.oggVector = oggVector;
+		this.slowAreas = slowAreas;
 
 		this.events.emit("scene-awake");
 	}
 
 	private player!: Player;
-	private pool_center!: OggettoInterattivo;
 	private boundaries!: Array<any>;
-	private oggVector!: OggettoInterattivo[];
+	private oggVector!: Array<any>;
+	private slowAreas!: Array<any>;
 
 	/* START-USER-CODE */
 	private popupManager!: PopupManager;
@@ -75,6 +72,12 @@ class Stage2 extends Phaser.Scene {
 		// Configurazione del giocatore
 		this.player.debug(false);
 		this.player.setBoundaries(this.boundaries);
+		
+		// const slowZone = this.add.rectangle(640, 480, 220, 130, 0x00ff00, 0.5);
+		// slowZone.setDepth(-1);
+		// this.slowAreas.push({ zone: slowZone, multiplier: 0.45 });
+		// this.player.setSlowAreas(this.slowAreas);
+		
 		this.player.isMovementAllowed = false;
 
 		// Configurazione della telecamera

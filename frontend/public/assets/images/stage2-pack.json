@@ -2,7 +2,7 @@
     "section1": {
         "files": [
             {
-                "url": "assets/images/backgrounds/bg-stage2.png",
+                "url": "assets/images/backgrounds/stage2.png",
                 "type": "image",
                 "key": "bg-stage2"
             },

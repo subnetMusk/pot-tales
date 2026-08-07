@@ -362,8 +362,21 @@ export default class PopupManager {
         let segmentIndex = 0;
         let charIndex = 0;
         let completedText = '';
+        const tickMs = 10;
+        let waitMs = 0;
 
         const processNextChar = () => {
+            // Evita crash se il popup/testo è già stato distrutto
+            if (!textObject.active || !textObject.scene) {
+                timer.remove();
+                return;
+            }
+
+            if (waitMs > 0) {
+                waitMs -= tickMs;
+                return;
+            }
+
             if (segmentIndex >= textSegments.length) {
                 timer.remove();
                 onComplete();
@@ -376,7 +389,7 @@ export default class PopupManager {
             if (segment.pauseDuration) {
                 segmentIndex++;
                 charIndex = 0;
-                timer.delay = segment.pauseDuration;
+                waitMs = segment.pauseDuration;
                 return;
             }
             
@@ -386,7 +399,7 @@ export default class PopupManager {
                 textObject.setText(completedText);
                 segmentIndex++;
                 charIndex = 0;
-                timer.delay = preset.typewriterDelay;
+                waitMs = preset.typewriterDelay;
                 return;
             }
 
@@ -398,17 +411,17 @@ export default class PopupManager {
                 textObject.setText(completedText + styledChar);
                 completedText += styledChar;
                 charIndex++;
-                
-                timer.delay = Math.max(10, preset.typewriterDelay * segment.speedMultiplier);
+
+                waitMs = Math.max(10, preset.typewriterDelay * segment.speedMultiplier);
             } else {
                 segmentIndex++;
                 charIndex = 0;
-                timer.delay = preset.typewriterDelay;
+                waitMs = preset.typewriterDelay;
             }
         };
 
         const timer = this.scene.time.addEvent({
-            delay: preset.typewriterDelay,
+            delay: tickMs,
             callback: processNextChar,
             loop: true
         });
@@ -546,6 +559,10 @@ export default class PopupManager {
         if (preset.typewriterEnabled) {
             text.setText(''); // Inizia con testo vuoto
             this.scene.time.delayedCall(preset.animationDuration, () => {
+                if (!popup.active || this.currentPopup !== popup || !text.active) {
+                    return;
+                }
+
                 this.typewriterTimer = this.typewriterEffect(text, message, preset, () => {
                     this.isTextComplete = true;
                     this.typewriterTimer = null;
@@ -566,7 +583,12 @@ export default class PopupManager {
         }
         
         // Funzione per chiudere il popup (condivisa tra click e tasto Invio)
+        let isClosing = false;
         const closePopup = () => {
+            if (isClosing || !popup.active) {
+                return;
+            }
+
             // Se il typewriter è attivo e skip è permesso, completa il testo invece di chiudere
             if (!this.isTextComplete && preset.allowSkipTypewriter && this.typewriterTimer) {
                 this.scene.time.removeEvent(this.typewriterTimer);
@@ -574,7 +596,9 @@ export default class PopupManager {
                 // Apply bold to the full message
                 const segments = this.parseTextEffects(message);
                 const fullStyledText = segments.map(seg => seg.isBold ? seg.text.toUpperCase() : seg.text).join('');
-                text.setText(fullStyledText);
+                if (text.active) {
+                    text.setText(fullStyledText);
+                }
                 this.isTextComplete = true;
 
                 // Avvia auto-close dopo aver completato il testo
@@ -583,6 +607,8 @@ export default class PopupManager {
                 }
                 return; // Non chiudere, solo completa il testo
             }
+
+            isClosing = true;
 
             // Cancella i timer se esistono
             if (this.autoCloseTimer) {
@@ -608,6 +634,7 @@ export default class PopupManager {
                 onComplete: () => {
                     popup.destroy();
                     this.onPopupClosed();
+                    isClosing = false;
                 }
             });
         };
@@ -631,6 +658,17 @@ export default class PopupManager {
         const originalDestroy = popup.destroy.bind(popup);
         popup.destroy = () => {
             this.enterKey?.off('down', onEnterDown);
+
+            if (this.autoCloseTimer) {
+                this.scene.time.removeEvent(this.autoCloseTimer);
+                this.autoCloseTimer = null;
+            }
+
+            if (this.typewriterTimer) {
+                this.scene.time.removeEvent(this.typewriterTimer);
+                this.typewriterTimer = null;
+            }
+
             originalDestroy();
         };
 
@@ -644,6 +682,16 @@ export default class PopupManager {
 
     // Metodo per pulire tutto quando necessario
     public destroy() {
+        if (this.autoCloseTimer) {
+            this.scene.time.removeEvent(this.autoCloseTimer);
+            this.autoCloseTimer = null;
+        }
+
+        if (this.typewriterTimer) {
+            this.scene.time.removeEvent(this.typewriterTimer);
+            this.typewriterTimer = null;
+        }
+
         if (this.currentPopup) {
             this.currentPopup.destroy();
             this.currentPopup = null;
