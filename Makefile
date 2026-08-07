@@ -269,6 +269,10 @@ image-landing: ## Costruisce l'immagine della pagina di ingresso
 runtime-check: ## Avvia gli artefatti costruiti e li interroga davvero
 	./ci/runtime-check.sh
 
+.PHONY: stack-verify
+stack-verify: ## Verifica end-to-end uno stack Swarm gia' applicato
+	./ci/stack-verify.sh
+
 ##@ Dati
 
 # Lo stato per giocatore nasce da eventi pubblici non ripetibili: e' piccolo e
