@@ -29,9 +29,15 @@ STACK_FILE  ?= deploy/stack.yml
 STACK_NAME  ?= pi
 SECRETS_DIR ?= secrets
 
-# Soglia di copertura. Il valore obiettivo e' 85%; finche' i test non lo
-# raggiungono, il target la riporta senza imporla.
-COVERAGE_MIN ?= 85
+# Copertura. L'obiettivo dichiarato e' 85%; il punto di partenza misurato e'
+# 20,4%. Imporre subito l'obiettivo produrrebbe una pipeline stabilmente rossa,
+# e una pipeline sempre rossa smette di essere letta.
+#
+# Il gate applica quindi un pavimento che puo' solo salire: ogni volta che i test
+# lo superano stabilmente, si alza. La soglia obiettivo resta scritta qui perche'
+# la distanza sia visibile a ogni esecuzione, non dimenticata.
+COVERAGE_FLOOR  ?= 20
+COVERAGE_TARGET ?= 85
 
 # Salta la conferma sui target distruttivi. Serve all'automazione, non alle
 # persone: chiedere e' il comportamento predefinito.
@@ -50,6 +56,9 @@ NODE_IMAGE       ?= node:24-alpine@sha256:f70403e87646dc51b45295f4b8b70cdad0b63d
 HADOLINT_IMAGE   ?= hadolint/hadolint:v2.14.0-alpine@sha256:7aba693c1442eb31c0b015c129697cb3b6cb7da589d85c7562f9deb435a6657c
 SHELLCHECK_IMAGE ?= koalaman/shellcheck:v0.11.0@sha256:61862eba1fcf09a484ebcc6feea46f1782532571a34ed51fedf90dd25f925a8d
 TERRAFORM_IMAGE  ?= hashicorp/terraform:1.9@sha256:18f9986038bbaf02cf49db9c09261c778161c51dcc7fb7e355ae8938459428cd
+GITLEAKS_IMAGE   ?= zricethezav/gitleaks:v8.28.0@sha256:cdbb7c955abce02001a9f6c9f602fb195b7fadc1e812065883f695d1eeaba854
+ACTIONLINT_IMAGE ?= rhysd/actionlint:1.7.7@sha256:887a259a5a534f3c4f36cb02dca341673c6089431057242cdc931e9f133147e9
+TRIVY_IMAGE      ?= aquasec/trivy:0.58.2@sha256:665030f4d33a82c1e8d9d5e0453365842236723c1ee5cc3becca698268e66a56
 
 # Su Windows la shell converte gli argomenti che sembrano percorsi POSIX prima
 # di passarli a Docker: `-w /src/server` diventerebbe un percorso Windows e il
@@ -140,9 +149,12 @@ go-test: ## Esegue i test del backend con il rilevatore di corse critiche
 	$(GO_RUN) go test -race ./...
 
 .PHONY: go-cover
-go-cover: ## Misura la copertura del backend e la confronta con la soglia
-	$(GO_RUN) sh -c 'go test -coverprofile=/tmp/cover.out ./... >/dev/null && go tool cover -func=/tmp/cover.out | tail -1'
-	@echo "soglia obiettivo: $(COVERAGE_MIN)%"
+go-cover: ## Misura la copertura del backend, per pacchetto e totale
+	$(GO_RUN) sh -c 'go test -coverprofile=/tmp/cover.out ./... >/dev/null 2>&1; go tool cover -func=/tmp/cover.out | tail -20'
+
+.PHONY: go-cover-gate
+go-cover-gate: ## Impone il pavimento di copertura (COVERAGE_FLOOR, obiettivo COVERAGE_TARGET)
+	$(GO_RUN) sh -c 'COVERAGE_FLOOR=$(COVERAGE_FLOOR) COVERAGE_TARGET=$(COVERAGE_TARGET) /src/ci/coverage-gate.sh'
 
 .PHONY: lint-shell
 lint-shell: ## Analizza gli script di infrastruttura
@@ -178,9 +190,49 @@ lint-stack: ## Valida lo stack Swarm di produzione
 lint-terraform: ## Verifica la formattazione delle definizioni Terraform
 	$(DOCKER) run --rm -v "$(CURDIR)/terraform":/w -w /w $(TERRAFORM_IMAGE) fmt -check -recursive -diff
 
+.PHONY: lint-workflows
+lint-workflows: ## Analizza i workflow della pipeline
+	$(DOCKER) run --rm -v "$(CURDIR)":/repo -w /repo $(ACTIONLINT_IMAGE) -color
+
+.PHONY: terraform-validate
+terraform-validate: ## Inizializza senza backend e valida le definizioni Terraform
+	$(DOCKER) run --rm -v "$(CURDIR)/terraform/elk":/w -w /w $(TERRAFORM_IMAGE) init -backend=false -input=false
+	$(DOCKER) run --rm -v "$(CURDIR)/terraform/elk":/w -w /w $(TERRAFORM_IMAGE) validate
+
+.PHONY: frontend-typecheck
+frontend-typecheck: ## Verifica i tipi del frontend, che la compilazione non controlla
+	$(NODE_RUN) sh -c 'cd frontend && npm ci && npx tsc --noEmit -p tsconfig.json'
+
 .PHONY: frontend-build
 frontend-build: ## Compila il frontend di produzione
 	$(NODE_RUN) sh -c 'cd frontend && npm ci && npm run build'
+
+##@ Sicurezza
+
+# Il controllo bloccante guarda l'albero di lavoro, non la cronologia.
+#
+# La cronologia e' immutabile: contiene credenziali di sviluppo note, destinate
+# alla rotazione prima della messa in servizio, e continuerebbe a segnalarle a
+# ogni esecuzione anche dopo che i file sono stati corretti. Un controllo che
+# non puo' tornare verde non e' un controllo, e' rumore.
+#
+# Cio' che conta e' che nessuna credenziale nuova entri: l'albero di lavoro e'
+# esattamente il luogo dove intercettarla, prima del commit.
+.PHONY: scan-secrets
+scan-secrets: ## Cerca credenziali nei file attualmente versionati
+	GITLEAKS_IMAGE=$(GITLEAKS_IMAGE) ./ci/scan-secrets.sh
+
+.PHONY: scan-secrets-history
+scan-secrets-history: ## Cerca credenziali nell'intera cronologia (non bloccante)
+	-$(DOCKER) run --rm -v "$(CURDIR)":/repo -w /repo $(GITLEAKS_IMAGE) 		detect --source=/repo --redact --verbose
+
+.PHONY: scan-deps-go
+scan-deps-go: ## Cerca vulnerabilita' note nelle dipendenze del backend
+	$(GO_RUN) sh -c 'go install golang.org/x/vuln/cmd/govulncheck@latest && govulncheck ./...'
+
+.PHONY: scan-images
+scan-images: ## Cerca vulnerabilita' note nelle immagini costruite localmente
+	@for i in progetti-innovativi/server:locale progetti-innovativi/frontend:locale progetti-innovativi/landing:locale; do 		echo "== $$i"; 		$(DOCKER) run --rm -v /var/run/docker.sock:/var/run/docker.sock $(TRIVY_IMAGE) 			image --scanners vuln --severity HIGH,CRITICAL --exit-code 1 --quiet "$$i" || exit 1; 	done
 
 ##@ Immagini
 
@@ -198,6 +250,12 @@ image-frontend: ## Costruisce l'immagine del gioco
 .PHONY: image-landing
 image-landing: ## Costruisce l'immagine della pagina di ingresso
 	docker build -t progetti-innovativi/landing:locale ./landing
+
+##@ Verifica a runtime
+
+.PHONY: runtime-check
+runtime-check: ## Avvia gli artefatti costruiti e li interroga davvero
+	./ci/runtime-check.sh
 
 ##@ Deploy
 

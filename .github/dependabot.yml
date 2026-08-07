@@ -1,0 +1,56 @@
+# Aggiornamento automatico delle dipendenze.
+#
+# Le action sono incluse di proposito: sono codice di terzi che gira con accesso
+# al repository e ai segreti della pipeline, e restano ferme alla revisione
+# ancorata finche' qualcuno non la muove. Un aggiornamento proposto come
+# richiesta di modifica e' l'unico modo perche' quella revisione venga rivista
+# invece di invecchiare in silenzio.
+#
+# Le proposte arrivano su `develop`: `main` riceve solo quanto e' gia' passato
+# dalla pipeline.
+
+version: 2
+updates:
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    target-branch: develop
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: "chore(ci)"
+
+  - package-ecosystem: gomod
+    directory: /server
+    schedule:
+      interval: weekly
+    target-branch: develop
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: "chore(deps)"
+
+  - package-ecosystem: npm
+    directory: /frontend
+    schedule:
+      interval: weekly
+    target-branch: develop
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: "chore(deps)"
+
+  # Le immagini di base sono ancorate per digest: senza questo, un digest resta
+  # quello del giorno in cui e' stato scritto anche dopo che l'immagine ha
+  # ricevuto correzioni di sicurezza.
+  - package-ecosystem: docker
+    directories:
+      - /server
+      - /frontend
+      - /sandbox
+      - /landing
+    schedule:
+      interval: weekly
+    target-branch: develop
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: "chore(deps)"

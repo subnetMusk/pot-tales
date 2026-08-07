@@ -1,0 +1,3 @@
+# Eseguiti dai runner della pipeline e dentro container Linux: con terminatori
+# CRLF fallirebbero con `bad interpreter`, e l'errore non nomina la causa.
+*.sh text eol=lf

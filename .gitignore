@@ -65,3 +65,6 @@ docker/volumes/fleetserverdata/
 
 # Token Fleet generati da scripts/fleet-bootstrap.sh
 .env.fleet*
+
+# Esportazione temporanea usata dalla ricerca di credenziali.
+.scan-tree/

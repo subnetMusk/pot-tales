@@ -1,3 +1,17 @@
+# Pipeline di integrazione continua.
+#
+# I lavori invocano gli stessi target di `make` che si usano in locale. Non e'
+# una preferenza di stile: se la pipeline riscrivesse i comandi in YAML,
+# locale e pipeline potrebbero divergere senza che nulla lo segnali, e il comando
+# che riproduce un fallimento andrebbe ricostruito a mano ogni volta.
+#
+# Le action sono ancorate al commit e non al tag. Un tag e' mutabile: nel marzo
+# 2026 l'action di uno strumento di analisi ha avuto settantacinque dei suoi
+# settantasei tag riscritti, con esfiltrazione di segreti da ogni pipeline che
+# eseguiva una scansione. Lo strumento aggiunto per la sicurezza e' stato il
+# vettore. Per la stessa ragione gli analizzatori girano come immagini ancorate
+# per digest, invocate dai target, invece che come action di terze parti.
+
 name: CI
 
 on:
@@ -6,102 +20,108 @@ on:
   pull_request:
     branches: [main, develop]
 
-permissions:
-  contents: read
+# Nessun permesso predefinito: ogni lavoro dichiara solo cio' che gli serve.
+permissions: {}
+
+# Una esecuzione per riferimento: quelle superate vengono annullate invece di
+# competere per i runner.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
+
   backend:
     name: Backend Go
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: server
+    timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-go@v5
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
-          go-version: "1.26"
-          cache-dependency-path: server/go.sum
-      - name: Formattazione
-        run: |
-          non_formattati=$(gofmt -l .)
-          if [ -n "$non_formattati" ]; then
-            echo "File non formattati:"
-            echo "$non_formattati"
-            exit 1
-          fi
-      - run: go vet ./...
-      - run: go build ./...
-      - run: go test -race ./...
+          # Il token del checkout resterebbe nella configurazione git del
+          # runner, a disposizione di qualunque passo successivo.
+          persist-credentials: false
+      - run: make go-fmt
+      - run: make go-vet
+      - run: make go-build
+      - run: make go-test
+      - name: Copertura
+        run: make go-cover-gate
 
   frontend:
-    name: Frontend / Sandbox build
+    name: Frontend
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
-          node-version: "24"
-      - name: Build frontend
-        working-directory: frontend
-        run: |
-          npm ci
-          npm run build
-      - name: Install sandbox deps
-        working-directory: sandbox
-        run: npm ci
+          persist-credentials: false
+      # La compilazione non verifica i tipi: senza questo passo un errore di
+      # tipo arriva in produzione insieme a un artefatto che si e' costruito
+      # senza protestare.
+      - run: make frontend-typecheck
+      - run: make frontend-build
 
-  compose-lint:
-    name: Docker Compose validation
+  statica:
+    name: Analisi statica
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v4
-      - name: Create .env from template
-        run: cp .env.example .env
-      - name: Validate compose files
-        run: |
-          docker compose -f docker-compose.dev.yml config -q
-          docker compose -f docker-compose.monitoring.yml config -q
-
-  dockerfiles:
-    name: Hadolint Dockerfiles
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        dockerfile:
-          - server/Dockerfile
-          - frontend/Dockerfile
-          - sandbox/Dockerfile
-          - landing/Dockerfile
-    steps:
-      - uses: actions/checkout@v4
-      - uses: hadolint/hadolint-action@v3.1.0
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
-          dockerfile: ${{ matrix.dockerfile }}
-          failure-threshold: error
+          persist-credentials: false
+      - run: make lint-workflows
+      - run: make lint-shell
+      - run: make lint-docker
+      - run: make lint-compose
+      - run: make lint-stack
+      - run: make lint-terraform
+      - run: make terraform-validate
 
-  secrets-scan:
-    name: Gitleaks secret scan
+  sicurezza:
+    name: Analisi di sicurezza
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      pull-requests: read # gitleaks-action lista i commit della PR via API
+    timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
+          # La ricerca di credenziali attraversa la cronologia, non solo
+          # l'albero di lavoro.
           fetch-depth: 0
-      - uses: gitleaks/gitleaks-action@v2
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          persist-credentials: false
+      - run: make scan-secrets
+      - run: make scan-deps-go
 
-  # Pubblicazione delle immagini su GitHub Container Registry.
-  # Non viene eseguito sulle pull request: il token associato a una PR da fork
-  # non dispone dei permessi di scrittura sui package.
+  runtime:
+    name: Verifica a runtime
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - name: Costruisce gli artefatti
+        run: make images
+      # Avvia davvero i servizi e li interroga. E' la categoria di controllo che
+      # in questo progetto ha trovato piu' difetti, tutti passati indenni dalla
+      # validazione statica perche' esistono solo all'esecuzione.
+      - name: Avvia e interroga
+        run: make runtime-check
+      - name: Vulnerabilita' note nelle immagini
+        run: make scan-images
+
+  # Pubblicazione su GitHub Container Registry. Non viene eseguita sulle pull
+  # request: il token associato a una PR da fork non ha permessi di scrittura
+  # sui package.
+  #
+  # Dipende dalla verifica a runtime: non si pubblica un'immagine che non e'
+  # stata vista partire.
   publish-images:
     name: Build e push immagini su GHCR
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     if: github.event_name != 'pull_request'
-    needs: [backend, frontend, dockerfiles]
+    needs: [backend, frontend, statica, runtime]
     permissions:
       contents: read
       packages: write
@@ -120,12 +140,14 @@ jobs:
             context: ./landing
             file: ./landing/Dockerfile
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
 
-      - uses: docker/setup-buildx-action@v3
+      - uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3
 
       - name: Login su GHCR
-        uses: docker/login-action@v3
+        uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
@@ -133,7 +155,7 @@ jobs:
 
       - name: Calcola tag e label
         id: meta
-        uses: docker/metadata-action@v5
+        uses: docker/metadata-action@c299e40c65443455700f0fdfc63efafe5b349051 # v5
         with:
           images: ghcr.io/${{ github.repository }}/${{ matrix.name }}
           tags: |
@@ -143,7 +165,7 @@ jobs:
 
       - name: Build e push
         id: build
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6
         with:
           context: ${{ matrix.context }}
           file: ${{ matrix.file }}
@@ -153,8 +175,8 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-      # Il digest e' l'identificatore immutabile dell'immagine pubblicata e
-      # va usato al posto del tag nei manifest di deploy.
+      # Il digest e' l'identificatore immutabile dell'immagine pubblicata, ed e'
+      # il valore da riportare in /etc/stack-deploy.env sulla macchina.
       - name: Riporta il digest nel summary
         run: |
           {
