@@ -1,0 +1,4 @@
+# Il Makefile usa tabulazioni come separatore delle ricette: un checkout con
+# terminatori CRLF le porterebbe sulla macchina di destinazione insieme al
+# carattere in piu', e make fallirebbe con un errore che non nomina la causa.
+Makefile text eol=lf
