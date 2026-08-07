@@ -303,17 +303,33 @@ stack-remove: ## Rimuove lo stack di produzione lasciando i volumi (FORCE=1 salt
 fleet-bootstrap: ## Registra le policy Fleet e genera gli enrollment token
 	./scripts/fleet-bootstrap.sh
 
+# Le dashboard si compongono a mano su Kibana, perche' hanno bisogno di dati
+# veri. Cio' che si versiona e' il loro export: i file NDJSON stanno in
+# terraform/elk/dashboards/, uno per Space, e Terraform li reimporta.
+#
+# L'esportazione richiede KIBANA_PASSWORD nell'ambiente. Passarla sulla riga di
+# comando la lascerebbe nella cronologia della shell.
 .PHONY: dashboards-export
-dashboards-export: ## Esporta i saved object di Kibana in NDJSON
-	./scripts/kibana-dashboard-manager.sh export
+dashboards-export: ## Esporta i saved object di uno Space (SPAZIO=esercizio|evento NOME=nome)
+	@test -n "$(SPAZIO)" || { echo "manca SPAZIO (esercizio|evento)"; exit 1; }
+	@test -n "$(NOME)" || { echo "manca NOME"; exit 1; }
+	./terraform/elk/dashboards/export.sh $(SPAZIO) $(NOME)
 
+# Reimporta applicando il modulo. Le sole risorse toccate sono le importazioni,
+# purche' il resto della configurazione sia gia' applicato.
 .PHONY: dashboards-import
-dashboards-import: ## Reimporta i saved object di Kibana da NDJSON
-	./scripts/kibana-dashboard-manager.sh import
+dashboards-import: ## Reimporta gli export versionati applicando il modulo Terraform
+	cd terraform/elk && terraform apply \
+		-target=elasticstack_kibana_import_saved_objects.esercizio \
+		-target=elasticstack_kibana_import_saved_objects.evento
 
 .PHONY: dashboards-list
-dashboards-list: ## Elenca i saved object presenti su Kibana
-	./scripts/kibana-dashboard-manager.sh list
+dashboards-list: ## Elenca gli export versionati e la versione di Kibana che li ha prodotti
+	@for f in terraform/elk/dashboards/*/*.ndjson; do \
+		[ -e "$$f" ] || { echo "nessun export versionato"; break; }; \
+		versione=$$(cat "$$f.versione" 2>/dev/null || echo "VERSIONE ASSENTE"); \
+		printf '%-60s %s\n' "$$f" "$$versione"; \
+	done
 
 ##@ Prove di guasto
 
