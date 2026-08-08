@@ -6,8 +6,26 @@ set -euo pipefail
 STACK_NAME=${STACK_NAME:-pi}
 APP_HOST=${APP_HOST:-localhost}
 BASE_URL=${BASE_URL:-https://$APP_HOST}
-DASHBOARD_USER=${DASHBOARD_USER:-elastic}
-DASHBOARD_PASSWORD_FILE=${DASHBOARD_PASSWORD_FILE:-secrets/elastic_password}
+# Credenziale di una delle due platee, non quella amministrativa.
+#
+# Il bordo verifica la richiesta contro gli elenchi htpasswd delle platee e non
+# rimuove l'intestazione di autorizzazione, che autentica poi la stessa utenza
+# su Kibana. L'amministratore non compare in quegli elenchi e non deve
+# comparirvi: raggiunge Kibana per altra via. Usarlo qui verificherebbe un
+# percorso che in produzione non esiste, e il 401 sembrerebbe un guasto invece
+# che un presupposto sbagliato.
+#
+# La password non e' ricavabile dall'elenco htpasswd, che conserva la sola
+# impronta: va fornita dall'ambiente.
+DASHBOARD_USER=${DASHBOARD_USER:-}
+DASHBOARD_PASSWORD=${DASHBOARD_PASSWORD:-}
+
+# Credenziale amministrativa, per le sole verifiche sullo stato interno dello
+# stack che nessuna platea deve poter effettuare.
+ADMIN_USER=${ADMIN_USER:-elastic}
+ADMIN_PASSWORD_FILE=${ADMIN_PASSWORD_FILE:-secrets/elastic_password}
+KIBANA_INTERNAL_URL=${KIBANA_INTERNAL_URL:-http://kibana:5601/osservabilita}
+CURL_IMAGE=${CURL_IMAGE:-curlimages/curl:8.11.1@sha256:c1fe1679c34d9784c1b0d1e5f62ac0a79fca01fb6377cdd33e90473c6f9f9a69}
 STABILITY_SECONDS=${STABILITY_SECONDS:-30}
 CURL_INSECURE=${CURL_INSECURE:-0}
 
@@ -65,8 +83,8 @@ require_command curl
 require_command grep
 require_command mktemp
 
-[ -r "$DASHBOARD_PASSWORD_FILE" ] ||
-  fail "file password dashboard non leggibile: $DASHBOARD_PASSWORD_FILE"
+[ -n "$DASHBOARD_USER" ] && [ -n "$DASHBOARD_PASSWORD" ] ||
+  fail "DASHBOARD_USER e DASHBOARD_PASSWORD non impostate: sono le credenziali di una delle due platee"
 
 tmp_dir=$(mktemp -d "${TMPDIR:-/tmp}/stack-verify.XXXXXX")
 cleanup() {
@@ -221,15 +239,12 @@ curl_request "$tmp_dir/kibana-anon.body" 401 \
 url_authority=${BASE_URL#*://}
 url_authority=${url_authority%%/*}
 netrc_machine=${url_authority%%:*}
-IFS= read -r dashboard_password < "$DASHBOARD_PASSWORD_FILE" || true
-[ -n "$dashboard_password" ] || fail "password dashboard vuota"
 umask 077
 {
   printf 'machine %s\n' "$netrc_machine"
   printf 'login %s\n' "$DASHBOARD_USER"
-  printf 'password %s\n' "$dashboard_password"
+  printf 'password %s\n' "$DASHBOARD_PASSWORD"
 } > "$tmp_dir/dashboard.netrc"
-unset dashboard_password
 
 curl_request "$tmp_dir/kibana-auth.body" 200 \
   --netrc-file "$tmp_dir/dashboard.netrc" \
@@ -241,14 +256,29 @@ curl_request "$tmp_dir/telemetry.body" 200 "$BASE_URL/telemetria/"
 
 printf '\n== Fleet e hardening ==\n'
 
+# Lo stato di Fleet si interroga come operatore, non come visitatore.
+#
+# Le credenziali delle platee autorizzano la lettura delle proprie dashboard e
+# nient'altro: chiedere loro l'elenco degli agenti riceve 403, ed e' il
+# comportamento voluto. La verifica passa quindi dall'interno della rete di
+# osservabilita' con la credenziale amministrativa, che e' anche la via per cui
+# quell'informazione si consulta davvero: Kibana non e' raggiungibile dall'host
+# se non attraverso il proxy, dove quella credenziale non e' ammessa.
+[ -r "$ADMIN_PASSWORD_FILE" ] ||
+  fail "password amministrativa non leggibile: $ADMIN_PASSWORD_FILE"
+IFS= read -r admin_password < "$ADMIN_PASSWORD_FILE" || true
+[ -n "$admin_password" ] || fail "password amministrativa vuota"
+
+kibana_interna() {
+  docker run --rm --network "${STACK_NAME}_elastic" "$CURL_IMAGE" \
+    --silent --show-error --connect-timeout 5 --max-time 30 \
+    -u "$ADMIN_USER:$admin_password" -H 'kbn-xsrf: true' "$@"
+}
+
 for agent in apm-agent infra-agent; do
-  output="$tmp_dir/fleet-${agent%%-agent}.body"
   query="local_metadata.host.hostname%3A%22${agent}%22%20and%20status%3Aonline"
-  curl_request "$output" 200 \
-    --netrc-file "$tmp_dir/dashboard.netrc" \
-    -H 'kbn-xsrf: true' \
-    "$BASE_URL/osservabilita/api/fleet/agents?perPage=100&kuery=$query"
-  body=$(<"$output")
+  body=$(kibana_interna     "$KIBANA_INTERNAL_URL/api/fleet/agents?perPage=100&kuery=$query") ||
+    fail "interrogazione di Fleet per $agent non riuscita"
   assert_contains "Fleet: $agent online" '"total":1' "$body"
   assert_contains "Fleet: hostname $agent" "\"hostname\":\"$agent\"" "$body"
 done
@@ -329,11 +359,11 @@ infra_networks=$(docker service inspect "${STACK_NAME}_infra-agent" \
   fail "lettura reti infra-agent fallita"
 assert_contains "infra-agent collegato alla rete socket" "$socket_network_id" "$infra_networks"
 
-curl_request "$tmp_dir/fleet-policies.body" 200 \
-  --netrc-file "$tmp_dir/dashboard.netrc" \
-  -H 'kbn-xsrf: true' \
-  "$BASE_URL/osservabilita/api/fleet/package_policies?perPage=100"
-fleet_policies=$(<"$tmp_dir/fleet-policies.body")
+# Anche l'elenco delle policy e' informazione amministrativa: stessa via
+# interna usata per lo stato degli agenti.
+fleet_policies=$(kibana_interna \
+  "$KIBANA_INTERNAL_URL/api/fleet/package_policies?perPage=100") ||
+  fail "lettura delle policy Fleet non riuscita"
 assert_contains "policy Docker indirizzata al socket-proxy" \
   'tcp://socket-proxy:2375' "$fleet_policies"
 case "$fleet_policies" in
