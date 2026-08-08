@@ -71,9 +71,17 @@ variable "funzionalita_disattivate_evento" {
     Gli identificativi dipendono dalla versione di Kibana e vanno confrontati
     con `GET /api/features` sull'istanza in uso. Un identificativo errato lascia
     visibile una voce di menu che il ruolo comunque non autorizza.
+
+    `indexPatterns` e' escluso dall'elenco, ed e' deliberato: e' la funzionalita'
+    che possiede le data view. Disattivandola il tipo di oggetto non esiste piu'
+    in questo Space, e la data view dichiarata per questa platea non e' creabile:
+    Kibana risponde 400 con `insufficient access`, che sembra un problema di
+    privilegi ed e' invece di funzionalita' assente. Lasciarla visibile non
+    allarga nulla, perche' il ruolo concede lettura sui soli indici divulgativi
+    ed e' quello a decidere.
   EOT
   type        = list(string)
-  default     = ["dev_tools", "advancedSettings", "savedObjectsManagement", "indexPatterns"]
+  default     = ["dev_tools", "advancedSettings", "savedObjectsManagement"]
 }
 
 # ---------- Utenze di consultazione ----------
