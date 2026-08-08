@@ -171,7 +171,7 @@ go-cover: ## Misura la copertura del backend, per pacchetto e totale
 .PHONY: lint-shell
 lint-shell: ## Analizza gli script di infrastruttura
 	$(DOCKER) run --rm -v "$(CURDIR)":/mnt -w /mnt $(SHELLCHECK_IMAGE) \
-		--severity=warning provisioning/bin/*.sh ci/*-drill.sh swarm-prototype/*.sh deploy/config/*.sh
+		--severity=warning provisioning/bin/*.sh ci/*.sh swarm-prototype/*.sh deploy/config/*.sh scripts/fleet-bootstrap.sh
 
 # `scripts/` raccoglie utilita' precedenti a questo lavoro e produce oltre
 # settecento segnalazioni. Tenerle nel controllo bloccante renderebbe la
@@ -191,6 +191,11 @@ lint-docker: ## Analizza i Dockerfile
 
 .PHONY: lint-compose
 lint-compose: ## Valida i file compose
+	@# I compose di sviluppo dichiarano `env_file: .env`, che non e' versionato:
+	@# su una copia pulita — un worktree nuovo, o il checkout della pipeline — il
+	@# file non esiste e la validazione fallisce per un motivo che non riguarda i
+	@# compose. Il modello e' versionato proprio per questo.
+	@[ -f .env ] || { cp .env.example .env; echo 'creato .env dal modello per la validazione'; }
 	docker compose -f $(COMPOSE_DEV) config -q
 	docker compose -f $(COMPOSE_MONITORING) config -q
 
@@ -352,8 +357,12 @@ stack-remove: ## Rimuove lo stack di produzione lasciando i volumi (FORCE=1 salt
 ##@ Osservabilita'
 
 .PHONY: fleet-bootstrap
+# STACK_NAME e' sufficiente: da li' lo script ricava rete, volume dei token,
+# destinazione e indirizzo interno di Kibana. In swarm mode i servizi non
+# pubblicano porte, quindi le fasi che interrogano Kibana girano dentro la rete
+# dello stack invece che dall'host.
 fleet-bootstrap: ## Registra le policy Fleet e genera gli enrollment token
-	./scripts/fleet-bootstrap.sh
+	STACK_NAME=$(STACK_NAME) ./scripts/fleet-bootstrap.sh
 
 # Le dashboard si compongono a mano su Kibana, perche' hanno bisogno di dati
 # veri. Cio' che si versiona e' il loro export: i file NDJSON stanno in
