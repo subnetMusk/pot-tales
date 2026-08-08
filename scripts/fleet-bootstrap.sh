@@ -27,27 +27,77 @@
 #           env_file non e' supportato e i secret devono esistere al momento
 #           del deploy
 #
-# Variabili riconosciute: KIBANA_URL, ELASTIC_PASSWORD, TF_DIR, OUTPUT_FILE,
-# TOKEN_SINK, TOKEN_VOLUME.
+# Due modi di girare, secondo come e' avviato lo stack.
+#
+#   Compose   i servizi pubblicano porte sull'host: valgono i valori predefiniti
+#   swarm     i servizi non pubblicano nulla e i nomi delle risorse portano il
+#             prefisso dello stack. Basta indicare STACK_NAME: rete, volume dei
+#             token, destinazione e indirizzo di Kibana si ricavano da li'
+#
+# La derivazione da un solo valore e' deliberata. Sono quattro impostazioni
+# accoppiate, e impostarle una per una e' il modo in cui si finisce con meta'
+# dello script adattato allo swarm e meta' no: le fasi che passano da un
+# contenitore raggiungono i servizi, quelle che restano sull'host no.
+#
+# Variabili riconosciute: STACK_NAME, KIBANA_URL, KIBANA_BASE_PATH,
+# ELASTIC_PASSWORD, TF_DIR, OUTPUT_FILE, TOKEN_SINK, TOKEN_VOLUME, TF_NETWORK.
 # ==============================================================================
 set -euo pipefail
 
 _ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$_ROOT"
 
-KIBANA_URL=${KIBANA_URL:-http://localhost:5601}
 ELASTIC_USER=${ELASTICSEARCH_USERNAME:-elastic}
 TF_DIR=${TF_DIR:-terraform/elk}
 OUTPUT_FILE=${OUTPUT_FILE:-.env.fleet}
-TOKEN_SINK=${TOKEN_SINK:-file}
-TOKEN_VOLUME=${TOKEN_VOLUME:-elkproto_fleettokens}
 WAIT_TIMEOUT=${WAIT_TIMEOUT:-300}
-TF_IMAGE=${TF_IMAGE:-hashicorp/terraform:1.14}
-# Rete su cui eseguire Terraform. Con lo stack in swarm mode i servizi non
-# sono raggiungibili dall'host, quindi va indicata la rete dello stack.
-TF_NETWORK=${TF_NETWORK:-host}
+
+# Stessa versione di Terraform usata da ogni altro comando del progetto. Due
+# versioni diverse sullo stesso stato non convivono: Terraform vi annota la
+# propria e rifiuta di operare con una precedente, quindi un apply da qui
+# renderebbe inutilizzabili i target che girano sull'immagine ancorata.
+TF_IMAGE=${TF_IMAGE:-hashicorp/terraform:1.9@sha256:18f9986038bbaf02cf49db9c09261c778161c51dcc7fb7e355ae8938459428cd}
+CURL_IMAGE=${CURL_IMAGE:-curlimages/curl:8.11.1@sha256:c1fe1679c34d9784c1b0d1e5f62ac0a79fca01fb6377cdd33e90473c6f9f9a69}
+
+if [ -n "${STACK_NAME:-}" ]; then
+  # Il base path fa parte dell'indirizzo anche all'interno: Kibana e' servita su
+  # sottopercorso con la riscrittura attiva, quindi si aspetta di ricevere il
+  # prefisso da chiunque, non solo dal proxy.
+  KIBANA_URL=${KIBANA_URL:-http://kibana:5601${KIBANA_BASE_PATH:-/osservabilita}}
+  TF_NETWORK=${TF_NETWORK:-${STACK_NAME}_elastic}
+  TOKEN_VOLUME=${TOKEN_VOLUME:-${STACK_NAME}_fleettokens}
+  # In swarm mode `env_file` non e' supportato e i secret devono esistere al
+  # momento del deploy: i token vanno su un volume condiviso.
+  TOKEN_SINK=${TOKEN_SINK:-volume}
+  # Anche il provider Terraform gira dentro la rete dello stack: i valori
+  # predefiniti del modulo puntano all'host e da li' non risolvono.
+  TF_VAR_elasticsearch_endpoint=${TF_VAR_elasticsearch_endpoint:-https://es01:9200}
+  TF_VAR_kibana_endpoint=${TF_VAR_kibana_endpoint:-$KIBANA_URL}
+else
+  KIBANA_URL=${KIBANA_URL:-http://localhost:5601}
+  TF_NETWORK=${TF_NETWORK:-host}
+  TOKEN_VOLUME=${TOKEN_VOLUME:-elkproto_fleettokens}
+  TOKEN_SINK=${TOKEN_SINK:-file}
+fi
 
 log() { printf '%s  %s\n' "$(date +%H:%M:%S)" "$*"; }
+
+# Interroga Kibana dalla stessa rete su cui gira Terraform.
+#
+# Con lo stack in swarm mode Kibana non pubblica porte: dall'host l'unico
+# ingresso e' il proxy, che applica le proprie difese e presenta un certificato
+# che il bootstrap non ha motivo di conoscere. Passare da li' introdurrebbe una
+# dipendenza dalle utenze delle dashboard, che non esistono ancora perche' le
+# crea proprio l'apply che questo script deve eseguire.
+#
+# La rete di osservabilita' e' dichiarata attaccabile esattamente per questo.
+kbn() {
+  if [ "$TF_NETWORK" = "host" ]; then
+    curl "$@"
+  else
+    MSYS_NO_PATHCONV=1 docker run --rm --network "$TF_NETWORK" "$CURL_IMAGE" "$@"
+  fi
+}
 
 if [ -z "${ELASTIC_PASSWORD:-}" ]; then
   # Ripiego sul file di ambiente, che e' dove la password vive normalmente.
@@ -63,7 +113,7 @@ fi
 # ------------------------------------------------------------------ 1. attesa
 log "attendo Kibana su $KIBANA_URL"
 deadline=$(( $(date +%s) + WAIT_TIMEOUT ))
-until curl -s -u "$ELASTIC_USER:$ELASTIC_PASSWORD" "$KIBANA_URL/api/status" \
+until kbn -s -u "$ELASTIC_USER:$ELASTIC_PASSWORD" "$KIBANA_URL/api/status" \
       | grep -q '"level":"available"'; do
   if [ "$(date +%s)" -ge "$deadline" ]; then
     log "Kibana non disponibile entro ${WAIT_TIMEOUT}s"
@@ -76,7 +126,7 @@ log "Kibana disponibile"
 # ------------------------------------------------- 2. inizializzazione di Fleet
 # Crea le strutture di base di Fleet. Ripetibile senza effetti collaterali.
 log "inizializzo Fleet"
-setup_status=$(curl -s -o /dev/null -w '%{http_code}' -X POST \
+setup_status=$(kbn -s -o /dev/null -w '%{http_code}' -X POST \
   -u "$ELASTIC_USER:$ELASTIC_PASSWORD" \
   -H 'kbn-xsrf: true' \
   "$KIBANA_URL/api/fleet/setup")
@@ -92,15 +142,24 @@ tf() {
   # MSYS_NO_PATHCONV: su Git Bash per Windows un argomento che inizia con "/"
   # viene riscritto come percorso Windows, e i percorsi interni al contenitore
   # diventerebbero invalidi. Sui sistemi Linux la variabile non ha effetto.
+  # Solo le variabili valorizzate vengono trasmesse. Passarne una vuota non
+  # equivale a ometterla: Terraform la considera impostata e sostituisce il
+  # valore predefinito dichiarato dal modulo con la stringa vuota, quindi il
+  # provider si troverebbe senza endpoint.
+  local ambiente=()
+  local nome
+  for nome in TF_VAR_elasticsearch_endpoint TF_VAR_kibana_endpoint \
+              TF_VAR_filebeat_password TF_VAR_apm_secret_token \
+              TF_VAR_insecure_tls; do
+    if [ -n "${!nome:-}" ]; then
+      ambiente+=(-e "$nome=${!nome}")
+    fi
+  done
+
   MSYS_NO_PATHCONV=1 docker run --rm --network "$TF_NETWORK" \
     -v "$(pwd)/$TF_DIR:/tf" -w /tf \
     -e "TF_VAR_elastic_password=$ELASTIC_PASSWORD" \
-    -e "TF_VAR_elasticsearch_endpoint=${TF_VAR_elasticsearch_endpoint:-}" \
-    -e "TF_VAR_kibana_endpoint=${TF_VAR_kibana_endpoint:-}" \
-    -e "TF_VAR_filebeat_password=${TF_VAR_filebeat_password:-}" \
-    -e "TF_VAR_apm_secret_token=${TF_VAR_apm_secret_token:-}" \
-    -e "TF_VAR_telegram_webhook_url=${TF_VAR_telegram_webhook_url:-}" \
-    -e "TF_VAR_telegram_chat_id=${TF_VAR_telegram_chat_id:-}" \
+    "${ambiente[@]}" \
     "$TF_IMAGE" "$@"
 }
 
