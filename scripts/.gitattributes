@@ -1,0 +1,9 @@
+# Questi script vengono eseguiti su host Linux e dentro container: uno di essi e'
+# invocato da un'unita' systemd all'avvio della macchina. Con terminatori CRLF la
+# shebang non e' interpretabile e l'esecuzione fallisce con `bad interpreter`,
+# un errore che non nomina la causa.
+#
+# Il contenuto versionato e' gia' a LF; senza questa dichiarazione un checkout su
+# Windows lo converte, e chi lavora da li' deve normalizzare a mano ogni volta.
+*.sh text eol=lf
+*.py text eol=lf

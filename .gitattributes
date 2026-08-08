@@ -2,3 +2,14 @@
 # terminatori CRLF le porterebbe sulla macchina di destinazione insieme al
 # carattere in piu', e make fallirebbe con un errore che non nomina la causa.
 Makefile text eol=lf
+
+# I sorgenti Go sono compilati e formattati dentro container Linux. `gofmt`
+# considera non formattato un file con terminatori CRLF, quindi senza questa
+# dichiarazione un checkout su Windows fa fallire il controllo di formattazione
+# sull'intero albero: la pipeline resta verde, chi lavora da Windows vede rosso,
+# e la differenza non e' nel codice.
+*.go text eol=lf
+
+# Le definizioni Terraform vengono lette da container Linux dagli stessi
+# comandi, e la formattazione e' verificata allo stesso modo.
+*.tf text eol=lf
