@@ -59,12 +59,16 @@ class Player extends Phaser.GameObjects.Container {
 
 		// darkMask
 		const darkMask = scene.add.image(0, 0, "darkMask");
-		darkMask.alpha = 0.5;
-		darkMask.alphaTopLeft = 0.5;
-		darkMask.alphaTopRight = 0.5;
-		darkMask.alphaBottomLeft = 0.5;
-		darkMask.alphaBottomRight = 0.5;
+		darkMask.alpha = 0.9;
+		darkMask.alphaTopLeft = 0.9;
+		darkMask.alphaTopRight = 0.9;
+		darkMask.alphaBottomLeft = 0.9;
+		darkMask.alphaBottomRight = 0.9;
 		this.add(darkMask);
+
+		// playerUi
+		const playerUi = scene.add.image(-64, -54, "player_ui");
+		this.add(playerUi);
 
 		this.player = player;
 		this.bottomBound = bottomBound;
@@ -76,6 +80,7 @@ class Player extends Phaser.GameObjects.Container {
 		this.bLBound = bLBound;
 		this.bRBound = bRBound;
 		this.darkMask = darkMask;
+		this.playerUi = playerUi;
 
 		/* START-USER-CTR-CODE */
 		if (this.scene.input && this.scene.input.keyboard) {
@@ -112,6 +117,7 @@ class Player extends Phaser.GameObjects.Container {
 	private bLBound: Phaser.GameObjects.Rectangle;
 	private bRBound: Phaser.GameObjects.Rectangle;
 	private darkMask: Phaser.GameObjects.Image;
+	private playerUi: Phaser.GameObjects.Image;
 
 	/* START-USER-CODE */
 	private stepSize: number = 8;					// Grandezza del passo
@@ -129,6 +135,7 @@ class Player extends Phaser.GameObjects.Container {
 	private Ikey?: Phaser.Input.Keyboard.Key;
 
 	boundaries : Phaser.GameObjects.Rectangle[] = [];
+	private slowAreas: Array<{ zone: Phaser.GameObjects.Rectangle | Phaser.GameObjects.Sprite | Phaser.GameObjects.Image; multiplier: number }> = [];
 
 	lastMoveTime: number = 0;						// Tempo dell'ultimo movimento (per l'effetto a bassi fps)
 	lastStep: boolean = false;						// Ultima textura usata
@@ -258,9 +265,49 @@ class Player extends Phaser.GameObjects.Container {
 		if (this.BoundsDebug) console.log("Caricati i boundaries");
 	}
 
+	// Registra aree in cui il player si muove più lentamente
+	public setSlowAreas(areas: Object[]) {
+		this.slowAreas = [];
+
+		for (const area of areas) {
+			const candidate = area as any;
+			const zone = candidate.zone ?? candidate;
+			const multiplier = Phaser.Math.Clamp(candidate.multiplier ?? 0.5, 0.1, 1);
+
+			if (zone instanceof Phaser.GameObjects.Rectangle ||
+				zone instanceof Phaser.GameObjects.Sprite ||
+				zone instanceof Phaser.GameObjects.Image) {
+				this.slowAreas.push({ zone, multiplier });
+			}
+		}
+	}
+
+	private isPlayerInsideZone(zone: Phaser.GameObjects.Rectangle | Phaser.GameObjects.Sprite | Phaser.GameObjects.Image): boolean {
+		const playerBounds = this.getBounds();
+		const zoneBounds = zone.getBounds();
+		return Phaser.Geom.Rectangle.Overlaps(playerBounds, zoneBounds);
+	}
+
+	private getMovementMultiplier(): number {
+		let multiplier = 1;
+
+		for (const area of this.slowAreas) {
+			if (this.isPlayerInsideZone(area.zone)) {
+				multiplier = Math.min(multiplier, area.multiplier);
+			}
+		}
+
+		return multiplier;
+	}
+
 	// Disabilita l'effetto della torica
 	public flashlight(state : boolean) {
 		this.darkMask.visible = state;
+	}
+
+	// Abilita o disabilita la player ui
+	public playerUiVisible(state: boolean) {
+		this.playerUi.visible = state;
 	}
 
 	public debug(v : boolean) {
@@ -282,14 +329,20 @@ class Player extends Phaser.GameObjects.Container {
         // Condizioni per il movimento:
         if (!this.movementAllowed) return;                          // Input deve essere abilitato
         if (this.player.body === null) return;                      // Player non deve essere null
-        if (time - this.lastMoveTime < this.stepDelay) return;      // Passato il tempo minimo dal passo precedente
+
+		const movementMultiplier = this.getMovementMultiplier();
+		this.player.anims.timeScale = movementMultiplier;
+        const effectiveStepDelay = this.stepDelay / movementMultiplier;
+        if (time - this.lastMoveTime < effectiveStepDelay) return;      // Passato il tempo minimo dal passo precedente
 
         let dx = 0;                                         // Spostamento orizzontale
         let dy = 0;                                         // Spostamento verticale
         let moving = false;                                 // Stato del movimento
 
+		const effectiveStepSize = this.stepSize * movementMultiplier;
+
         if (this.upKey.isDown && !this.downKey.isDown) {            // Freccia sù
-            dy = -this.stepSize;                                    // Spostamento
+            dy = -effectiveStepSize;                                    // Spostamento
             this.direction = "back";                                // Nuova direzione
             moving = true;                                          // Aggiornamento stato
 
@@ -301,7 +354,7 @@ class Player extends Phaser.GameObjects.Container {
                 }
             }
         } else if (this.downKey.isDown && !this.upKey.isDown) {
-            dy = this.stepSize;                                     // Spostamento
+            dy = effectiveStepSize;                                     // Spostamento
             this.direction = "front";                               // Nuova direzione
             moving = true;                                          // Aggiornamento stato
 
@@ -316,7 +369,7 @@ class Player extends Phaser.GameObjects.Container {
 
         // Input orizzontale
         if (this.leftKey.isDown && !this.rightKey.isDown) {
-            dx = -this.stepSize;                                    // Spostamento
+            dx = -effectiveStepSize;                                    // Spostamento
             this.direction = "side";                                // Nuova direzione
             this.player.setFlipX(false);                      		// Flip della texture
             moving = true;                                          // Aggiornamento stato
@@ -329,7 +382,7 @@ class Player extends Phaser.GameObjects.Container {
                 }
             }
         } else if (this.rightKey.isDown && !this.leftKey.isDown) {
-            dx = this.stepSize;                                    	// Spostamento
+            dx = effectiveStepSize;                                    	// Spostamento
             this.direction = "side";                                // Nuova direzione
             this.player.setFlipX(true);                      		// Flip della texture
             moving = true;                                          // Aggiornamento stato

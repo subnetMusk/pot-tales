@@ -128,11 +128,22 @@
                     "texture": {
                         "key": "darkMask"
                     },
-                    "alpha": 0.5,
-                    "alphaTopLeft": 0.5,
-                    "alphaTopRight": 0.5,
-                    "alphaBottomLeft": 0.5,
-                    "alphaBottomRight": 0.5
+                    "alpha": 0.9,
+                    "alphaTopLeft": 0.9,
+                    "alphaTopRight": 0.9,
+                    "alphaBottomLeft": 0.9,
+                    "alphaBottomRight": 0.9
+                },
+                {
+                    "type": "Image",
+                    "id": "c9d59730-164d-430c-b9e1-dd909f5e68c9",
+                    "label": "playerUi",
+                    "scope": "CLASS",
+                    "texture": {
+                        "key": "player_ui"
+                    },
+                    "x": -64,
+                    "y": -54
                 }
             ]
         }

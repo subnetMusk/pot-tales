@@ -18,6 +18,77 @@
                 },
                 "type": "spritesheet",
                 "key": "card"
+            },
+            {
+                "url": "assets/images/items/electron.png",
+                "frameConfig": {
+                    "frameWidth": 6,
+                    "frameHeight": 10,
+                    "startFrame": 0,
+                    "endFrame": -1,
+                    "spacing": 0,
+                    "margin": 0
+                },
+                "type": "spritesheet",
+                "key": "electron"
+            },
+            {
+                "url": "assets/images/items/electron_gun.png",
+                "frameConfig": {
+                    "frameWidth": 32,
+                    "frameHeight": 32,
+                    "startFrame": 0,
+                    "endFrame": -1,
+                    "spacing": 0,
+                    "margin": 0
+                },
+                "type": "spritesheet",
+                "key": "electron_gun"
+            },
+            {
+                "url": [
+                    "assets/sfx/gears.mp3"
+                ],
+                "type": "audio",
+                "key": "gears"
+            },
+            {
+                "url": "assets/images/items/minerals.png",
+                "frameConfig": {
+                    "frameWidth": 16,
+                    "frameHeight": 16,
+                    "startFrame": 0,
+                    "endFrame": -1,
+                    "spacing": 0,
+                    "margin": 0
+                },
+                "type": "spritesheet",
+                "key": "minerals"
+            },
+            {
+                "url": "assets/images/items/SEM-Probe.png",
+                "frameConfig": {
+                    "frameWidth": 32,
+                    "frameHeight": 40,
+                    "startFrame": 0,
+                    "endFrame": -1,
+                    "spacing": 0,
+                    "margin": 0
+                },
+                "type": "spritesheet",
+                "key": "SEM-Probe"
+            },
+            {
+                "url": "assets/images/ui/shooter_screen.png",
+                "type": "image",
+                "key": "shooter_screen"
+            },
+            {
+                "url": [
+                    "assets/sfx/steam.mp3"
+                ],
+                "type": "audio",
+                "key": "steam"
             }
         ]
     },
