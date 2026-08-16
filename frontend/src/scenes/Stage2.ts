@@ -3,55 +3,32 @@
 import Player from "@/items/Main/Player";
 import OggettoInterattivo from "../items/Main/OggettoInterattivo";
 import { traceBeam } from "../items/beamTracer";
-import PopupManager from "../items/UI/PopupManager";
-import { applyTranslations } from "../utils";
+import { applyTranslations, launchSubScene } from "../utils";
 
-type TurretOrientation =
-	| "up"
-	| "up-right"
-	| "right"
-	| "down-right"
-	| "down"
-	| "down-left"
-	| "left"
-	| "up-left";
+// A turret's orientation IS its mirror behavior: horizontal/vertical bounce the beam back along
+// the same axis, slash/backslash reflect it like a / or \ mirror onto the perpendicular axis.
+type TurretOrientation = "horizontal" | "slash" | "vertical" | "backslash";
 
 type TurretMode = "locked" | "unlocked";
 
 interface Stage2Turret extends OggettoInterattivo {
-	kind: "turret";
 	mode: TurretMode;
 	orientation: TurretOrientation;
 	gridX: number;
 	gridY: number;
+	// Overlay che disegna una freccia di orientamento sopra alla texture placeholder "default",
+	// finché non esiste uno sprite dedicato per le torrette (vedi elenco asset mancanti).
+	glyph: Phaser.GameObjects.Graphics;
 }
 
 // Clockwise cycle used when the player rotates an unlocked turret
-const ORIENTATION_CYCLE: TurretOrientation[] = [
-	"up", "up-right", "right", "down-right", "down", "down-left", "left", "up-left"
-];
+const ORIENTATION_CYCLE: TurretOrientation[] = ["horizontal", "slash", "vertical", "backslash"];
 
 const ORIENTATION_ANGLES: Record<TurretOrientation, number> = {
-	"up": -90,
-	"up-right": -45,
-	"right": 0,
-	"down-right": 45,
-	"down": 90,
-	"down-left": 135,
-	"left": 180,
-	"up-left": -135
-};
-
-// Diagonal turrets reflect like a slash (/) or backslash (\) mirror, cardinal ones flip a single axis
-const ORIENTATION_TO_MIRROR_KIND: Record<TurretOrientation, "slash" | "backslash" | "horizontal" | "vertical"> = {
-	"up": "horizontal",
-	"down": "horizontal",
-	"left": "vertical",
-	"right": "vertical",
-	"up-right": "slash",
-	"down-left": "slash",
-	"up-left": "backslash",
-	"down-right": "backslash"
+	"horizontal": -90,
+	"slash": -45,
+	"vertical": 0,
+	"backslash": 45
 };
 
 /* START OF COMPILED CODE */
@@ -91,7 +68,6 @@ class Stage2 extends Phaser.Scene {
 	private oggVector!: Array<any>;
 
 	/* START-USER-CODE */
-	private popupManager!: PopupManager;
 	private i18n: Record<string, string> = {};
 
 	private readonly cellSize = 84;
@@ -102,10 +78,10 @@ class Stage2 extends Phaser.Scene {
 	private readonly sourceCell = { x: 4, y: 4 };
 	private readonly receiverCell = { x: 4, y: 2 };
 	private readonly turretCellLayout: Array<{ x: number; y: number; orientation: TurretOrientation }> = [
-		{ x: 4, y: 3, orientation: "up-right" },
-		{ x: 5, y: 3, orientation: "up-right" },
-		{ x: 5, y: 2, orientation: "up-right" },
-		{ x: 3, y: 2, orientation: "up-left" }
+		{ x: 4, y: 3, orientation: "slash" },
+		{ x: 5, y: 3, orientation: "slash" },
+		{ x: 5, y: 2, orientation: "slash" },
+		{ x: 3, y: 2, orientation: "backslash" }
 	];
 
 	private turrets: Stage2Turret[] = [];
@@ -116,7 +92,6 @@ class Stage2 extends Phaser.Scene {
 	private currentShooterLevel = 1;
 	private activeShooter = false;
 	private stageComplete = false;
-	private beamSolved = false;
 
 	async preload() {
 		this.load.pack("stage2-pack", "assets/images/stage2-pack.json");
@@ -146,9 +121,6 @@ class Stage2 extends Phaser.Scene {
 		this.cameras.main.setZoom(5.0);
         this.cameras.main.startFollow(this.player);
 
-		// Inizializzazione dei manager
-		this.popupManager = new PopupManager(this);
-
 		if (!this.anims.exists("sem_probe_activate")) {
 			this.anims.create({
 				key: "sem_probe_activate",
@@ -176,9 +148,6 @@ class Stage2 extends Phaser.Scene {
 		fadeRect.setScrollFactor(0);
 		fadeRect.setDepth(10);
 
-		this.popupManager.queuePopup(this.i18n.wake_up_1);
-		this.popupManager.queuePopup(this.i18n.wake_up_2);
-
 		this.tweens.add({
 			targets: fadeRect,
 			alpha: 0.0,
@@ -186,10 +155,7 @@ class Stage2 extends Phaser.Scene {
 			ease: "Linear",
 			onComplete: () => {
 				fadeRect.destroy();
-				this.popupManager.showNextPopup();
-				this.popupManager.on("queueEmpty", () => {
-					this.player.isMovementAllowed = true;
-				});
+				this.player.isMovementAllowed = true;
 			}
 		});
 	}
@@ -218,7 +184,6 @@ class Stage2 extends Phaser.Scene {
 	private createTurret(cell: { x: number; y: number; orientation: TurretOrientation }, index: number): Stage2Turret {
 		const turret = new OggettoInterattivo(this, this.cellCenterX(cell.x) + 0.5, this.cellCenterY(cell.y), "default") as Stage2Turret;
 
-		turret.kind = "turret";
 		turret.mode = "locked";
 		turret.orientation = cell.orientation;
 		turret.gridX = cell.x;
@@ -227,6 +192,10 @@ class Stage2 extends Phaser.Scene {
 		turret.setDisplaySize(32, 40);
 		turret.setDepth(4);
 		turret.interagisci = () => this.handleTurretInteract(turret, index);
+
+		turret.glyph = this.add.graphics();
+		turret.glyph.setPosition(turret.x, turret.y);
+		turret.glyph.setDepth(4.5);
 
 		this.applyTurretStyle(turret);
 		this.add.existing(turret);
@@ -266,6 +235,7 @@ class Stage2 extends Phaser.Scene {
 				return;
 			}
 
+			this.currentShooterLevel += 1;
 			this.probe.set = false;
 			this.probe.play("sem_probe_activate");
 			this.probe.once("animationcomplete", () => {
@@ -282,9 +252,6 @@ class Stage2 extends Phaser.Scene {
 			turret.set = true;
 			this.applyTurretStyle(turret);
 		}
-
-		this.popupManager.queuePopup(this.i18n.laser_online ?? "The probe hums to life.");
-		this.popupManager.showNextPopup();
 
 		this.redrawBeam();
 	}
@@ -309,7 +276,7 @@ class Stage2 extends Phaser.Scene {
 				this.applyTurretStyle(turret);
 			}
 
-			this.currentShooterLevel = Math.min(4, this.currentShooterLevel + 1);
+			this.currentShooterLevel = Math.min(3, this.currentShooterLevel + 1);
 			this.redrawBeam();
 		});
 	}
@@ -317,16 +284,17 @@ class Stage2 extends Phaser.Scene {
 	// Launches the Shooter minigame, pausing this scene until it reports success/failure
 	private runShooterChallenge(level: number, onResult: (success: boolean) => void) {
 		this.activeShooter = true;
-		this.scene.pause();
 
-		this.events.once("shooter-complete", (result: { level: number; success: boolean }) => {
-			this.scene.resume();
-			this.activeShooter = false;
-			onResult(result.success);
-		});
-
-		this.scene.launch("Shooter", { level, returnSceneKey: "Stage2" });
-		this.scene.bringToTop("Shooter");
+		launchSubScene(
+			this,
+			"Shooter",
+			{ launchData: { level, returnSceneKey: "Stage2" }, completionEvent: "shooter-complete", listenOn: "parent" },
+			(result: { level: number; success: boolean }) => {
+				this.scene.resume();
+				this.activeShooter = false;
+				onResult(result.success);
+			}
+		);
 	}
 
 	private applyTurretStyle(turret: Stage2Turret) {
@@ -335,11 +303,37 @@ class Stage2 extends Phaser.Scene {
 		if (!turret.set) {
 			turret.setTint(0x4a4f5c);
 			turret.setAlpha(0.35);
+			this.drawTurretGlyph(turret);
 			return;
 		}
 
 		turret.setTint(turret.mode === "locked" ? 0x8a93a5 : 0x7fd27f);
 		turret.setAlpha(turret.mode === "locked" ? 0.76 : 1);
+		this.drawTurretGlyph(turret);
+	}
+
+	// Freccia di orientamento sopra al placeholder "default": pieno+perno quando bloccata,
+	// pieno quando sbloccata, solo contorno mentre il laser non è ancora attivo.
+	private drawTurretGlyph(turret: Stage2Turret) {
+		const g = turret.glyph;
+		g.setAngle(ORIENTATION_ANGLES[turret.orientation]);
+		g.clear();
+
+		if (!turret.set) {
+			g.lineStyle(1, 0xffffff, 0.35);
+			g.strokeTriangle(9, 0, -6, -5, -6, 5);
+			return;
+		}
+
+		const isLocked = turret.mode === "locked";
+		g.fillStyle(isLocked ? 0x3d4451 : 0xdff5e3, 1);
+		g.fillTriangle(9, 0, -6, -5, -6, 5);
+
+		if (isLocked) {
+			// Perno pieno alla base: l'orientamento è ancora bloccato
+			g.fillStyle(0x1c1f26, 1);
+			g.fillCircle(-6, 0, 3);
+		}
 	}
 
 	private redrawBeam() {
@@ -352,7 +346,7 @@ class Stage2 extends Phaser.Scene {
 		const mirrorStates = this.turrets.map(turret => ({
 			x: turret.gridX,
 			y: turret.gridY,
-			orientation: ORIENTATION_TO_MIRROR_KIND[turret.orientation]
+			orientation: turret.orientation
 		}));
 
 		const traced = traceBeam({
@@ -363,8 +357,6 @@ class Stage2 extends Phaser.Scene {
 			mirrors: mirrorStates,
 			startDirection: "up"
 		});
-
-		this.beamSolved = traced.solved;
 
 		const points = traced.cells.map(cell => new Phaser.Math.Vector2(this.cellCenterX(cell.x), this.cellCenterY(cell.y)));
 		if (points.length < 2) {
@@ -404,18 +396,13 @@ class Stage2 extends Phaser.Scene {
 
 		this.cameras.main.shake(800, 0.001);
 
-		this.popupManager.queuePopup(this.i18n.shaking ?? "The receiver is active.");
-		this.popupManager.showNextPopup();
-
-		this.popupManager.on("queueEmpty", () => {
-			this.tweens.add({
-				targets: this.player,
-				x: this.receiverTurret.x,
-				y: this.receiverTurret.y + 8,
-				duration: 1200,
-				ease: "Sine.easeInOut",
-				onComplete: () => this.transitionToStage3()
-			});
+		this.tweens.add({
+			targets: this.player,
+			x: this.receiverTurret.x,
+			y: this.receiverTurret.y + 8,
+			duration: 1200,
+			ease: "Sine.easeInOut",
+			onComplete: () => this.transitionToStage3()
 		});
 	}
 
@@ -443,6 +430,8 @@ class Stage2 extends Phaser.Scene {
 			zoom: 10.0,
 			duration: 1000,
 			ease: "Sine.easeInOut",
+			// TODO: "Stage3" doesn't exist yet and isn't registered in Preload.ts — needs a
+			// product decision (real Stage3 scene? redirect elsewhere? end-of-demo screen?).
 			onComplete: () => this.scene.start("Stage3")
 		});
 	}

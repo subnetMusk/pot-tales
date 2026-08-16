@@ -1,0 +1,10 @@
+{
+    "tutorial_1": "Whoa, || what is this thing?",
+    "tutorial_2": "This is the lab's **scanning electron microscope**.|| Its electron gun fires a focused beam at the sample.",
+    "tutorial_3": "The beam kicks out characteristic X-rays || that let us tell the minerals apart.",
+    "tutorial_4": "Move it with the << LEFT and RIGHT arrows <<, and press >> SPACE >> to fire the beam.",
+    "tutorial_5": "Hit every mineral before it reaches the bottom, || or you'll lose a life!",
+    "tutorial_6": "Ready? || Let's do this.",
+    "prepare_2": "New sample, faster beam — get ready!",
+    "prepare_3": "Final sample incoming — brace yourself!"
+}

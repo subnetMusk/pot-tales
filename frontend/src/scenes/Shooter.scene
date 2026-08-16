@@ -11,17 +11,6 @@
     },
     "displayList": [
         {
-            "type": "Rectangle",
-            "id": "80714409-5dd0-42a1-8f03-d5341df6d328",
-            "label": "screen_back",
-            "x": 640,
-            "y": 360,
-            "isFilled": true,
-            "fillColor": "#050e15",
-            "width": 462,
-            "height": 302
-        },
-        {
             "type": "Text",
             "id": "e1a5e2f2-589a-42a2-a8ae-4f20b6a4c2c5",
             "label": "timerText",

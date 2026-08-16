@@ -1,4 +1,6 @@
 import MenuBackground from "../items/UI/MenuBackground";
+import PopupManager from "../items/UI/PopupManager";
+import { playSequence } from "../utils";
 
 /* START OF COMPILED CODE */
 
@@ -62,18 +64,23 @@ class Shooter extends Phaser.Scene {
 	private static readonly SCREEN_HEIGHT = 302;
 
 	private static readonly SHOOTER_SCREEN_DEPTH = 1000;
+	private static readonly HUD_DEPTH = 500;
 	private static readonly PLAYFIELD_DEPTH = 2;
 
 	private static readonly PLAYER_MARGIN = 40;
 	private static readonly GUN_BOTTOM_OFFSET = 40;
+	private static readonly GUN_ENTRANCE_RISE = 140;
+	private static readonly GUN_ENTRANCE_DURATION_MS = 1800;
 	private static readonly BARREL_OFFSET_Y = 30;
 	private static readonly BULLET_SPEED = 16;
 	private static readonly OFFSCREEN_MARGIN = 8;
 	private static readonly COLLISION_DISTANCE = 34;
+	// Arcade Physics velocities are px/sec, but BULLET_SPEED/targetSpeed above were tuned as
+	// px/frame at the game's nominal 60fps — multiply by this to get an equivalent velocity.
+	private static readonly PHYSICS_FPS = 60;
 
 	private static readonly TARGET_SPAWN_MARGIN = 32;
 	private static readonly TARGET_SPAWN_Y_OFFSET = 20;
-	private static readonly PATTERN_SPAWN_CHANCE = 0.3;
 	private static readonly LINE_PATTERN_COUNT = 3;
 	private static readonly LINE_PATTERN_SPACING = 60;
 	private static readonly V_PATTERN_OFFSET = 60;
@@ -81,6 +88,9 @@ class Shooter extends Phaser.Scene {
 	private static readonly DIAGONAL_PATTERN_COUNT = 3;
 	private static readonly DIAGONAL_SPACING_X = 70;
 	private static readonly DIAGONAL_SPACING_Y = 40;
+	private static readonly SPREAD_PATTERN_COUNT = 4;
+	private static readonly SPREAD_PATTERN_WIDTH = 220;
+	private static readonly SPREAD_PATTERN_Y_JITTER = 30;
 
 	private static readonly COUNTDOWN_INTERVAL_MS = 1000;
 	private static readonly MIN_LEVEL = 1;
@@ -89,18 +99,17 @@ class Shooter extends Phaser.Scene {
 	private static readonly BASE_POINTS = 10;
 
 	private static readonly LEVEL_CONFIGS: ReadonlyArray<{
-		timeLeft: number; lives: number; targetDelay: number; bulletCooldown: number; targetSpeed: number; playerSpeed: number;
+		timeLeft: number; lives: number; targetDelay: number; bulletCooldown: number; targetSpeed: number; playerSpeed: number; patternChance: number;
 	}> = [
-		{ timeLeft: 30, lives: 4, targetDelay: 760, bulletCooldown: 210, targetSpeed: 1.1, playerSpeed: 5 },
-		{ timeLeft: 28, lives: 4, targetDelay: 680, bulletCooldown: 195, targetSpeed: 1.45, playerSpeed: 5.5 },
-		{ timeLeft: 28, lives: 3, targetDelay: 680, bulletCooldown: 195, targetSpeed: 1.45, playerSpeed: 5.5 },
-		{ timeLeft: 24, lives: 3, targetDelay: 500, bulletCooldown: 155, targetSpeed: 2.15, playerSpeed: 6.5 }
+		{ timeLeft: 30, lives: 4, targetDelay: 760, bulletCooldown: 210, targetSpeed: 1.1, playerSpeed: 5, patternChance: 0.35 },
+		{ timeLeft: 28, lives: 4, targetDelay: 680, bulletCooldown: 195, targetSpeed: 1.45, playerSpeed: 5.5, patternChance: 0.5 },
+		{ timeLeft: 28, lives: 3, targetDelay: 680, bulletCooldown: 195, targetSpeed: 1.45, playerSpeed: 5.5, patternChance: 0.65 }
 	];
 
-	private readonly targetTiers: Array<{ id: string; speedMultiplier: number; pointsMultiplier: number; weight: number; tint: number; scale: number }> = [
-		{ id: "common", speedMultiplier: 1.0, pointsMultiplier: 1, weight: 65, tint: 0xffffff, scale: 1.0 },
-		{ id: "swift", speedMultiplier: 1.3, pointsMultiplier: 2, weight: 25, tint: 0x8fd3ff, scale: 0.85 },
-		{ id: "rare", speedMultiplier: 1.7, pointsMultiplier: 4, weight: 10, tint: 0xffd75e, scale: 0.75 }
+	private readonly targetTiers: Array<{ id: string; pointsMultiplier: number; weight: number; tint: number; scale: number }> = [
+		{ id: "common", pointsMultiplier: 1, weight: 65, tint: 0xffffff, scale: 1.0 },
+		{ id: "swift", pointsMultiplier: 2, weight: 25, tint: 0x8fd3ff, scale: 0.85 },
+		{ id: "rare", pointsMultiplier: 4, weight: 10, tint: 0xffd75e, scale: 0.75 }
 	];
 
 	private screenLeft = 0;
@@ -116,9 +125,19 @@ class Shooter extends Phaser.Scene {
 	private playfield!: Phaser.GameObjects.Container;
 	private maskGraphics?: Phaser.GameObjects.Graphics;
 
+	// Scrolling backdrop, built from two stacked+recycled images (not a TileSprite) because the
+	// source photos are already close to Phaser's max single-texture dimension, so they can't be
+	// doubled in height to build one self-mirroring texture. Instead we alternate the normal and
+	// pre-flipped image across a small pool of tiles: consecutive tiles always alternate texture,
+	// which keeps every seam matched (a flipY image's top row equals the source's bottom row).
+	private backgroundTiles: Phaser.GameObjects.Image[] = [];
+	private backgroundTileHeight = 0;
+	private backgroundNormalKey = "";
+	private backgroundFlipKey = "";
+
 	private cannon!: Phaser.GameObjects.Sprite;
-	private bullets: Phaser.GameObjects.Sprite[] = [];
-	private targets: Phaser.GameObjects.Sprite[] = [];
+	private bullets!: Phaser.Physics.Arcade.Group;
+	private targets!: Phaser.Physics.Arcade.Group;
 	private cursors!: {
 		left: Phaser.Input.Keyboard.Key;
 		right: Phaser.Input.Keyboard.Key;
@@ -135,10 +154,14 @@ class Shooter extends Phaser.Scene {
 	private completionEmitted = false;
 	private targetSpawnTimer?: Phaser.Time.TimerEvent;
 	private countdownTimer?: Phaser.Time.TimerEvent;
+	private popupManager?: PopupManager;
 
 	preload() {
 		this.load.pack("icons-pack", "assets/images/icons-pack.json");
 		this.load.pack("stage2-pack", "assets/images/stage2-pack.json");
+
+		const lang = localStorage.getItem("lang") || "en";
+		this.load.json("shooter_i18n", `assets/i18n/${lang}/Shooter.json`);
 	}
 
 	create(data: { level?: number; returnSceneKey?: string } = {}) {
@@ -156,10 +179,20 @@ class Shooter extends Phaser.Scene {
 		const shooterScreenImg = this.children.list.find((c: any) => c instanceof Phaser.GameObjects.Image && c.texture?.key === "shooter_screen") as Phaser.GameObjects.Image | undefined;
 		shooterScreenImg?.setDepth(Shooter.SHOOTER_SCREEN_DEPTH);
 
+		// HUD text defaults to depth 0, same as the playfield's background before it existed —
+		// now that the playfield renders an opaque scrolling backdrop above depth 0, the HUD
+		// needs to sit above the playfield (but still below the shooter_screen frame) to stay visible
+		this.timerText.setDepth(Shooter.HUD_DEPTH);
+		this.scoreText.setDepth(Shooter.HUD_DEPTH);
+		this.resultText.setDepth(Shooter.HUD_DEPTH);
+
 		// (re)build the masked playfield container that clips all gun/bullet/target sprites
 		// to the visible display rect
 		this.playfield?.destroy();
 		this.maskGraphics?.destroy();
+		this.bullets?.destroy(true, true);
+		this.targets?.destroy(true, true);
+		this.backgroundTiles = [];
 		this.maskGraphics = this.make.graphics(undefined, false);
 		this.maskGraphics.fillStyle(0xffffff);
 		this.maskGraphics.fillRect(this.screenLeft, this.screenTop, Shooter.SCREEN_WIDTH, Shooter.SCREEN_HEIGHT);
@@ -167,12 +200,19 @@ class Shooter extends Phaser.Scene {
 		this.playfield.setDepth(Shooter.PLAYFIELD_DEPTH);
 		this.playfield.setMask(this.maskGraphics.createGeometryMask());
 
-		this.bullets = [];
-		this.targets = [];
+		// bullets/targets are plain Arcade sprites reparented into the (fixed at 0,0,
+		// never scaled/rotated) playfield container for masking — their physics bodies
+		// track sprite.x/y directly, which stays correct only because the container never
+		// applies its own transform.
+		this.bullets = this.physics.add.group();
+		this.targets = this.physics.add.group();
+		this.physics.add.overlap(this.bullets, this.targets, this.onBulletHitTarget, undefined, this);
+
 		this.fireCooldownUntil = 0;
 		this.completionEmitted = false;
 		this.targetSpawnTimer?.remove(false);
 		this.countdownTimer?.remove(false);
+		this.popupManager?.destroy();
 
 		this.level = Math.max(Shooter.MIN_LEVEL, Math.min(Shooter.LEVEL_CONFIGS.length, data.level ?? Shooter.MIN_LEVEL));
 		this.returnSceneKey = data.returnSceneKey ?? "Stage2";
@@ -181,14 +221,28 @@ class Shooter extends Phaser.Scene {
 		this.score = 0;
 		this.timeLeft = this.levelConfig.timeLeft;
 		this.lives = this.levelConfig.lives;
-		this.roundActive = true;
+		this.roundActive = false;
 
 		this.refreshHud();
 
-		// create player gun sprite (from spritesheet) and place it inside the masked playfield
-		const gun = this.add.sprite(Shooter.SCREEN_CENTER_X, this.screenBottom - Shooter.GUN_BOTTOM_OFFSET, "electron_gun", 0);
+		// scrolling backdrop — added first so it renders behind the gun/bullets/targets also
+		// added to the playfield below
+		this.setupScrollingBackground(this.level);
+
+		// create player gun sprite (from spritesheet) and place it inside the masked playfield.
+		// It starts below the visible display (clipped by the playfield mask, so invisible) and
+		// eases up to its resting firing position, overshooting past it before settling back —
+		// the "spaceship" arriving and decelerating into place.
+		const gunRestY = this.screenBottom - Shooter.GUN_BOTTOM_OFFSET;
+		const gun = this.add.sprite(Shooter.SCREEN_CENTER_X, gunRestY + Shooter.GUN_ENTRANCE_RISE, "electron_gun", 0);
 		this.playfield.add(gun);
 		this.cannon = gun;
+		this.tweens.add({
+			targets: gun,
+			y: gunRestY,
+			duration: Shooter.GUN_ENTRANCE_DURATION_MS,
+			ease: "Back.easeOut"
+		});
 
 		// create animations for gun and projectile if not present
 		if (!this.anims.exists("gun-shoot")) {
@@ -220,6 +274,35 @@ class Shooter extends Phaser.Scene {
 		this.playerLeftBound = this.screenLeft + Shooter.PLAYER_MARGIN;
 		this.playerRightBound = this.screenRight - Shooter.PLAYER_MARGIN;
 
+		this.events.once("shutdown", this.cleanup, this);
+
+		const i18n = this.cache.json.get("shooter_i18n");
+		if (this.level === Shooter.MIN_LEVEL) {
+			this.popupManager = new PopupManager(this);
+			void playSequence(this.popupManager, [
+				{ message: i18n.tutorial_1, preset: "shooterYou" },
+				{ message: i18n.tutorial_2, preset: "shooterHint" },
+				{ message: i18n.tutorial_3, preset: "shooterHint" },
+				{ message: i18n.tutorial_4, preset: "shooterHint" },
+				{ message: i18n.tutorial_5, preset: "shooterHint" },
+				{ message: i18n.tutorial_6, preset: "shooterYou" }
+			]).then(() => {
+				this.startRound();
+			});
+		} else {
+			// brief "get ready" beat before levels 2/3 (no full tutorial replay)
+			this.popupManager = new PopupManager(this);
+			void playSequence(this.popupManager, [
+				{ message: i18n[`prepare_${this.level}`], preset: "shooterHint" }
+			]).then(() => {
+				this.startRound();
+			});
+		}
+	}
+
+	private startRound() {
+		this.roundActive = true;
+
 		this.targetSpawnTimer = this.time.addEvent({
 			delay: this.levelConfig.targetDelay,
 			loop: true,
@@ -233,11 +316,62 @@ class Shooter extends Phaser.Scene {
 			callback: this.tickTimer,
 			callbackScope: this
 		});
-
-		this.events.once("shutdown", this.cleanup, this);
 	}
 
-	update(time: number) {
+	// Stacks a small pool of full-width images covering the playfield height (plus one spare),
+	// alternating the normal/flip textures top-to-bottom so every seam between adjacent tiles
+	// is pixel-matched (a flipY image's top row is identical to the source's bottom row).
+	private setupScrollingBackground(level: number) {
+		this.backgroundNormalKey = `lvl${level}_bg`;
+		this.backgroundFlipKey = `lvl${level}_bg_flip`;
+
+		const source = this.textures.get(this.backgroundNormalKey).source[0];
+		const scale = Shooter.SCREEN_WIDTH / source.width;
+		this.backgroundTileHeight = source.height * scale;
+
+		// one spare tile above the visible area so there's always a full tile ready to slide
+		// into view as the stack scrolls downward
+		const tileCount = Math.max(2, Math.ceil(Shooter.SCREEN_HEIGHT / this.backgroundTileHeight) + 1);
+		this.backgroundTiles = [];
+		for (let i = 0; i < tileCount; i += 1) {
+			const key = i % 2 === 0 ? this.backgroundNormalKey : this.backgroundFlipKey;
+			const tile = this.add.image(Shooter.SCREEN_CENTER_X, this.screenTop - this.backgroundTileHeight + i * this.backgroundTileHeight, key);
+			tile.setOrigin(0.5, 0);
+			tile.setDisplaySize(Shooter.SCREEN_WIDTH, this.backgroundTileHeight);
+			this.playfield.add(tile);
+			this.backgroundTiles.push(tile);
+		}
+	}
+
+	// Scrolls the tile pool downward at the same rate targets fall (levelConfig.targetSpeed,
+	// converted from px/frame-at-60fps to px/sec via PHYSICS_FPS, same as target velocities in
+	// spawnSingleTarget) to sell the illusion of forward motion, recycling any tile that's
+	// scrolled fully past the bottom back above the current topmost tile — flipping its texture
+	// so the normal/flip alternation (and therefore the seam match) is preserved indefinitely.
+	private updateScrollingBackground(delta: number) {
+		if (this.backgroundTiles.length === 0) {
+			return;
+		}
+
+		const scrollDelta = this.levelConfig.targetSpeed * Shooter.PHYSICS_FPS * (delta / 1000);
+		for (const tile of this.backgroundTiles) {
+			tile.y += scrollDelta;
+		}
+
+		for (const tile of this.backgroundTiles) {
+			if (tile.y > this.screenBottom) {
+				const topmostTile = this.backgroundTiles.reduce((topmost, t) => (t.y < topmost.y ? t : topmost));
+				const previousKey = topmostTile.texture.key;
+				tile.y = topmostTile.y - this.backgroundTileHeight;
+				tile.setTexture(previousKey === this.backgroundNormalKey ? this.backgroundFlipKey : this.backgroundNormalKey);
+			}
+		}
+	}
+
+	update(time: number, delta: number) {
+		// scrolls from the moment the scene is displayed, independent of round/tutorial state
+		this.updateScrollingBackground(delta);
+
 		if (!this.roundActive) {
 			return;
 		}
@@ -255,22 +389,17 @@ class Shooter extends Phaser.Scene {
 			this.fireBullet();
 		}
 
-		for (let bulletIndex = this.bullets.length - 1; bulletIndex >= 0; bulletIndex -= 1) {
-			const bullet = this.bullets[bulletIndex];
-			bullet.y -= Shooter.BULLET_SPEED;
+		// Movement is now driven by each body's velocity (set at spawn time); this loop only
+		// destroys sprites once they drift off the visible playfield.
+		for (const bullet of [...this.bullets.getChildren()] as Phaser.Physics.Arcade.Sprite[]) {
 			if (bullet.y < this.screenTop - Shooter.OFFSCREEN_MARGIN) {
 				bullet.destroy();
-				this.bullets.splice(bulletIndex, 1);
 			}
 		}
 
-		for (let targetIndex = this.targets.length - 1; targetIndex >= 0; targetIndex -= 1) {
-			const target = this.targets[targetIndex];
-			const speedMultiplier = (target.getData("speedMultiplier") as number | undefined) ?? 1;
-			target.y += this.levelConfig.targetSpeed * speedMultiplier;
+		for (const target of [...this.targets.getChildren()] as Phaser.Physics.Arcade.Sprite[]) {
 			if (target.y > this.screenBottom + Shooter.OFFSCREEN_MARGIN) {
 				target.destroy();
-				this.targets.splice(targetIndex, 1);
 				this.lives -= 1;
 				this.refreshHud();
 				if (this.lives <= 0) {
@@ -279,24 +408,23 @@ class Shooter extends Phaser.Scene {
 				}
 			}
 		}
-
-		for (let bulletIndex = this.bullets.length - 1; bulletIndex >= 0; bulletIndex -= 1) {
-			const bullet = this.bullets[bulletIndex];
-			for (let targetIndex = this.targets.length - 1; targetIndex >= 0; targetIndex -= 1) {
-				const target = this.targets[targetIndex];
-				if (Phaser.Math.Distance.Between(bullet.x, bullet.y, target.x, target.y) < Shooter.COLLISION_DISTANCE) {
-					bullet.destroy();
-					target.destroy();
-					this.bullets.splice(bulletIndex, 1);
-					this.targets.splice(targetIndex, 1);
-					const points = (target.getData("points") as number | undefined) ?? Shooter.BASE_POINTS;
-					this.score += points;
-					this.refreshHud();
-					break;
-				}
-			}
-		}
 	}
+
+	// Registered via physics.add.overlap() in create() — replaces the old O(bullets x targets)
+	// manual distance-check loop with the physics engine's own overlap detection.
+	private onBulletHitTarget = (
+		bulletObj: Phaser.Types.Physics.Arcade.GameObjectWithBody,
+		targetObj: Phaser.Types.Physics.Arcade.GameObjectWithBody
+	) => {
+		const bullet = bulletObj as Phaser.Physics.Arcade.Sprite;
+		const target = targetObj as Phaser.Physics.Arcade.Sprite;
+
+		const points = (target.getData("points") as number | undefined) ?? Shooter.BASE_POINTS;
+		bullet.destroy();
+		target.destroy();
+		this.score += points;
+		this.refreshHud();
+	};
 
 	private fireBullet() {
 		if (!this.roundActive) {
@@ -317,8 +445,14 @@ class Shooter extends Phaser.Scene {
 		}
 
 		// spawn projectile at barrel position
-		const bullet = this.add.sprite(this.cannon.x, this.cannon.y - Shooter.BARREL_OFFSET_Y, "electron", 0);
+		const bullet = this.physics.add.sprite(this.cannon.x, this.cannon.y - Shooter.BARREL_OFFSET_Y, "electron", 0);
 		this.playfield.add(bullet);
+		// group.add() re-applies the group's default body config (incl. zero velocity) to
+		// new members, so it must run before we configure this body — otherwise it clobbers
+		// the velocity set below.
+		this.bullets.add(bullet);
+		bullet.body.setCircle(Shooter.COLLISION_DISTANCE / 2);
+		bullet.body.setVelocityY(-Shooter.BULLET_SPEED * Shooter.PHYSICS_FPS);
 		bullet.play("proj-fly");
 		// ensure projectile stops at last frame when animation finishes
 		const projAnim = this.anims.get("proj-fly");
@@ -327,7 +461,6 @@ class Shooter extends Phaser.Scene {
 			bullet.anims.stop();
 			bullet.setFrame(lastFrameIdx);
 		}, this);
-		this.bullets.push(bullet);
 		// reset gun to frame 0
 		this.cannon.setFrame(0);
 		this.cannon.anims.stop();
@@ -338,11 +471,12 @@ class Shooter extends Phaser.Scene {
 			return;
 		}
 
-		if (Math.random() < Shooter.PATTERN_SPAWN_CHANCE) {
+		if (Math.random() < this.levelConfig.patternChance) {
 			const patterns = [
 				() => this.spawnLinePattern(),
 				() => this.spawnVPattern(),
-				() => this.spawnDiagonalPattern()
+				() => this.spawnDiagonalPattern(),
+				() => this.spawnSpreadPattern()
 			];
 			Phaser.Utils.Array.GetRandom(patterns)();
 			return;
@@ -387,13 +521,17 @@ class Shooter extends Phaser.Scene {
 
 		const tier = this.pickTargetTier();
 
-		const target = this.add.sprite(spawnX, spawnY, "minerals", frameIndex);
+		const target = this.physics.add.sprite(spawnX, spawnY, "minerals", frameIndex);
 		this.playfield.add(target);
+		// group.add() re-applies the group's default body config (incl. zero velocity) to
+		// new members, so it must run before we configure this body — otherwise it clobbers
+		// the velocity set below.
+		this.targets.add(target);
+		target.body.setCircle(Shooter.COLLISION_DISTANCE / 2);
+		target.body.setVelocityY(this.levelConfig.targetSpeed * Shooter.PHYSICS_FPS);
 		target.setTint(tier.tint);
 		target.setScale(tier.scale);
-		target.setData("speedMultiplier", tier.speedMultiplier);
 		target.setData("points", Math.round(Shooter.BASE_POINTS * tier.pointsMultiplier));
-		this.targets.push(target);
 	}
 
 	private spawnLinePattern() {
@@ -427,6 +565,18 @@ class Shooter extends Phaser.Scene {
 		}
 	}
 
+	private spawnSpreadPattern() {
+		const halfWidth = Shooter.SPREAD_PATTERN_WIDTH / 2;
+		const centerX = Phaser.Math.Between(this.usableSpawnLeft + halfWidth, this.usableSpawnRight - halfWidth);
+		const baseY = this.spawnTopY;
+
+		for (let i = 0; i < Shooter.SPREAD_PATTERN_COUNT; i += 1) {
+			const x = centerX + Phaser.Math.Between(-halfWidth, halfWidth);
+			const y = baseY - Phaser.Math.Between(0, Shooter.SPREAD_PATTERN_Y_JITTER);
+			this.spawnSingleTarget(x, y);
+		}
+	}
+
 	private tickTimer() {
 		if (!this.roundActive) {
 			return;
@@ -454,10 +604,8 @@ class Shooter extends Phaser.Scene {
 		this.targetSpawnTimer?.remove(false);
 		this.countdownTimer?.remove(false);
 
-		this.bullets.forEach(bullet => bullet.destroy());
-		this.targets.forEach(target => target.destroy());
-		this.bullets = [];
-		this.targets = [];
+		this.bullets.clear(true, true);
+		this.targets.clear(true, true);
 
 		const title = timeUp ? "Level clear" : "Game Over";
 		this.resultText.setText(`${title}\nLevel ${this.level}/${Shooter.LEVEL_CONFIGS.length}\nFinal score: ${this.score}\nPress ENTER to return`);
@@ -492,6 +640,7 @@ class Shooter extends Phaser.Scene {
 		this.targetSpawnTimer?.remove(false);
 		this.countdownTimer?.remove(false);
 		this.maskGraphics?.destroy();
+		this.popupManager?.destroy();
 	}
 
 	/* END-USER-CODE */

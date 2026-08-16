@@ -2,6 +2,36 @@
     "section1": {
         "files": [
             {
+                "url": "assets/images/backgrounds/Shooter/5063_4.png",
+                "type": "image",
+                "key": "lvl1_bg"
+            },
+            {
+                "url": "assets/images/backgrounds/Shooter/5063_5.png",
+                "type": "image",
+                "key": "lvl2_bg"
+            },
+            {
+                "url": "assets/images/backgrounds/Shooter/5063_6.png",
+                "type": "image",
+                "key": "lvl3_bg"
+            },
+            {
+                "url": "assets/images/backgrounds/Shooter/5063_4_flip.png",
+                "type": "image",
+                "key": "lvl1_bg_flip"
+            },
+            {
+                "url": "assets/images/backgrounds/Shooter/5063_5_flip.png",
+                "type": "image",
+                "key": "lvl2_bg_flip"
+            },
+            {
+                "url": "assets/images/backgrounds/Shooter/5063_6_flip.png",
+                "type": "image",
+                "key": "lvl3_bg_flip"
+            },
+            {
                 "url": "assets/images/backgrounds/stage2.png",
                 "type": "image",
                 "key": "bg-stage2"
