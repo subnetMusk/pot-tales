@@ -1,6 +1,7 @@
 import { applyTranslations } from "../utils";
 import { showElements } from "../utils";
 import { fadeElements } from "../utils";
+import { setupPixelButton } from "../utils";
 import MenuBackground from "../items/UI/MenuBackground";
 
 import {APISession} from "@/network/APISession";
@@ -154,6 +155,22 @@ class Menu extends Phaser.Scene {
 	// Write your code here
 	private apiSession!: APISession;
 
+	// L'icona di ogni bottone (play_icon, gallery_icon, ...) non è esposta come campo di
+	// classe da editorCreate() e non ha un .name assegnato, quindi va cercata dentro a
+	// `uI` per posizione: le icone dei bottoni stanno tutte nella colonna x=478, alla
+	// stessa y (± qualche px) del rettangolo del bottone corrispondente.
+	private findButtonIcon(rect: Phaser.GameObjects.Rectangle): Phaser.GameObjects.Image | undefined {
+		return this.uI.find((obj): obj is Phaser.GameObjects.Image =>
+			obj instanceof Phaser.GameObjects.Image && Math.abs(obj.x - 478) < 10 && Math.abs(obj.y - rect.y) < 10
+		);
+	}
+
+	private setupMenuButton(rect: Phaser.GameObjects.Rectangle, textName: string, hoverColor: number) {
+		const text = this.children.getByName(textName) as Phaser.GameObjects.Text | null;
+		const icon = this.findButtonIcon(rect);
+		return setupPixelButton(this, rect, { fillColor: 0x2b2b3d, hoverColor, text, icon });
+	}
+
 	async preload() {
 		this.load.pack("icons-pack", "assets/images/icons-pack.json");
 
@@ -163,6 +180,20 @@ class Menu extends Phaser.Scene {
 
 	async create() {
 		this.editorCreate();
+
+		// Sostituisce il bordo piatto dei bottoni con un pannello "8-bit" (bordo spesso +
+		// ombra + highlight, stesso linguaggio visivo del box-shadow stack di style.css).
+		// Il rettangolo editor-generato resta come hit-area invisibile.
+		const playPanel = this.setupMenuButton(this.play_button, "Play", 0xf98170);
+		const galleryPanel = this.setupMenuButton(this.gallery_button, "Gallery", 0x8fd3f1);
+		const resumePanel = this.setupMenuButton(this.resume_button, "Resume", 0x70bcff);
+		const leaderboardPanel = this.setupMenuButton(this.leaderboard_button, "Leaderboard", 0xecd58f);
+
+		// Aggiunge i nuovi pannelli agli stessi gruppi di fade-in/out usati dagli altri
+		// elementi UI, così appaiono/scompaiono in sincrono col resto del menu.
+		(this.uI as unknown as Phaser.GameObjects.GameObject[]).push(playPanel.graphics, galleryPanel.graphics, resumePanel.graphics, leaderboardPanel.graphics);
+		(this.resume_button_items as unknown as Phaser.GameObjects.GameObject[]).push(resumePanel.graphics);
+		(this.leaderboard_button_items as unknown as Phaser.GameObjects.GameObject[]).push(leaderboardPanel.graphics);
 
 		showElements(this.uI, false);
 
@@ -238,11 +269,18 @@ class Menu extends Phaser.Scene {
 		this.settings_icon.setInteractive();
 		this.fullscreen_icon.setInteractive();
 
-		this.play_button.on('pointerdown', () => {this.play_button.setStrokeStyle(4, 0xb24232);});
-		// this.leaderboard_button.on('pointerdown', () => {this.leaderboard_button.setStrokeStyle(4, 0xc58f11);});
-		this.gallery_button.on('pointerdown', () => {this.gallery_button.setStrokeStyle(4, 0x283593);});
-		this.settings_icon.on('pointerdown', () => {this.settings_icon.setTint(0xbdbdbd);});
-		this.fullscreen_icon.on('pointerdown', () => {this.fullscreen_icon.setTint(0xbdbdbd);});
+		// Piccolo tween di scala per dare feedback tattile alle icone (settings/fullscreen).
+		// Le icone hanno già uno scale base (2x/1.5x) impostato in editorCreate: il fattore
+		// va applicato relativo a quello, non sovrascritto.
+		const settingsBaseScale = this.settings_icon.scaleX;
+		const fullscreenBaseScale = this.fullscreen_icon.scaleX;
+		const tweenIconScale = (icon: Phaser.GameObjects.Image, baseScale: number, factor: number) => {
+			this.tweens.add({ targets: icon, scale: baseScale * factor, duration: 90, ease: 'Sine.easeOut' });
+		};
+
+		// play_button/gallery_button/leaderboard_button pointerdown feedback ora gestito da setupPixelButton()
+		this.settings_icon.on('pointerdown', () => {this.settings_icon.setTint(0xbdbdbd); tweenIconScale(this.settings_icon, settingsBaseScale, 0.9);});
+		this.fullscreen_icon.on('pointerdown', () => {this.fullscreen_icon.setTint(0xbdbdbd); tweenIconScale(this.fullscreen_icon, fullscreenBaseScale, 0.9);});
 
 		this.play_button.on('pointerup', () => {
 			fadeElements(this.uI, false, 1000, () => {
@@ -265,25 +303,18 @@ class Menu extends Phaser.Scene {
 		});
 
 		// add hover effects
-		// this.leaderboard_button.on('pointerover', () => {this.leaderboard_button.setStrokeStyle(4, 0xecd58f);});
-		// this.leaderboard_button.on('pointerout', () => {this.leaderboard_button.setStrokeStyle(2, 0xf0f8ff);});
+		// play_button/gallery_button/leaderboard_button hover feedback ora gestito da setupPixelButton()
 
-		this.play_button.on('pointerover', () => {this.play_button.setStrokeStyle(4, 0xf98170);});
-		this.play_button.on('pointerout', () => {this.play_button.setStrokeStyle(2, 0xf0f8ff);});
+		this.settings_icon.on('pointerover', () => {this.settings_icon.setTint(0xbababa); tweenIconScale(this.settings_icon, settingsBaseScale, 1.15);});
+		this.settings_icon.on('pointerout', () => {this.settings_icon.clearTint(); tweenIconScale(this.settings_icon, settingsBaseScale, 1);});
 
-		this.gallery_button.on('pointerover', () => {this.gallery_button.setStrokeStyle(4, 0x8fd3f1);});
-		this.gallery_button.on('pointerout', () => {this.gallery_button.setStrokeStyle(2, 0xf0f8ff);});
-
-		this.settings_icon.on('pointerover', () => {this.settings_icon.setTint(0xbababa);});
-		this.settings_icon.on('pointerout', () => {this.settings_icon.clearTint();});
-
-		this.fullscreen_icon.on('pointerover', () => {this.fullscreen_icon.setTint(0xbababa);});
-		this.fullscreen_icon.on('pointerout', () => {this.fullscreen_icon.clearTint();});
+		this.fullscreen_icon.on('pointerover', () => {this.fullscreen_icon.setTint(0xbababa); tweenIconScale(this.fullscreen_icon, fullscreenBaseScale, 1.15);});
+		this.fullscreen_icon.on('pointerout', () => {this.fullscreen_icon.clearTint(); tweenIconScale(this.fullscreen_icon, fullscreenBaseScale, 1);});
 
 		if(resume_alpha === 1) {
 			this.resume_button.setInteractive();
 
-			this.resume_button.on('pointerdown', () => {this.resume_button.setStrokeStyle(4, 0x00aaff);});
+			// resume_button hover/press feedback ora gestito da setupPixelButton()
 			this.resume_button.on('pointerup', () => {
 				fadeElements(this.uI, false, 1000, () => {
 					this.cameras.main.zoomTo(1.5, 1000);
@@ -291,8 +322,6 @@ class Menu extends Phaser.Scene {
 					this.cameras.main.once('camerafadeoutcomplete', () => {this.scene.start("Stage1");});
 				});
 			});
-			this.resume_button.on('pointerover', () => {this.resume_button.setStrokeStyle(4, 0x70bcff);});
-			this.resume_button.on('pointerout', () => {this.resume_button.setStrokeStyle(2, 0xf0f8ff);});
 		}
 
 		this.events.once("shutdown", () => {
