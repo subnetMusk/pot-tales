@@ -1,7 +1,7 @@
 
 // You can write more code here
 import PopupManager from "../items/UI/PopupManager";
-import { applyTranslations } from "../utils";
+import { applyTranslations, launchSubScene } from "../utils";
 
 /* START OF COMPILED CODE */
 
@@ -105,28 +105,17 @@ class Stage1_Lab extends Phaser.Scene {
 						const tryLaunchMinigame = () => {
 							if (cameraReady && fadeReady && !minigameLaunched) {
 								minigameLaunched = true;
-								this.scene.pause();
-								this.scene.launch("GraficoGame");
-								this.scene.bringToTop("GraficoGame");
 
-								const grafGame = this.scene.get("GraficoGame") as Phaser.Scene | undefined;
-								if (grafGame) {
-									grafGame.events.once("grafico-complete", () => {
-										this.scene.stop("GraficoGame");
-										this.scene.resume();
+								launchSubScene(this, "GraficoGame", { completionEvent: "grafico-complete" }, () => {
+									this.scene.stop("GraficoGame");
+									this.scene.resume();
 
-										// Show returning dialog
-										const i18n = this.cache.json.get("stage1_lab_i18n");
-
-										this.popupManager.on("queueEmpty", () => {
-											// Fade to red when returning
-											this.cameras.main.fadeOut(1500, 255, 0, 0);
-											this.time.delayedCall(1500, () => {
-												this.events.emit("lab-complete");
-											});
-										});
+									// Fade to red when returning
+									this.cameras.main.fadeOut(1500, 255, 0, 0);
+									this.time.delayedCall(1500, () => {
+										this.events.emit("lab-complete");
 									});
-								}
+								});
 							}
 						};
 

@@ -8,7 +8,7 @@ class Player extends Phaser.GameObjects.Container {
 		super(scene, x ?? 13, y ?? 8);
 
 		// player
-		const player = scene.add.sprite(0, 0, "player_idle", 1) as Phaser.GameObjects.Sprite & { body: Phaser.Physics.Arcade.Body };
+		const player = scene.add.sprite(0, 0, "Ch_front", 0) as Phaser.GameObjects.Sprite & { body: Phaser.Physics.Arcade.Body };
 		scene.physics.add.existing(player, false);
 		player.body.setSize(32, 32, false);
 		this.add(player);
@@ -59,11 +59,11 @@ class Player extends Phaser.GameObjects.Container {
 
 		// darkMask
 		const darkMask = scene.add.image(0, 0, "darkMask");
-		darkMask.alpha = 0.9;
-		darkMask.alphaTopLeft = 0.9;
-		darkMask.alphaTopRight = 0.9;
-		darkMask.alphaBottomLeft = 0.9;
-		darkMask.alphaBottomRight = 0.9;
+		darkMask.alpha = 0.75;
+		darkMask.alphaTopLeft = 0.75;
+		darkMask.alphaTopRight = 0.75;
+		darkMask.alphaBottomLeft = 0.75;
+		darkMask.alphaBottomRight = 0.75;
 		this.add(darkMask);
 
 		// playerUi
@@ -152,12 +152,11 @@ class Player extends Phaser.GameObjects.Container {
 	private createPlayerAnimations() {
 		const anims = this.scene.anims;
 
-		// Idle animations
-		// player_idle frames: [side, down1, down2, up]
+		// Idle animations (standing frame of each direction's sheet)
 		if (!anims.exists('idle_side')) {
 			anims.create({
 				key: 'idle_side',
-				frames: [{ key: 'player_idle', frame: 0 }],
+				frames: [{ key: 'Ch_side', frame: 0 }],
 				frameRate: 1,
 				repeat: -1
 			});
@@ -166,7 +165,7 @@ class Player extends Phaser.GameObjects.Container {
 		if (!anims.exists('idle_front')) {
 			anims.create({
 				key: 'idle_front',
-				frames: [{ key: 'player_idle', frame: 1 }],
+				frames: [{ key: 'Ch_front', frame: 0 }],
 				frameRate: 1,
 				repeat: -1
 			});
@@ -175,7 +174,7 @@ class Player extends Phaser.GameObjects.Container {
 		if (!anims.exists('idle_back')) {
 			anims.create({
 				key: 'idle_back',
-				frames: [{ key: 'player_idle', frame: 3 }],
+				frames: [{ key: 'Ch_back', frame: 0 }],
 				frameRate: 1,
 				repeat: -1
 			});
@@ -185,8 +184,8 @@ class Player extends Phaser.GameObjects.Container {
 		if (!anims.exists('walk_down')) {
 			anims.create({
 				key: 'walk_down',
-				frames: anims.generateFrameNumbers('player_walk_down', { start: 0, end: -1 }),
-				frameRate: 15,
+				frames: anims.generateFrameNumbers('Ch_front', { start: 0, end: -1 }),
+				frameRate: 8,
 				repeat: -1
 			});
 		}
@@ -195,8 +194,8 @@ class Player extends Phaser.GameObjects.Container {
 		if (!anims.exists('walk_side')) {
 			anims.create({
 				key: 'walk_side',
-				frames: anims.generateFrameNumbers('player_walk_side', { start: 0, end: -1 }),
-				frameRate: 15,
+				frames: anims.generateFrameNumbers('Ch_side', { start: 0, end: -1 }),
+				frameRate: 8,
 				repeat: -1
 			});
 		}
@@ -205,14 +204,14 @@ class Player extends Phaser.GameObjects.Container {
 		if (!anims.exists('walk_up')) {
 			anims.create({
 				key: 'walk_up',
-				frames: anims.generateFrameNumbers('player_walk_up', { start: 0, end: -1 }),
-				frameRate: 15,
+				frames: anims.generateFrameNumbers('Ch_back', { start: 0, end: -1 }),
+				frameRate: 8,
 				repeat: -1
 			});
 		}
 	}
 
-	// Check dell'overlap fra due rettangoli ᓚᘏᗢ 
+	// Check dell'overlap fra due rettangoli ᓚᘏᗢ
 	private checkOverlap(rect1: Phaser.GameObjects.Rectangle, rect2: Phaser.GameObjects.Rectangle): boolean {
 		const rect1WorldX = this.x + rect1.x;
 		const rect1WorldY = this.y + rect1.y;
@@ -230,6 +229,42 @@ class Player extends Phaser.GameObjects.Container {
 			rect2.height
 		);
 		return Phaser.Geom.Rectangle.Overlaps(bounds1, bounds2);
+	}
+
+	// True se bound sovrappone un qualsiasi boundary della scena (movimento cardinale bloccato)
+	private isBlockedInDirection(bound: Phaser.GameObjects.Rectangle): boolean {
+		for (const boundary of this.boundaries) {
+			if (this.checkOverlap(bound, boundary)) return true;
+		}
+		return false;
+	}
+
+	// Risolve la collisione diagonale controllando TUTTI i boundary (non solo il primo che
+	// trova), così due boundary distinti possono azzerare dx e dy indipendentemente,
+	// esattamente come nel controllo cardinale-per-cardinale precedente.
+	private resolveDiagonalCollision(
+		cornerBound: Phaser.GameObjects.Rectangle,
+		axisXBound: Phaser.GameObjects.Rectangle,
+		axisYBound: Phaser.GameObjects.Rectangle,
+		dx: number,
+		dy: number
+	): { dx: number; dy: number } {
+		for (const boundary of this.boundaries) {
+			if (!this.checkOverlap(cornerBound, boundary)) continue;
+
+			const hitX = this.checkOverlap(axisXBound, boundary);
+			const hitY = this.checkOverlap(axisYBound, boundary);
+
+			if (hitX && !hitY) {
+				dx = 0;						// Solo collisione laterale
+			} else if (hitY && !hitX) {
+				dy = 0;						// Solo collisione verticale
+			} else {
+				dx = 0;						// Collisione con angolo
+				dy = 0;
+			}
+		}
+		return { dx, dy };
 	}
 
 	// Passaggio della lista dei boundaries dalla scena al player
@@ -346,25 +381,13 @@ class Player extends Phaser.GameObjects.Container {
             this.direction = "back";                                // Nuova direzione
             moving = true;                                          // Aggiornamento stato
 
-            // Controllo collisioni
-            if (this.boundaries.length > 0) for (let bound of this.boundaries) {
-                if (this.checkOverlap(this.topBound, bound)) {      // Collisione
-                    dy = 0;                                         // Annullo il movimento
-                    break;
-                }
-            }
+            if (this.isBlockedInDirection(this.topBound)) dy = 0;      // Collisione: annullo il movimento
         } else if (this.downKey.isDown && !this.upKey.isDown) {
             dy = effectiveStepSize;                                     // Spostamento
             this.direction = "front";                               // Nuova direzione
             moving = true;                                          // Aggiornamento stato
 
-            // Controllo collisioni
-            if (this.boundaries.length > 0) for (let bound of this.boundaries) {
-                if (this.checkOverlap(this.bottomBound, bound)) {   // Collisione
-                    dy = 0;                                         // Annullo il movimento
-                    break;
-                }
-            }
+            if (this.isBlockedInDirection(this.bottomBound)) dy = 0;   // Collisione: annullo il movimento
         }
 
         // Input orizzontale
@@ -374,100 +397,28 @@ class Player extends Phaser.GameObjects.Container {
             this.player.setFlipX(false);                      		// Flip della texture
             moving = true;                                          // Aggiornamento stato
 
-            // Controllo collisioni
-            if (this.boundaries.length > 0) for (let bound of this.boundaries) {
-                if (this.checkOverlap(this.leftBound, bound)) {      // Collisione
-                    dx = 0;                                          // Annullo il movimento
-                    break;
-                }
-            }
+            if (this.isBlockedInDirection(this.leftBound)) dx = 0;     // Collisione: annullo il movimento
         } else if (this.rightKey.isDown && !this.leftKey.isDown) {
             dx = effectiveStepSize;                                    	// Spostamento
             this.direction = "side";                                // Nuova direzione
             this.player.setFlipX(true);                      		// Flip della texture
             moving = true;                                          // Aggiornamento stato
 
-            // Controllo collisioni
-            if (this.boundaries.length > 0) for (let bound of this.boundaries) {
-                if (this.checkOverlap(this.rightBound, bound)) {    // Collisione
-                    dx = 0;                                         // Annullo il movimento
-                    break;
-                }
-            }
+            if (this.isBlockedInDirection(this.rightBound)) dx = 0;    // Collisione: annullo il movimento
         }
 
         // Input diagonale
         if (this.rightKey.isDown && this.downKey.isDown) {
-            if (this.boundaries.length !== 0) for (const boundary of this.boundaries) {
-                const overlaps = this.checkOverlap(this.bRBound, boundary);
-                if (!overlaps) continue;                			// Se non c'è overlap salto la prossima parte
-
-                const hitRight = this.checkOverlap(this.rightBound, boundary);
-                const hitBottom = this.checkOverlap(this.bottomBound, boundary);
-
-                if (hitRight && !hitBottom) {
-                    dx = 0;                             			// Solo collisione laterale
-                } else if (hitBottom && !hitRight) {
-                    dy = 0;                             			// Solo collisione verticale
-                } else {
-                    dx = 0;                             			// Collisione con angolo
-                    dy = 0;
-                }
-            }
+            ({ dx, dy } = this.resolveDiagonalCollision(this.bRBound, this.rightBound, this.bottomBound, dx, dy));
         }
         if (this.rightKey.isDown && this.upKey.isDown) {
-            if (this.boundaries.length !== 0) for (const boundary of this.boundaries) {
-                const overlaps = this.checkOverlap(this.tRBound, boundary);
-                if (!overlaps) continue;                			// Se non c'è overlap salto la prossima parte
-
-                const hitRight = this.checkOverlap(this.rightBound, boundary);
-                const hitBottom = this.checkOverlap(this.topBound, boundary);
-
-                if (hitRight && !hitBottom) {
-                    dx = 0;                             // Solo collisione laterale
-                } else if (hitBottom && !hitRight) {
-                    dy = 0;                             // Solo collisione verticale
-                } else {
-                    dx = 0;                             // Collisione con angolo
-                    dy = 0;
-                }
-            }
+            ({ dx, dy } = this.resolveDiagonalCollision(this.tRBound, this.rightBound, this.topBound, dx, dy));
         }
         if (this.leftKey.isDown && this.downKey.isDown) {
-            if (this.boundaries.length !== 0) for (const boundary of this.boundaries) {
-                const overlaps = this.checkOverlap(this.bLBound, boundary);
-                if (!overlaps) continue;                // Se non c'è overlap salto la prossima parte
-
-                const hitRight = this.checkOverlap(this.leftBound, boundary);
-                const hitBottom = this.checkOverlap(this.bottomBound, boundary);
-
-                if (hitRight && !hitBottom) {
-                    dx = 0;                             // Solo collisione laterale
-                } else if (hitBottom && !hitRight) {
-                    dy = 0;                             // Solo collisione verticale
-                } else {
-                    dx = 0;                             // Collisione con angolo
-                    dy = 0;
-                }
-            }
+            ({ dx, dy } = this.resolveDiagonalCollision(this.bLBound, this.leftBound, this.bottomBound, dx, dy));
         }
         if (this.leftKey.isDown && this.upKey.isDown) {
-            if (this.boundaries.length !== 0) for (const boundary of this.boundaries) {
-                const overlaps = this.checkOverlap(this.tLBound, boundary);
-                if (!overlaps) continue;                // Se non c'è overlap salto la prossima parte
-
-                const hitRight = this.checkOverlap(this.leftBound, boundary);
-                const hitBottom = this.checkOverlap(this.topBound, boundary);
-
-                if (hitRight && !hitBottom) {
-                    dx = 0;                             // Solo collisione laterale
-                } else if (hitBottom && !hitRight) {
-                    dy = 0;                             // Solo collisione verticale
-                } else {
-                    dx = 0;                             // Collisione con angolo
-                    dy = 0;
-                }
-            }
+            ({ dx, dy } = this.resolveDiagonalCollision(this.tLBound, this.leftBound, this.topBound, dx, dy));
         }
         // Se non mi sto muovendo carico la texture stazionaria
         if (!moving) {

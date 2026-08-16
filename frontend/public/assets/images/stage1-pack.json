@@ -20,6 +20,16 @@
                 "key": "black_mass"
             },
             {
+                "url": "assets/images/ui/IR-Spectra/C23_lowPress.png",
+                "type": "image",
+                "key": "grafico2"
+            },
+            {
+                "url": "assets/images/ui/IR-Spectra/C23_protein.png",
+                "type": "image",
+                "key": "grafico3"
+            },
+            {
                 "url": [
                     "assets/sfx/dripping_water.mp3"
                 ],
@@ -36,7 +46,7 @@
             {
                 "url": "assets/images/ui/IR-Spectra/STR_4963.png",
                 "type": "image",
-                "key": "grafico"
+                "key": "grafico1"
             },
             {
                 "url": [

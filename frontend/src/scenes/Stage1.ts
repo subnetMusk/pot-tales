@@ -1,8 +1,7 @@
 // You can write more code here
 import Player from "@/items/Main/Player";
 import PopupManager from "../items/UI/PopupManager";
-import LetterManager  from "../items/UI/LetterManager";
-import { applyTranslations } from "../utils";
+import { applyTranslations, launchSubScene, playSequence } from "../utils";
 import {APISession, CreateSessionRequest} from "../network/APISession";
 
 import OggettoInterattivo from "../items/Main/OggettoInterattivo";
@@ -28,63 +27,24 @@ class Stage1 extends Phaser.Scene {
 		const blackMass = new OggettoInterattivo(this, 682, 568, "black_mass", 0);
 		this.add.existing(blackMass);
 
-		// rectangle_1
-		const rectangle_1 = this.add.rectangle(628, 331, 100, 30);
-
-		// rectangle
-		const rectangle = this.add.rectangle(668, 302, 50, 30);
-
-		// rectangle_2
-		const rectangle_2 = this.add.rectangle(706, 272, 50, 30);
-
 		// rectangle_3
-		const rectangle_3 = this.add.rectangle(640, -80, 1200, 30);
+		const rectangle_3 = this.add.rectangle(640, -160, 1360, 30);
 
 		// rectangle_4
-		const rectangle_4 = this.add.rectangle(640, 800, 1200, 30);
+		const rectangle_4 = this.add.rectangle(640, 880, 1360, 30);
 
 		// rectangle_5
-		const rectangle_5 = this.add.rectangle(55, 360, 30, 900);
+		const rectangle_5 = this.add.rectangle(-55, 360, 30, 1070);
 
 		// rectangle_6
-		const rectangle_6 = this.add.rectangle(1225, 360, 30, 900);
-
-		// rectangle_7
-		const rectangle_7 = this.add.rectangle(489, 512, 80, 15);
-
-		// rectangle_8
-		const rectangle_8 = this.add.rectangle(413, 445, 90, 25);
-
-		// rectangle_9
-		const rectangle_9 = this.add.rectangle(372, 109, 50, 24);
-
-		// rectangle_10
-		const rectangle_10 = this.add.rectangle(410, 161, 70, 24);
-
-		// rectangle_11
-		const rectangle_11 = this.add.rectangle(456, 297, 70, 24);
-
-		// rectangle_12
-		const rectangle_12 = this.add.rectangle(456, 238, 40, 24);
-
-		// rectangle_13
-		const rectangle_13 = this.add.rectangle(456, 201, 30, 60);
-
-		// rectangle_14
-		const rectangle_14 = this.add.rectangle(400, 140, 30, 60);
-
-		// rectangle_15
-		const rectangle_15 = this.add.rectangle(461, 275, 30, 60);
-
-		// rectangle_16
-		const rectangle_16 = this.add.rectangle(545, 363, 40, 15);
+		const rectangle_6 = this.add.rectangle(1335, 360, 30, 1070);
 
 		// player
 		const player = new Player(this, 355, 223);
 		this.add.existing(player);
 
 		// lists
-		const boundaries = [rectangle_16, rectangle_15, rectangle_14, rectangle_13, rectangle_12, rectangle_11, rectangle_10, rectangle_9, rectangle_8, rectangle_7, rectangle_6, rectangle_5, rectangle_4, rectangle_3, rectangle_2, rectangle, rectangle_1];
+		const boundaries = [rectangle_6, rectangle_5, rectangle_4, rectangle_3];
 		const oggVector = [blackMass];
 
 		this.blackMass = blackMass;
@@ -104,7 +64,6 @@ class Stage1 extends Phaser.Scene {
 	private apiSession!: APISession;
 
 	private popupManager!: PopupManager;
-	private letterManager!: LetterManager;
 
 	// Stato del minigioco di memoria (serve per evitare riavvii multipli)
 	private isGraficoActive: boolean = false;
@@ -168,7 +127,6 @@ class Stage1 extends Phaser.Scene {
 
 		// Inizializzazione dei manager
 		this.popupManager = new PopupManager(this);
-		this.letterManager = new LetterManager(this);
 
 		/* START-SCENE-LOGIC */
 
@@ -219,31 +177,30 @@ class Stage1 extends Phaser.Scene {
 		// Inizio della sequenza di flash
 		flashSequence();
 
-		// Inizio del dialogo iniziale dopo il risveglio
-		this.popupManager.queuePopup(i18n.wake_up_1);
-		this.popupManager.queuePopup(i18n.wake_up_2_narrator, "dark");
-		this.popupManager.queuePopup(i18n.wake_up_3_narrator, "dark");
-		this.popupManager.queuePopup(i18n.wake_up_4_narrator, "dark");
-		this.popupManager.queuePopup(i18n.wake_up_5_narrator, "dark");
-		this.popupManager.queuePopup(i18n.wake_up_6_narrator, "dark");
-		this.popupManager.queuePopup(i18n.wake_up_7);
-		this.popupManager.queuePopup(i18n.wake_up_8);
-		this.popupManager.queuePopup(i18n.wake_up_9);
-		this.popupManager.queuePopup(i18n.wake_up_10);
-		this.popupManager.queuePopup(i18n.wake_up_11);
-
-		// Mostra il popup SOLO quando l'animazione del risveglio è completa
-		blackScreen.on("destroy", () => {this.popupManager.showNextPopup();});
-
-		// Abilita il movimento del giocatore una volta terminato il dialogo iniziale
-		this.popupManager.on('queueEmpty', () => {
-			this.popupManager.queuePopup(i18n.movement_hint, "hint");
-			this.popupManager.queuePopup(i18n.interact_hint, "hint");
-			this.popupManager.showNextPopup();
-			this.lightInteraction();
-
-			this.popupManager.on('queueEmpty', () => {
-				this.player.isMovementAllowed = true;
+		// Mostra il dialogo iniziale SOLO quando l'animazione del risveglio è completa
+		blackScreen.on("destroy", () => {
+			void playSequence(this.popupManager, [
+				i18n.wake_up_1,
+				{ message: i18n.wake_up_2_narrator, preset: "dark" },
+				{ message: i18n.wake_up_3_narrator, preset: "dark" },
+				{ message: i18n.wake_up_4_narrator, preset: "dark" },
+				{ message: i18n.wake_up_5_narrator, preset: "dark" },
+				{ message: i18n.wake_up_6_narrator, preset: "dark" },
+				i18n.wake_up_7,
+				i18n.wake_up_8,
+				i18n.wake_up_9,
+				i18n.wake_up_10,
+				i18n.wake_up_11
+			]).then(() => {
+				// Abilita il movimento del giocatore una volta terminato il dialogo dei suggerimenti
+				const hintsDone = playSequence(this.popupManager, [
+					{ message: i18n.movement_hint, preset: "hint" },
+					{ message: i18n.interact_hint, preset: "hint" }
+				]);
+				this.lightInteraction();
+				hintsDone.then(() => {
+					this.player.isMovementAllowed = true;
+				});
 			});
 		});
 
@@ -283,77 +240,69 @@ class Stage1 extends Phaser.Scene {
 		// Configura l'interazione della luce basata sull'indice
 		if(this.currentLightIndex === 0) {
 			// Prima luce - dialogo lungo con il narratore
-			light.setAlpha(0.5);
-			light.interagisci = () => {
+			light.setAlpha(0.75);
+			light.interagisci = async () => {
 				this.player.isMovementAllowed = false;
 				this.player.interactionAllowed = false;
 
-				this.popupManager.queuePopup(i18n.light_1_hint, "hint");
-				this.popupManager.queuePopup(i18n.light_1_1);
-				this.popupManager.queuePopup(i18n.light_1_2);
-				this.popupManager.queuePopup(i18n.light_1_3_dark, "dark");
-				this.popupManager.queuePopup(i18n.light_1_4);
-				this.popupManager.queuePopup(i18n.light_1_5_dark, "dark");
-				this.popupManager.queuePopup(i18n.light_1_6);
-				this.popupManager.queuePopup(i18n.light_1_7);
-				this.popupManager.queuePopup(i18n.light_1_8_dark, "dark");
-				this.popupManager.queuePopup(i18n.light_1_9);
-				this.popupManager.queuePopup(i18n.light_1_10_dark, "dark");
-				this.popupManager.queuePopup(i18n.light_1_11_dark, "dark");
-				this.popupManager.queuePopup(i18n.light_1_12);
-				this.popupManager.showNextPopup();
-
-				this.popupManager.on("queueEmpty", () => {
-					this.lightInteraction();
-					this.player.interactionAllowed = true;
-				});
+				await playSequence(this.popupManager, [
+					{ message: i18n.light_1_hint, preset: "hint" },
+					i18n.light_1_1,
+					i18n.light_1_2,
+					{ message: i18n.light_1_3_dark, preset: "dark" },
+					i18n.light_1_4,
+					{ message: i18n.light_1_5_dark, preset: "dark" },
+					i18n.light_1_6,
+					i18n.light_1_7,
+					{ message: i18n.light_1_8_dark, preset: "dark" },
+					i18n.light_1_9,
+					{ message: i18n.light_1_10_dark, preset: "dark" },
+					{ message: i18n.light_1_11_dark, preset: "dark" },
+					i18n.light_1_12
+				]);
+				this.lightInteraction();
+				this.player.interactionAllowed = true;
 			};
 		} else if(this.currentLightIndex === 1) {
 			// Seconda luce - solo narratore
-			light.setAlpha(0.8);
-			light.interagisci = () => {
+			light.setAlpha(0.75);
+			light.interagisci = async () => {
 				this.player.isMovementAllowed = false;
 				this.player.interactionAllowed = false;
 
-				this.popupManager.queuePopup(i18n.light_2_dark, "dark");
-				this.popupManager.showNextPopup();
-
-				this.popupManager.on("queueEmpty", () => {
-					this.lightInteraction();
-					this.player.interactionAllowed = true;
-				});
+				await playSequence(this.popupManager, [{ message: i18n.light_2_dark, preset: "dark" }]);
+				this.lightInteraction();
+				this.player.interactionAllowed = true;
 			};
 		} else if(this.currentLightIndex < this.lightsPositions.length - 1) {
 			// Luci intermedie
-			light.setAlpha(0.8);
+			light.setAlpha(0.75);
 			light.interagisci = this.lightInteraction;
 		} else {
 			// Penultima luce - dialogo con il tutorial
-			light.setAlpha(0.8);
-			light.interagisci = () => {
+			light.setAlpha(0.75);
+			light.interagisci = async () => {
 				this.player.isMovementAllowed = false;
 				this.player.interactionAllowed = false;
 
-				this.popupManager.queuePopup(i18n.light_3_1_dark, "dark");
-				this.popupManager.queuePopup(i18n.light_3_2_dark, "dark");
-				this.popupManager.queuePopup(i18n.light_3_3);
-				this.popupManager.queuePopup(i18n.light_3_4_narrator, "dark");
-				this.popupManager.queuePopup(i18n.light_3_5);
-				this.popupManager.queuePopup(i18n.light_3_6);
-				this.popupManager.queuePopup(i18n.light_3_7_narrator, "dark");
-				this.popupManager.queuePopup(i18n.light_3_8);
-				this.popupManager.queuePopup(i18n.light_3_9_narrator, "dark");
-				this.popupManager.queuePopup(i18n.light_3_10);
-				this.popupManager.queuePopup(i18n.light_3_11_narrator, "dark");
-				this.popupManager.queuePopup(i18n.light_3_12);
-				this.popupManager.queuePopup(i18n.light_3_13_narrator, "dark");
-				this.popupManager.showNextPopup();
-
-				this.popupManager.on("queueEmpty", () => {
-					// Make the black mass interactable with the minigame trigger
-					this.activateBlackMass();
-					this.player.interactionAllowed = true;
-				});
+				await playSequence(this.popupManager, [
+					{ message: i18n.light_3_1_dark, preset: "dark" },
+					{ message: i18n.light_3_2_dark, preset: "dark" },
+					i18n.light_3_3,
+					{ message: i18n.light_3_4_narrator, preset: "dark" },
+					i18n.light_3_5,
+					i18n.light_3_6,
+					{ message: i18n.light_3_7_narrator, preset: "dark" },
+					i18n.light_3_8,
+					{ message: i18n.light_3_9_narrator, preset: "dark" },
+					i18n.light_3_10,
+					{ message: i18n.light_3_11_narrator, preset: "dark" },
+					i18n.light_3_12,
+					{ message: i18n.light_3_13_narrator, preset: "dark" }
+				]);
+				// Make the black mass interactable with the minigame trigger
+				this.activateBlackMass();
+				this.player.interactionAllowed = true;
 			};
 		}
 
@@ -434,20 +383,14 @@ class Stage1 extends Phaser.Scene {
 		});
 
 		// Configura l'interazione della massa nera per avviare il minigioco
-		this.blackMass.interagisci = () => {
+		this.blackMass.interagisci = async () => {
 			this.player.isMovementAllowed = false;
 			this.player.interactionAllowed = false;
 
-			this.popupManager.queuePopup(i18n.light_final_1);
-			this.popupManager.queuePopup(i18n.light_final_2);
-			this.popupManager.queuePopup(i18n.light_final_3);
-			this.popupManager.showNextPopup();
-
-			this.popupManager.on("queueEmpty", () => {
-				this.cameras.main.fadeOut(1000, 255, 0, 0);
-				this.sound.stopAll();
-				this.time.delayedCall(1000, () => {this.startMinigame();});
-			});
+			await playSequence(this.popupManager, [i18n.light_final_1, i18n.light_final_2, i18n.light_final_3]);
+			this.cameras.main.fadeOut(1000, 255, 0, 0);
+			this.sound.stopAll();
+			this.time.delayedCall(1000, () => {this.startMinigame();});
 		};
 
 		// Aggiungi la massa nera al vettore degli oggetti interagibili
@@ -457,25 +400,11 @@ class Stage1 extends Phaser.Scene {
 
 	// Avvio del minigioco ---------------------------------------------------------------
 	private startMinigame() {
-		this.scene.pause();
-		// console.log("Avvio del grafico game...");
-
-		// Avvia il gioco
-		this.scene.launch("Stage1_Lab");
-
-		// Porta la scena Memory in primo piano
-		this.scene.bringToTop("Stage1_Lab");
-
-		// Una volta terminato il memory riprende il gioco principale
-		const grafScene = this.scene.get("Stage1_Lab") as Phaser.Scene | undefined;
-		if (grafScene) {
-			// Ascolta l'evento personalizzato di vittoria
-			grafScene.events.once("lab-complete", () => {this.endingSequence();});
-		}
+		launchSubScene(this, "Stage1_Lab", { completionEvent: "lab-complete" }, () => this.endingSequence());
 	}
 
 	// Scena finale dopo il completamento del minigioco ----------------------------------
-	private endingSequence() {
+	private async endingSequence() {
 		this.isGraficoActive = false;
 
 		this.scene.stop("Stage1_Lab"); 						// Ferma la scena grafico
@@ -484,68 +413,67 @@ class Stage1 extends Phaser.Scene {
 
 		// Mostra un messaggio di successo
 		const i18n = this.cache.json.get("stage1_i18n");
-		this.popupManager.queuePopup(i18n.minigame_success_1, "hint");
-		this.popupManager.showNextPopup();
-		this.popupManager.on("queueEmpty", () => {
-			this.popupManager.queuePopup(i18n.minigame_success_2);
-			this.popupManager.showNextPopup();
+		await playSequence(this.popupManager, [{ message: i18n.minigame_success_1, preset: "hint" }]);
 
-			this.cameras.main.shake(6000, 0.0012);
-			this.sound.play("earthquake", {
-				volume: this.game.sound.volume * parseFloat(localStorage.getItem("sfxVolume") || "1")
-			});
+		const secondPopupDone = playSequence(this.popupManager, [i18n.minigame_success_2]);
 
-			this.popupManager.on("queueEmpty", () => {
-				const fadeRect = this.add.rectangle(
-					this.cameras.main.centerX,
-					this.cameras.main.centerY,
-					this.cameras.main.width,
-					this.cameras.main.height,
-					0x000000
-				);
+		this.cameras.main.shake(6000, 0.0012);
+		this.sound.play("earthquake", {
+			volume: this.game.sound.volume * parseFloat(localStorage.getItem("sfxVolume") || "1")
+		});
 
-				fadeRect.setScrollFactor(0);
-				fadeRect.setDepth(10);
-				fadeRect.setAlpha(0);
+		await secondPopupDone;
 
-				this.tweens.add({
-					targets: fadeRect,
-					alpha: 0.98,
-					duration: 600,
-					ease: "Linear",
+		const fadeRect = this.add.rectangle(
+			this.cameras.main.centerX,
+			this.cameras.main.centerY,
+			this.cameras.main.width,
+			this.cameras.main.height,
+			0x000000
+		);
 
-					onComplete: () => {
-						this.player.interactionAllowed = false; //disabilita l'interazione
-						this.time.delayedCall(4000, this.cameras.main.fadeOut, [], this.cameras.main);
-						this.time.delayedCall(5000, async () => {
-							const requestData: CreateSessionRequest = {
-								consentGiven: true,
-								device: navigator.userAgent.substring(0, 1024)
-							};
+		fadeRect.setScrollFactor(0);
+		fadeRect.setDepth(10);
+		fadeRect.setAlpha(0);
 
-							try {
-								console.log("Tentativo di creare la sessione...");
-								const sessione = await this.apiSession.createSession(requestData);
+		this.tweens.add({
+			targets: fadeRect,
+			alpha: 0.98,
+			duration: 600,
+			ease: "Linear",
 
-								console.log("Sessione creata con successo:", sessione.token);
-								this.scene.start("Menu");
+			onComplete: () => {
+				this.player.interactionAllowed = false; //disabilita l'interazione
+				this.time.delayedCall(4000, this.cameras.main.fadeOut, [], this.cameras.main);
+				this.time.delayedCall(5000, async () => {
+					// const requestData: CreateSessionRequest = {
+					// 	consentGiven: true,
+					// 	device: navigator.userAgent.substring(0, 1024)
+					// };
 
-							} catch (error) {
-								if (error instanceof Error) {
-									console.error("Creazione della sessione fallita:", error.message);
-								} else {
-									console.error("Creazione della sessione fallita (oggetto non-Error):", error);
-								}
+					// try {
+					// 	console.log("Tentativo di creare la sessione...");
+					// 	const sessione = await this.apiSession.createSession(requestData);
 
-								// Mostra un errore al giocatore usando il tuo PopupManager!
-								this.popupManager.queuePopup("Errore di connessione.");
-								this.popupManager.queuePopup("Impossibile salvare i progressi.");
-								this.popupManager.showNextPopup();
-							}
-						});
-					}
+					// 	console.log("Sessione creata con successo:", sessione.token);
+					// 	this.scene.start("Menu");
+
+					// } catch (error) {
+					// 	if (error instanceof Error) {
+					// 		console.error("Creazione della sessione fallita:", error.message);
+					// 	} else {
+					// 		console.error("Creazione della sessione fallita (oggetto non-Error):", error);
+					// 	}
+
+					// 	// Mostra un errore al giocatore usando il tuo PopupManager!
+					// 	this.popupManager.queuePopup("Errore di connessione.");
+					// 	this.popupManager.queuePopup("Impossibile salvare i progressi.");
+					// 	this.popupManager.showNextPopup();
+					// }
+
+					this.scene.start("Stage2");
 				});
-			});
+			}
 		});
 	}
 
