@@ -1,6 +1,7 @@
 import PopupManager from "../items/UI/PopupManager";
 import { applyTranslations, playSequence } from "../utils";
 import VideoPlayer from "../items/UI/VideoPlayer";
+import { flashBurst, sparkBurst } from "../items/ParticleFx";
 
 // You can write more code here
 
@@ -79,6 +80,25 @@ class GraficoGame extends Phaser.Scene {
 	private victoryShown: boolean = false;
 
 
+	// Flash brevemente il colore dell'indicatore (bianco per hit, rosso scuro per miss) prima di
+	// tornare al colore originale, come feedback visivo aggiuntivo oltre al burst di particelle.
+	private flashIndicator(tint: number) {
+		const originalColor = this.indicator.fillColor;
+		this.indicator.setFillStyle(tint);
+		this.time.delayedCall(120, () => this.indicator.setFillStyle(originalColor));
+	}
+
+	// Aggiorna il testo di completamento con un piccolo "pop" invece di un setText piatto
+	private setCompletionText(value: string) {
+		this.completionText.setText(value);
+		this.tweens.add({
+			targets: this.completionText,
+			scale: { from: 1.3, to: 1 },
+			duration: 150,
+			ease: "Back.easeOut"
+		});
+	}
+
 	// Write your code here
 
 	preload() {
@@ -128,8 +148,30 @@ class GraficoGame extends Phaser.Scene {
 		const startLevel = (levelIndex: number) => {
 			this.currentLevel = levelIndex;
 			picchiTrovati = 0;
-			this.completionText.setText("0 / " + this.levels[levelIndex].picchi.length);
-			this.indicator.x = startX;
+			this.setCompletionText("0 / " + this.levels[levelIndex].picchi.length);
+
+			// L'indicatore sfuma alla posizione corrente, si riposiziona all'inizio, poi
+			// riappare con un fade-in, invece di scattare istantaneamente su startX. Solo per i
+			// passaggi di livello: al primo avvio (levelIndex 0) l'indicatore è già in startX con
+			// alpha 1, quindi il fade non farebbe che sfarfallare (alpha 0 mostra lo sfondo chiaro
+			// del grafico dietro di lui) senza alcun riposizionamento reale da animare.
+			if (levelIndex > 0) {
+				this.tweens.add({
+					targets: this.indicator,
+					alpha: 0,
+					duration: 300,
+					ease: 'Quad.easeInOut',
+					onComplete: () => {
+						this.indicator.x = startX;
+						this.tweens.add({
+							targets: this.indicator,
+							alpha: 1,
+							duration: 300,
+							ease: 'Quad.easeInOut'
+						});
+					}
+				});
+			}
 
 			const beginScanning = () => {
 				tween = this.tweens.add({
@@ -222,7 +264,8 @@ class GraficoGame extends Phaser.Scene {
 											picchiTrovati++;
 											tween.timeScale *= 1.2;
 
-											this.completionText.setText(picchiTrovati + " / " + picchi.length);
+											this.setCompletionText(picchiTrovati + " / " + picchi.length);
+											this.flashIndicator(0xffffff);
 
 											picchi[i].found = true;
 											foundPeak = true;
@@ -234,6 +277,9 @@ class GraficoGame extends Phaser.Scene {
 									if(!foundPeak){
 										const i18n = this.cache.json.get("graficoGame_i18n");
 										lines.push({ message: i18n.miss, preset: "minigame" });
+
+										this.flashIndicator(0x8b0000);
+										this.cameras.main.shake(150, 0.004);
 									}
 
 									playSequence(this.popupManager, lines).then(() => {
@@ -282,71 +328,17 @@ class GraficoGame extends Phaser.Scene {
 				this.events.emit("grafico-complete");
 			});
 
-			// Fireworks effect (particle emitter nativo al posto di ~300 oggetti Text emoji)
-			// Texture con bagliore morbido (gradiente radiale) + piccola croce "scintillio"
-			// al centro, invece di un cerchio pieno a bordo netto.
-			if (!this.textures.exists('spark')) {
-				const size = 16;
-				const cx = size / 2;
-				const cy = size / 2;
-				const sparkCanvas = this.textures.createCanvas('spark', size, size);
-				const ctx = sparkCanvas!.getContext();
-
-				const glow = ctx.createRadialGradient(cx, cy, 0, cx, cy, size / 2);
-				glow.addColorStop(0, 'rgba(255,255,255,1)');
-				glow.addColorStop(0.45, 'rgba(255,255,255,0.85)');
-				glow.addColorStop(1, 'rgba(255,255,255,0)');
-				ctx.fillStyle = glow;
-				ctx.fillRect(0, 0, size, size);
-
-				ctx.strokeStyle = 'rgba(255,255,255,0.9)';
-				ctx.lineWidth = 1;
-				ctx.beginPath();
-				ctx.moveTo(cx, 0.5); ctx.lineTo(cx, size - 0.5);
-				ctx.moveTo(0.5, cy); ctx.lineTo(size - 0.5, cy);
-				ctx.stroke();
-
-				sparkCanvas!.refresh();
-			}
-
-			// Piccolo flash bianco al centro di ogni scoppio, per un "pop" più netto prima
-			// che si aprano le scintille colorate (come un vero fuoco d'artificio).
-			const flashEmitter = this.add.particles(0, 0, 'spark', {
-				lifespan: 220,
-				speed: 0,
-				scale: { start: 2.6, end: 0, ease: 'Cubic.easeOut' },
-				alpha: { start: 0.9, end: 0 },
-				tint: 0xffffff,
-				blendMode: 'ADD',
-				emitting: false,
-			});
-
-			const fireworksEmitter = this.add.particles(0, 0, 'spark', {
-				lifespan: 950,
-				speed: { min: 70, max: 150 },
-				scale: { start: 1.9, end: 0, ease: 'Cubic.easeOut' },
-				alpha: { start: 1, end: 0, ease: 'Cubic.easeIn' },
-				rotate: { start: 0, end: 120 },
-				// Colori pieni e saturi con blend normale (non additivo), così restano
-				// visibili anche sopra allo sfondo chiaro della scena.
-				tint: [0xff1744, 0xffd600, 0x00e5ff, 0x7c4dff, 0x00e676],
-				blendMode: 'NORMAL',
-				emitting: false,
-			});
-
+			// Fireworks effect (particle emitter nativo al posto di ~300 oggetti Text emoji),
+			// tramite gli helper condivisi in ParticleFx.ts (usati anche da Shooter/Stage1).
 			const fireworksCount = 50;
 			for (let f = 0; f < fireworksCount; f++) {
 				this.time.delayedCall(f * 100, () => {
 					const x = Phaser.Math.Between(425, 850);
 					const y = Phaser.Math.Between(200, 500);
-					flashEmitter.explode(1, x, y);
-					fireworksEmitter.explode(6, x, y);
+					flashBurst(this, x, y);
+					sparkBurst(this, x, y, { count: 6 });
 				});
 			}
-			this.time.delayedCall(fireworksCount * 100 + 950, () => {
-				flashEmitter.destroy();
-				fireworksEmitter.destroy();
-			});
 		}
 
 		return true;

@@ -28,6 +28,7 @@ class Settings extends Phaser.Scene {
 		this.add.existing(backButton);
 		backButton.scaleX = 1.5;
 		backButton.scaleY = 1.5;
+		this.backButton = backButton;
 
 		// sfxVolumeSlider
 		const sfxVolumeSlider = new VolumeBar(this, 640, 421);
@@ -106,10 +107,20 @@ class Settings extends Phaser.Scene {
 	private mainVolumeSlider!: VolumeBar;
 	private enButton!: Phaser.GameObjects.Rectangle;
 	private itButton!: Phaser.GameObjects.Rectangle;
+	private backButton!: BackButton;
 
 	/* START-USER-CODE */
 
 	// Write your code here
+
+	// Se valorizzato (impostazioni aperte dal gioco, non dal menu), il backButton torna
+	// alla scena di gioco invece che al Menu. Sopravvive a fadeThenRestart() (cambio lingua)
+	// perché scene.restart() senza argomenti non sovrascrive i dati di lancio della scena.
+	private returnSceneKey?: string;
+
+	init(data?: { returnSceneKey?: string }): void {
+		this.returnSceneKey = data?.returnSceneKey;
+	}
 
 	// "english"/"italian" non hanno un .name assegnato in editorCreate(), quindi il testo
 	// del bottone va cercato per posizione (coincide con quella del suo Rectangle).
@@ -117,6 +128,31 @@ class Settings extends Phaser.Scene {
 		return this.children.list.find((obj): obj is Phaser.GameObjects.Text =>
 			obj instanceof Phaser.GameObjects.Text && Math.abs(obj.x - rect.x) < 5 && Math.abs(obj.y - rect.y) < 5
 		) as Phaser.GameObjects.Text | undefined;
+	}
+
+	// Fade a nero prima del cambio lingua, invece di uno scatto immediato via scene.restart()
+	private fadeThenRestart(lang: string) {
+		const fadeRect = this.add.rectangle(
+			this.cameras.main.centerX,
+			this.cameras.main.centerY,
+			this.cameras.main.width,
+			this.cameras.main.height,
+			0x000000
+		);
+		fadeRect.setScrollFactor(0);
+		fadeRect.setDepth(1000);
+		fadeRect.setAlpha(0);
+
+		this.tweens.add({
+			targets: fadeRect,
+			alpha: 1,
+			duration: 300,
+			ease: "Linear",
+			onComplete: () => {
+				localStorage.setItem("lang", lang);
+				this.scene.restart();
+			}
+		});
 	}
 
 	preload() {
@@ -174,21 +210,29 @@ class Settings extends Phaser.Scene {
 
 		this.enButton.on("pointerup", () => {
 			if(localStorage.getItem("lang") !== "en") {
-				localStorage.setItem("lang", "en");
-				this.scene.restart();
+				this.fadeThenRestart("en");
 			}
 		});
 
 		this.itButton.on("pointerup", () => {
 			if(localStorage.getItem("lang") !== "it") {
-				localStorage.setItem("lang", "it");
-				this.scene.restart();
+				this.fadeThenRestart("it");
 			}
 		});
 
 		this.events.once("shutdown", () => {
         	this.cache.json.remove("settings_i18n");
     	});
+
+		// Aperti dal gioco: il back button riprende la scena di provenienza invece di
+		// andare al Menu (che la distruggerebbe insieme alla partita in corso).
+		if (this.returnSceneKey) {
+			this.backButton.off('pointerup');
+			this.backButton.on('pointerup', () => {
+				this.scene.resume(this.returnSceneKey!);
+				this.scene.stop();
+			});
+		}
 	}
 	/* END-USER-CODE */
 }

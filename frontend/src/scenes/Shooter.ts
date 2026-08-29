@@ -107,8 +107,18 @@ class Shooter extends Phaser.Scene {
 	}> = [
 		{ timeLeft: 30, lives: 4, targetDelay: 820, bulletCooldown: 210, targetSpeed: 1.0, playerSpeed: 5, patternChance: 0.25 },
 		{ timeLeft: 28, lives: 4, targetDelay: 780, bulletCooldown: 200, targetSpeed: 1.15, playerSpeed: 6, patternChance: 0.35 },
-		{ timeLeft: 28, lives: 4, targetDelay: 740, bulletCooldown: 130, targetSpeed: 1.25, playerSpeed: 6.5, patternChance: 0.45 }
+		{ timeLeft: 28, lives: 4, targetDelay: 600, bulletCooldown: 130, targetSpeed: 1.25, playerSpeed: 6.5, patternChance: 0.55 }
 	];
+
+	// Intra-round difficulty ramp: targetDelay/targetSpeed/patternChance above are the round-start
+	// values only — they scale toward these multipliers/bonus as the round progresses (see
+	// rampProgress below), so a round gets denser/faster over its own duration instead of staying
+	// flat until the next level. At rampProgress 0 every ramped getter equals the base config value,
+	// so round-start pacing is unchanged.
+	private static readonly RAMP_SPEED_MULTIPLIER_END = 1.6;
+	private static readonly RAMP_SPAWN_DELAY_MULTIPLIER_END = 0.6;
+	private static readonly RAMP_PATTERN_CHANCE_BONUS_END = 0.25;
+	private static readonly RAMP_PATTERN_CHANCE_CAP = 0.85;
 
 	private screenLeft = 0;
 	private screenRight = 0;
@@ -147,6 +157,27 @@ class Shooter extends Phaser.Scene {
 	private roundActive = false;
 	private level = 1;
 	private levelConfig!: (typeof Shooter.LEVEL_CONFIGS)[number];
+
+	// 0 at round start, 1 at round end — timeLeft/levelConfig.timeLeft are both already tracked
+	// per-second by tickTimer(), so no extra timer/accumulator is needed to drive the ramp.
+	private get rampProgress(): number {
+		const total = this.levelConfig.timeLeft;
+		if (total <= 0) return 1;
+		return Phaser.Math.Clamp(1 - this.timeLeft / total, 0, 1);
+	}
+
+	private get currentTargetSpeed(): number {
+		return this.levelConfig.targetSpeed * Phaser.Math.Linear(1, Shooter.RAMP_SPEED_MULTIPLIER_END, this.rampProgress);
+	}
+
+	private get currentTargetDelay(): number {
+		return this.levelConfig.targetDelay * Phaser.Math.Linear(1, Shooter.RAMP_SPAWN_DELAY_MULTIPLIER_END, this.rampProgress);
+	}
+
+	private get currentPatternChance(): number {
+		return Math.min(Shooter.RAMP_PATTERN_CHANCE_CAP, this.levelConfig.patternChance + Shooter.RAMP_PATTERN_CHANCE_BONUS_END * this.rampProgress);
+	}
+
 	private returnSceneKey = "Stage2";
 	private completionEmitted = false;
 	private targetSpawnTimer?: Phaser.Time.TimerEvent;
@@ -437,7 +468,7 @@ class Shooter extends Phaser.Scene {
 			return;
 		}
 
-		const scrollDelta = this.levelConfig.targetSpeed * Shooter.PHYSICS_FPS * (delta / 1000);
+		const scrollDelta = this.currentTargetSpeed * Shooter.PHYSICS_FPS * (delta / 1000);
 		for (const tile of this.backgroundTiles) {
 			tile.y += scrollDelta;
 		}
@@ -575,7 +606,14 @@ class Shooter extends Phaser.Scene {
 			return;
 		}
 
-		if (Math.random() < this.levelConfig.patternChance) {
+		// Ramp the spawn timer's cadence for the *next* interval — Clock.update() re-reads
+		// TimerEvent.delay every frame, so mutating it here is a safe way to speed up a running
+		// repeating timer without recreating it.
+		if (this.targetSpawnTimer) {
+			this.targetSpawnTimer.delay = this.currentTargetDelay;
+		}
+
+		if (Math.random() < this.currentPatternChance) {
 			const patterns = [
 				() => this.spawnLinePattern(),
 				() => this.spawnVPattern(),
@@ -618,7 +656,7 @@ class Shooter extends Phaser.Scene {
 		// the velocity set below.
 		this.targets.add(target);
 		target.body.setCircle(Shooter.COLLISION_DISTANCE / 2);
-		target.body.setVelocityY(this.levelConfig.targetSpeed * Shooter.PHYSICS_FPS);
+		target.body.setVelocityY(this.currentTargetSpeed * Shooter.PHYSICS_FPS);
 	}
 
 	private spawnLinePattern() {
