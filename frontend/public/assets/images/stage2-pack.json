@@ -2,36 +2,6 @@
     "section1": {
         "files": [
             {
-                "url": "assets/images/backgrounds/Shooter/5063_4.png",
-                "type": "image",
-                "key": "lvl1_bg"
-            },
-            {
-                "url": "assets/images/backgrounds/Shooter/5063_5.png",
-                "type": "image",
-                "key": "lvl2_bg"
-            },
-            {
-                "url": "assets/images/backgrounds/Shooter/5063_6.png",
-                "type": "image",
-                "key": "lvl3_bg"
-            },
-            {
-                "url": "assets/images/backgrounds/Shooter/5063_4_flip.png",
-                "type": "image",
-                "key": "lvl1_bg_flip"
-            },
-            {
-                "url": "assets/images/backgrounds/Shooter/5063_5_flip.png",
-                "type": "image",
-                "key": "lvl2_bg_flip"
-            },
-            {
-                "url": "assets/images/backgrounds/Shooter/5063_6_flip.png",
-                "type": "image",
-                "key": "lvl3_bg_flip"
-            },
-            {
                 "url": "assets/images/backgrounds/stage2.png",
                 "type": "image",
                 "key": "bg-stage2"
@@ -83,6 +53,36 @@
                 "key": "gears"
             },
             {
+                "url": "assets/images/backgrounds/Shooter/5063_4.png",
+                "type": "image",
+                "key": "lvl1_bg"
+            },
+            {
+                "url": "assets/images/backgrounds/Shooter/5063_4_flip.png",
+                "type": "image",
+                "key": "lvl1_bg_flip"
+            },
+            {
+                "url": "assets/images/backgrounds/Shooter/5063_5.png",
+                "type": "image",
+                "key": "lvl2_bg"
+            },
+            {
+                "url": "assets/images/backgrounds/Shooter/5063_5_flip.png",
+                "type": "image",
+                "key": "lvl2_bg_flip"
+            },
+            {
+                "url": "assets/images/backgrounds/Shooter/5063_6.png",
+                "type": "image",
+                "key": "lvl3_bg"
+            },
+            {
+                "url": "assets/images/backgrounds/Shooter/5063_6_flip.png",
+                "type": "image",
+                "key": "lvl3_bg_flip"
+            },
+            {
                 "url": "assets/images/items/minerals.png",
                 "frameConfig": {
                     "frameWidth": 16,
@@ -114,11 +114,34 @@
                 "key": "shooter_screen"
             },
             {
+                "url": "assets/images/items/specchi.png",
+                "frameConfig": {
+                    "frameWidth": 31,
+                    "frameHeight": 31,
+                    "startFrame": 0,
+                    "endFrame": -1,
+                    "spacing": 0,
+                    "margin": 0
+                },
+                "type": "spritesheet",
+                "key": "specchi"
+            },
+            {
+                "url": "assets/images/backgrounds/stage2-crater.png",
+                "type": "image",
+                "key": "stage2-crater"
+            },
+            {
                 "url": [
                     "assets/sfx/steam.mp3"
                 ],
                 "type": "audio",
                 "key": "steam"
+            },
+            {
+                "url": "assets/images/items/turret_placeholder.png",
+                "type": "image",
+                "key": "turret_placeholder"
             }
         ]
     },

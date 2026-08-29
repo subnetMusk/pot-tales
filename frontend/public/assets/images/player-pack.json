@@ -72,6 +72,19 @@
                 "key": "darkMask"
             },
             {
+                "url": "assets/images/ui/player_items.png",
+                "frameConfig": {
+                    "frameWidth": 12,
+                    "frameHeight": 12,
+                    "startFrame": 0,
+                    "endFrame": -1,
+                    "spacing": 0,
+                    "margin": 0
+                },
+                "type": "spritesheet",
+                "key": "player_items"
+            },
+            {
                 "url": "assets/images/ui/player_ui.png",
                 "type": "image",
                 "key": "player_ui"

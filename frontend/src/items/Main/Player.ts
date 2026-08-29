@@ -1,4 +1,5 @@
 // You can write more code here
+import { launchSubScene } from "../../utils";
 
 /* START OF COMPILED CODE */
 
@@ -6,6 +7,16 @@ class Player extends Phaser.GameObjects.Container {
 
 	constructor(scene: Phaser.Scene, x?: number, y?: number) {
 		super(scene, x ?? 13, y ?? 8);
+
+		// hud: a separate top-level container, NOT a child of `this`. Phaser Container children
+		// can't have a display depth independent of their container (children render in list
+		// order within whatever single depth slot the container occupies), so portrait/settings/
+		// inventory icons added directly to `this` are stuck at whatever depth each scene gives
+		// the player for gameplay-occlusion purposes (e.g. Stage2 sets it below other effects) —
+		// which is wrong for UI that must always render on top. Kept in sync with the player's
+		// position every frame instead (see the "update" listener below).
+		this.hud = scene.add.container(this.x, this.y);
+		this.hud.setDepth(Player.UI_DEPTH);
 
 		// player
 		const player = scene.add.sprite(0, 0, "Ch_front", 0) as Phaser.GameObjects.Sprite & { body: Phaser.Physics.Arcade.Body };
@@ -68,7 +79,7 @@ class Player extends Phaser.GameObjects.Container {
 
 		// playerUi
 		const playerUi = scene.add.image(-64, -54, "player_ui");
-		this.add(playerUi);
+		this.hud.add(playerUi);
 
 		this.player = player;
 		this.bottomBound = bottomBound;
@@ -97,12 +108,51 @@ class Player extends Phaser.GameObjects.Container {
 		this.player.play('idle_front', true);
 
 		this.scene.events.on("update", (time: number) => this.movePlayer(time), this);
+		// hud isn't a child of `this` (see its creation above), so it needs its own per-frame
+		// sync instead of inheriting the container's transform — covers both keyboard movement
+		// (movePlayer's direct this.x/this.y writes) and tweened movement (walkTo/fallDown).
+		this.scene.events.on("update", () => this.hud.setPosition(this.x, this.y), this);
 
 		this.Ikey = this.scene.input.keyboard?.addKey(Phaser.Input.Keyboard.KeyCodes.I);
 		this.Ikey?.on("down", () => {
 			// Controllo collisione
 			this.controllaInterazioneOggetto();
 		});
+
+		// surpriseBalloon: figlio del container (stessa "layer" del player, si muove/scompare
+		// insieme a lui), riutilizzato ad ogni surprise() invece di crearne uno nuovo ogni volta.
+		const surpriseBalloon = this.scene.add.image(0, -24, "surprise_balloon");
+		surpriseBalloon.setScale(0);
+		this.add(surpriseBalloon);
+		this.surpriseBalloon = surpriseBalloon;
+
+		// settingsIcon: stesso sprite/scena "Settings" usati dal menu, ma mette in pausa la
+		// scena di gioco corrente invece di distruggerla — vedi openSettings().
+		const settingsIcon = this.scene.add.image(110, -53, "settings");
+		settingsIcon.setScale(0.4);
+		settingsIcon.setInteractive({ useHandCursor: true });
+		this.hud.add(settingsIcon);
+		this.settingsIcon = settingsIcon;
+
+		let settingsIconBaseScale: number | null = null;
+		const tweenSettingsIcon = (factor: number) => {
+			settingsIconBaseScale ??= settingsIcon.scale;
+			this.scene.tweens.add({ targets: settingsIcon, scale: settingsIconBaseScale * factor, duration: 90, ease: 'Sine.easeOut' });
+		};
+		settingsIcon
+			.on('pointerdown', () => { settingsIcon.setTint(0xbdbdbd); tweenSettingsIcon(0.9); })
+			.on('pointerup', () => { settingsIcon.clearTint(); tweenSettingsIcon(1); this.openSettings(); })
+			.on('pointerover', () => { settingsIcon.setTint(0xbababa); tweenSettingsIcon(1.15); })
+			.on('pointerout', () => { settingsIcon.clearTint(); tweenSettingsIcon(1); });
+
+		// inventoryIcons: player_items è uno spritesheet 12x12, un frame per oggetto nell'ordine
+		// in cui viene sbloccato dalla storia. Lo stato è salvato nel registry del game (condiviso
+		// fra le scene, sopravvive a scene.start()), così un nuovo Player in Stage2 riparte con
+		// gli oggetti già raccolti in Stage1 invece dei soli due iniziali (frame 0 e 1).
+		const savedItems = this.scene.registry.get(this.inventoryRegistryKey) as number[] | undefined;
+		const startingItems = savedItems ?? [0, 1];
+		if (!savedItems) this.scene.registry.set(this.inventoryRegistryKey, startingItems);
+		startingItems.forEach(frame => this.addInventoryItem(frame, false));
 
 		/* END-USER-CTR-CODE */
 	}
@@ -118,8 +168,15 @@ class Player extends Phaser.GameObjects.Container {
 	private bRBound: Phaser.GameObjects.Rectangle;
 	private darkMask: Phaser.GameObjects.Image;
 	private playerUi: Phaser.GameObjects.Image;
+	private surpriseBalloon: Phaser.GameObjects.Image;
+	private inventoryIcons: Phaser.GameObjects.Image[] = [];
+	private settingsIcon: Phaser.GameObjects.Image;
 
 	/* START-USER-CODE */
+	// Always-on-top portrait/settings/inventory cluster — see its creation in the constructor.
+	private hud: Phaser.GameObjects.Container;
+	private static readonly UI_DEPTH = 900;
+
 	private stepSize: number = 8;					// Grandezza del passo
 	private stepDelay: number = 100;				// Attesa in ms tra i frame
 	private BoundsDebug: boolean = true;			// Se true mostra i boundaries
@@ -134,6 +191,22 @@ class Player extends Phaser.GameObjects.Container {
 	private leftKey!: Phaser.Input.Keyboard.Key;
 	private Ikey?: Phaser.Input.Keyboard.Key;
 
+	// Posizioni degli slot oggetto nell'HUD, relative al centro di playerUi (a destra del
+	// ritratto). Un'offset per ogni oggetto mostrato all'avvio: aggiungerne altre qui quando
+	// la storia introduce nuovi oggetti da mostrare fin da subito.
+	private inventorySlotOffsets: { x: number; y: number }[] = [
+		{ x: -27, y: 2 },
+		{ x: -12, y: 2 },
+		{ x: 3, y: 2 },
+		{ x: 18, y: 2 },
+		{ x: 33, y: 2 },
+		{ x: 48, y: 2 },
+	];
+
+	// Chiave nel registry del game (condiviso fra le scene) sotto cui è salvato l'elenco dei
+	// frame di player_items già sbloccati, in ordine.
+	private readonly inventoryRegistryKey = "inventoryItems";
+
 	boundaries : Phaser.GameObjects.Rectangle[] = [];
 	private slowAreas: Array<{ zone: Phaser.GameObjects.Rectangle | Phaser.GameObjects.Sprite | Phaser.GameObjects.Image; multiplier: number }> = [];
 
@@ -145,7 +218,7 @@ class Player extends Phaser.GameObjects.Container {
 		this.movementAllowed = state;
 
 		// Reset della texture
-		if (!state)this.updateIdleTexture();
+		if (!state) this.updateIdleTexture();
 	}
 
 	// Create animations for the player
@@ -345,6 +418,180 @@ class Player extends Phaser.GameObjects.Container {
 		this.playerUi.visible = state;
 	}
 
+	// Aggiunge un oggetto all'inventario: crea l'icona nel prossimo slot libero dell'HUD
+	// usando il frame indicato di player_items. Gli slot si riempiono in ordine, linearmente
+	// con il progredire della storia. persist=false è usato solo per ricreare gli oggetti già
+	// salvati nel registry all'avvio (per non duplicarli), altrimenti va sempre lasciato true.
+	public addInventoryItem(frame: number, persist: boolean = true): void {
+		const slotIndex = this.inventoryIcons.length;
+		const offset = this.inventorySlotOffsets[slotIndex];
+
+		if (!offset) {
+			console.log("Nessuno slot libero nell'inventario per il frame", frame);
+			return;
+		}
+
+		const icon = this.scene.add.image(this.playerUi.x + offset.x, this.playerUi.y + offset.y, "player_items", frame);
+		this.hud.add(icon);
+		this.inventoryIcons.push(icon);
+
+		if (persist) {
+			const saved = (this.scene.registry.get(this.inventoryRegistryKey) as number[] | undefined) ?? [];
+			this.scene.registry.set(this.inventoryRegistryKey, [...saved, frame]);
+		}
+	}
+
+	// Apre la scena Settings (la stessa usata dal menu) mettendo in pausa la scena di gioco
+	// corrente invece di distruggerla con scene.start(); il back button di Settings la
+	// riprende al posto di tornare al Menu (vedi Settings.ts). Salva/ripristina lo stato
+	// precedente di movimento/interazione invece di riabilitarli a forza, per non riaccendere
+	// per errore l'input se le impostazioni vengono aperte durante una cutscene che li aveva
+	// già disabilitati.
+	public openSettings(): void {
+		const parentScene = this.scene;
+		const wasMovementAllowed = this.movementAllowed;
+		const wasInteractionAllowed = this.interactionAllowed;
+
+		this.isMovementAllowed = false;
+		this.interactionAllowed = false;
+
+		launchSubScene(
+			parentScene,
+			"Settings",
+			{ launchData: { returnSceneKey: parentScene.scene.key }, completionEvent: "resume", listenOn: "parent" },
+			() => {
+				this.isMovementAllowed = wasMovementAllowed;
+				this.interactionAllowed = wasInteractionAllowed;
+			}
+		);
+	}
+
+	// Mostra il balloon "!" sopra al player (figlio del container, sempre presente), per un
+	// beat di sorpresa/attenzione: pop-in, piccolo bob, hold, poi fade-out.
+	public surprise(): void {
+		const balloon = this.surpriseBalloon;
+		balloon.setScale(0);
+		balloon.setAlpha(1);
+		balloon.y = -24;
+
+		this.scene.tweens.add({
+			targets: balloon,
+			scale: 1,
+			duration: 220,
+			ease: "Back.easeOut",
+			onComplete: () => {
+				this.scene.tweens.add({
+					targets: balloon,
+					y: balloon.y - 3,
+					duration: 260,
+					yoyo: true,
+					repeat: 1,
+					ease: "Sine.easeInOut",
+					onComplete: () => {
+						this.scene.time.delayedCall(400, () => {
+							this.scene.tweens.add({
+								targets: balloon,
+								alpha: 0,
+								scale: 0.6,
+								duration: 180,
+								ease: "Power2.easeIn"
+							});
+						});
+					}
+				});
+			}
+		});
+	}
+
+	// Nasconde la UI (ritratto, bottone impostazioni, icone inventario) con un fade, invece di
+	// un semplice toggle di visible come playerUiVisible: usato dalla cutscene finale, dove la
+	// UI deve sparire gradualmente invece che di colpo.
+	public fadeOutUi(duration: number = 500): Promise<void> {
+		const elements: Phaser.GameObjects.Image[] = [this.playerUi, this.settingsIcon, ...this.inventoryIcons];
+		this.settingsIcon.disableInteractive();
+
+		return new Promise(resolve => {
+			this.scene.tweens.add({
+				targets: elements,
+				alpha: 0,
+				duration,
+				ease: "Quad.easeInOut",
+				onComplete: () => {
+					elements.forEach(el => el.visible = false);
+					resolve();
+				}
+			});
+		});
+	}
+
+	// Dissolve la vignetta darkMask invece dello switch immediato di flashlight().
+	public fadeOutFlashlight(duration: number = 500): Promise<void> {
+		return new Promise(resolve => {
+			this.scene.tweens.add({
+				targets: this.darkMask,
+				alpha: 0,
+				duration,
+				ease: "Quad.easeInOut",
+				onComplete: () => resolve()
+			});
+		});
+	}
+
+	// Caduta accelerata: il container scende (una discesa netta, non solo un piccolo scarto),
+	// si rimpicciolisce e sfuma, con un ease "in" così il movimento accelera invece di essere
+	// lineare. Nessun cambio di animazione qui: mantiene l'ultima posa idle impostata da
+	// walkTo() invece di un ciclo di camminata, così la caduta legge come "sprofondare", non
+	// "camminare all'ingiù". Come jump(), è puramente cosmetica (nessuna fisica reale) — usata
+	// per il beat finale in cui il player viene inghiottito dal cratere.
+	public fallDown(duration: number = 800): Promise<void> {
+		return new Promise(resolve => {
+			this.scene.tweens.add({
+				targets: this,
+				y: this.y + 260,
+				scaleX: 0.15,
+				scaleY: 0.15,
+				alpha: 0,
+				duration,
+				ease: "Cubic.easeIn",
+				onComplete: () => resolve()
+			});
+		});
+	}
+
+	// Salto cosmetico (squash-stretch + offset verticale sullo sprite interno): questo è un
+	// gioco top-down senza gravità/fisica di salto, quindi non è un vero movimento verticale.
+	// Chiamato due volte in sequenza per un "doppio salto" celebrativo (es. attivazione laser).
+	public jump(): Promise<void> {
+		const sprite = this.player;
+		const baseY = sprite.y;
+
+		return new Promise(resolve => {
+			this.scene.tweens.add({
+				targets: sprite,
+				scaleX: 1.15,
+				scaleY: 0.85,
+				duration: 70,
+				ease: "Sine.easeOut",
+				onComplete: () => {
+					this.scene.tweens.add({
+						targets: sprite,
+						y: baseY - 10,
+						scaleX: 0.95,
+						scaleY: 1.1,
+						duration: 140,
+						ease: "Sine.easeOut",
+						yoyo: true,
+						onComplete: () => {
+							sprite.setScale(1);
+							sprite.y = baseY;
+							resolve();
+						}
+					});
+				}
+			});
+		});
+	}
+
 	public debug(v : boolean) {
 			this.BoundsDebug = v;
 			this.leftBound.visible = v;
@@ -464,6 +711,36 @@ class Player extends Phaser.GameObjects.Container {
 		}
 
 		this.lastStep = !this.lastStep;
+	}
+
+	// Muove il player verso (x, y) con l'animazione di camminata corretta per la direzione di
+	// spostamento, invece di un semplice tween di posizione senza feedback visivo — usato per
+	// farlo "uscire" da un oggetto (es. torretta) prima che un'attivazione proceda.
+	public walkTo(x: number, y: number, duration: number): Promise<void> {
+		const dx = x - this.x;
+		const dy = y - this.y;
+
+		if (Math.abs(dx) > Math.abs(dy)) {
+			this.direction = "side";
+			this.player.setFlipX(dx > 0);
+		} else {
+			this.direction = dy < 0 ? "back" : "front";
+		}
+		this.updateMoveTexture();
+
+		return new Promise(resolve => {
+			this.scene.tweens.add({
+				targets: this,
+				x,
+				y,
+				duration,
+				ease: "Sine.easeInOut",
+				onComplete: () => {
+					this.updateIdleTexture();
+					resolve();
+				}
+			});
+		});
 	}
 
 	private controllaInterazioneOggetto() {

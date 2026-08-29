@@ -106,7 +106,7 @@ class Stage1_Lab extends Phaser.Scene {
 							if (cameraReady && fadeReady && !minigameLaunched) {
 								minigameLaunched = true;
 
-								launchSubScene(this, "GraficoGame", { completionEvent: "grafico-complete" }, () => {
+								launchSubScene(this, "GraficoGame", { completionEvent: "grafico-complete", overlay: false }, () => {
 									this.scene.stop("GraficoGame");
 									this.scene.resume();
 

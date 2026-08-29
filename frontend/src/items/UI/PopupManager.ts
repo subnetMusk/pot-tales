@@ -219,15 +219,20 @@ export default class PopupManager {
     protected typewriterTimer: Phaser.Time.TimerEvent | null = null;
     protected isTextComplete: boolean = false;
 
-    constructor(scene: Phaser.Scene) {
+    // 'bottom' (default) keeps the original bottom-center placement used by Stage1/GraficoGame;
+    // 'center' is used by Shooter, whose arcade-screen layout has no room at the bottom for popups.
+    protected anchor: 'bottom' | 'center';
+
+    constructor(scene: Phaser.Scene, options?: { anchor?: 'bottom' | 'center' }) {
         this.scene = scene;
+        this.anchor = options?.anchor ?? 'bottom';
         // Configura il tasto Invio
         this.enterKey = this.scene.input.keyboard?.addKey(Phaser.Input.Keyboard.KeyCodes.ENTER);
 
         //creo uno strato per i popup
         this.layer = this.scene.add.layer();
         this.layer.setDepth(1000); // Sopra tutto
-        
+
     }
 
     // Cancella il timer dell'effetto typewriter, se attivo
@@ -622,8 +627,13 @@ export default class PopupManager {
         popup.setScale(0.8);
         popup.setAlpha(0);
         
-        // Posiziona il popup al basso al centro dello schermo
-        popup.setPosition(this.scene.scale.width / 2, (this.scene.scale.height * (1 + 1 / (2 * this.scene.cameras.main.zoom)) - containerHeight - buttonHeight - buttonMargin) * 0.5);
+        // Posiziona il popup al basso al centro dello schermo (o al centro, per le scene con anchor 'center').
+        // scale.width/2 e scale.height/2 sono il punto fisso della camera (invariante rispetto allo zoom, dato
+        // scrollX/scrollY = 0), quindi per l'anchor 'center' bastano senza alcuna compensazione dello zoom.
+        const targetY = this.anchor === 'center'
+            ? this.scene.scale.height / 2
+            : (this.scene.scale.height * (1 + 1 / (2 * this.scene.cameras.main.zoom)) - containerHeight - buttonHeight - buttonMargin) * 0.5;
+        popup.setPosition(this.scene.scale.width / 2, targetY);
         
         // Animazione
         this.scene.tweens.add({

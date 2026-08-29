@@ -30,6 +30,11 @@
                 "key": "gallery"
             },
             {
+                "url": "assets/images/ui/health_icon.png",
+                "type": "image",
+                "key": "health_icon"
+            },
+            {
                 "url": "assets/images/ui/leaderboard-button.png",
                 "type": "image",
                 "key": "leaderboard"
@@ -64,6 +69,11 @@
                 },
                 "type": "spritesheet",
                 "key": "spacebar"
+            },
+            {
+                "url": "assets/images/ui/surprise_balloon.png",
+                "type": "image",
+                "key": "surprise_balloon"
             },
             {
                 "url": "assets/images/ui/title.png",

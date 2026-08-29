@@ -10,6 +10,29 @@ export function applyTranslations(parent: Phaser.Scene | Phaser.GameObjects.Cont
     });
 }
 
+// Re-loads `cacheKey`'s i18n JSON from `jsonPath` and re-applies it to `scene`'s already-placed
+// text objects. Scenes only auto-load i18n once, in their own preload(); Settings.ts's language
+// switch (see its fadeThenRestart()) only restarts Settings itself, so a scene resumed after
+// Settings closes still has its i18n cached under the old language until this is called
+// explicitly (the Phaser loader has to be started manually outside of preload()).
+export function reloadTranslations(
+    scene: Phaser.Scene,
+    cacheKey: string,
+    jsonPath: string
+): Promise<Record<string, string>> {
+    scene.cache.json.remove(cacheKey);
+
+    return new Promise(resolve => {
+        scene.load.json(cacheKey, jsonPath);
+        scene.load.once(Phaser.Loader.Events.COMPLETE, () => {
+            const i18n = scene.cache.json.get(cacheKey);
+            applyTranslations(scene, i18n);
+            resolve(i18n);
+        });
+        scene.load.start();
+    });
+}
+
 export function showElements(elements: Array<Phaser.GameObjects.GameObject>, show: boolean) {
 	elements.forEach(obj => {
 		if ("alpha" in obj) obj.alpha = show ? 1 : 0;
@@ -38,9 +61,22 @@ export function launchSubScene(
 		launchData?: object;
 		completionEvent: string;
 		listenOn?: 'child' | 'parent';
+		overlay?: boolean;
 	},
 	onComplete: (payload?: any) => void
 ): void {
+	const overlay = options.overlay !== false
+		? parentScene.add.rectangle(
+			parentScene.cameras.main.centerX,
+			parentScene.cameras.main.centerY,
+			parentScene.cameras.main.width,
+			parentScene.cameras.main.height,
+			0x000000
+		)
+		: undefined;
+	overlay?.setScrollFactor(0);
+	overlay?.setDepth(1000);
+
 	parentScene.scene.pause();
 	parentScene.scene.launch(childSceneKey, options.launchData);
 	parentScene.scene.bringToTop(childSceneKey);
@@ -49,7 +85,10 @@ export function launchSubScene(
 		? parentScene.events
 		: parentScene.scene.get(childSceneKey)?.events;
 
-	emitter?.once(options.completionEvent, onComplete);
+	emitter?.once(options.completionEvent, (payload?: any) => {
+		overlay?.destroy();
+		onComplete(payload);
+	});
 }
 
 export interface PixelButtonHandles {

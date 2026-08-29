@@ -1,4 +1,4 @@
-type MirrorState = { x: number; y: number; orientation: "slash" | "backslash" | "horizontal" | "vertical" };
+type MirrorState = { x: number; y: number; orientation: "right" | "left" | "neutral" | "back" };
 
 type TraceParams = {
   sourceCell: { x: number; y: number };
@@ -10,20 +10,23 @@ type TraceParams = {
   maxSteps?: number;
 };
 
+export type BeamDirection = "up" | "right" | "down" | "left";
+
 export function traceBeam(params: TraceParams) {
   const { sourceCell, targetCell, gridCols, gridRows, mirrors } = params;
   const maxSteps = params.maxSteps ?? 80;
-
-  type BeamDirection = "up" | "right" | "down" | "left";
 
   let cellX = sourceCell.x;
   let cellY = sourceCell.y;
   let direction: BeamDirection = params.startDirection ?? "right";
 
-  const cells: Array<{ x: number; y: number }> = [];
+  // direction here is the direction the beam is traveling as it arrives at (x, y) — i.e. its
+  // "phase" at that cell, before any reflect() for a mirror sitting there is applied. Callers
+  // use this to orient a mirror sprite to match the beam actually hitting it (see directionAngle).
+  const cells: Array<{ x: number; y: number; direction: BeamDirection }> = [];
 
   for (let steps = 0; steps < maxSteps; steps += 1) {
-    cells.push({ x: cellX, y: cellY });
+    cells.push({ x: cellX, y: cellY, direction });
 
     if (cellX === targetCell.x && cellY === targetCell.y) {
       return { cells, solved: true };
@@ -44,49 +47,34 @@ export function traceBeam(params: TraceParams) {
   }
 
   // include the final out-of-bounds cell for drawing convenience
-  cells.push({ x: cellX, y: cellY });
+  cells.push({ x: cellX, y: cellY, direction });
   return { cells, solved: false };
 }
 
-function reflect(direction: BeamDirection, orientation: MirrorState["orientation"]) {
-  // Diagonal mirrors behave like / or \ reflections
-  if (orientation === "slash") {
-    switch (direction) {
-      case "up": return "right" as BeamDirection;
-      case "right": return "up" as BeamDirection;
-      case "down": return "left" as BeamDirection;
-      default: return "down" as BeamDirection;
-    }
-  }
+// Clockwise compass order (screen space, y-down): up -> right -> down -> left -> up.
+const CLOCKWISE_DIRECTIONS: BeamDirection[] = ["up", "right", "down", "left"];
 
-  if (orientation === "backslash") {
-    switch (direction) {
-      case "up": return "left" as BeamDirection;
-      case "left": return "up" as BeamDirection;
-      case "down": return "right" as BeamDirection;
-      default: return "down" as BeamDirection;
-    }
-  }
+// Orientation is a turn relative to whichever direction the beam is currently traveling in
+// when it reaches the mirror (its "phase") — not a fixed world-space reflection axis. So the
+// same orientation always produces the same relative turn no matter which side the beam
+// entered from: neutral passes it straight through, back sends it the way it came, right/left
+// turn it a quarter-turn clockwise/counterclockwise.
+const ORIENTATION_TURN_STEPS: Record<MirrorState["orientation"], number> = {
+  neutral: 0,
+  right: 1,
+  back: 2,
+  left: 3
+};
 
-  // Horizontal mirror: flips vertical direction, leaves horizontal unchanged
-  if (orientation === "horizontal") {
-    switch (direction) {
-      case "up": return "down" as BeamDirection;
-      case "down": return "up" as BeamDirection;
-      default: return direction;
-    }
-  }
+function reflect(direction: BeamDirection, orientation: MirrorState["orientation"]): BeamDirection {
+  const currentIndex = CLOCKWISE_DIRECTIONS.indexOf(direction);
+  const steps = ORIENTATION_TURN_STEPS[orientation];
+  const nextIndex = (currentIndex + steps) % CLOCKWISE_DIRECTIONS.length;
+  return CLOCKWISE_DIRECTIONS[nextIndex];
+}
 
-  // Vertical mirror: flips horizontal direction, leaves vertical unchanged
-  if (orientation === "vertical") {
-    switch (direction) {
-      case "left": return "right" as BeamDirection;
-      case "right": return "left" as BeamDirection;
-      default: return direction;
-    }
-  }
-
-  return direction;
+export function directionAngle(direction: BeamDirection): number {
+  return CLOCKWISE_DIRECTIONS.indexOf(direction) * 90;
 }
 
 function directionDelta(direction: BeamDirection) {

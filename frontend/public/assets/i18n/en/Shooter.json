@@ -6,5 +6,9 @@
     "tutorial_5": "Hit every mineral before it reaches the bottom, || or you'll lose a life!",
     "tutorial_6": "Ready? || Let's do this.",
     "prepare_2": "New sample, faster beam — get ready!",
-    "prepare_3": "Final sample incoming — brace yourself!"
+    "prepare_3": "Final sample incoming — brace yourself!",
+    "hud_time": "Time: {seconds}s",
+    "result_level_clear": "Level clear",
+    "result_game_over": "Game Over",
+    "result_press_enter": "Press ENTER to return"
 }

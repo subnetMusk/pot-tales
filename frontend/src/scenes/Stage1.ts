@@ -1,10 +1,11 @@
 // You can write more code here
 import Player from "@/items/Main/Player";
 import PopupManager from "../items/UI/PopupManager";
-import { applyTranslations, launchSubScene, playSequence } from "../utils";
+import { applyTranslations, launchSubScene, playSequence, reloadTranslations } from "../utils";
 import {APISession, CreateSessionRequest} from "../network/APISession";
 
 import OggettoInterattivo from "../items/Main/OggettoInterattivo";
+import { ambientDrift } from "../items/ParticleFx";
 
 /* START OF COMPILED CODE */
 
@@ -68,13 +69,15 @@ class Stage1 extends Phaser.Scene {
 	// Stato del minigioco di memoria (serve per evitare riavvii multipli)
 	private isGraficoActive: boolean = false;
 
+	private loadedLang!: string;
+
 	preload() {
 		this.load.pack("stage1-pack", "assets/images/stage1-pack.json");
 		this.load.pack("player-pack", "assets/images/player-pack.json");
 		this.load.pack("icons-pack", "assets/images/icons-pack.json");
 
-		const lang = localStorage.getItem("lang") || "en";
-        this.load.json("stage1_i18n", `assets/i18n/${lang}/Stage1.json`);
+		this.loadedLang = localStorage.getItem("lang") || "en";
+        this.load.json("stage1_i18n", `assets/i18n/${this.loadedLang}/Stage1.json`);
 	}
 
 	create() {
@@ -114,6 +117,14 @@ class Stage1 extends Phaser.Scene {
 		// Applicazione delle traduzioni sui testi già presenti nella scena
 		const i18n = this.cache.json.get("stage1_i18n");
 		applyTranslations(this, i18n);
+
+		this.events.on("resume", () => {
+			const currentLang = localStorage.getItem("lang") || "en";
+			if (currentLang !== this.loadedLang) {
+				this.loadedLang = currentLang;
+				void reloadTranslations(this, "stage1_i18n", `assets/i18n/${currentLang}/Stage1.json`);
+			}
+		});
 
 		// Configurazione del giocatore
 		this.player.debug(false);
@@ -216,6 +227,7 @@ class Stage1 extends Phaser.Scene {
 	];
 	private currentLightIndex: number = 0;
 	private currentLight!: OggettoInterattivo;
+	private currentLightDrift?: Phaser.GameObjects.Particles.ParticleEmitter;
 	private lightInteraction = () => {
 		this.player.isMovementAllowed = false;
 		const i18n = this.cache.json.get("stage1_i18n");
@@ -236,6 +248,13 @@ class Stage1 extends Phaser.Scene {
 			duration: 500,
 			ease: "Linear"
 		});
+
+		// Beat di sorpresa sul player solo alla primissima luce; pulviscolo ambientale
+		// inquietante attorno alla luce invece è presente per ogni spawn.
+		if (this.currentLightIndex === 0) {
+			this.player.surprise();
+		}
+		const drift = ambientDrift(this, light.x, light.y, 40, 40, { tint: 0x661111, frequency: 800 });
 
 		// Configura l'interazione della luce basata sull'indice
 		if(this.currentLightIndex === 0) {
@@ -310,6 +329,8 @@ class Stage1 extends Phaser.Scene {
 		this.oggVector.push(light);
 		this.currentLightIndex++;
 
+		const previousDrift = this.currentLightDrift;
+
 		if(this.currentLight) {
 			let duration = 2500;
 
@@ -326,6 +347,9 @@ class Stage1 extends Phaser.Scene {
 					this.currentLight = light;
 
 					this.player.isMovementAllowed = true;
+
+					previousDrift?.stop();
+					this.time.delayedCall(4000, () => previousDrift?.destroy());
 				}
 			});
 
@@ -348,6 +372,8 @@ class Stage1 extends Phaser.Scene {
 		} else {
 			this.currentLight = light;
 		}
+
+		this.currentLightDrift = drift;
 
 		// Ripeti il pulse radar ogni 15 secondi finché la luce è attiva
 		this.time.addEvent({
@@ -414,6 +440,9 @@ class Stage1 extends Phaser.Scene {
 		// Mostra un messaggio di successo
 		const i18n = this.cache.json.get("stage1_i18n");
 		await playSequence(this.popupManager, [{ message: i18n.minigame_success_1, preset: "hint" }]);
+
+		// Primo oggetto sbloccato dalla storia: assegnato subito dopo il primo dialogo
+		this.player.addInventoryItem(2);
 
 		const secondPopupDone = playSequence(this.popupManager, [i18n.minigame_success_2]);
 
