@@ -61,28 +61,26 @@ button:active {
 }
 
 select {
-    color: #f0f8ff;
-    background-color: #81e249;
-    padding: 15px 40px 15px 40px;
+    color: #2a4d69;
+    background-color: transparent;
+    padding: 10px 24px;
     margin: 10px;
-    font-size: 20px;
+    font-size: 18px;
     font-family: 'Pixelify Sans', 'Segoe UI', Arial, sans-serif;
-    border: none;
-    box-shadow: 0px 5px black,
-                0px -5px black,
-                5px 0px black,
-                -5px 0px black,
-                0px 10px #00000038,
-                5px 5px #00000038,
-                -5px 5px #00000038,
-                inset 0px 5px #ffffff36;
+    border: 2px solid #2a4d69;
     appearance: none;
     border-radius: 0;
+    cursor: pointer;
+    transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+select:hover {
+    background-color: rgba(42, 77, 105, 0.1);
 }
 
 select:focus {
     outline: none;
-    background-color: #54cf0c;
+    background-color: rgba(42, 77, 105, 0.15);
 }
 
 select option {
@@ -98,12 +96,33 @@ select option {
     z-index: 1;
 }
 
-#game-container {
-    width: 100vw;
-    height: 100vh;
-    overflow: hidden;
+/* Shell "console" backdrop: fills whatever width remains on either side of
+   the 16:9 game frame. Static two-tone split, hard edge, no gradients/blur. */
+#app {
     position: fixed;
     top: 0;
     left: 0;
+    width: 100vw;
+    height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    background:
+        linear-gradient(to bottom,
+            #3a2f52 0%, #3a2f52 80%,
+            #564a72 80%, #564a72 calc(80% + 4px),
+            #7d7296 calc(80% + 4px), #7d7296 100%);
+}
+
+#game-container {
+    position: relative;
+    width: min(100vw, calc(100vh * 16 / 9));
+    height: min(100vh, calc(100vw * 9 / 16));
+    overflow: hidden;
     background-color: #121314;
+    box-shadow:
+        0 0 0 6px #2a2340,
+        0 0 0 10px #423a5c;
+    z-index: 1;
 }
