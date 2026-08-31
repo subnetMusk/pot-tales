@@ -40,6 +40,12 @@ genera kibana_encryption_key 48
 genera mongo_root_password 32
 genera redis_password 32
 genera crowdsec_bouncer_key 40
+# Token dell'intake APM. Lo stesso valore serve a due lati che devono
+# combaciare: la policy Fleet lo impone al server APM, il backend lo presenta a
+# ogni invio. Generarlo qui li tiene su un'unica fonte; se divergessero, il
+# backend continuerebbe a dichiarare "APM initialized" e le tracce sarebbero
+# rifiutate senza che nulla lo segnali.
+genera apm_secret_token 32
 
 mancanti=""
 for f in dashboard_users dashboard_users_esercizio dashboard_users_evento; do

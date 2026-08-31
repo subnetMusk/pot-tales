@@ -24,6 +24,11 @@ DASHBOARD_PASSWORD=${DASHBOARD_PASSWORD:-}
 # stack che nessuna platea deve poter effettuare.
 ADMIN_USER=${ADMIN_USER:-elastic}
 ADMIN_PASSWORD_FILE=${ADMIN_PASSWORD_FILE:-secrets/elastic_password}
+
+# Token dell'intake APM. E' lo stesso file che lo stack monta sul backend: la
+# verifica deve leggere la fonte, non un valore ripetuto altrove, altrimenti
+# proverebbe una credenziale che nessuno usa.
+APM_TOKEN_FILE=${APM_TOKEN_FILE:-secrets/apm_secret_token}
 KIBANA_INTERNAL_URL=${KIBANA_INTERNAL_URL:-http://kibana:5601/osservabilita}
 CURL_IMAGE=${CURL_IMAGE:-curlimages/curl:8.11.1@sha256:c1fe1679c34d9784c1b0d1e5f62ac0a79fca01fb6377cdd33e90473c6f9f9a69}
 STABILITY_SECONDS=${STABILITY_SECONDS:-30}
@@ -299,6 +304,76 @@ for agent in apm-agent infra-agent; do
   assert_contains "Fleet: $agent online" '"total":1' "$body"
   assert_contains "Fleet: hostname $agent" "\"hostname\":\"$agent\"" "$body"
 done
+
+# ---------------------------------------------------------------------------
+# Intake APM
+# ---------------------------------------------------------------------------
+# Il guasto che queste asserzioni intercettano e' silenzioso per costruzione:
+# l'agente Go non distingue una consegna da un rifiuto, quindi il backend
+# dichiara "APM monitoring" identicamente sia che le tracce arrivino sia che
+# vengano scartate. Senza un controllo esplicito la regressione si scopre da una
+# dashboard vuota, cioe' quando i dati servono e non ci sono piu'.
+#
+# Non si asserisce la presenza di tracce: subito dopo un deploy non c'e' stato
+# traffico, e un'asserzione che dipende dal carico sarebbe intermittente. Si
+# asseriscono invece le tre condizioni che rendono possibile la consegna.
+
+apm_intake_url="https://apm-agent:8200"
+
+server_env=$(docker service inspect "${STACK_NAME}_server" \
+  --format '{{range .Spec.TaskTemplate.ContainerSpec.Env}}{{println .}}{{end}}') ||
+  fail "lettura della specifica del servizio server non riuscita"
+
+# La destinazione e' `apm-agent`, non il Fleet Server: su quest'ultimo la porta
+# 8200 non ascolta, e in chiaro non ascolta nessuno dei due.
+assert_contains "backend: destinazione dell'intake APM" \
+  "ELASTIC_APM_SERVER_URL=$apm_intake_url" "$server_env"
+assert_contains "backend: CA per l'intake APM" \
+  "ELASTIC_APM_SERVER_CA_CERT_FILE=" "$server_env"
+
+server_secrets=$(docker service inspect "${STACK_NAME}_server" \
+  --format '{{range .Spec.TaskTemplate.ContainerSpec.Secrets}}{{println .File.Name}}{{end}}') ||
+  fail "lettura dei secret del servizio server non riuscita"
+assert_contains "backend: token dell'intake APM montato" \
+  "apm_secret_token" "$server_secrets"
+
+[ -r "$APM_TOKEN_FILE" ] || fail "token APM non leggibile: $APM_TOKEN_FILE"
+IFS= read -r apm_token < "$APM_TOKEN_FILE" || true
+[ -n "$apm_token" ] || fail "token APM vuoto"
+
+# Una sola riga di metadati e' un corpo valido per l'intake v2. Il ritorno a
+# capo finale fa parte del formato: senza, il server risponde 400 lamentando
+# metadati troncati, e l'esito dell'autenticazione resta indistinguibile.
+apm_metadata='{"metadata":{"service":{"name":"stack-verify","agent":{"name":"go","version":"2.0.0"},"language":{"name":"go"}}}}
+'
+
+apm_intake() {
+  docker run --rm --network "${STACK_NAME}_elastic" "$CURL_IMAGE" \
+    --silent --output /dev/null --write-out '%{http_code}' \
+    --insecure --connect-timeout 5 --max-time 30 \
+    -X POST "$apm_intake_url/intake/v2/events" \
+    -H 'Content-Type: application/x-ndjson' \
+    --data-binary "$apm_metadata" "$@"
+}
+
+# Il token e' imposto: una credenziale inventata non entra. E' l'asserzione che
+# distingue un intake protetto da uno che accetta qualunque cosa.
+codice=$(apm_intake -H 'Authorization: Bearer credenziale-non-valida') ||
+  fail "intake APM non raggiungibile"
+assert_equal "intake APM: rifiuta un token non valido" 401 "$codice"
+
+# Il token che il backend possiede e' accettato. E' l'asserzione che intercetta
+# la regressione vera: destinazione sbagliata o token disallineato si
+# manifestano qui, invece che in una dashboard vuota settimane dopo.
+codice=$(apm_intake -H "Authorization: Bearer $apm_token") ||
+  fail "intake APM non raggiungibile con il token"
+assert_equal "intake APM: accetta il token del backend" 202 "$codice"
+
+# Le richieste anonime sono accettate, e deve restare cosi': il RUM parte dal
+# browser, che non puo' custodire un segreto. Se questa asserzione cadesse, la
+# telemetria del gioco smetterebbe di arrivare senza alcun errore lato server.
+codice=$(apm_intake) || fail "intake APM non raggiungibile in anonimo"
+assert_equal "intake APM: accetta il RUM anonimo" 202 "$codice"
 
 get_service_container() {
   local service=$1 ids count id
