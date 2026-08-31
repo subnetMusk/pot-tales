@@ -18,7 +18,6 @@ del progetto (es. `./scripts/dev-reinstall.sh`). Usano l'unico file `.env` in ro
 |---|---|
 | `start-monitoring.sh` | Avvia lo stack `docker-compose.monitoring.yml` (richiede le reti create dallo stack dev). |
 | `stop-monitoring.sh` | Ferma il monitoring lasciando attiva l'app. |
-| `kibana-dashboard-manager.sh` | Export/import delle dashboard Kibana. |
 
 ## Database
 

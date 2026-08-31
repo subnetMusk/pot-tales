@@ -285,7 +285,7 @@ Prima del deployment produzione, eseguire pulizia sicura e intelligente:
 
 ```bash
 # Backup automatico delle dashboard personalizzate
-./scripts/kibana-dashboard-manager.sh export
+make dashboards-export SPAZIO=<spazio> NOME=<nome>
 
 # Pulizia selettiva preservando tutte le configurazioni
 ./scripts/cleanup.sh --production
@@ -311,7 +311,7 @@ Il nuovo `cleanup.sh` offre modalità multiple con backup automatici:
 - `.env` - Variabili ambiente (unico file in root)
 
 **Workflow Deployment**:
-1. **Dashboard Backup**: `./scripts/kibana-dashboard-manager.sh export`
+1. **Dashboard Backup**: `make dashboards-export SPAZIO=<spazio> NOME=<nome>`
 2. **Data Cleanup**: `./scripts/cleanup.sh --production`
 3. **Config Verification**: `./scripts/check-persistent-config.sh`
 4. **Production Deploy**: procedura non ancora definita, vedi

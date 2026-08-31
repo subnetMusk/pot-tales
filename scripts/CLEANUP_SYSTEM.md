@@ -44,26 +44,26 @@ Ricostruzione completa dell'ambiente di sviluppo usando il nuovo sistema central
 4.  Ricostruzione immagini Docker da zero
 5.  Avvio stack e verifica stato servizi
 
-### `scripts/kibana-dashboard-manager.sh` - Gestione Dashboard Kibana
+### Gestione delle dashboard Kibana
 
-Sistema completo per backup e ripristino delle dashboard Kibana personalizzate.
+Le dashboard non sono piu' gestite da uno script dedicato. L'export e' versionato
+nel repository e reimportato da Terraform, quindi ricrearle su un'istanza vuota
+non richiede un backup da custodire a parte.
 
 ```bash
-# Esporta dashboard correnti
-./scripts/kibana-dashboard-manager.sh export
+# Esporta i saved object di uno Space e li versiona
+make dashboards-export SPAZIO=esercizio NOME=salute-risorse
 
-# Importa dashboard da backup
-./scripts/kibana-dashboard-manager.sh import dashboard-backup.ndjson
+# Elenca gli export versionati e la versione di Kibana che li ha prodotti
+make dashboards-list
 
-# Importa ultimo backup disponibile
-./scripts/kibana-dashboard-manager.sh import-latest
-
-# Lista backup disponibili
-./scripts/kibana-dashboard-manager.sh list
-
-# Configura protezione negli script di pulizia
-./scripts/kibana-dashboard-manager.sh protect
+# Reimporta gli export applicando il modulo Terraform
+make dashboards-import
 ```
+
+Il dettaglio, compreso il vincolo di compatibilita' fra la versione che ha
+prodotto l'export e quella di destinazione, e' in
+[../terraform/elk/dashboards/README.md](../terraform/elk/dashboards/README.md).
 
 ## Struttura Backup e Protezione
 
@@ -110,7 +110,7 @@ docker compose -f docker-compose.dev.yml restart
 
 ```bash
 # Backup dashboard personalizzate
-./scripts/kibana-dashboard-manager.sh export
+make dashboards-export SPAZIO=<spazio> NOME=<nome>
 
 # Pulizia completa e ricostruzione
 ./scripts/dev-reinstall.sh
@@ -120,7 +120,7 @@ docker compose -f docker-compose.dev.yml restart
 
 ```bash
 # 1. Backup completo
-./scripts/kibana-dashboard-manager.sh export
+make dashboards-export SPAZIO=<spazio> NOME=<nome>
 
 # 2. Pulizia selettiva (preserva configurazioni)
 ./scripts/cleanup.sh --production
@@ -136,7 +136,7 @@ docker compose -f docker-compose.prod.yml ps
 
 ```bash
 # 1. Importa dashboard da backup
-./scripts/kibana-dashboard-manager.sh import-latest
+make dashboards-import
 
 # 2. Se necessario, ricostruzione completa
 ./scripts/dev-reinstall.sh
@@ -180,10 +180,10 @@ docker compose -f docker-compose.dev.yml up -d
 
 ```bash
 # 1. Lista backup disponibili
-./scripts/kibana-dashboard-manager.sh list
+make dashboards-list
 
 # 2. Importa backup
-./scripts/kibana-dashboard-manager.sh import-latest
+make dashboards-import
 
 # 3. Se nessun backup, ricrea dashboard manualmente
 ```
@@ -192,7 +192,7 @@ docker compose -f docker-compose.dev.yml up -d
 
 Prima del deployment in produzione, assicurati:
 
-- [ ]  **Backup dashboard**: `./scripts/kibana-dashboard-manager.sh export`
+- [ ]  **Backup dashboard**: `make dashboards-export SPAZIO=<spazio> NOME=<nome>`
 - [ ]  **Pulizia selettiva**: `./scripts/cleanup.sh --production`
 - [ ]  **Configurazioni verificate**: Kibana, NGINX, SSL ancora presenti
 - [ ]  **Credenziali aggiornate**: File `.env` con password produzione

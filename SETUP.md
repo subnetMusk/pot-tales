@@ -91,5 +91,6 @@ Prima di un deploy reale, rigenerare TUTTE le credenziali del `.env` (password
 Elastic/Kibana, token APM, password Redis, chiavi di encryption Kibana) e
 cifrarle con SOPS+age in `secrets/*.enc.env` (versionabile): flusso in
 [secrets/README.md](secrets/README.md). Vedi [MONITORING_SETUP.md](MONITORING_SETUP.md)
-per le fragilita note dello stack ELK e [terraform/README.md](terraform/README.md)
-per il provisioning dell'host.
+per le fragilita note dello stack ELK, [terraform/README.md](terraform/README.md)
+per la collocazione dello stato Terraform e [provisioning/README.md](provisioning/README.md)
+per l'installazione sull'host, che non e' provisionato da Terraform.
