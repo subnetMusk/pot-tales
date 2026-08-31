@@ -389,10 +389,16 @@ dashboards-export: ## Esporta i saved object di uno Space (SPAZIO=esercizio|even
 TF_NETWORK   ?= host
 TF_STATE_DIR ?= $(CURDIR)/terraform/elk
 
+# Gli endpoint vanno inoltrati come le credenziali. Senza, il modulo ricade sui
+# valori predefiniti (`kibana.localhost`), che non esistono da dentro la rete
+# dello stack: l'apply fallisce sulla risoluzione del nome, e l'errore parla di
+# DNS invece che di una variabile non trasmessa.
 TF_DASHBOARDS := $(DOCKER) run --rm --network $(TF_NETWORK) \
 	-v "$(CURDIR)/terraform/elk":/tf -w /tf \
 	-v "$(TF_STATE_DIR)":/stato \
 	-e TF_VAR_elastic_password -e TF_VAR_filebeat_password -e TF_VAR_apm_secret_token \
+	-e TF_VAR_elasticsearch_endpoint -e TF_VAR_kibana_endpoint -e TF_VAR_insecure_tls \
+	-e TF_VAR_utenze_esercizio -e TF_VAR_utenze_evento \
 	$(TERRAFORM_IMAGE)
 
 # Reimporta applicando il modulo. Le sole risorse toccate sono le importazioni,
@@ -401,7 +407,10 @@ TF_DASHBOARDS := $(DOCKER) run --rm --network $(TF_NETWORK) \
 dashboards-import: ## Reimporta gli export versionati applicando il modulo Terraform
 	@test -n "$$TF_VAR_elastic_password" || { echo "manca TF_VAR_elastic_password nell'ambiente"; exit 1; }
 	$(TF_DASHBOARDS) init -input=false -reconfigure -backend-config=path=/stato/terraform.tfstate
-	$(TF_DASHBOARDS) apply -input=false \
+	# `-input=false` senza `-auto-approve` e' una contraddizione: l'apply chiede
+	# comunque conferma, e con l'input disabilitato la domanda riceve EOF. Il
+	# piano resta stampato prima di applicare, quindi cio' che cambia si vede.
+	$(TF_DASHBOARDS) apply -input=false -auto-approve \
 		-target=elasticstack_kibana_import_saved_objects.esercizio \
 		-target=elasticstack_kibana_import_saved_objects.evento
 
