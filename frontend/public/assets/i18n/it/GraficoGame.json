@@ -10,7 +10,13 @@
     "peak_2": "Corretto! Questo picco corrisponde alla stiratura aromatica C=C / carbossilati.",
     "peak_2_you": "Aromatica? Ma.. non è ceramica?",
     "peak_3": "Incredibile! Stiratura Si—O—Si (Silicati)! Corrisponde ai legami silicio-ossigeno nella struttura cristallina delle argille cotte.",
+    "peak_1_lvl2": "TODO: spiegazione picco 1 per il campione 2",
+    "peak_2_lvl2": "TODO: spiegazione picco 2 per il campione 2",
+    "peak_3_lvl2": "TODO: spiegazione picco 3 per il campione 2",
+    "peak_1_lvl3": "TODO: spiegazione picco 1 per il campione 3",
+    "peak_2_lvl3": "TODO: spiegazione picco 2 per il campione 3",
     "miss": "Peccato, non hai individuato il picco corretto.|| Riprova!",
+    "level_complete": "Ottimo lavoro!|| Analizziamo il prossimo campione.",
     "victory": "Complimenti!|| Hai trovato tutti i picchi del grafico e completato il gioco!",
     "returning_1": "Che succede ora???"
 }

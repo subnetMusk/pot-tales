@@ -29,21 +29,8 @@
             ],
             "label": "player",
             "scope": "CLASS",
-            "x": 640,
-            "y": 519
-        },
-        {
-            "prefabId": "dfd624ad-310c-404d-96d2-d2307c3faaef",
-            "id": "3a886a57-9afb-4977-805a-14f857ba1dc2",
-            "unlock": [
-                "x",
-                "y"
-            ],
-            "label": "pool_center",
-            "displayName": "Pool Center",
-            "scope": "CLASS",
-            "x": 640,
-            "y": 360
+            "x": 169,
+            "y": 567
         }
     ],
     "plainObjects": [],
@@ -60,10 +47,7 @@
         },
         {
             "id": "0faa1bb6-ae3e-42d3-b705-54a31d0204aa",
-            "label": "oggVector",
-            "objectIds": [
-                "3a886a57-9afb-4977-805a-14f857ba1dc2"
-            ]
+            "label": "oggVector"
         }
     ]
 }

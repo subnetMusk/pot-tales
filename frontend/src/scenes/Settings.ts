@@ -1,6 +1,6 @@
 
 // You can write more code here
-import { applyTranslations } from "../utils";
+import { applyTranslations, setupPixelButton } from "../utils";
 import MenuBackground from "../items/UI/MenuBackground";
 import BackButton from "../items/UI/BackButton";
 import VolumeBar from "../items/UI/VolumeBar";
@@ -111,6 +111,14 @@ class Settings extends Phaser.Scene {
 
 	// Write your code here
 
+	// "english"/"italian" non hanno un .name assegnato in editorCreate(), quindi il testo
+	// del bottone va cercato per posizione (coincide con quella del suo Rectangle).
+	private findButtonText(rect: Phaser.GameObjects.Rectangle): Phaser.GameObjects.Text | undefined {
+		return this.children.list.find((obj): obj is Phaser.GameObjects.Text =>
+			obj instanceof Phaser.GameObjects.Text && Math.abs(obj.x - rect.x) < 5 && Math.abs(obj.y - rect.y) < 5
+		) as Phaser.GameObjects.Text | undefined;
+	}
+
 	preload() {
 		const lang = localStorage.getItem("lang") || "en";
 		this.load.json("settings_i18n", `assets/i18n/${lang}/Settings.json`);
@@ -121,14 +129,24 @@ class Settings extends Phaser.Scene {
 		const i18n = this.cache.json.get("settings_i18n");
     	applyTranslations(this, i18n);
 
+		// Stesso linguaggio visivo "8-bit" dei bottoni del Menu, ma con una tinta chiara
+		// (invece del navy scuro) dato che qui non c'è uno sfondo animato dietro al pannello.
+		const enText = this.findButtonText(this.enButton);
+		const itText = this.findButtonText(this.itButton);
+		enText?.setColor('#2a4d69');
+		itText?.setColor('#2a4d69');
+
+		// I due bottoni sono affiancati con solo 10px di distanza tra i Rectangle: senza
+		// inset il bordo+ombra del pannello li fa sembrare attaccati/sovrapposti.
+		const enPanel = setupPixelButton(this, this.enButton, { fillColor: 0xeaf2ff, hoverColor: 0xbfe0ff, text: enText, inset: 6 });
+		const itPanel = setupPixelButton(this, this.itButton, { fillColor: 0xeaf2ff, hoverColor: 0xbfe0ff, text: itText, inset: 6 });
+
 		switch(localStorage.getItem("lang") || "en"){
 			case "en":
-				this.enButton.isFilled = true;
-				this.enButton.setFillStyle(0x70bcff);
+				enPanel.setActive(true);
 				break;
 			case "it":
-				this.itButton.isFilled = true;
-				this.itButton.setFillStyle(0x70bcff);
+				itPanel.setActive(true);
 				break;
 		}
 
@@ -152,15 +170,7 @@ class Settings extends Phaser.Scene {
 		this.enButton.setInteractive();
 		this.itButton.setInteractive();
 
-		this.enButton.on('pointerdown', () => { this.enButton.setStrokeStyle(4, 0x00aaff); });
-		this.itButton.on('pointerdown', () => { this.itButton.setStrokeStyle(4, 0x00aaff); });
-
-		this.enButton.on('pointerover', () => { this.enButton.setStrokeStyle(4, 0x70bcff); });
-		this.itButton.on('pointerover', () => { this.itButton.setStrokeStyle(4, 0x70bcff); });
-
-		this.enButton.on('pointerout', () => { this.enButton.setStrokeStyle(2, 0xf0f8ff); });
-		this.itButton.on('pointerout', () => { this.itButton.setStrokeStyle(2, 0xf0f8ff); });
-
+		// hover/press feedback ora gestito da setupPixelButton()
 
 		this.enButton.on("pointerup", () => {
 			if(localStorage.getItem("lang") !== "en") {

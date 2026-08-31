@@ -10,7 +10,13 @@
     "peak_2": "Correct! This peak corresponds to aromatic C=C stretching / carboxylates. ",
     "peak_2_you": "Aromatic? But.. isn't this ceramics?",
     "peak_3": "Amazing! Stretching Si—O—Si (Silicates)! Corresponds to the silicon-oxygen bonds in the crystal lattice of fired clays.",
+    "peak_1_lvl2": "TODO: peak 1 explanation for sample 2",
+    "peak_2_lvl2": "TODO: peak 2 explanation for sample 2",
+    "peak_3_lvl2": "TODO: peak 3 explanation for sample 2",
+    "peak_1_lvl3": "TODO: peak 1 explanation for sample 3",
+    "peak_2_lvl3": "TODO: peak 2 explanation for sample 3",
     "miss": "Too bad, you didn't identify the correct peak.|| Try again!",
+    "level_complete": "Nice work!|| Let's analyze the next sample.",
     "victory": "Congratulations!|| You found all the peaks of the graph and completed the game!",
     "returning_1": "What's happening now???"
 }

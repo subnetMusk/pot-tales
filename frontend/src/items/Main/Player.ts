@@ -8,7 +8,7 @@ class Player extends Phaser.GameObjects.Container {
 		super(scene, x ?? 13, y ?? 8);
 
 		// player
-		const player = scene.add.sprite(0, 0, "player_idle", 1) as Phaser.GameObjects.Sprite & { body: Phaser.Physics.Arcade.Body };
+		const player = scene.add.sprite(0, 0, "Ch_front", 0) as Phaser.GameObjects.Sprite & { body: Phaser.Physics.Arcade.Body };
 		scene.physics.add.existing(player, false);
 		player.body.setSize(32, 32, false);
 		this.add(player);
@@ -59,12 +59,16 @@ class Player extends Phaser.GameObjects.Container {
 
 		// darkMask
 		const darkMask = scene.add.image(0, 0, "darkMask");
-		darkMask.alpha = 0.5;
-		darkMask.alphaTopLeft = 0.5;
-		darkMask.alphaTopRight = 0.5;
-		darkMask.alphaBottomLeft = 0.5;
-		darkMask.alphaBottomRight = 0.5;
+		darkMask.alpha = 0.75;
+		darkMask.alphaTopLeft = 0.75;
+		darkMask.alphaTopRight = 0.75;
+		darkMask.alphaBottomLeft = 0.75;
+		darkMask.alphaBottomRight = 0.75;
 		this.add(darkMask);
+
+		// playerUi
+		const playerUi = scene.add.image(-64, -54, "player_ui");
+		this.add(playerUi);
 
 		this.player = player;
 		this.bottomBound = bottomBound;
@@ -76,6 +80,7 @@ class Player extends Phaser.GameObjects.Container {
 		this.bLBound = bLBound;
 		this.bRBound = bRBound;
 		this.darkMask = darkMask;
+		this.playerUi = playerUi;
 
 		/* START-USER-CTR-CODE */
 		if (this.scene.input && this.scene.input.keyboard) {
@@ -112,6 +117,7 @@ class Player extends Phaser.GameObjects.Container {
 	private bLBound: Phaser.GameObjects.Rectangle;
 	private bRBound: Phaser.GameObjects.Rectangle;
 	private darkMask: Phaser.GameObjects.Image;
+	private playerUi: Phaser.GameObjects.Image;
 
 	/* START-USER-CODE */
 	private stepSize: number = 8;					// Grandezza del passo
@@ -129,6 +135,7 @@ class Player extends Phaser.GameObjects.Container {
 	private Ikey?: Phaser.Input.Keyboard.Key;
 
 	boundaries : Phaser.GameObjects.Rectangle[] = [];
+	private slowAreas: Array<{ zone: Phaser.GameObjects.Rectangle | Phaser.GameObjects.Sprite | Phaser.GameObjects.Image; multiplier: number }> = [];
 
 	lastMoveTime: number = 0;						// Tempo dell'ultimo movimento (per l'effetto a bassi fps)
 	lastStep: boolean = false;						// Ultima textura usata
@@ -145,12 +152,11 @@ class Player extends Phaser.GameObjects.Container {
 	private createPlayerAnimations() {
 		const anims = this.scene.anims;
 
-		// Idle animations
-		// player_idle frames: [side, down1, down2, up]
+		// Idle animations (standing frame of each direction's sheet)
 		if (!anims.exists('idle_side')) {
 			anims.create({
 				key: 'idle_side',
-				frames: [{ key: 'player_idle', frame: 0 }],
+				frames: [{ key: 'Ch_side', frame: 0 }],
 				frameRate: 1,
 				repeat: -1
 			});
@@ -159,7 +165,7 @@ class Player extends Phaser.GameObjects.Container {
 		if (!anims.exists('idle_front')) {
 			anims.create({
 				key: 'idle_front',
-				frames: [{ key: 'player_idle', frame: 1 }],
+				frames: [{ key: 'Ch_front', frame: 0 }],
 				frameRate: 1,
 				repeat: -1
 			});
@@ -168,7 +174,7 @@ class Player extends Phaser.GameObjects.Container {
 		if (!anims.exists('idle_back')) {
 			anims.create({
 				key: 'idle_back',
-				frames: [{ key: 'player_idle', frame: 3 }],
+				frames: [{ key: 'Ch_back', frame: 0 }],
 				frameRate: 1,
 				repeat: -1
 			});
@@ -178,8 +184,8 @@ class Player extends Phaser.GameObjects.Container {
 		if (!anims.exists('walk_down')) {
 			anims.create({
 				key: 'walk_down',
-				frames: anims.generateFrameNumbers('player_walk_down', { start: 0, end: -1 }),
-				frameRate: 15,
+				frames: anims.generateFrameNumbers('Ch_front', { start: 0, end: -1 }),
+				frameRate: 8,
 				repeat: -1
 			});
 		}
@@ -188,8 +194,8 @@ class Player extends Phaser.GameObjects.Container {
 		if (!anims.exists('walk_side')) {
 			anims.create({
 				key: 'walk_side',
-				frames: anims.generateFrameNumbers('player_walk_side', { start: 0, end: -1 }),
-				frameRate: 15,
+				frames: anims.generateFrameNumbers('Ch_side', { start: 0, end: -1 }),
+				frameRate: 8,
 				repeat: -1
 			});
 		}
@@ -198,14 +204,14 @@ class Player extends Phaser.GameObjects.Container {
 		if (!anims.exists('walk_up')) {
 			anims.create({
 				key: 'walk_up',
-				frames: anims.generateFrameNumbers('player_walk_up', { start: 0, end: -1 }),
-				frameRate: 15,
+				frames: anims.generateFrameNumbers('Ch_back', { start: 0, end: -1 }),
+				frameRate: 8,
 				repeat: -1
 			});
 		}
 	}
 
-	// Check dell'overlap fra due rettangoli ᓚᘏᗢ 
+	// Check dell'overlap fra due rettangoli ᓚᘏᗢ
 	private checkOverlap(rect1: Phaser.GameObjects.Rectangle, rect2: Phaser.GameObjects.Rectangle): boolean {
 		const rect1WorldX = this.x + rect1.x;
 		const rect1WorldY = this.y + rect1.y;
@@ -223,6 +229,42 @@ class Player extends Phaser.GameObjects.Container {
 			rect2.height
 		);
 		return Phaser.Geom.Rectangle.Overlaps(bounds1, bounds2);
+	}
+
+	// True se bound sovrappone un qualsiasi boundary della scena (movimento cardinale bloccato)
+	private isBlockedInDirection(bound: Phaser.GameObjects.Rectangle): boolean {
+		for (const boundary of this.boundaries) {
+			if (this.checkOverlap(bound, boundary)) return true;
+		}
+		return false;
+	}
+
+	// Risolve la collisione diagonale controllando TUTTI i boundary (non solo il primo che
+	// trova), così due boundary distinti possono azzerare dx e dy indipendentemente,
+	// esattamente come nel controllo cardinale-per-cardinale precedente.
+	private resolveDiagonalCollision(
+		cornerBound: Phaser.GameObjects.Rectangle,
+		axisXBound: Phaser.GameObjects.Rectangle,
+		axisYBound: Phaser.GameObjects.Rectangle,
+		dx: number,
+		dy: number
+	): { dx: number; dy: number } {
+		for (const boundary of this.boundaries) {
+			if (!this.checkOverlap(cornerBound, boundary)) continue;
+
+			const hitX = this.checkOverlap(axisXBound, boundary);
+			const hitY = this.checkOverlap(axisYBound, boundary);
+
+			if (hitX && !hitY) {
+				dx = 0;						// Solo collisione laterale
+			} else if (hitY && !hitX) {
+				dy = 0;						// Solo collisione verticale
+			} else {
+				dx = 0;						// Collisione con angolo
+				dy = 0;
+			}
+		}
+		return { dx, dy };
 	}
 
 	// Passaggio della lista dei boundaries dalla scena al player
@@ -258,9 +300,49 @@ class Player extends Phaser.GameObjects.Container {
 		if (this.BoundsDebug) console.log("Caricati i boundaries");
 	}
 
+	// Registra aree in cui il player si muove più lentamente
+	public setSlowAreas(areas: Object[]) {
+		this.slowAreas = [];
+
+		for (const area of areas) {
+			const candidate = area as any;
+			const zone = candidate.zone ?? candidate;
+			const multiplier = Phaser.Math.Clamp(candidate.multiplier ?? 0.5, 0.1, 1);
+
+			if (zone instanceof Phaser.GameObjects.Rectangle ||
+				zone instanceof Phaser.GameObjects.Sprite ||
+				zone instanceof Phaser.GameObjects.Image) {
+				this.slowAreas.push({ zone, multiplier });
+			}
+		}
+	}
+
+	private isPlayerInsideZone(zone: Phaser.GameObjects.Rectangle | Phaser.GameObjects.Sprite | Phaser.GameObjects.Image): boolean {
+		const playerBounds = this.getBounds();
+		const zoneBounds = zone.getBounds();
+		return Phaser.Geom.Rectangle.Overlaps(playerBounds, zoneBounds);
+	}
+
+	private getMovementMultiplier(): number {
+		let multiplier = 1;
+
+		for (const area of this.slowAreas) {
+			if (this.isPlayerInsideZone(area.zone)) {
+				multiplier = Math.min(multiplier, area.multiplier);
+			}
+		}
+
+		return multiplier;
+	}
+
 	// Disabilita l'effetto della torica
 	public flashlight(state : boolean) {
 		this.darkMask.visible = state;
+	}
+
+	// Abilita o disabilita la player ui
+	public playerUiVisible(state: boolean) {
+		this.playerUi.visible = state;
 	}
 
 	public debug(v : boolean) {
@@ -282,139 +364,61 @@ class Player extends Phaser.GameObjects.Container {
         // Condizioni per il movimento:
         if (!this.movementAllowed) return;                          // Input deve essere abilitato
         if (this.player.body === null) return;                      // Player non deve essere null
-        if (time - this.lastMoveTime < this.stepDelay) return;      // Passato il tempo minimo dal passo precedente
+
+		const movementMultiplier = this.getMovementMultiplier();
+		this.player.anims.timeScale = movementMultiplier;
+        const effectiveStepDelay = this.stepDelay / movementMultiplier;
+        if (time - this.lastMoveTime < effectiveStepDelay) return;      // Passato il tempo minimo dal passo precedente
 
         let dx = 0;                                         // Spostamento orizzontale
         let dy = 0;                                         // Spostamento verticale
         let moving = false;                                 // Stato del movimento
 
+		const effectiveStepSize = this.stepSize * movementMultiplier;
+
         if (this.upKey.isDown && !this.downKey.isDown) {            // Freccia sù
-            dy = -this.stepSize;                                    // Spostamento
+            dy = -effectiveStepSize;                                    // Spostamento
             this.direction = "back";                                // Nuova direzione
             moving = true;                                          // Aggiornamento stato
 
-            // Controllo collisioni
-            if (this.boundaries.length > 0) for (let bound of this.boundaries) {
-                if (this.checkOverlap(this.topBound, bound)) {      // Collisione
-                    dy = 0;                                         // Annullo il movimento
-                    break;
-                }
-            }
+            if (this.isBlockedInDirection(this.topBound)) dy = 0;      // Collisione: annullo il movimento
         } else if (this.downKey.isDown && !this.upKey.isDown) {
-            dy = this.stepSize;                                     // Spostamento
+            dy = effectiveStepSize;                                     // Spostamento
             this.direction = "front";                               // Nuova direzione
             moving = true;                                          // Aggiornamento stato
 
-            // Controllo collisioni
-            if (this.boundaries.length > 0) for (let bound of this.boundaries) {
-                if (this.checkOverlap(this.bottomBound, bound)) {   // Collisione
-                    dy = 0;                                         // Annullo il movimento
-                    break;
-                }
-            }
+            if (this.isBlockedInDirection(this.bottomBound)) dy = 0;   // Collisione: annullo il movimento
         }
 
         // Input orizzontale
         if (this.leftKey.isDown && !this.rightKey.isDown) {
-            dx = -this.stepSize;                                    // Spostamento
+            dx = -effectiveStepSize;                                    // Spostamento
             this.direction = "side";                                // Nuova direzione
             this.player.setFlipX(false);                      		// Flip della texture
             moving = true;                                          // Aggiornamento stato
 
-            // Controllo collisioni
-            if (this.boundaries.length > 0) for (let bound of this.boundaries) {
-                if (this.checkOverlap(this.leftBound, bound)) {      // Collisione
-                    dx = 0;                                          // Annullo il movimento
-                    break;
-                }
-            }
+            if (this.isBlockedInDirection(this.leftBound)) dx = 0;     // Collisione: annullo il movimento
         } else if (this.rightKey.isDown && !this.leftKey.isDown) {
-            dx = this.stepSize;                                    	// Spostamento
+            dx = effectiveStepSize;                                    	// Spostamento
             this.direction = "side";                                // Nuova direzione
             this.player.setFlipX(true);                      		// Flip della texture
             moving = true;                                          // Aggiornamento stato
 
-            // Controllo collisioni
-            if (this.boundaries.length > 0) for (let bound of this.boundaries) {
-                if (this.checkOverlap(this.rightBound, bound)) {    // Collisione
-                    dx = 0;                                         // Annullo il movimento
-                    break;
-                }
-            }
+            if (this.isBlockedInDirection(this.rightBound)) dx = 0;    // Collisione: annullo il movimento
         }
 
         // Input diagonale
         if (this.rightKey.isDown && this.downKey.isDown) {
-            if (this.boundaries.length !== 0) for (const boundary of this.boundaries) {
-                const overlaps = this.checkOverlap(this.bRBound, boundary);
-                if (!overlaps) continue;                			// Se non c'è overlap salto la prossima parte
-
-                const hitRight = this.checkOverlap(this.rightBound, boundary);
-                const hitBottom = this.checkOverlap(this.bottomBound, boundary);
-
-                if (hitRight && !hitBottom) {
-                    dx = 0;                             			// Solo collisione laterale
-                } else if (hitBottom && !hitRight) {
-                    dy = 0;                             			// Solo collisione verticale
-                } else {
-                    dx = 0;                             			// Collisione con angolo
-                    dy = 0;
-                }
-            }
+            ({ dx, dy } = this.resolveDiagonalCollision(this.bRBound, this.rightBound, this.bottomBound, dx, dy));
         }
         if (this.rightKey.isDown && this.upKey.isDown) {
-            if (this.boundaries.length !== 0) for (const boundary of this.boundaries) {
-                const overlaps = this.checkOverlap(this.tRBound, boundary);
-                if (!overlaps) continue;                			// Se non c'è overlap salto la prossima parte
-
-                const hitRight = this.checkOverlap(this.rightBound, boundary);
-                const hitBottom = this.checkOverlap(this.topBound, boundary);
-
-                if (hitRight && !hitBottom) {
-                    dx = 0;                             // Solo collisione laterale
-                } else if (hitBottom && !hitRight) {
-                    dy = 0;                             // Solo collisione verticale
-                } else {
-                    dx = 0;                             // Collisione con angolo
-                    dy = 0;
-                }
-            }
+            ({ dx, dy } = this.resolveDiagonalCollision(this.tRBound, this.rightBound, this.topBound, dx, dy));
         }
         if (this.leftKey.isDown && this.downKey.isDown) {
-            if (this.boundaries.length !== 0) for (const boundary of this.boundaries) {
-                const overlaps = this.checkOverlap(this.bLBound, boundary);
-                if (!overlaps) continue;                // Se non c'è overlap salto la prossima parte
-
-                const hitRight = this.checkOverlap(this.leftBound, boundary);
-                const hitBottom = this.checkOverlap(this.bottomBound, boundary);
-
-                if (hitRight && !hitBottom) {
-                    dx = 0;                             // Solo collisione laterale
-                } else if (hitBottom && !hitRight) {
-                    dy = 0;                             // Solo collisione verticale
-                } else {
-                    dx = 0;                             // Collisione con angolo
-                    dy = 0;
-                }
-            }
+            ({ dx, dy } = this.resolveDiagonalCollision(this.bLBound, this.leftBound, this.bottomBound, dx, dy));
         }
         if (this.leftKey.isDown && this.upKey.isDown) {
-            if (this.boundaries.length !== 0) for (const boundary of this.boundaries) {
-                const overlaps = this.checkOverlap(this.tLBound, boundary);
-                if (!overlaps) continue;                // Se non c'è overlap salto la prossima parte
-
-                const hitRight = this.checkOverlap(this.leftBound, boundary);
-                const hitBottom = this.checkOverlap(this.topBound, boundary);
-
-                if (hitRight && !hitBottom) {
-                    dx = 0;                             // Solo collisione laterale
-                } else if (hitBottom && !hitRight) {
-                    dy = 0;                             // Solo collisione verticale
-                } else {
-                    dx = 0;                             // Collisione con angolo
-                    dy = 0;
-                }
-            }
+            ({ dx, dy } = this.resolveDiagonalCollision(this.tLBound, this.leftBound, this.topBound, dx, dy));
         }
         // Se non mi sto muovendo carico la texture stazionaria
         if (!moving) {

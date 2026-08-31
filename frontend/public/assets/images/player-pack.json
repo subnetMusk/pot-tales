@@ -2,25 +2,7 @@
     "section1": {
         "files": [
             {
-                "url": "assets/images/backgrounds/darkMask.png",
-                "type": "image",
-                "key": "darkMask"
-            },
-            {
-                "url": "assets/images/characters/player_idle.png",
-                "frameConfig": {
-                    "frameWidth": 32,
-                    "frameHeight": 32,
-                    "startFrame": 0,
-                    "endFrame": -1,
-                    "spacing": 0,
-                    "margin": 0
-                },
-                "type": "spritesheet",
-                "key": "player_idle"
-            },
-            {
-                "url": "assets/images/characters/player_idle64.png",
+                "url": "assets/images/characters/v1/player_idle64.png",
                 "frameConfig": {
                     "frameWidth": 64,
                     "frameHeight": 64,
@@ -33,33 +15,7 @@
                 "key": "big_player_idle"
             },
             {
-                "url": "assets/images/characters/player_walk_down.png",
-                "frameConfig": {
-                    "frameWidth": 32,
-                    "frameHeight": 32,
-                    "startFrame": 0,
-                    "endFrame": -1,
-                    "spacing": 0,
-                    "margin": 0
-                },
-                "type": "spritesheet",
-                "key": "player_walk_down"
-            },
-            {
-                "url": "assets/images/characters/player_walk_side.png",
-                "frameConfig": {
-                    "frameWidth": 32,
-                    "frameHeight": 32,
-                    "startFrame": 0,
-                    "endFrame": -1,
-                    "spacing": 0,
-                    "margin": 0
-                },
-                "type": "spritesheet",
-                "key": "player_walk_side"
-            },
-            {
-                "url": "assets/images/characters/player_walk_side64.png",
+                "url": "assets/images/characters/v1/player_walk_side64.png",
                 "frameConfig": {
                     "frameWidth": 64,
                     "frameHeight": 64,
@@ -72,17 +28,53 @@
                 "key": "big_player_walk_side"
             },
             {
-                "url": "assets/images/characters/player_walk_up.png",
+                "url": "assets/images/characters/v2/Ch_back.png",
                 "frameConfig": {
-                    "frameWidth": 32,
-                    "frameHeight": 32,
+                    "frameWidth": 18,
+                    "frameHeight": 28,
                     "startFrame": 0,
                     "endFrame": -1,
                     "spacing": 0,
                     "margin": 0
                 },
                 "type": "spritesheet",
-                "key": "player_walk_up"
+                "key": "Ch_back"
+            },
+            {
+                "url": "assets/images/characters/v2/Ch_front.png",
+                "frameConfig": {
+                    "frameWidth": 18,
+                    "frameHeight": 28,
+                    "startFrame": 0,
+                    "endFrame": -1,
+                    "spacing": 0,
+                    "margin": 0
+                },
+                "type": "spritesheet",
+                "key": "Ch_front"
+            },
+            {
+                "url": "assets/images/characters/v2/Ch_side.png",
+                "frameConfig": {
+                    "frameWidth": 18,
+                    "frameHeight": 28,
+                    "startFrame": 0,
+                    "endFrame": -1,
+                    "spacing": 0,
+                    "margin": 0
+                },
+                "type": "spritesheet",
+                "key": "Ch_side"
+            },
+            {
+                "url": "assets/images/backgrounds/darkMask.png",
+                "type": "image",
+                "key": "darkMask"
+            },
+            {
+                "url": "assets/images/ui/player_ui.png",
+                "type": "image",
+                "key": "player_ui"
             }
         ]
     },

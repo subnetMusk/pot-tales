@@ -1,6 +1,12 @@
 {
     "section1": {
-        "files": []
+        "files": [
+            {
+                "url": "assets/images/backgrounds/stage3.png",
+                "type": "image",
+                "key": "stage3"
+            }
+        ]
     },
     "meta": {
         "app": "Phaser Editor 2D - Asset Pack Editor",

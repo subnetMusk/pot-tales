@@ -2,7 +2,37 @@
     "section1": {
         "files": [
             {
-                "url": "assets/images/backgrounds/bg-stage2.png",
+                "url": "assets/images/backgrounds/Shooter/5063_4.png",
+                "type": "image",
+                "key": "lvl1_bg"
+            },
+            {
+                "url": "assets/images/backgrounds/Shooter/5063_5.png",
+                "type": "image",
+                "key": "lvl2_bg"
+            },
+            {
+                "url": "assets/images/backgrounds/Shooter/5063_6.png",
+                "type": "image",
+                "key": "lvl3_bg"
+            },
+            {
+                "url": "assets/images/backgrounds/Shooter/5063_4_flip.png",
+                "type": "image",
+                "key": "lvl1_bg_flip"
+            },
+            {
+                "url": "assets/images/backgrounds/Shooter/5063_5_flip.png",
+                "type": "image",
+                "key": "lvl2_bg_flip"
+            },
+            {
+                "url": "assets/images/backgrounds/Shooter/5063_6_flip.png",
+                "type": "image",
+                "key": "lvl3_bg_flip"
+            },
+            {
+                "url": "assets/images/backgrounds/stage2.png",
                 "type": "image",
                 "key": "bg-stage2"
             },
@@ -18,6 +48,77 @@
                 },
                 "type": "spritesheet",
                 "key": "card"
+            },
+            {
+                "url": "assets/images/items/electron.png",
+                "frameConfig": {
+                    "frameWidth": 6,
+                    "frameHeight": 10,
+                    "startFrame": 0,
+                    "endFrame": -1,
+                    "spacing": 0,
+                    "margin": 0
+                },
+                "type": "spritesheet",
+                "key": "electron"
+            },
+            {
+                "url": "assets/images/items/electron_gun.png",
+                "frameConfig": {
+                    "frameWidth": 32,
+                    "frameHeight": 32,
+                    "startFrame": 0,
+                    "endFrame": -1,
+                    "spacing": 0,
+                    "margin": 0
+                },
+                "type": "spritesheet",
+                "key": "electron_gun"
+            },
+            {
+                "url": [
+                    "assets/sfx/gears.mp3"
+                ],
+                "type": "audio",
+                "key": "gears"
+            },
+            {
+                "url": "assets/images/items/minerals.png",
+                "frameConfig": {
+                    "frameWidth": 16,
+                    "frameHeight": 16,
+                    "startFrame": 0,
+                    "endFrame": -1,
+                    "spacing": 0,
+                    "margin": 0
+                },
+                "type": "spritesheet",
+                "key": "minerals"
+            },
+            {
+                "url": "assets/images/items/SEM-Probe.png",
+                "frameConfig": {
+                    "frameWidth": 32,
+                    "frameHeight": 40,
+                    "startFrame": 0,
+                    "endFrame": -1,
+                    "spacing": 0,
+                    "margin": 0
+                },
+                "type": "spritesheet",
+                "key": "SEM-Probe"
+            },
+            {
+                "url": "assets/images/ui/shooter_screen.png",
+                "type": "image",
+                "key": "shooter_screen"
+            },
+            {
+                "url": [
+                    "assets/sfx/steam.mp3"
+                ],
+                "type": "audio",
+                "key": "steam"
             }
         ]
     },
