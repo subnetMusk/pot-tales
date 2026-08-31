@@ -20,6 +20,20 @@
 #
 #   ./fleet-bootstrap.sh
 #
+# Le utenze delle due platee di osservabilita' si passano come mappe HCL, e sono
+# create dallo stesso apply che genera i token. Omettendole, Space e ruoli
+# esistono ma nessuno puo' accedervi:
+#
+#   TF_VAR_utenze_esercizio='{"operatore" = "..."}' \
+#   TF_VAR_utenze_evento='{"divulgazione" = "..."}' \
+#     ./fleet-bootstrap.sh
+#
+# Nome e password devono coincidere con le righe dei corrispondenti elenchi
+# htpasswd in `secrets/`: il bordo verifica la credenziale e lascia passare
+# l'intestazione di autorizzazione, quindi la stessa credenziale autentica poi
+# l'utente su Kibana. Il disallineamento non e' rilevabile dal modulo, perche'
+# gli elenchi htpasswd contengono impronte e non password.
+#
 # Due destinazioni possibili per i token, secondo come gira lo stack:
 #
 #   file    file di ambiente locali, letti come env_file dai servizi Compose
@@ -58,6 +72,16 @@ WAIT_TIMEOUT=${WAIT_TIMEOUT:-300}
 # renderebbe inutilizzabili i target che girano sull'immagine ancorata.
 TF_IMAGE=${TF_IMAGE:-hashicorp/terraform:1.9@sha256:18f9986038bbaf02cf49db9c09261c778161c51dcc7fb7e355ae8938459428cd}
 CURL_IMAGE=${CURL_IMAGE:-curlimages/curl:8.11.1@sha256:c1fe1679c34d9784c1b0d1e5f62ac0a79fca01fb6377cdd33e90473c6f9f9a69}
+
+# Lo stato di Terraform vive fuori dalla copia di lavoro. Senza
+# `-backend-config` il backend locale dichiarato vuoto scrive `terraform.tfstate`
+# nella directory del modulo, cioe' dentro il checkout: un `git clean` o una
+# ridistribuzione lo cancellerebbero, e il file contiene in chiaro tutti i valori
+# dichiarati `sensitive`, password delle utenze comprese.
+#
+# I permessi sono ristretti alla creazione perche' dopo il primo apply e' tardi:
+# il file esiste gia' e lo ha letto chiunque potesse attraversare la directory.
+TF_STATE_DIR=${TF_STATE_DIR:-/var/lib/pi-terraform/elk}
 
 if [ -n "${STACK_NAME:-}" ]; then
   # Il base path fa parte dell'indirizzo anche all'interno: Kibana e' servita su
@@ -99,15 +123,37 @@ kbn() {
   fi
 }
 
+# La directory dei secret e' la fonte autorevole: e' da li' che lo stack monta i
+# valori con cui i servizi si sono avviati. `.env` resta come ripiego per lo
+# sviluppo con Compose, ma viene dopo: quando i due divergono, e' quello dei
+# secret il valore che Elasticsearch accetta, e usare l'altro produce un 401 che
+# sembra un guasto di Kibana.
+SECRETS_DIR=${SECRETS_DIR:-secrets}
+
+leggi_secret() {
+  local nome=$1
+  [ -s "$SECRETS_DIR/$nome" ] || return 1
+  tr -d '\r\n' < "$SECRETS_DIR/$nome"
+}
+
 if [ -z "${ELASTIC_PASSWORD:-}" ]; then
-  # Ripiego sul file di ambiente, che e' dove la password vive normalmente.
-  if [ -f .env ]; then
-    ELASTIC_PASSWORD=$(grep -E '^ELASTIC_PASSWORD=' .env | head -1 | cut -d= -f2-)
-  fi
+  ELASTIC_PASSWORD=$(leggi_secret elastic_password || true)
+fi
+if [ -z "${ELASTIC_PASSWORD:-}" ] && [ -f .env ]; then
+  ELASTIC_PASSWORD=$(grep -E '^ELASTIC_PASSWORD=' .env | head -1 | cut -d= -f2-)
 fi
 if [ -z "${ELASTIC_PASSWORD:-}" ]; then
-  log "ELASTIC_PASSWORD non impostata e non ricavabile da .env"
+  log "ELASTIC_PASSWORD non impostata e non ricavabile da $SECRETS_DIR o da .env"
   exit 1
+fi
+
+# Il token dell'intake APM deve essere lo stesso che il backend presenta. Il
+# backend lo legge dal secret montato, quindi la policy Fleet va costruita sullo
+# stesso file: passarne uno diverso farebbe rifiutare ogni traccia senza che
+# l'agente lo segnali.
+if [ -z "${TF_VAR_apm_secret_token:-}" ]; then
+  TF_VAR_apm_secret_token=$(leggi_secret apm_secret_token || true)
+  [ -n "$TF_VAR_apm_secret_token" ] && export TF_VAR_apm_secret_token
 fi
 
 # ------------------------------------------------------------------ 1. attesa
@@ -146,11 +192,17 @@ tf() {
   # equivale a ometterla: Terraform la considera impostata e sostituisce il
   # valore predefinito dichiarato dal modulo con la stringa vuota, quindi il
   # provider si troverebbe senza endpoint.
+  # Le due mappe delle utenze vanno trasmesse qui: senza, l'apply crea gli Space
+  # e i ruoli ma nessuna utenza, e le dashboard restano irraggiungibili anche
+  # superando il basicAuth del bordo. Le password devono coincidere con quelle
+  # negli elenchi htpasswd, perche' Traefik non rimuove l'intestazione di
+  # autorizzazione e la stessa credenziale autentica su Kibana.
   local ambiente=()
   local nome
   for nome in TF_VAR_elasticsearch_endpoint TF_VAR_kibana_endpoint \
               TF_VAR_filebeat_password TF_VAR_apm_secret_token \
-              TF_VAR_insecure_tls; do
+              TF_VAR_insecure_tls \
+              TF_VAR_utenze_esercizio TF_VAR_utenze_evento; do
     if [ -n "${!nome:-}" ]; then
       ambiente+=(-e "$nome=${!nome}")
     fi
@@ -158,12 +210,40 @@ tf() {
 
   MSYS_NO_PATHCONV=1 docker run --rm --network "$TF_NETWORK" \
     -v "$(pwd)/$TF_DIR:/tf" -w /tf \
+    -v "$TF_STATE_DIR:/stato" \
     -e "TF_VAR_elastic_password=$ELASTIC_PASSWORD" \
     "${ambiente[@]}" \
     "$TF_IMAGE" "$@"
 }
 
-tf init -input=false >/dev/null
+if [ ! -d "$TF_STATE_DIR" ]; then
+  log "creo la directory di stato $TF_STATE_DIR"
+  mkdir -p "$TF_STATE_DIR"
+  chmod 700 "$TF_STATE_DIR"
+fi
+
+# Uno stato nella directory del modulo e' il residuo di un'inizializzazione
+# senza percorso esplicito. Terraform lo rileva e chiede di migrarlo, ma non
+# puo' chiederlo con l'input disabilitato: si fermerebbe qui con un messaggio
+# che parla di input interattivo e non della causa.
+#
+# La decisione non e' automatizzabile. Migrare sovrascriverebbe lo stato
+# operativo con uno piu' vecchio; cancellare butterebbe l'unico registro delle
+# risorse create da quell'esecuzione. Chi interviene deve guardare le date.
+if [ -f "$TF_DIR/terraform.tfstate" ]; then
+  log "stato residuo dentro la copia di lavoro: $TF_DIR/terraform.tfstate"
+  log "  Va spostato o rimosso prima di proseguire. Contiene in chiaro i valori"
+  log "  dichiarati sensibili, quindi non allegarlo a segnalazioni e non copiarlo"
+  log "  fuori dalla macchina. Lo stato in servizio e' in $TF_STATE_DIR."
+  exit 1
+fi
+
+# `-reconfigure` perche' la directory del modulo conserva la configurazione del
+# backend fra un'esecuzione e l'altra, e `make terraform-validate` vi lascia
+# quella di `-backend=false`. Senza, l'inizializzazione successiva si interrompe
+# chiedendo di migrare uno stato che non esiste. Il percorso e' sempre lo stesso,
+# quindi non c'e' nulla da migrare: c'e' una sola collocazione valida.
+tf init -input=false -reconfigure -backend-config=path=/stato/terraform.tfstate >/dev/null
 tf apply -input=false -auto-approve >/dev/null
 
 # --------------------------------------------------------------------- 4. token
