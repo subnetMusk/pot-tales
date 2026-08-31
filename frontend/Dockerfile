@@ -17,6 +17,16 @@ COPY index.html .
 # Genera la build ottimizzata in /app/dist
 RUN npm run build
 
+# Vite ricopia `public/` verbatim nel risultato, sorgenti d'autore compresi. I
+# file di progetto degli editor grafici pesano decine di megabyte, finiscono in
+# un livello dell'immagine e sono scaricabili da chiunque raggiunga il sito,
+# mentre il gioco carica soltanto i PNG esportati da quei sorgenti.
+#
+# La rimozione avviene qui e non in `vite.config.ts` perche' e' una scelta di
+# confezionamento: in sviluppo quei file restano dove l'autore se li aspetta.
+RUN find /app/dist \( -name '*.ase' -o -name '*.aseprite' -o -name '*.tif' \
+	-o -name '*.tiff' -o -name '*.psd' -o -name '*.xcf' \) -type f -delete
+
 # Stage 2: serve i file statici con Nginx, linea stable
 FROM nginx:1.30.4-alpine@sha256:97d490c12ba55b4946b01546d1c3ed324e8d41ab1c9fcb2a616aa470620e5b46
 # Sostituisce la conf di default con una che serve la SPA (fallback su index.html)
