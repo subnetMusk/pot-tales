@@ -1,7 +1,8 @@
 import { defineConfig, loadEnv } from 'vite';
+import type { ConfigEnv } from 'vite';
 import path from 'path';
 
-export default ({ mode }) => {
+export default ({ mode }: ConfigEnv) => {
   const env = loadEnv(mode, process.cwd(), 'VITE_');
 
   return defineConfig({

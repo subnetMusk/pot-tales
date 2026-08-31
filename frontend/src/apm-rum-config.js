@@ -10,10 +10,15 @@ import { init as initApm } from '@elastic/apm-rum'
 const apmActive = import.meta.env.VITE_ELASTIC_APM_RUM_ACTIVE === 'true'
 
 const noopTransaction = { end() {} }
+// Deve esporre ogni metodo che il codice chiama sull'agente reale: e' il valore
+// che circola quando RUM e' disattivato, e un metodo mancante qui non e' un
+// difetto della telemetria ma un errore a runtime nel percorso che la telemetria
+// dovrebbe solo osservare.
 const noopApm = {
   addLabels() {},
   captureError() {},
   getCurrentTransaction() { return undefined },
+  setCustomContext() {},
   setUserContext() {},
   startTransaction() { return noopTransaction }
 }

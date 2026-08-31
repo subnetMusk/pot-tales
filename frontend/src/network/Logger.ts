@@ -73,9 +73,15 @@ class LoggerService {
     console.error(`[Error] ${category}:${action}`, error);
 
     // 1. Elastic APM Error Capture
+    //
+    // L'agente RUM accetta come opzione soltanto `labels`, che sono indicizzate
+    // e devono restare valori scalari: i dettagli, che hanno forma libera,
+    // vanno nel contesto personalizzato. La versione precedente passava
+    // `custom` e `tags`, che appartengono all'agente Node e non a questo: erano
+    // ignorati, e gli errori arrivavano ad APM senza alcun dettaglio.
+    apm.setCustomContext({ ...details, category, action });
     apm.captureError(error, {
-      custom: { ...details, category, action },
-      tags: { category, action }
+      labels: { category, action }
     });
 
     // 2. Backend Ingestion

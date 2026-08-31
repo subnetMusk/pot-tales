@@ -4,6 +4,8 @@
     "module": "ESNext",
     "moduleResolution": "node",
     "allowJs": true,
+    "allowSyntheticDefaultImports": true,
+    "skipLibCheck": true,
     "jsx": "preserve",
     "sourceMap": true,
     "strict": true,
