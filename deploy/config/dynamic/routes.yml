@@ -74,6 +74,24 @@ http:
         - limite-telemetria
       service: telemetria
 
+    # Prelievo degli archivi prodotti dall'esportazione. E' il percorso con cui
+    # i dati sopravvivono alla dismissione della macchina, quindi deve esistere
+    # prima che serva: al momento del prelievo non c'e' tempo per costruirlo.
+    #
+    # Nessuna compressione: il contenuto e' gia' compresso e ricomprimerlo
+    # occuperebbe CPU durante un trasferimento lungo.
+    export:
+      rule: "Host(`{{ env "APP_HOST" }}`) && PathPrefix(`/export`)"
+      entryPoints:
+        - websecure
+      priority: 130
+      middlewares:
+        - intestazioni-sicurezza
+        - export-auth
+        - export-prefisso
+        - limite-export
+      service: export
+
     # ---------------------------------------------------------------------
     # Dashboard: due platee, due percorsi, due elenchi di utenze.
     #
@@ -147,6 +165,15 @@ http:
           timeout: "3s"
         servers:
           - url: "http://landing:80"
+
+    export:
+      loadBalancer:
+        healthCheck:
+          path: /nginx-health
+          interval: "30s"
+          timeout: "3s"
+        servers:
+          - url: "http://export:80"
 
     telemetria:
       loadBalancer:

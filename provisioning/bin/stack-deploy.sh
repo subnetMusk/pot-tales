@@ -18,6 +18,8 @@
 #   SERVER_IMAGE     riferimento per digest dell'immagine del backend
 #   FRONTEND_IMAGE   riferimento per digest dell'immagine del gioco
 #   LANDING_IMAGE    riferimento per digest della pagina di ingresso
+#   EXPORT_DEST      directory degli archivi, servita in sola lettura dal bordo
+#                    (predefinita /srv/export, come in stack-data.env)
 set -uo pipefail
 
 CONF=${CONF:-/etc/stack-deploy.env}
@@ -63,6 +65,22 @@ fi
 
 export APP_HOST ACME_EMAIL SERVER_IMAGE FRONTEND_IMAGE LANDING_IMAGE
 export CROWDSEC_DISABLE_ONLINE_API="${CROWDSEC_DISABLE_ONLINE_API:-false}"
+
+# Stessa destinazione che usa `data-export.sh`, e stesso valore predefinito. Va
+# esportata perche' il servizio che consegna gli archivi la monta: se le due
+# divergessero, l'esportazione scriverebbe in un posto e il prelievo servirebbe
+# una directory vuota, senza che nulla lo segnali.
+export EXPORT_DEST="${EXPORT_DEST:-/srv/export}"
+
+# La directory deve esistere prima del deploy. In swarm mode un bind mount non
+# crea la propria sorgente come farebbe `docker run`: il task viene rifiutato e
+# riprovato all'infinito, con il servizio fermo a zero repliche. Senza questa
+# riga il prelievo resterebbe irraggiungibile dall'avvio della macchina fino
+# alla prima esportazione, che e' esattamente la finestra in cui serve.
+mkdir -p "$EXPORT_DEST" || {
+  echo "destinazione degli archivi non creabile: $EXPORT_DEST" >&2
+  exit 1
+}
 
 echo "deploy dello stack $STACK_NAME da $STACK_DIR"
 docker stack deploy \

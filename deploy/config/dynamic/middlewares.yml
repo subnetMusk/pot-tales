@@ -154,6 +154,36 @@ http:
         usersFile: /run/secrets/dashboard_users
         realm: "Osservabilita"
 
+    # ---------------------------------------------------------------------
+    # Prelievo degli archivi
+    # ---------------------------------------------------------------------
+
+    export-prefisso:
+      stripPrefix:
+        prefixes:
+          - "/export"
+
+    # Riusa l'elenco della platea tecnica invece di introdurne uno proprio. Gli
+    # archivi contengono gli stessi dati che quella platea gia' consulta nelle
+    # dashboard di esercizio, quindi un secondo elenco separerebbe due cose che
+    # hanno lo stesso pubblico, e aggiungerebbe un file htpasswd che l'operatore
+    # deve ricordarsi di creare: se restasse vuoto il deploy si rifiuterebbe di
+    # partire, e la causa sarebbe un percorso di prelievo che nessuno usa
+    # durante l'esercizio.
+    export-auth:
+      basicAuth:
+        usersFile: /run/secrets/dashboard_users_esercizio
+        realm: "Archivi"
+
+    # Il prelievo e' raro e trasferisce file grandi: la soglia serve a impedire
+    # che il percorso diventi un modo per occupare banda, non a regolare un uso
+    # legittimo che consiste in poche richieste.
+    limite-export:
+      rateLimit:
+        average: 2
+        burst: 10
+        period: 1s
+
     # Frequenza dedicata: la consultazione e' fatta da poche persone, quindi
     # una soglia bassa qui non danneggia nessuno e limita il valore di una
     # credenziale che dovesse circolare.

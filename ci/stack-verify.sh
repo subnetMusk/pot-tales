@@ -34,6 +34,7 @@ proxy
 crowdsec
 landing
 frontend
+export
 server
 db
 redis
@@ -130,7 +131,7 @@ while IFS='|' read -r service_name replicas; do
   [ -n "$service_name" ] || continue
   actual_count=$((actual_count + 1))
 done <<< "$service_lines"
-assert_equal "numero servizi" 15 "$actual_count"
+assert_equal "numero servizi" 16 "$actual_count"
 
 while IFS= read -r short_name; do
   [ -n "$short_name" ] || continue
@@ -253,6 +254,22 @@ assert_contains "Kibana disponibile" '"level":"available"' \
   "$(<"$tmp_dir/kibana-auth.body")"
 
 curl_request "$tmp_dir/telemetry.body" 200 "$BASE_URL/telemetria/"
+
+# Prelievo degli archivi. Le due asserzioni coprono le due proprieta' che
+# contano: il percorso non e' anonimo, e non elenca.
+#
+# Autenticato, la radice risponde 404 e non 200 con un indice: `autoindex` e'
+# disattivato e non esiste un file di ripiego, quindi chi entra deve gia'
+# conoscere il nome dell'archivio, che sta nel manifesto dell'esportazione. Un
+# 200 qui significherebbe che l'elenco e' tornato raggiungibile.
+#
+# La credenziale usata e' quella della platea tecnica, la stessa che il bordo
+# verifica su questo percorso. Quella divulgativa riceverebbe 401, ed e' il
+# comportamento voluto.
+curl_request "$tmp_dir/export-anon.body" 401 "$BASE_URL/export/"
+curl_request "$tmp_dir/export-auth.body" 404 \
+  --netrc-file "$tmp_dir/dashboard.netrc" \
+  "$BASE_URL/export/"
 
 printf '\n== Fleet e hardening ==\n'
 
