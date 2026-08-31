@@ -432,3 +432,112 @@ func TestCreazioneSessioneRifiutaCorpoNonConforme(t *testing.T) {
 		})
 	}
 }
+
+// dbDiProva restituisce la base dati usata dall'applicazione sotto prova. Il
+// nome e' cablato perche' lo e' anche in `registerGame`: ricavarlo altrimenti
+// farebbe puntare la verifica a una collezione che il codice non tocca.
+func (b *banco) dbDiProva() *mongo.Database {
+	return b.mongo.Database("game_db")
+}
+
+// Lo stato di gioco puo' mancare anche con una sessione valida: il documento
+// vive in una collezione separata e ha una propria ritenzione. La rotta deve
+// dichiarare il guasto invece di rispondere con coordinate inventate, che il
+// client userebbe per posizionare il giocatore da qualche parte.
+func TestPositionSenzaStatoDiGiocoDichiaraIlGuasto(t *testing.T) {
+	b := nuovoBanco(t)
+	token, cookie := b.creaSessione(t)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	if _, err := b.dbDiProva().Collection(helpers.GameStatesCollection).
+		DeleteOne(ctx, bson.M{"_id": token}); err != nil {
+		t.Fatalf("rimozione dello stato di gioco: %v", err)
+	}
+
+	richiesta, _ := http.NewRequest(http.MethodGet, b.server.URL+"/game/position", nil)
+	richiesta.AddCookie(cookie)
+	risposta, err := http.DefaultClient.Do(richiesta)
+	if err != nil {
+		t.Fatalf("richiesta: %v", err)
+	}
+	defer risposta.Body.Close()
+
+	if risposta.StatusCode != http.StatusInternalServerError {
+		t.Fatalf("codice = %d, atteso %d", risposta.StatusCode, http.StatusInternalServerError)
+	}
+}
+
+// Il timer, a differenza della posizione, degrada invece di fallire: un
+// contatore assente non impedisce di giocare, e un errore qui interromperebbe
+// l'interfaccia per un dato accessorio.
+func TestTimerSenzaStatoDiGiocoDegradaAZero(t *testing.T) {
+	b := nuovoBanco(t)
+	token, cookie := b.creaSessione(t)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	if _, err := b.dbDiProva().Collection(helpers.GameStatesCollection).
+		DeleteOne(ctx, bson.M{"_id": token}); err != nil {
+		t.Fatalf("rimozione dello stato di gioco: %v", err)
+	}
+
+	richiesta, _ := http.NewRequest(http.MethodGet, b.server.URL+"/game/timer", nil)
+	richiesta.AddCookie(cookie)
+	risposta, err := http.DefaultClient.Do(richiesta)
+	if err != nil {
+		t.Fatalf("richiesta: %v", err)
+	}
+	defer risposta.Body.Close()
+
+	if risposta.StatusCode != http.StatusOK {
+		t.Fatalf("codice = %d, atteso %d", risposta.StatusCode, http.StatusOK)
+	}
+
+	var payload map[string]any
+	if err := json.NewDecoder(risposta.Body).Decode(&payload); err != nil {
+		t.Fatalf("risposta non in formato JSON: %v", err)
+	}
+	if attivo, _ := payload["is_active"].(bool); attivo {
+		t.Error("senza stato di gioco la sessione non puo' risultare attiva")
+	}
+}
+
+// Oltre la soglia di inattivita' il tempo corrente non viene proiettato: il
+// totale resta quello registrato. Senza questa distinzione una scheda lasciata
+// aperta accumulerebbe tempo di gioco che nessuno ha giocato.
+func TestTimerNonProiettaTempoSuSessioneInattiva(t *testing.T) {
+	b := nuovoBanco(t)
+	token, cookie := b.creaSessione(t)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	passato := time.Now().Add(-1 * time.Hour)
+	if _, err := b.dbDiProva().Collection(helpers.GameStatesCollection).UpdateOne(ctx,
+		bson.M{"_id": token},
+		bson.M{"$set": bson.M{"meta.last_ping": passato, "data.total_time_ms": int64(4200)}},
+	); err != nil {
+		t.Fatalf("invecchiamento dello stato di gioco: %v", err)
+	}
+
+	richiesta, _ := http.NewRequest(http.MethodGet, b.server.URL+"/game/timer", nil)
+	richiesta.AddCookie(cookie)
+	risposta, err := http.DefaultClient.Do(richiesta)
+	if err != nil {
+		t.Fatalf("richiesta: %v", err)
+	}
+	defer risposta.Body.Close()
+
+	var payload map[string]any
+	if err := json.NewDecoder(risposta.Body).Decode(&payload); err != nil {
+		t.Fatalf("risposta non in formato JSON: %v", err)
+	}
+	if attivo, _ := payload["is_active"].(bool); attivo {
+		t.Error("dopo un'ora di silenzio la sessione non e' attiva")
+	}
+	// Il totale deve restare quello scritto, in secondi frazionari: nessuna
+	// proiezione aggiuntiva sopra i 4200 ms registrati.
+	if secondi, _ := payload["total_playtime_seconds"].(float64); secondi != 4.2 {
+		t.Errorf("secondi totali = %v, attesi 4.2", secondi)
+	}
+}
