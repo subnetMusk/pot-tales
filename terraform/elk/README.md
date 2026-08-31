@@ -91,6 +91,24 @@ docker compose -f docker-compose.monitoring.yml up -d apm-agent infra-agent
 docker restart filebeat
 ```
 
+## Verificato su uno stack reale
+
+Applicato su uno stack Swarm completo (Elasticsearch e Kibana 8.19.19, provider
+elasticstack 0.16.3), a partire da volumi vuoti.
+
+| Punto | Esito |
+|---|---|
+| Creazione di Space, ruoli e utenze in un solo apply | superata |
+| Utenza della platea tecnica presente su Elasticsearch con il ruolo atteso | superata |
+| Campo temporale delle data view | `@timestamp`, come dichiarato |
+| Stato collocato fuori dalla copia di lavoro | superata |
+| Ciclo export, versionamento e reimportazione via Terraform | superato |
+| Campi di migrazione presenti su ogni riga dell'export | 11 righe su 11 |
+
+Restano non verificati su un apply reale la tenuta del ruolo divulgativo fra i
+due Space e gli identificativi delle funzionalita' Kibana: richiedono un accesso
+con una credenziale per platea, che si prova solo con entrambe configurate.
+
 ## Note e limiti
 
 - STARTER non ancora applicato a uno stack reale: alla prima esecuzione
@@ -104,10 +122,35 @@ docker restart filebeat
   Dove risiede, cosa comporta perderlo e come si ricostruisce: [../README.md](../README.md).
 - Il fleet-server usa ancora il token bootstrap del compose: la gestione
   completa del fleet-server via Terraform e' uno step successivo.
-- Mancano le regole di alerting su latenza, stato del cluster, watermark del
-  disco e sicurezza. Dipendono dai nomi dei campi dopo l'ingestione reale, e una
-  regola che interroga un campo inesistente non fallisce: resta silenziosa. Vanno
-  scritte con i dati davanti, verificando prima il campo su Discover.
+- **Stato del cluster: non osservabile con le integrazioni installate.** Le
+  policy Fleet dichiarano `fleet_server`, `apm`, `system` e `docker`. Nessuna di
+  queste indicizza la salute del cluster, quindi una regola su quel tema
+  interrogherebbe indici che non esistono, e una regola senza dati non fallisce:
+  resta silenziosa per sempre. Servirebbe aggiungere l'integrazione
+  `elasticsearch` alla policy infrastrutturale, che e' una decisione di
+  architettura e non una regola in piu': porta un agente che interroga il
+  cluster con credenziali proprie e consuma parte di un budget di memoria gia'
+  stretto.
+
+  Non e' pero' un buco: lo stato del cluster e' gia' sorvegliato da
+  `stack-heartbeat.sh`, che lo interroga direttamente e recapita sulla classe
+  `observability`. La differenza e' dove vive il controllo, non se esiste — e la
+  collocazione attuale e' quella piu' robusta, perche' un controllo che vive
+  fuori da Elasticsearch continua a funzionare quando e' Elasticsearch a
+  guastarsi.
+- **La regola di sicurezza copre l'applicazione, non il perimetro.** Aggrega i
+  due eventi strutturati che il backend emette sul tema — quota per sessione
+  superata e prova di lavoro richiesta — i cui nomi di campo vengono dal codice
+  e non da un'ipotesi sull'ingestione. Gli allarmi di CrowdSec restano fuori:
+  arrivano come testo nei log dei container, e distinguerli richiede
+  l'instradamento per dataset che oggi non c'e'. Quando ci sara', e' la seconda
+  sorgente naturale della stessa classe.
+- Le soglie di `latency_threshold_ms`, `error_rate_threshold` e
+  `security_events_threshold` sono segnaposto fino al load test: sono tarate per
+  non allarmare su un servizio sano, non per cogliere un degrado reale. Quella
+  sulla sicurezza in particolare va tenuta sopra il rumore di un'apertura al
+  pubblico, dove la prova di lavoro viene richiesta di continuo dall'uso
+  legittimo.
 - Gli identificativi delle funzionalita' in `funzionalita_disattivate_*`
   dipendono dalla versione di Kibana: confrontarli con `GET /api/features`
   sull'istanza in uso. Un identificativo errato lascia visibile una voce di menu

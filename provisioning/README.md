@@ -258,12 +258,29 @@ scorrimento avviene dentro contenitori che appartengono al cgroup del demone
 Docker. Il freno effettivo e' quindi espresso dallo script, con `LOTTO`,
 `PAUSA`, `CPU_QUOTA` e la lettura sequenziale di `mongodump`.
 
-**Requisito per il bordo, non coperto qui.** Gli archivi finiscono in
-`EXPORT_DEST` (`/srv/export` per impostazione predefinita), una directory nota.
-Servirli e' compito del router di bordo, che deve esporli **in sola lettura,
-dietro autenticazione, senza elencare la directory e senza alcun percorso che
-avvii la produzione di un archivio**. Il percorso di generazione e quello di
-consegna restano separati.
+**Prelievo dal bordo.** Gli archivi finiscono in `EXPORT_DEST` (`/srv/export`
+per impostazione predefinita) e sono serviti su `/export` dal servizio `export`
+dello stack: un nginx che monta quella directory **in sola lettura**, rifiuta i
+metodi diversi da `GET` e `HEAD`, non elenca la directory e non espone alcun
+percorso che avvii la produzione di un archivio. Il percorso di generazione e
+quello di consegna restano separati.
+
+L'accesso e' protetto dall'elenco `secrets/dashboard_users_esercizio`, lo stesso
+della platea tecnica: gli archivi contengono i dati che quella platea gia'
+consulta nelle dashboard di esercizio.
+
+Non essendoci elenco, il nome dell'archivio va letto dal manifesto
+dell'esportazione: la radice risponde `404` anche a chi si e' autenticato.
+
+```bash
+curl -u operatore --output esportazione.ndjson.gz \
+  https://<hostname>/export/<marca-temporale>/elastic/<nome>.ndjson.gz
+```
+
+`EXPORT_DEST` deve valere lo stesso in `/etc/stack-data.env`, che governa la
+scrittura, e in `/etc/stack-deploy.env`, che governa il montaggio. Se divergono,
+l'esportazione scrive in un posto e il prelievo serve una directory vuota senza
+segnalare nulla.
 
 ### Copia di sicurezza
 
@@ -297,11 +314,29 @@ dalla presenza di una persona.
 Nessuno dei due copre la perdita della macchina: per quella servono gli
 snapshot della VM lato infrastruttura.
 
+### I sei check da creare sul pannello
+
+Nessun check viene creato da qui: l'accesso al pannello e' dell'operatore. Un
+ping verso uno slug inesistente riceve 404 e **non crea nulla**, quindi un check
+mancante non e' un check verde, e' un segnale che non arriva da nessuna parte.
+
+| Slug | Schedule | Tolleranza | Chi lo alimenta |
+|---|---|---|---|
+| `stack-liveness` | 5 minuti | 15 minuti | battito, a ogni esecuzione riuscita |
+| `host-resources` | 365 giorni | 1 ora | battito e regola sull'occupazione del disco |
+| `observability` | 365 giorni | 1 ora | battito e regola sull'assenza di ingestione |
+| `app-degradation` | 365 giorni | 1 ora | regole su tasso di errori e latenza |
+| `security` | 365 giorni | 1 ora | regola sull'attivita' anomala dell'applicazione |
+| `backup-nightly` | calendario | 1 ora | copia notturna, vedi sotto |
+
+I quattro relay hanno periodo di un anno perche' non devono scendere da soli:
+li porta in guasto solo un segnale esplicito, e li riarma il documento di
+rientro. Solo il battito e la copia notturna hanno una cadenza attesa, ed e' su
+quella che il servizio esterno allarma per silenzio.
+
 ### Check `backup-nightly`
 
-Il timer esegue la copia alle 03:30. Il check sul servizio esterno **non viene
-creato da qui**: l'accesso al pannello e' dell'operatore, e questi sono i
-valori da impostare.
+Il timer esegue la copia alle 03:30. Questi sono i valori da impostare.
 
 | Campo | Valore |
 |---|---|
