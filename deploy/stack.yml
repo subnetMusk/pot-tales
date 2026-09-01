@@ -130,6 +130,23 @@ networks:
     driver: overlay
     attachable: true
 
+# Tetti di CPU
+# ------------------------------------------------------------
+# I servizi di osservabilita' e di sicurezza portano un tetto di CPU, il proxy
+# e il backend no. E' voluto: quando Elasticsearch fonde segmenti o CrowdSec
+# analizza gli access log, cio' che deve restare reattivo e' il percorso che
+# serve le richieste, e lasciarlo senza soffitto significa che prende tutto
+# cio' che gli altri non stanno usando.
+#
+# Un tetto non e' una riserva. Le reservations governano il piazzamento dei
+# task, non la priorita' a runtime: su un nodo solo non garantirebbero nulla
+# durante l'esecuzione, e in piu' sottrarrebbero capacita' schedulabile, al
+# punto che una somma troppo alta lascerebbe i task in attesa senza partire.
+#
+# La somma dei tetti supera di proposito le CPU disponibili: sono soffitti e
+# non quote assegnate, e questi servizi non vanno sotto carico tutti insieme.
+# I valori sono tarati su otto CPU logiche e vanno rivisti se la macchina
+# cambia.
 services:
 
   # ===========================================================================
@@ -262,6 +279,7 @@ services:
         delay: 10s
       resources:
         limits:
+          cpus: "1.0"
           memory: 512M
         reservations:
           memory: 128M
@@ -496,6 +514,7 @@ services:
         delay: 10s
       resources:
         limits:
+          cpus: "2.0"
           memory: 2G
         reservations:
           memory: 512M
@@ -543,6 +562,7 @@ services:
         delay: 10s
       resources:
         limits:
+          cpus: "0.5"
           memory: 512M
         reservations:
           memory: 128M
@@ -690,6 +710,7 @@ services:
         delay: 10s
       resources:
         limits:
+          cpus: "3.0"
           memory: 2G
         reservations:
           memory: 1G
@@ -758,6 +779,7 @@ services:
         delay: 10s
       resources:
         limits:
+          cpus: "1.5"
           memory: 1500M
         reservations:
           memory: 512M
@@ -811,6 +833,7 @@ services:
         delay: 10s
       resources:
         limits:
+          cpus: "0.5"
           memory: 512M
         reservations:
           memory: 128M
@@ -867,6 +890,7 @@ services:
         delay: 15s
       resources:
         limits:
+          cpus: "1.0"
           memory: 1G
         reservations:
           memory: 256M
@@ -918,6 +942,7 @@ services:
         delay: 15s
       resources:
         limits:
+          cpus: "1.0"
           memory: 1G
         reservations:
           memory: 256M
@@ -966,6 +991,7 @@ services:
         delay: 15s
       resources:
         limits:
+          cpus: "0.5"
           memory: 512M
         reservations:
           memory: 128M
