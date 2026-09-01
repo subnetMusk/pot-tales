@@ -2,14 +2,17 @@
 
 Guida per avviare il progetto dopo la migrazione a Traefik e la pulizia dei
 volumi runtime. Il file `.env` NON e' piu' versionato: si parte dal template
-`.env.example` (vedi sotto i valori dev di riferimento). In produzione le
-credenziali vanno ruotate e gestite con SOPS (vedi in fondo).
+`.env.example` (vedi sotto i valori dev di riferimento). La produzione non usa
+questo file: legge secret separati, vedi in fondo.
 
 ## Prerequisiti
 
 - Docker 20.10+ e Docker Compose v2
-- Node.js 18+ se si builda fuori dai container (Vite 5 non gira su Node < 18)
+- Node 24+ e Go 1.26+ solo se si builda fuori dai container
 - Almeno 4 GB di RAM liberi se si avvia anche lo stack ELK
+
+Tutti i comandi hanno un equivalente nel Makefile, che e' il punto di ingresso
+del progetto: `make help` stampa l'elenco completo dei target.
 
 ## Avvio rapido
 
@@ -19,23 +22,27 @@ cp .env.example .env
 # compila i valori (per lo sviluppo vedi la tabella sotto)
 
 # 2. Applicazione (crea le reti condivise internal_net / proxy_net / frontend_net)
-docker compose -f docker-compose.dev.yml up -d --build
+make dev-up
 
 # (opzionale) Monitoring Elastic
-./scripts/start-monitoring.sh
+make monitoring-up
 ```
+
+I due target invocano `docker compose -f docker-compose.dev.yml up -d` e
+`./scripts/start-monitoring.sh`. Per ricostruire le immagini dopo una modifica:
+`make dev-rebuild`.
 
 Per fermare tutto:
 
 ```bash
-./scripts/stop-monitoring.sh                       # se avviato
-docker compose -f docker-compose.dev.yml down
+make monitoring-down   # se avviato
+make dev-down          # i volumi restano intatti
 ```
 
 ## Routing e URL (Traefik)
 
 Il reverse proxy e Traefik: config statica in `docker/traefik/traefik.yml`,
-routing dichiarato nel file dinamico `docker/traefik/dynamic.yml`.
+routing dichiarato nel file dinamico `docker/traefik/dynamic/routes.yml`.
 I sottodomini `*.localhost` risolvono a 127.0.0.1
 nella maggior parte dei browser; se il tuo sistema non lo fa, aggiungili a
 `/etc/hosts` (o `C:\Windows\System32\drivers\etc\hosts`):
@@ -85,12 +92,19 @@ cd frontend && npm ci && npm run build     # richiede Node 24+
 cd ../server && go build ./...             # richiede Go 1.26+
 ```
 
-## Produzione: segreti con SOPS
+## Produzione
 
-Prima di un deploy reale, rigenerare TUTTE le credenziali del `.env` (password
-Elastic/Kibana, token APM, password Redis, chiavi di encryption Kibana) e
-cifrarle con SOPS+age in `secrets/*.enc.env` (versionabile): flusso in
-[secrets/README.md](secrets/README.md). Vedi [MONITORING_SETUP.md](MONITORING_SETUP.md)
-per le fragilita note dello stack ELK, [terraform/README.md](terraform/README.md)
-per la collocazione dello stato Terraform e [provisioning/README.md](provisioning/README.md)
-per l'installazione sull'host, che non e' provisionato da Terraform.
+La produzione non usa questo `.env`. Lo stack Swarm (`deploy/stack.yml`) legge
+file di secret separati, uno per credenziale, generati sulla macchina con
+`make secrets` e mai versionati: il flusso completo e' in
+[secrets/README.md](secrets/README.md), e i passi di deploy nell'ordine giusto
+sono nel [README](README.md#avvio-in-produzione-docker-swarm).
+
+Le credenziali di sviluppo qui sopra non vanno portate in produzione: girano da
+inizio progetto e sono note. La rotazione avviene di fatto alla generazione dei
+secret, che sono valori nuovi e distinti da questi.
+
+Vedi anche [MONITORING_SETUP.md](MONITORING_SETUP.md) per le fragilita note
+dello stack ELK, [terraform/README.md](terraform/README.md) per la collocazione
+dello stato Terraform e [provisioning/README.md](provisioning/README.md) per
+l'installazione sull'host, che non e' provisionato da Terraform.
