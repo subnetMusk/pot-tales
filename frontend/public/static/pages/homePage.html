@@ -1,56 +1,200 @@
-<html>
-    <head>
-        <link rel="stylesheet" href="style.css">
-        <meta charset ="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Proggetti Innovativi</title>
-    </head>
-    <body>
-        <header>
-            <div class="container">
-                <div class="logo">
-                    <h1><img src ="immagini/logo.png" alt="Logo"></h1>
-                </div>
-                <nav>
-                    <ul>
-                        <li><a href="#">Home</a></li>
-                        <li><a href="#">Progetti</a></li>
-                        <li><a href="#">Chi Siamo</a></li>
-                        <li><a href="#">Contatti</a></li>
-                    </ul>
-                </nav>
-            </div>
-        </header>
+<link rel="stylesheet" href="/static/pages/style.css">
 
-        <section class ="hero">
-            <div class="container">
-
-            </div>
-        </section>
-
-        <section class="descrizione_progetto"> 
-            <div class="container">
-
-            </div>
-        </section>
-
-        <section class ="gioco">
-            <div class="container">
-
-            </div>
-        </section>
-        <section class ="corollario">
-            <div class="container">
-
-            </div>
-        </section>
-
-    </body>
-    <footer>
-        <div class="container">
-            <p>&copy; 2024 Proggetti Innovativi. Tutti i diritti riservati.</p>
+<header id="landing-header">
+    <div class="container">
+        <div class="logo">
+            <img src="/assets/images/ui/title.png" alt="Pot Tale">
         </div>
+        <nav>
+            <ul>
+                <li><a href="#hero" id="nav-home">Home</a></li>
+                <li><a href="#project" id="nav-project">Progetto</a></li>
+                <li><a href="#research" id="nav-research">Ricerca</a></li>
+                <li><a href="#team" id="nav-team">Team</a></li>
+            </ul>
+        </nav>
+        <div id="lang-container">
+            <label for="lang-select" id="lang-label">Lingua:</label>
+            <select id="lang-select">
+                <option value="it">🇮🇹 Italiano</option>
+                <option value="en">🇬🇧 English</option>
+            </select>
+        </div>
+    </div>
+</header>
 
-    </footer>
+<section id="hero" class="hero">
+    <div class="container">
+        <h1 id="hero-title">Un'avventura tra scienza e gioco</h1>
+        <p id="hero-desc">Esplora un laboratorio di ricerca trasformato in un'esperienza interattiva:
+           scopri il progetto giocando in prima persona.</p>
+        <button id="play-button">Gioca ora</button>
+    </div>
+</section>
 
-</html>
+<section id="project" class="descrizione_progetto">
+    <div class="container">
+        <h2 id="project-title">Il progetto</h2>
+        <div class="contenuti">
+            <div class="card">
+                <h3 id="project-card1-title">Di cosa si tratta</h3>
+                <p id="project-card1-desc">Lorem ipsum dolor sit amet, consectetur adipiscing elit. Il progetto
+                   nasce dall'idea di rendere accessibile e coinvolgente un percorso di
+                   ricerca scientifica attraverso il linguaggio del videogioco.</p>
+            </div>
+            <div class="card">
+                <h3 id="project-card2-title">Obiettivi</h3>
+                <p id="project-card2-desc">Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.
+                   Avvicinare il pubblico, in particolare gli studenti, ai temi della
+                   ricerca in modo pratico e divertente.</p>
+            </div>
+            <div class="card">
+                <h3 id="project-card3-title">Metodologia</h3>
+                <p id="project-card3-desc">Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris.
+                   Meccaniche di gioco pensate insieme a ricercatori e sviluppatori per
+                   restituire fedelmente il contesto scientifico.</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section id="research" class="ricerca">
+    <div class="container">
+        <h2 id="research-title">La ricerca</h2>
+        <div class="caratteristiche">
+            <div class="feature">
+                <div class="feature-icon">🔬</div>
+                <h3 id="research-feature1-title">Ambito scientifico</h3>
+                <p id="research-feature1-desc">Duis aute irure dolor in reprehenderit in voluptate velit esse
+                   cillum dolore eu fugiat nulla pariatur.</p>
+            </div>
+            <div class="feature">
+                <div class="feature-icon">📊</div>
+                <h3 id="research-feature2-title">Dati e risultati</h3>
+                <p id="research-feature2-desc">Excepteur sint occaecat cupidatat non proident, sunt in culpa qui
+                   officia deserunt mollit anim id est laborum.</p>
+            </div>
+            <div class="feature">
+                <div class="feature-icon">🎓</div>
+                <h3 id="research-feature3-title">Ricadute didattiche</h3>
+                <p id="research-feature3-desc">Curabitur pretium tincidunt lacus, nulla gravida orci a odio
+                   pretium risus sed fermentum tellus eget urna.</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section id="team" class="corollario">
+    <div class="container">
+        <h2 id="team-title">Il team</h2>
+        <div class="caratteristiche">
+            <div class="feature">
+                <div class="feature-icon">🧑‍💻</div>
+                <h3>Nome Cognome</h3>
+                <p id="team-member1-desc">Ruolo nel progetto — sviluppo, lorem ipsum dolor sit amet.</p>
+            </div>
+            <div class="feature">
+                <div class="feature-icon">🧑‍🔬</div>
+                <h3>Nome Cognome</h3>
+                <p id="team-member2-desc">Ruolo nel progetto — ricerca, consectetur adipiscing elit.</p>
+            </div>
+            <div class="feature">
+                <div class="feature-icon">🎨</div>
+                <h3>Nome Cognome</h3>
+                <p id="team-member3-desc">Ruolo nel progetto — design, sed do eiusmod tempor incididunt.</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<footer>
+    <div class="container">
+        <p id="footer-text">&copy; 2026 AAAAAAAAAAAAA. Tutti i diritti riservati.</p>
+    </div>
+</footer>
+
+<script>
+    const landingTranslations = {
+        it: {
+            "nav-home": "Home",
+            "nav-project": "Progetto",
+            "nav-research": "Ricerca",
+            "nav-team": "Team",
+            "lang-label": "Lingua:",
+            "hero-title": "Un'avventura tra scienza e gioco",
+            "hero-desc": "Esplora un laboratorio di ricerca trasformato in un'esperienza interattiva: scopri il progetto giocando in prima persona.",
+            "play-button": "Gioca ora",
+            "project-title": "Il progetto",
+            "project-card1-title": "Di cosa si tratta",
+            "project-card1-desc": "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Il progetto nasce dall'idea di rendere accessibile e coinvolgente un percorso di ricerca scientifica attraverso il linguaggio del videogioco.",
+            "project-card2-title": "Obiettivi",
+            "project-card2-desc": "Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Avvicinare il pubblico, in particolare gli studenti, ai temi della ricerca in modo pratico e divertente.",
+            "project-card3-title": "Metodologia",
+            "project-card3-desc": "Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris. Meccaniche di gioco pensate insieme a ricercatori e sviluppatori per restituire fedelmente il contesto scientifico.",
+            "research-title": "La ricerca",
+            "research-feature1-title": "Ambito scientifico",
+            "research-feature1-desc": "Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur.",
+            "research-feature2-title": "Dati e risultati",
+            "research-feature2-desc": "Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.",
+            "research-feature3-title": "Ricadute didattiche",
+            "research-feature3-desc": "Curabitur pretium tincidunt lacus, nulla gravida orci a odio pretium risus sed fermentum tellus eget urna.",
+            "team-title": "Il team",
+            "team-member1-desc": "Ruolo nel progetto — sviluppo, lorem ipsum dolor sit amet.",
+            "team-member2-desc": "Ruolo nel progetto — ricerca, consectetur adipiscing elit.",
+            "team-member3-desc": "Ruolo nel progetto — design, sed do eiusmod tempor incididunt.",
+            "footer-text": "© 2026 AAAAAAAAAAAAA. Tutti i diritti riservati."
+        },
+        en: {
+            "nav-home": "Home",
+            "nav-project": "Project",
+            "nav-research": "Research",
+            "nav-team": "Team",
+            "lang-label": "Language:",
+            "hero-title": "An adventure between science and play",
+            "hero-desc": "Explore a research lab turned into an interactive experience: discover the project by playing it firsthand.",
+            "play-button": "Play now",
+            "project-title": "The project",
+            "project-card1-title": "What it's about",
+            "project-card1-desc": "Lorem ipsum dolor sit amet, consectetur adipiscing elit. The project was born from the idea of making a scientific research journey accessible and engaging through the language of video games.",
+            "project-card2-title": "Goals",
+            "project-card2-desc": "Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Bringing the public, especially students, closer to research topics in a practical and enjoyable way.",
+            "project-card3-title": "Methodology",
+            "project-card3-desc": "Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris. Game mechanics designed together with researchers and developers to faithfully represent the scientific context.",
+            "research-title": "The research",
+            "research-feature1-title": "Scientific scope",
+            "research-feature1-desc": "Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur.",
+            "research-feature2-title": "Data and results",
+            "research-feature2-desc": "Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.",
+            "research-feature3-title": "Educational impact",
+            "research-feature3-desc": "Curabitur pretium tincidunt lacus, nulla gravida orci a odio pretium risus sed fermentum tellus eget urna.",
+            "team-title": "The team",
+            "team-member1-desc": "Role in the project — development, lorem ipsum dolor sit amet.",
+            "team-member2-desc": "Role in the project — research, consectetur adipiscing elit.",
+            "team-member3-desc": "Role in the project — design, sed do eiusmod tempor incididunt.",
+            "footer-text": "© 2026 AAAAAAAAAAAAA. All rights reserved."
+        }
+    };
+
+    function updateLandingLang(lang) {
+        const dict = landingTranslations[lang] || landingTranslations.it;
+        Object.keys(dict).forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.textContent = dict[id];
+        });
+    }
+
+    const landingLangSelect = document.getElementById("lang-select");
+    const initialLang = localStorage.getItem("lang") || "it";
+    landingLangSelect.value = initialLang;
+    updateLandingLang(initialLang);
+    localStorage.setItem("lang", initialLang); // garantisce che sia persistita anche se non toccata
+
+    landingLangSelect.addEventListener("change", () => {
+        localStorage.setItem("lang", landingLangSelect.value);
+        updateLandingLang(landingLangSelect.value);
+    });
+
+    document.getElementById('play-button').addEventListener('click', () => {
+        window.location.href = '/play';
+    });
+</script>

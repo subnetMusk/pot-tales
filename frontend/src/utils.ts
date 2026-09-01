@@ -10,6 +10,29 @@ export function applyTranslations(parent: Phaser.Scene | Phaser.GameObjects.Cont
     });
 }
 
+// Re-loads `cacheKey`'s i18n JSON from `jsonPath` and re-applies it to `scene`'s already-placed
+// text objects. Scenes only auto-load i18n once, in their own preload(); Settings.ts's language
+// switch (see its fadeThenRestart()) only restarts Settings itself, so a scene resumed after
+// Settings closes still has its i18n cached under the old language until this is called
+// explicitly (the Phaser loader has to be started manually outside of preload()).
+export function reloadTranslations(
+    scene: Phaser.Scene,
+    cacheKey: string,
+    jsonPath: string
+): Promise<Record<string, string>> {
+    scene.cache.json.remove(cacheKey);
+
+    return new Promise(resolve => {
+        scene.load.json(cacheKey, jsonPath);
+        scene.load.once(Phaser.Loader.Events.COMPLETE, () => {
+            const i18n = scene.cache.json.get(cacheKey);
+            applyTranslations(scene, i18n);
+            resolve(i18n);
+        });
+        scene.load.start();
+    });
+}
+
 export function showElements(elements: Array<Phaser.GameObjects.GameObject>, show: boolean) {
 	elements.forEach(obj => {
 		if ("alpha" in obj) obj.alpha = show ? 1 : 0;
@@ -38,9 +61,22 @@ export function launchSubScene(
 		launchData?: object;
 		completionEvent: string;
 		listenOn?: 'child' | 'parent';
+		overlay?: boolean;
 	},
 	onComplete: (payload?: any) => void
 ): void {
+	const overlay = options.overlay !== false
+		? parentScene.add.rectangle(
+			parentScene.cameras.main.centerX,
+			parentScene.cameras.main.centerY,
+			parentScene.cameras.main.width,
+			parentScene.cameras.main.height,
+			0x000000
+		)
+		: undefined;
+	overlay?.setScrollFactor(0);
+	overlay?.setDepth(1000);
+
 	parentScene.scene.pause();
 	parentScene.scene.launch(childSceneKey, options.launchData);
 	parentScene.scene.bringToTop(childSceneKey);
@@ -49,7 +85,10 @@ export function launchSubScene(
 		? parentScene.events
 		: parentScene.scene.get(childSceneKey)?.events;
 
-	emitter?.once(options.completionEvent, onComplete);
+	emitter?.once(options.completionEvent, (payload?: any) => {
+		overlay?.destroy();
+		onComplete(payload);
+	});
 }
 
 export interface PixelButtonHandles {
@@ -92,6 +131,7 @@ export function setupPixelButton(
 
 	const graphics = scene.add.graphics();
 	graphics.setPosition(rect.x, rect.y);
+	graphics.setScrollFactor(0, 0);
 	const panel = new PixelPanel(graphics, -panelWidth / 2, -panelHeight / 2, panelWidth, panelHeight, {
 		fillColor: options.fillColor,
 		hoverColor: options.hoverColor,
@@ -105,19 +145,33 @@ export function setupPixelButton(
 	// L'icona può avere già uno scale base (es. 2x) impostato in editorCreate: il fattore
 	// va applicato relativo a quello, non sovrascritto (altrimenti si rimpicciolisce).
 	const iconBaseScale = icon?.scaleX ?? 1;
+	const textBaseX = text?.x ?? 0;
+	const textBaseY = text?.y ?? 0;
+	const iconBaseX = icon?.x ?? 0;
+	const iconBaseY = icon?.y ?? 0;
 	let restState: PixelPanelState = 'idle';
 
-	const tweenScale = (factor: number, duration: number) => {
+	// In stato "press" il pannello affonda visivamente in diagonale di panel.pressSink
+	// (vedi PixelPanel.redraw): il testo è un GameObject separato e non eredita quello
+	// spostamento, quindi va traslato a mano per restare allineato al pannello. L'icona
+	// invece scarta verso destra/basso di un valore proprio (iconPressShiftX/Y),
+	// indipendente dal sink diagonale del pannello/testo.
+	const iconPressShiftX = 9;
+	const iconPressShiftY = 6;
+	const tweenScale = (factor: number, duration: number, sink: number = 0, iconShiftX: number = 0, iconShiftY: number = 0) => {
 		const flatTargets: Array<Phaser.GameObjects.Graphics | Phaser.GameObjects.Text> = text ? [graphics, text] : [graphics];
 		scene.tweens.add({ targets: flatTargets, scale: factor, duration, ease: 'Sine.easeOut' });
+		if (text) {
+			scene.tweens.add({ targets: text, x: textBaseX + sink, y: textBaseY + sink, duration, ease: 'Sine.easeOut' });
+		}
 		if (icon) {
-			scene.tweens.add({ targets: icon, scale: iconBaseScale * factor, duration, ease: 'Sine.easeOut' });
+			scene.tweens.add({ targets: icon, scale: iconBaseScale * factor, x: iconBaseX + iconShiftX, y: iconBaseY + iconShiftY, duration, ease: 'Sine.easeOut' });
 		}
 	};
 
 	rect.on('pointerover', () => { panel.redraw('hover'); tweenScale(1.05, 100); });
 	rect.on('pointerout', () => { panel.redraw(restState); tweenScale(restState === 'hover' ? 1.05 : 1, 100); });
-	rect.on('pointerdown', () => { panel.redraw('press'); tweenScale(0.95, 80); });
+	rect.on('pointerdown', () => { panel.redraw('press'); tweenScale(0.95, 80, panel.pressSink, iconPressShiftX, iconPressShiftY); });
 	rect.on('pointerup', () => { panel.redraw('hover'); tweenScale(1.05, 80); });
 
 	const setActive = (active: boolean) => {

@@ -192,7 +192,7 @@ func (a *authSvc) create(w http.ResponseWriter, r *http.Request) {
 
 	// 5. Preparazione GameState (uguale a prima)
 	gameDoc := models.GameState{ID: token, CreatedAt: now}
-	gameDoc.Data.SceneID = "Tutorial_End"
+	gameDoc.Data.SceneID = "Stage2"
 	gameDoc.Data.X = 0.0
 	gameDoc.Data.Y = 0.0
 	gameDoc.Data.TotalPlayTimeMs = 0

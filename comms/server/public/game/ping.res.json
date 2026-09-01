@@ -1,0 +1,28 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "PingResponse",
+  "type": "object",
+  "properties": {
+    "scene_id": {
+      "type": "string"
+    },
+    "x": {
+      "type": "string",
+      "pattern": "^[-+]?(\\d+(\\.\\d*)?|\\.\\d+)$"
+    },
+    "y": {
+      "type": "string",
+      "pattern": "^[-+]?(\\d+(\\.\\d*)?|\\.\\d+)$"
+    },
+    "last_ping": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "action": {
+      "type": "string",
+      "enum": ["accept", "rubberband", "kick", "ban"]
+    }
+  },
+  "required": ["scene_id", "x", "y", "last_ping", "action"],
+  "additionalProperties": false
+}

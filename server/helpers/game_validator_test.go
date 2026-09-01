@@ -7,10 +7,16 @@ import (
 	"github.com/subnetMusk/progetti_innovativi/server/models"
 )
 
+// scenaCorrente e' la scena riportata dallo stato di prova: i casi qui sotto
+// verificano velocita' e distanza, non la transizione tra scene, quindi il ping
+// dichiara sempre la scena gia' salvata.
+const scenaCorrente = "Stage1"
+
 // stato costruisce uno stato di gioco con posizione, tempo giocato e istante
 // dell'ultimo ping.
 func stato(x, y float64, tempoGiocatoMs int64, ultimoPing time.Time) *models.GameState {
 	s := &models.GameState{}
+	s.Data.SceneID = scenaCorrente
 	s.Data.X = x
 	s.Data.Y = y
 	s.Data.TotalPlayTimeMs = tempoGiocatoMs
@@ -111,7 +117,7 @@ func TestValidatePing(t *testing.T) {
 
 	for _, c := range casi {
 		t.Run(c.nome, func(t *testing.T) {
-			azione, tempo := ValidatePing(c.stato, c.x, c.y, c.istante)
+			azione, tempo := ValidatePing(c.stato, scenaCorrente, c.x, c.y, c.istante)
 			if azione != c.azione {
 				t.Errorf("azione = %v, attesa %v", azione, c.azione)
 			}
@@ -129,8 +135,8 @@ func TestValidatePingVelocitaDipendeDalTempo(t *testing.T) {
 	adesso := time.Date(2026, 9, 15, 10, 0, 0, 0, time.UTC)
 	const distanza = 60.0
 
-	azioneVeloce, _ := ValidatePing(stato(0, 0, 1000, adesso), distanza, 0, adesso.Add(time.Second))
-	azioneLenta, _ := ValidatePing(stato(0, 0, 1000, adesso), distanza, 0, adesso.Add(4*time.Second))
+	azioneVeloce, _ := ValidatePing(stato(0, 0, 1000, adesso), scenaCorrente, distanza, 0, adesso.Add(time.Second))
+	azioneLenta, _ := ValidatePing(stato(0, 0, 1000, adesso), scenaCorrente, distanza, 0, adesso.Add(4*time.Second))
 
 	if azioneVeloce != ActionRubberband {
 		t.Errorf("stessa distanza in un secondo: azione = %v, attesa Rubberband", azioneVeloce)
@@ -146,13 +152,13 @@ func TestValidatePingDistanzaEuclidea(t *testing.T) {
 	adesso := time.Date(2026, 9, 15, 10, 0, 0, 0, time.UTC)
 
 	// 15 su un asse solo: sotto la soglia consentita.
-	sePiano, _ := ValidatePing(stato(0, 0, 1000, adesso), 15, 0, adesso.Add(time.Second))
+	sePiano, _ := ValidatePing(stato(0, 0, 1000, adesso), scenaCorrente, 15, 0, adesso.Add(time.Second))
 	if sePiano != ActionAccept {
 		t.Errorf("movimento su un asse: azione = %v, attesa Accept", sePiano)
 	}
 
 	// 15 su entrambi gli assi: la diagonale vale circa 21, sopra la soglia.
-	seDiagonale, _ := ValidatePing(stato(0, 0, 1000, adesso), 15, 15, adesso.Add(time.Second))
+	seDiagonale, _ := ValidatePing(stato(0, 0, 1000, adesso), scenaCorrente, 15, 15, adesso.Add(time.Second))
 	if seDiagonale != ActionRubberband {
 		t.Errorf("movimento diagonale: azione = %v, attesa Rubberband", seDiagonale)
 	}

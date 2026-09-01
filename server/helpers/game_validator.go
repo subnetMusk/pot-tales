@@ -37,10 +37,14 @@ const (
 )
 
 // ValidatePing analizza il nuovo input rispetto allo stato corrente.
-func ValidatePing(curr *models.GameState, newX, newY float64, now time.Time) (ValidationResult, int64) {
-	// 1. Gestione Primo Ping (Start Session / Cambio Scena)
-	// Se il tempo giocato è 0, assumiamo sia l'inizializzazione: Accettiamo tutto.
-	if curr.Data.TotalPlayTimeMs == 0 {
+func ValidatePing(curr *models.GameState, newSceneID string, newX, newY float64, now time.Time) (ValidationResult, int64) {
+	// 1. Gestione Primo Ping (Start Session) o Cambio Scena.
+	// Se il tempo giocato è 0 (inizializzazione) oppure la scena riportata è diversa
+	// da quella salvata (transizione legittima tra scene), il confronto spaziale/velocità
+	// non ha senso: la "distanza" tra due scene diverse non è un teletrasporto sospetto.
+	// Accettiamo senza controlli di velocità, ma non accreditiamo tempo (evita di sommare
+	// il gap dell'intera scena precedente come se fosse stato ping costante).
+	if curr.Data.TotalPlayTimeMs == 0 || newSceneID != curr.Data.SceneID {
 		return ActionAccept, 0
 	}
 

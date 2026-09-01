@@ -67,24 +67,37 @@ function checkConsent(): boolean {
     return localStorage.getItem("consentGiven") == "true";
 }
 
-// Flusso principale all'avvio
+// Flusso principale all'avvio: la landing page vive su "/", il gioco su "/play"
 (async () => {
-    const cons = checkConsent();
+    if (window.location.pathname.startsWith("/play")) {
+        await enterGame();
+    } else {
+        await showLanding();
+    }
+})();
 
-    if (cons) {
-        startGame();
+async function showLanding() {
+    await injectAndExecute('/static/pages/homePage.html');
+}
+
+// Chiamata dal bottone Play della landing page: avvia il flusso di consenso/gioco
+async function enterGame() {
+    if (checkConsent()) {
+        await startGame();
     } else {
         await injectAndExecute("/static/pages/consent.html");
     }
-})();
+}
 
 async function startGame() {
     await injectAndExecute('static/pages/game.html');
     import('./loader.js').then(() => {});
 }
 
-// Esporta le funzione per poterle usare in altri moduli 
+// Esporta le funzione per poterle usare in altri moduli
 // serve per evitare errori dati dalla rinominazione di file e funzioni
 // Global exports for browser access
 (window as any).injectAndExecute = injectAndExecute;
+(window as any).showLanding = showLanding;
+(window as any).enterGame = enterGame;
 (window as any).startGame = startGame;

@@ -26,13 +26,13 @@
             "label": "player",
             "scope": "CLASS",
             "texture": {
-                "key": "big_player_idle",
+                "key": "Ch_side",
                 "frame": 0
             },
             "x": 554,
             "y": 344,
-            "scaleX": 2,
-            "scaleY": 2
+            "scaleX": 4.571428571428571,
+            "scaleY": 4.571428571428571
         }
     ],
     "plainObjects": [],

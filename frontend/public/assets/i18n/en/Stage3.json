@@ -1,3 +1,34 @@
 {
-    
+    "movement_hint": "Use the arrow keys to move.",
+    "interact_hint": "Press SPACE to interact with objects.",
+
+    "lipidi_intro_1": "You notice something small and shiny on the ground.",
+    "lipidi_intro_2": "Before you pick it up, let's see if you're paying attention.",
+    "lipidi_question": "How many continents are there on Earth?",
+    "lipidi_answer_1": "7",
+    "lipidi_answer_2": "5",
+    "lipidi_answer_3": "9",
+    "lipidi_answer_4": "6",
+    "lipidi_success": "Correct! Seven it is.",
+    "lipidi_fail": "Not quite. You can try again later.",
+
+    "cellulosa_intro_1": "A curious object catches your eye nearby.",
+    "cellulosa_intro_2": "Let's test your general knowledge first.",
+    "cellulosa_question": "What is the largest planet in our solar system?",
+    "cellulosa_answer_1": "Jupiter",
+    "cellulosa_answer_2": "Saturn",
+    "cellulosa_answer_3": "Neptune",
+    "cellulosa_answer_4": "Earth",
+    "cellulosa_success": "Correct! Jupiter is the largest planet.",
+    "cellulosa_fail": "That's not right. Feel free to try again.",
+
+    "carbon_intro_1": "Something interesting is sitting right here.",
+    "carbon_intro_2": "One quick question before you take it.",
+    "carbon_question": "Which ocean is the largest on Earth?",
+    "carbon_answer_1": "The Pacific Ocean",
+    "carbon_answer_2": "The Atlantic Ocean",
+    "carbon_answer_3": "The Indian Ocean",
+    "carbon_answer_4": "The Arctic Ocean",
+    "carbon_success": "Correct! The Pacific Ocean is indeed the largest.",
+    "carbon_fail": "Not quite — give it another shot later."
 }

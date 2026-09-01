@@ -53,6 +53,19 @@
             "stroke": "#000000"
         },
         {
+            "type": "Rectangle",
+            "id": "06640dbc-881e-446e-a27a-1ea6e46db4cc",
+            "label": "time_bar",
+            "scope": "CLASS",
+            "x": 911,
+            "y": 492,
+            "originY": 1,
+            "isFilled": true,
+            "fillColor": "#55ffff",
+            "width": 12,
+            "height": 264
+        },
+        {
             "type": "Image",
             "id": "5b74e952-8432-4750-938b-582f5354eb6c",
             "label": "shooter_screen",

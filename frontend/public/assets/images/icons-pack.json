@@ -12,6 +12,11 @@
                 "key": "default"
             },
             {
+                "url": "assets/images/ui/continue-button.png",
+                "type": "image",
+                "key": "continue"
+            },
+            {
                 "url": "assets/images/ui/fullscreen.png",
                 "frameConfig": {
                     "frameWidth": 64,
@@ -30,9 +35,9 @@
                 "key": "gallery"
             },
             {
-                "url": "assets/images/ui/leaderboard-button.png",
+                "url": "assets/images/ui/health_icon.png",
                 "type": "image",
-                "key": "leaderboard"
+                "key": "health_icon"
             },
             {
                 "url": "assets/images/ui/play-button.png",
@@ -64,6 +69,11 @@
                 },
                 "type": "spritesheet",
                 "key": "spacebar"
+            },
+            {
+                "url": "assets/images/ui/surprise_balloon.png",
+                "type": "image",
+                "key": "surprise_balloon"
             },
             {
                 "url": "assets/images/ui/title.png",

@@ -6,5 +6,9 @@
     "tutorial_5": "Colpisci ogni minerale prima che arrivi in fondo, || o perderai una vita!",
     "tutorial_6": "Pronto? || Andiamo.",
     "prepare_2": "Nuovo campione, fascio più veloce — preparati!",
-    "prepare_3": "Campione finale in arrivo — preparati bene!"
+    "prepare_3": "Campione finale in arrivo — preparati bene!",
+    "hud_time": "Tempo: {seconds}s",
+    "result_level_clear": "Livello completato",
+    "result_game_over": "Game Over",
+    "result_press_enter": "Premi INVIO per tornare"
 }

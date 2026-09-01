@@ -46,8 +46,9 @@ class Gallery extends Phaser.Scene {
 
 	private setupVideoElements() {
 		const videos = [
-			{ filename: "intro.mp4", x: 320, y: 360, label: "Intro" },
-			{ filename: "IR.mp4", x: 960, y: 360, label: "IR" }
+			{ filename: "intro.mp4", x: 210, y: 360, label: "Intro" },
+			{ filename: "IR.mp4", x: 640, y: 360, label: "IR" },
+			{ filename: "SEM.mp4", x: 1070, y: 360, label: "SEM" }
 		];
 
 		videos.forEach(video => {
@@ -60,6 +61,15 @@ class Gallery extends Phaser.Scene {
 			previewBg.setStrokeStyle(2, 0xffffff);
 			previewBg.setInteractive();
 			container.add(previewBg);
+
+			// Fill the preview with an actual frame grabbed from the video once it's ready
+			this.createVideoPreviewTexture(video.filename).then(textureKey => {
+				if (!this.scene.isActive() || container.scene !== this) return;
+
+				const thumbnail = this.add.image(0, 0, textureKey);
+				thumbnail.setDisplaySize(396, 296);
+				container.addAt(thumbnail, 1);
+			}).catch(err => console.warn(`Could not generate preview for ${video.filename}:`, err));
 
 			// Add label text
 			const label = this.add.text(0, 200, video.label, {
@@ -78,20 +88,83 @@ class Gallery extends Phaser.Scene {
 
 			// Add click handlers
 			previewBg.on("pointerdown", () => {
+				this.tweens.add({ targets: playIcon, scale: 1.5 * 0.85, duration: 80, ease: "Sine.easeOut" });
 				this.playVideo(video.filename);
+			});
+
+			previewBg.on("pointerup", () => {
+				this.tweens.add({ targets: playIcon, scale: 1.5, duration: 80, ease: "Sine.easeOut" });
 			});
 
 			previewBg.on("pointerover", () => {
 				previewBg.setStrokeStyle(3, 0x72d572);
 				label.setColor("#72d572");
+				this.tweens.add({ targets: container, scale: 1.03, duration: 100, ease: "Sine.easeOut" });
 			});
 
 			previewBg.on("pointerout", () => {
 				previewBg.setStrokeStyle(2, 0xf0f8ff);
 				label.setColor("#f0f8ff");
+				this.tweens.add({ targets: container, scale: 1, duration: 100, ease: "Sine.easeOut" });
 			});
 
 			this.galleryElements.push(container);
+		});
+	}
+
+	/**
+	 * Grabs a real frame from the given video file and turns it into a Phaser texture,
+	 * so gallery thumbnails show an actual preview instead of a flat placeholder color.
+	 * Textures are cached by filename and reused across repeat visits to the scene.
+	 */
+	private createVideoPreviewTexture(filename: string): Promise<string> {
+		const key = `preview_${filename}`;
+		if (this.textures.exists(key)) return Promise.resolve(key);
+
+		return new Promise((resolve, reject) => {
+			const videoEl = document.createElement("video");
+			videoEl.muted = true;
+			videoEl.playsInline = true;
+			videoEl.preload = "auto";
+
+			const cleanup = () => {
+				videoEl.removeAttribute("src");
+				videoEl.load();
+			};
+
+			videoEl.addEventListener("loadedmetadata", () => {
+				try {
+					videoEl.currentTime = Math.min(0.5, (videoEl.duration || 1) / 4);
+				} catch (err) {
+					cleanup();
+					reject(err);
+				}
+			});
+
+			videoEl.addEventListener("seeked", () => {
+				const canvas = document.createElement("canvas");
+				canvas.width = videoEl.videoWidth;
+				canvas.height = videoEl.videoHeight;
+				const ctx = canvas.getContext("2d");
+
+				if (ctx && canvas.width > 0 && canvas.height > 0) {
+					ctx.drawImage(videoEl, 0, 0, canvas.width, canvas.height);
+					if (!this.textures.exists(key)) this.textures.addCanvas(key, canvas);
+					cleanup();
+					resolve(key);
+				} else {
+					cleanup();
+					reject(new Error(`Empty video frame for ${filename}`));
+				}
+			}, { once: true });
+
+			videoEl.addEventListener("error", () => {
+				cleanup();
+				reject(new Error(`Failed to load video preview for ${filename}`));
+			});
+
+			videoEl.src = `/assets/videos/${filename}`;
+			videoEl.load();
 		});
 	}
 
@@ -117,6 +190,7 @@ class Gallery extends Phaser.Scene {
 
 		// Handle keyboard escape or back button press
 		if (this.input.keyboard) {
+			this.input.keyboard.off("keydown-ESC");
 			this.input.keyboard.on("keydown-ESC", () => {
 				this.events.off("video-ended", videoEndHandler);
 				this.returnToGallery();

@@ -108,7 +108,7 @@ func TestGameManagerCicloCompleto(t *testing.T) {
 	}
 
 	dopo := adesso.Add(2 * time.Second)
-	if err := gm.UpdateState(ctx, sessione, 15, 25, 2000, dopo); err != nil {
+	if err := gm.UpdateState(ctx, sessione, "Stage1", 15, 25, 2000, dopo); err != nil {
 		t.Fatalf("aggiornamento dello stato: %v", err)
 	}
 

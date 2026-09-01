@@ -5,6 +5,21 @@
                 "url": "assets/images/backgrounds/stage3.png",
                 "type": "image",
                 "key": "stage3"
+            },
+            {
+                "url": "assets/images/items/1-lipidi.png",
+                "type": "image",
+                "key": "lipidi"
+            },
+            {
+                "url": "assets/images/items/2-cellulosa.png",
+                "type": "image",
+                "key": "cellulosa"
+            },
+            {
+                "url": "assets/images/items/3-carbon.png",
+                "type": "image",
+                "key": "carbon"
             }
         ]
     },
