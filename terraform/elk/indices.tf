@@ -18,12 +18,21 @@
 # I template di Fleet dichiarano `<tipo>@custom` fra i propri componenti proprio
 # per consentire questa personalizzazione. Definire invece un index template
 # con priorita' maggiore sostituirebbe quelli di Fleet, perdendone le mappature.
+# `@custom` e' l'ultimo componente della catena, quindi le sue impostazioni
+# vincono su quelle dichiarate da Fleet: e' il punto in cui la ritenzione
+# sostituisce la policy predefinita, che ruota gli indici senza cancellarli mai.
+#
+# Le tre classi di dati la condividono perche' la ritenzione e' una scelta
+# unica. Sono gli access log del proxy a contenere gli indirizzi completi, ma
+# tracce e metriche vivono sullo stesso disco e nessuna delle tre ha ragione di
+# sopravvivere alle altre.
 resource "elasticstack_elasticsearch_component_template" "logs_custom" {
   name = "logs@custom"
 
   template {
     settings = jsonencode({
       "index.number_of_replicas" = "0"
+      "index.lifecycle.name"     = elasticstack_elasticsearch_index_lifecycle.logs.name
     })
   }
 }
@@ -34,6 +43,7 @@ resource "elasticstack_elasticsearch_component_template" "metrics_custom" {
   template {
     settings = jsonencode({
       "index.number_of_replicas" = "0"
+      "index.lifecycle.name"     = elasticstack_elasticsearch_index_lifecycle.logs.name
     })
   }
 }
@@ -44,6 +54,7 @@ resource "elasticstack_elasticsearch_component_template" "traces_custom" {
   template {
     settings = jsonencode({
       "index.number_of_replicas" = "0"
+      "index.lifecycle.name"     = elasticstack_elasticsearch_index_lifecycle.logs.name
     })
   }
 }

@@ -168,7 +168,7 @@ variable "docker_package_version" {
 }
 
 variable "log_retention" {
-  description = "Retention dei log applicativi prima della cancellazione (fase delete ILM)"
+  description = "Retention dei dati di osservabilita' prima della cancellazione (fase delete ILM)"
   type        = string
-  default     = "14d"
+  default     = "30d"
 }
