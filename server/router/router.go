@@ -39,7 +39,7 @@ func New(m *mongo.Client, rdb *redis.Client, v *middleware.Validator, ttlMin str
 	// Auth Routes (/auth/session, /auth/validate)
 	registerAuth(r.PathPrefix("/auth").Subrouter(), m, rdb, ttlMin)
 
-	// Game Routes (/game/position, /game/timer)
+	// Game Routes (/game/position, /game/timer, /game/ping, /game/checkpoint, /game/reset)
 	registerGame(r.PathPrefix("/game").Subrouter(), m, rdb)
 
 	// 3. Log Ingestion (Frontend -> Backend -> Elastic)

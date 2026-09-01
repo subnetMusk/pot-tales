@@ -6,6 +6,8 @@ import { traceBeam, directionAngle } from "../items/beamTracer";
 import { applyTranslations, launchSubScene, playSequence, reloadTranslations } from "../utils";
 import { flashBurst, sparkBurst } from "../items/ParticleFx";
 import PopupManager from "../items/UI/PopupManager";
+import { APISession } from "../network/APISession";
+import { applyInventoryCheckpoints } from "../items/inventoryCheckpoints";
 
 type TurretOrientation = "neutral" | "right" | "back" | "left";
 
@@ -16,8 +18,6 @@ interface Stage2Turret extends OggettoInterattivo {
 	orientation: TurretOrientation;
 	gridX: number;
 	gridY: number;
-	// Overlay che disegna una freccia di orientamento sopra alla texture placeholder "default",
-	// finché non esiste uno sprite dedicato per le torrette (vedi elenco asset mancanti).
 }
 
 // Clockwise cycle used when the player rotates an unlocked turret
@@ -313,6 +313,9 @@ class Stage2 extends Phaser.Scene {
 	// Posizione fissa (pixel, non cella della griglia) dell'overlay del cratere nella finale:
 	// allineata all'arte di sfondo, indipendente dalla posizione logica del receiver del laser.
 	private readonly craterPosition = { x: 676, y: 341 };
+	// Last frame index of the "sem_probe_activate" animation (0-40): used to restore the
+	// probe to its activated end-state on Resume without replaying the whole animation.
+	private readonly probeActivateLastFrame = 40;
 	private readonly turretCellLayout: Array<{ x: number; y: number; orientation: TurretOrientation }> = [
 		{ x: 155, y: 110, orientation: "neutral" },
 		{ x: 510, y: 110, orientation: "neutral" }
@@ -327,6 +330,16 @@ class Stage2 extends Phaser.Scene {
 	private currentShooterLevel = 1;
 	private activeShooter = false;
 	private stageComplete = false;
+
+	private apiSession!: APISession;
+	private resumeData?: { x?: number; y?: number; checkpoints?: string[] };
+	private pingTimer?: Phaser.Time.TimerEvent;
+
+	// Dati di resume passati da Menu.ts via scene.start("Stage2", {...}) quando il
+	// giocatore preme "Resume": posizione dell'ultimo ping e traguardi già raggiunti.
+	init(data?: { x?: number; y?: number; checkpoints?: string[] }) {
+		this.resumeData = data;
+	}
 
 	async preload() {
 		this.load.pack("stage2-pack", "assets/images/stage2-pack.json");
@@ -357,11 +370,18 @@ class Stage2 extends Phaser.Scene {
 		});
 
 		this.popupManager = new PopupManager(this);
+		this.apiSession = new APISession();
 
 		// Configurazione del giocatore
 		this.player.debug(false);
 		this.player.setBoundaries(this.boundaries);
 		this.player.setDepth(6);
+
+		// Se arriviamo qui da un Resume, riposizioniamo il giocatore all'ultimo punto
+		// pingato invece dello spawn di default.
+		if (this.resumeData?.x !== undefined && this.resumeData?.y !== undefined) {
+			this.player.setPosition(this.resumeData.x, this.resumeData.y);
+		}
 
 		this.player.isMovementAllowed = false;
 
@@ -372,16 +392,86 @@ class Stage2 extends Phaser.Scene {
 		if (!this.anims.exists("sem_probe_activate")) {
 			this.anims.create({
 				key: "sem_probe_activate",
-				frames: this.anims.generateFrameNumbers("SEM-Probe", { start: 0, end: 40 }),
+				frames: this.anims.generateFrameNumbers("SEM-Probe", { start: 0, end: this.probeActivateLastFrame }),
 				frameRate: 20,
 				repeat: 0
 			});
 		}
 
 		this.buildTurretPuzzle();
+		this.applyResumeCheckpoints();
+
+		// Ping periodico (5-10s) con la posizione corrente: mantiene aggiornato lo stato
+		// autoritativo sul server per il Resume, e passa dal validatore anti-cheat.
+		this.pingTimer = this.time.addEvent({ delay: 7000, loop: true, callback: () => this.sendPing() });
+		this.events.once("shutdown", () => this.pingTimer?.remove());
 
 		/* START-SCENE-LOGIC */
 		this.playIntroSequence();
+	}
+
+	// Ricostruisce lo stato della scena a partire dai checkpoint opachi salvati sul server,
+	// così un giocatore che riprende da qui non deve rifare i minigiochi già superati.
+	private applyResumeCheckpoints() {
+		const checkpoints = this.resumeData?.checkpoints;
+		if (!checkpoints || checkpoints.length === 0) {
+			return;
+		}
+
+		applyInventoryCheckpoints(this.player, checkpoints);
+
+		let resumedLevel = 1;
+		if (checkpoints.includes("stage2_probe_activated")) {
+			// Restore the probe to its activated end-state instead of leaving it on frame 0
+			// (its default creation frame) — activateLaser() never touches the probe's frame.
+			this.probe.setFrame(this.probeActivateLastFrame);
+			this.activateLaser({ silent: true });
+			resumedLevel += 1;
+		}
+
+		for (const [index, turret] of this.turrets.entries()) {
+			if (!checkpoints.includes(`stage2_turret_${index}`)) {
+				continue;
+			}
+
+			turret.mode = "unlocked";
+			resumedLevel = Math.min(3, resumedLevel + 1);
+
+			// L'orientamento è l'ultima voce salvata con prefisso "..._orientation|" (vedi
+			// saveTurretOrientation) — se manca, il turret resta sull'orientamento di default
+			// con cui è stato creato in createTurret().
+			const orientationEntries = checkpoints.filter(entry => entry.startsWith(`stage2_turret_${index}_orientation|`));
+			const savedOrientation = orientationEntries[orientationEntries.length - 1]?.split("|")[1] as TurretOrientation | undefined;
+			if (savedOrientation && ORIENTATION_CYCLE.includes(savedOrientation)) {
+				turret.orientation = savedOrientation;
+			}
+
+			this.applyTurretStyle(turret);
+		}
+
+		// Il livello di difficoltà dello Shooter segue lo stesso ordine progressivo
+		// probe -> turret 0 -> turret 1 usato durante il gioco normale (vedi activateProbe()
+		// e runChallengeForTurret()): senza questo, un turret non ancora risolto dopo un
+		// Resume ripartirebbe sempre dal livello 1 invece di quello raggiunto in precedenza.
+		this.currentShooterLevel = resumedLevel;
+
+		this.redrawBeam();
+	}
+
+	// Invia la posizione corrente al server; se il server rifiuta il movimento (lag/cheat)
+	// o rileva un ban, allinea il client allo stato autoritativo restituito.
+	private async sendPing() {
+		try {
+			const result = await this.apiSession.ping("Stage2", this.player.x, this.player.y);
+			if (result.action === "rubberband" || result.action === "kick") {
+				this.player.setPosition(parseFloat(result.x), parseFloat(result.y));
+			} else if (result.action === "ban") {
+				this.pingTimer?.remove();
+				this.scene.start("Menu");
+			}
+		} catch (error) {
+			console.error("Ping fallito:", error);
+		}
 	}
 
 	private playIntroSequence() {
@@ -455,15 +545,24 @@ class Stage2 extends Phaser.Scene {
 			return;
 		}
 
-		this.cycleTurretOrientation(turret);
+		this.cycleTurretOrientation(turret, index);
 	}
 
-	private cycleTurretOrientation(turret: Stage2Turret) {
+	private cycleTurretOrientation(turret: Stage2Turret, index: number) {
 		const currentIndex = ORIENTATION_CYCLE.indexOf(turret.orientation);
 		turret.orientation = ORIENTATION_CYCLE[(currentIndex + 1) % ORIENTATION_CYCLE.length];
 		console.log(`[Stage2] turret (${turret.gridX}, ${turret.gridY}) orientation -> ${turret.orientation} (frame ${ORIENTATION_FRAMES[turret.orientation]})`);
 		this.applyTurretStyle(turret);
 		this.redrawBeam();
+		this.saveTurretOrientation(index, turret.orientation);
+	}
+
+	// L'orientamento cambia continuamente (il giocatore lo ruota a piacere), quindi non può
+	// essere un checkpoint "aggiungi soltanto" come gli altri: usa il formato chiave|valore
+	// (vedi APISession.saveCheckpoint) così il server sostituisce la voce precedente invece
+	// di accumulare uno storico di tutte le rotazioni provate.
+	private saveTurretOrientation(index: number, orientation: TurretOrientation) {
+		void this.apiSession.saveCheckpoint(`stage2_turret_${index}_orientation|${orientation}`);
 	}
 
 	private activateProbe() {
@@ -483,6 +582,7 @@ class Stage2 extends Phaser.Scene {
 				}
 
 				this.currentShooterLevel += 1;
+				void this.apiSession.saveCheckpoint("stage2_probe_activated");
 				// Oggetto sbloccato dal minigioco della probe (frame 3 di player_items).
 				this.player.addInventoryItem(3);
 				this.probe.set = false;
@@ -516,11 +616,16 @@ class Stage2 extends Phaser.Scene {
 		});
 	}
 
-	private activateLaser() {
+	// silent: true quando lo stato viene ricostruito da un Resume, invece che raggiunto
+	// giocando — salta il salto di festeggiamento e non forza il movimento (ci pensa già
+	// playIntroSequence a riabilitarlo al termine del fade-in).
+	private activateLaser(options: { silent?: boolean } = {}) {
 		this.laserActive = true;
-		this.player.isMovementAllowed = true;
 
-		void this.player.jump().then(() => this.player.jump());
+		if (!options.silent) {
+			this.player.isMovementAllowed = true;
+			void this.player.jump().then(() => this.player.jump());
+		}
 
 		this.activateHitbox(this.probe);
 
@@ -556,6 +661,8 @@ class Stage2 extends Phaser.Scene {
 			if (turret) {
 				turret.mode = "unlocked";
 				this.applyTurretStyle(turret);
+				void this.apiSession.saveCheckpoint(`stage2_turret_${turretIndex}`);
+				this.saveTurretOrientation(turretIndex, turret.orientation);
 
 				// One-shot pulse + flash on the locked->unlocked transition specifically
 				// (cycleTurretOrientation reuses applyTurretStyle too, but shouldn't re-pulse).
@@ -837,6 +944,8 @@ class Stage2 extends Phaser.Scene {
 	}
 
 	private transitionToStage3() {
+		void this.apiSession.saveCheckpoint("stage2_complete");
+
 		const blackRect = this.add.rectangle(
 			this.cameras.main.centerX,
 			this.cameras.main.centerY,
@@ -853,8 +962,6 @@ class Stage2 extends Phaser.Scene {
 			alpha: 1,
 			duration: 1500,
 			ease: "Linear",
-			// TODO: "Stage3" doesn't exist yet and isn't registered in Preload.ts — needs a
-			// product decision (real Stage3 scene? redirect elsewhere? end-of-demo screen?).
 			onComplete: () => this.scene.start("Stage3")
 		});
 	}

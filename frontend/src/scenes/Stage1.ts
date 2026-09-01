@@ -475,30 +475,28 @@ class Stage1 extends Phaser.Scene {
 				this.player.interactionAllowed = false; //disabilita l'interazione
 				this.time.delayedCall(4000, this.cameras.main.fadeOut, [], this.cameras.main);
 				this.time.delayedCall(5000, async () => {
-					// const requestData: CreateSessionRequest = {
-					// 	consentGiven: true,
-					// 	device: navigator.userAgent.substring(0, 1024)
-					// };
+					// Da qui in poi la partita è "salvabile": creiamo la sessione e registriamo
+					// subito il primo traguardo. Best-effort: un fallimento di rete non deve
+					// bloccare il giocatore, semplicemente non potrà riprendere da qui in caso
+					// di reload finché la connessione non torna disponibile.
+					const requestData: CreateSessionRequest = {
+						consentGiven: true,
+						device: navigator.userAgent.substring(0, 1024)
+					};
 
-					// try {
-					// 	console.log("Tentativo di creare la sessione...");
-					// 	const sessione = await this.apiSession.createSession(requestData);
+					try {
+						console.log("Tentativo di creare la sessione...");
+						const sessione = await this.apiSession.createSession(requestData);
+						console.log("Sessione creata con successo:", sessione.token);
 
-					// 	console.log("Sessione creata con successo:", sessione.token);
-					// 	this.scene.start("Menu");
-
-					// } catch (error) {
-					// 	if (error instanceof Error) {
-					// 		console.error("Creazione della sessione fallita:", error.message);
-					// 	} else {
-					// 		console.error("Creazione della sessione fallita (oggetto non-Error):", error);
-					// 	}
-
-					// 	// Mostra un errore al giocatore usando il tuo PopupManager!
-					// 	this.popupManager.queuePopup("Errore di connessione.");
-					// 	this.popupManager.queuePopup("Impossibile salvare i progressi.");
-					// 	this.popupManager.showNextPopup();
-					// }
+						await this.apiSession.saveCheckpoint("stage1_complete");
+					} catch (error) {
+						if (error instanceof Error) {
+							console.error("Creazione della sessione o del checkpoint fallita:", error.message);
+						} else {
+							console.error("Creazione della sessione o del checkpoint fallita (oggetto non-Error):", error);
+						}
+					}
 
 					this.scene.start("Stage2");
 				});

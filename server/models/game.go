@@ -14,10 +14,11 @@ type GameState struct {
 
 	// Dati di Gameplay (Posizione + Tempo accumulato)
 	Data struct {
-		SceneID         string  `bson:"scene_id"`
-		X               float64 `bson:"x"`
-		Y               float64 `bson:"y"`
-		TotalPlayTimeMs int64   `bson:"total_time_ms"` // Accumulatore tempo effettivo
+		SceneID         string   `bson:"scene_id"`
+		X               float64  `bson:"x"`
+		Y               float64  `bson:"y"`
+		TotalPlayTimeMs int64    `bson:"total_time_ms"`         // Accumulatore tempo effettivo
+		Checkpoints     []string `bson:"checkpoints,omitempty"` // ID opachi dei traguardi raggiunti (es. "stage2_turret_0")
 	} `bson:"data"`
 
 	// Metadati per la Validazione (Authority Server)
