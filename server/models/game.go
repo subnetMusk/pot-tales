@@ -30,3 +30,18 @@ type GameState struct {
 		Warnings int       `bson:"warnings"`  // Contatore per logica di Soft-Ban (opzionale)
 	} `bson:"meta"`
 }
+
+// PositionRecorded dice se il gioco ha mai riportato una posizione.
+//
+// Lo stato nasce con coordinate a zero, che non descrivono un punto della scena
+// ma l'assenza di un punto: la sessione viene creata all'uscita da Stage1, prima
+// che la scena successiva esista e possa dire dove si trova il giocatore. Solo il
+// ping scrive le coordinate, e le scrive insieme a last_ping: finche' questo
+// coincide con l'istante di creazione non c'e' nulla da ripristinare.
+//
+// Uno stato che non ha created_at, perche' precede l'introduzione del campo,
+// risulta avere una posizione: e' il verso giusto in cui sbagliare, perche' quel
+// dato una posizione vera ce l'ha.
+func (g GameState) PositionRecorded() bool {
+	return !g.Meta.LastPing.Equal(g.CreatedAt)
+}

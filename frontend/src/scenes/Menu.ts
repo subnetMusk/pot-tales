@@ -192,8 +192,11 @@ class Menu extends Phaser.Scene {
 						const position = await this.apiSession.getPosition();
 						this.resumeData = {
 							sceneId: position.scene_id,
-							x: parseFloat(position.x),
-							y: parseFloat(position.y),
+							// parseFloat(undefined) darebbe NaN, che passerebbe il
+							// controllo di esistenza nelle scene e finirebbe in
+							// setPosition: l'assenza va propagata come tale.
+							x: position.x !== undefined ? parseFloat(position.x) : undefined,
+							y: position.y !== undefined ? parseFloat(position.y) : undefined,
 							checkpoints: position.checkpoints,
 						};
 						resume_alpha = 1;

@@ -56,10 +56,17 @@ func (g *gameSvc) getPosition(w http.ResponseWriter, r *http.Request) {
 	// Formattazione DTO String
 	response := map[string]any{
 		"scene_id":    state.Data.SceneID,
-		"x":           fmt.Sprintf("%f", state.Data.X),
-		"y":           fmt.Sprintf("%f", state.Data.Y),
 		"last_ping":   state.Meta.LastPing.Format(time.RFC3339),
 		"checkpoints": checkpoints,
+	}
+
+	// Le coordinate compaiono solo se il gioco le ha riportate almeno una volta.
+	// Servire lo zero della creazione come se fosse una posizione salvata
+	// riporterebbe il giocatore nell'angolo della scena invece che al suo punto
+	// di ingresso; l'assenza del campo dice al client di usare lo spawn.
+	if state.PositionRecorded() {
+		response["x"] = fmt.Sprintf("%f", state.Data.X)
+		response["y"] = fmt.Sprintf("%f", state.Data.Y)
 	}
 
 	helpers.WriteJSON(w, http.StatusOK, response)
