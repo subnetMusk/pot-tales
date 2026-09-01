@@ -131,6 +131,7 @@ export function setupPixelButton(
 
 	const graphics = scene.add.graphics();
 	graphics.setPosition(rect.x, rect.y);
+	graphics.setScrollFactor(0, 0);
 	const panel = new PixelPanel(graphics, -panelWidth / 2, -panelHeight / 2, panelWidth, panelHeight, {
 		fillColor: options.fillColor,
 		hoverColor: options.hoverColor,

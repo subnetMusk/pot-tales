@@ -201,6 +201,9 @@ class Player extends Phaser.GameObjects.Container {
 		{ x: 18, y: 2 },
 		{ x: 33, y: 2 },
 		{ x: 48, y: 2 },
+		{ x: 63, y: 2 },
+		{ x: 78, y: 2 },
+		{ x: 93, y: 2 },
 	];
 
 	// Chiave nel registry del game (condiviso fra le scene) sotto cui è salvato l'elenco dei

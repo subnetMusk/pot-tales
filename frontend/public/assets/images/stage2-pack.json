@@ -137,11 +137,6 @@
                 ],
                 "type": "audio",
                 "key": "steam"
-            },
-            {
-                "url": "assets/images/items/turret_placeholder.png",
-                "type": "image",
-                "key": "turret_placeholder"
             }
         ]
     },

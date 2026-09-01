@@ -21,9 +21,11 @@ class Stage1_Lab extends Phaser.Scene {
 		this.add.image(640, 360, "lab_bg");
 
 		// player
-		const player = this.add.sprite(554, 344, "big_player_idle", 0);
-		player.scaleX = 2;
-		player.scaleY = 2;
+		const player = this.add.sprite(554, 344, "Ch_side", 0);
+		// Ch_side frames are 18x28, vs. the old 64x64 big_player_* sheet at scale 2 (128 world
+		// units tall) — scale up to keep the same on-screen size with the new character art.
+		player.scaleX = 4.571428571428571;
+		player.scaleY = 4.571428571428571;
 
 		this.player = player;
 
@@ -65,16 +67,39 @@ class Stage1_Lab extends Phaser.Scene {
 		// Position player facing right
 		this.player.setFlipX(true); // Face right while moving
 
-		// Create animations for the big player
+		// Create animations for the player (same keys/conventions as Player.ts, guarded so
+		// re-entering this scene or another scene already having created them doesn't error)
 		const anims = this.anims;
 
+		if (!anims.exists('idle_side')) {
+			anims.create({
+				key: 'idle_side',
+				frames: [{ key: 'Ch_side', frame: 0 }],
+				frameRate: 1,
+				repeat: -1
+			});
+		}
+
+		if (!anims.exists('idle_back')) {
+			anims.create({
+				key: 'idle_back',
+				frames: [{ key: 'Ch_back', frame: 0 }],
+				frameRate: 1,
+				repeat: -1
+			});
+		}
+
 		// Walk side animation
-		anims.create({
-			key: 'big_walk_side',
-			frames: anims.generateFrameNumbers('big_player_walk_side', { start: 0, end: -1 }),
-			frameRate: 15,
-			repeat: -1
-		});
+		if (!anims.exists('walk_side')) {
+			anims.create({
+				key: 'walk_side',
+				frames: anims.generateFrameNumbers('Ch_side', { start: 0, end: -1 }),
+				frameRate: 8,
+				repeat: -1
+			});
+		}
+
+		this.player.play('idle_side', true);
 
 		// Show dialogs after fade completes
 		this.cameras.main.once('camerafadeincomplete', () => {
@@ -87,7 +112,7 @@ class Stage1_Lab extends Phaser.Scene {
 				this.popupManager.showNextPopup(200);
 
 				// Start walking animation and move to x=680
-				this.player.play('big_walk_side', true);
+				this.player.play('walk_side', true);
 				this.tweens.add({
 					targets: this.player,
 					x: 678,
@@ -95,8 +120,7 @@ class Stage1_Lab extends Phaser.Scene {
 					ease: 'Linear',
 					onComplete: () => {
 						// Stop at upward facing idle
-						this.player.stop();
-						this.player.setTexture('big_player_idle', 3);
+						this.player.play('idle_back', true);
 
 						// Run camera zoom and fade-out in parallel, both required before minigame
 						let cameraReady = false;

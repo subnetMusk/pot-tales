@@ -35,11 +35,6 @@
                 "key": "health_icon"
             },
             {
-                "url": "assets/images/ui/leaderboard-button.png",
-                "type": "image",
-                "key": "leaderboard"
-            },
-            {
                 "url": "assets/images/ui/play-button.png",
                 "frameConfig": {
                     "frameWidth": 32,
