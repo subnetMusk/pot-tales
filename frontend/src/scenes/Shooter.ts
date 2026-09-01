@@ -513,12 +513,15 @@ class Shooter extends Phaser.Scene {
 		}
 	}
 
-	// Registered via physics.add.overlap() in create() — replaces the old O(bullets x targets)
+	// Registered via physics.add.overlap() in create() - replaces the old O(bullets x targets)
 	// manual distance-check loop with the physics engine's own overlap detection.
-	private onBulletHitTarget = (
-		bulletObj: Phaser.Types.Physics.Arcade.GameObjectWithBody,
-		targetObj: Phaser.Types.Physics.Arcade.GameObjectWithBody
-	) => {
+	//
+	// Typed with Phaser's own callback type instead of narrowing the parameters: overlap()
+	// hands the callback anything that can carry a body (sprites, raw bodies, tiles), so
+	// declaring narrower parameters would not stop it from passing one of the others, it
+	// would only stop the assignment from compiling. The narrowing belongs where the objects
+	// are actually used, and both are groups of sprites here.
+	private onBulletHitTarget: Phaser.Types.Physics.Arcade.ArcadePhysicsCallback = (bulletObj, targetObj) => {
 		const bullet = bulletObj as Phaser.Physics.Arcade.Sprite;
 		const target = targetObj as Phaser.Physics.Arcade.Sprite;
 
