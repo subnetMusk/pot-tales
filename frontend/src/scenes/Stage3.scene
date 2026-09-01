@@ -1,0 +1,151 @@
+{
+    "id": "0e765eb7-503c-4431-a093-3b1f5c349909",
+    "sceneType": "SCENE",
+    "settings": {
+        "preloadPackFiles": [],
+        "createMethodName": "editorCreate",
+        "sceneKey": "Stage3",
+        "compilerOutputLanguage": "TYPE_SCRIPT",
+        "borderWidth": 1280,
+        "borderHeight": 720
+    },
+    "displayList": [
+        {
+            "type": "Image",
+            "id": "3c8a5b8f-fc76-4ccf-a589-367a417ff294",
+            "label": "stage3",
+            "texture": {
+                "key": "stage3"
+            },
+            "x": 1000,
+            "y": 515
+        },
+        {
+            "type": "Rectangle",
+            "id": "aa1a1e8b-1724-4484-94e6-f050204d4c53",
+            "label": "rectangle_1",
+            "x": 1000,
+            "y": -20,
+            "width": 2080,
+            "height": 40
+        },
+        {
+            "type": "Rectangle",
+            "id": "03632c03-75b8-4ce2-8541-3c1c6f81e498",
+            "label": "rectangle_2",
+            "x": 1000,
+            "y": 1050,
+            "width": 2080,
+            "height": 40
+        },
+        {
+            "type": "Rectangle",
+            "id": "337767a1-f507-49c2-9c5c-28de139fbae5",
+            "label": "rectangle_3",
+            "x": -20,
+            "y": 515,
+            "width": 40,
+            "height": 1110
+        },
+        {
+            "type": "Rectangle",
+            "id": "70bb2faa-4016-4c87-910e-89fd16ddb293",
+            "label": "rectangle_4",
+            "x": 2020,
+            "y": 515,
+            "width": 40,
+            "height": 1110
+        },
+        {
+            "prefabId": "5a8935be-1a98-42a5-9cc4-bca49b9c51b2",
+            "id": "ecbcb037-72ad-48ef-827a-a64ecc92bbae",
+            "unlock": [
+                "x",
+                "y"
+            ],
+            "label": "player",
+            "scope": "CLASS",
+            "x": 1000,
+            "y": 600
+        },
+        {
+            "prefabId": "dfd624ad-310c-404d-96d2-d2307c3faaef",
+            "id": "d53cf502-c0ed-4a2b-ac6b-57dc92d85d7e",
+            "unlock": [
+                "x",
+                "y",
+                "texture"
+            ],
+            "label": "lipidi",
+            "scope": "CLASS",
+            "texture": {
+                "key": "lipidi",
+                "frame": 0
+            },
+            "x": 700,
+            "y": 450
+        },
+        {
+            "prefabId": "dfd624ad-310c-404d-96d2-d2307c3faaef",
+            "id": "6e4a9f74-fae8-4ed3-9d9b-66bf43c28e70",
+            "unlock": [
+                "x",
+                "y",
+                "texture"
+            ],
+            "label": "cellulosa",
+            "scope": "CLASS",
+            "texture": {
+                "key": "cellulosa",
+                "frame": 0
+            },
+            "x": 1000,
+            "y": 300
+        },
+        {
+            "prefabId": "dfd624ad-310c-404d-96d2-d2307c3faaef",
+            "id": "cf35d4fa-40e8-475f-a123-7442772babf7",
+            "unlock": [
+                "x",
+                "y",
+                "texture"
+            ],
+            "label": "carbon",
+            "scope": "CLASS",
+            "texture": {
+                "key": "carbon",
+                "frame": 0
+            },
+            "x": 1300,
+            "y": 450
+        }
+    ],
+    "plainObjects": [],
+    "meta": {
+        "app": "Phaser Editor - Scene Editor",
+        "url": "https://phaser.io/editor",
+        "contentType": "phasereditor2d.core.scene.SceneContentType",
+        "version": 5
+    },
+    "lists": [
+        {
+            "id": "6caca3b1-8551-464b-b011-4d91a11f3a6e",
+            "label": "boundaries",
+            "objectIds": [
+                "aa1a1e8b-1724-4484-94e6-f050204d4c53",
+                "03632c03-75b8-4ce2-8541-3c1c6f81e498",
+                "337767a1-f507-49c2-9c5c-28de139fbae5",
+                "70bb2faa-4016-4c87-910e-89fd16ddb293"
+            ]
+        },
+        {
+            "id": "91e0856f-abb8-409f-80f5-5af999de3c12",
+            "label": "oggVector",
+            "objectIds": [
+                "d53cf502-c0ed-4a2b-ac6b-57dc92d85d7e",
+                "6e4a9f74-fae8-4ed3-9d9b-66bf43c28e70",
+                "cf35d4fa-40e8-475f-a123-7442772babf7"
+            ]
+        }
+    ]
+}

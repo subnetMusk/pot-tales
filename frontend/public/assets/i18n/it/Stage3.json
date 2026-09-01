@@ -1,3 +1,34 @@
 {
-    
+    "movement_hint": "Usa le frecce per muoverti.",
+    "interact_hint": "Premi 'I' per interagire con gli oggetti.",
+
+    "lipidi_intro_1": "Noti qualcosa di piccolo e luccicante per terra.",
+    "lipidi_intro_2": "Prima di raccoglierlo, vediamo se sei attento.",
+    "lipidi_question": "Quanti continenti ci sono sulla Terra?",
+    "lipidi_answer_1": "7",
+    "lipidi_answer_2": "5",
+    "lipidi_answer_3": "9",
+    "lipidi_answer_4": "6",
+    "lipidi_success": "Esatto! Sono sette.",
+    "lipidi_fail": "Non proprio. Puoi riprovare più tardi.",
+
+    "cellulosa_intro_1": "Un oggetto curioso attira la tua attenzione lì vicino.",
+    "cellulosa_intro_2": "Prima mettiamo alla prova la tua cultura generale.",
+    "cellulosa_question": "Qual è il pianeta più grande del sistema solare?",
+    "cellulosa_answer_1": "Giove",
+    "cellulosa_answer_2": "Saturno",
+    "cellulosa_answer_3": "Nettuno",
+    "cellulosa_answer_4": "Terra",
+    "cellulosa_success": "Esatto! Giove è il pianeta più grande.",
+    "cellulosa_fail": "Non è corretto. Riprova pure.",
+
+    "carbon_intro_1": "Qualcosa di interessante si trova proprio qui.",
+    "carbon_intro_2": "Una domanda veloce prima di prenderlo.",
+    "carbon_question": "Qual è l'oceano più grande della Terra?",
+    "carbon_answer_1": "L'Oceano Pacifico",
+    "carbon_answer_2": "L'Oceano Atlantico",
+    "carbon_answer_3": "L'Oceano Indiano",
+    "carbon_answer_4": "L'Oceano Artico",
+    "carbon_success": "Esatto! L'Oceano Pacifico è davvero il più grande.",
+    "carbon_fail": "Non proprio — riprova più tardi."
 }

@@ -33,7 +33,7 @@ export function ensureSparkTexture(scene: Phaser.Scene): void {
 
 // Single white/tinted "pop" — used for Shooter's kill-flash and GraficoGame's per-peak hit flash.
 // Caller owns nothing; the emitter self-destroys after its one burst finishes.
-export function flashBurst(scene: Phaser.Scene, x: number, y: number, opts?: { tint?: number; scale?: number }): void {
+export function flashBurst(scene: Phaser.Scene, x: number, y: number, opts?: { tint?: number; scale?: number; depth?: number }): void {
 	ensureSparkTexture(scene);
 	const emitter = scene.add.particles(0, 0, SPARK_KEY, {
 		lifespan: 220,
@@ -44,6 +44,7 @@ export function flashBurst(scene: Phaser.Scene, x: number, y: number, opts?: { t
 		blendMode: "ADD",
 		emitting: false,
 	});
+	if (opts?.depth !== undefined) emitter.setDepth(opts.depth);
 	emitter.explode(1, x, y);
 	scene.time.delayedCall(240, () => emitter.destroy());
 }
@@ -51,20 +52,21 @@ export function flashBurst(scene: Phaser.Scene, x: number, y: number, opts?: { t
 // Multi-spark radial burst — used for GraficoGame's fireworks/miss-flash and Shooter's
 // tier-proportional kill-burst (more/bigger sparks for rarer targets).
 export function sparkBurst(scene: Phaser.Scene, x: number, y: number, opts?: {
-	count?: number; tint?: number | number[]; speedMin?: number; speedMax?: number; lifespan?: number; blendMode?: "ADD" | "NORMAL";
+	count?: number; tint?: number | number[]; speedMin?: number; speedMax?: number; lifespan?: number; blendMode?: "ADD" | "NORMAL"; scale?: number; depth?: number;
 }): void {
 	ensureSparkTexture(scene);
 	const lifespan = opts?.lifespan ?? 950;
 	const emitter = scene.add.particles(0, 0, SPARK_KEY, {
 		lifespan,
 		speed: { min: opts?.speedMin ?? 70, max: opts?.speedMax ?? 150 },
-		scale: { start: 1.9, end: 0, ease: "Cubic.easeOut" },
+		scale: { start: opts?.scale ?? 1.9, end: 0, ease: "Cubic.easeOut" },
 		alpha: { start: 1, end: 0, ease: "Cubic.easeIn" },
 		rotate: { start: 0, end: 120 },
 		tint: opts?.tint ?? [0xff1744, 0xffd600, 0x00e5ff, 0x7c4dff, 0x00e676],
 		blendMode: opts?.blendMode ?? "NORMAL",
 		emitting: false,
 	});
+	if (opts?.depth !== undefined) emitter.setDepth(opts.depth);
 	emitter.explode(opts?.count ?? 6, x, y);
 	scene.time.delayedCall(lifespan + 50, () => emitter.destroy());
 }
