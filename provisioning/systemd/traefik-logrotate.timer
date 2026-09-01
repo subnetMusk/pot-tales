@@ -1,0 +1,16 @@
+[Unit]
+Description=Cadenza della rotazione dell'access log di Traefik
+
+[Timer]
+# Il tetto sulla dimensione vale solo quando qualcuno lo verifica: con la
+# cadenza giornaliera del logrotate di sistema, un evento aperto al pubblico
+# lascerebbe crescere il file per un giorno intero prima del primo controllo.
+OnBootSec=10min
+OnUnitActiveSec=1h
+
+# Una macchina spenta al momento previsto verifica al primo avvio utile. Il
+# file intanto non si e' mosso, ma il contatore delle rotazioni si riallinea.
+Persistent=true
+
+[Install]
+WantedBy=timers.target

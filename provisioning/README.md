@@ -47,6 +47,8 @@ verifica va fatta prima di installare qualunque cosa.
 | `systemd/alert-notifier.service`, `.timer` | `/etc/systemd/system/` |
 | `systemd/data-export.service` | `/etc/systemd/system/` |
 | `systemd/backup-nightly.service`, `.timer` | `/etc/systemd/system/` |
+| `systemd/traefik-logrotate.service`, `.timer` | `/etc/systemd/system/` |
+| `logrotate/traefik-access.conf` | `/etc/logrotate.traefik.conf` |
 | `bin/*.sh`, `bin/*.py` | `/usr/local/bin/` |
 | `systemd/stack-surveillance.env.example` | `/etc/stack-surveillance.env`, compilato e a `0600` |
 | `systemd/stack-deploy.env.example` | `/etc/stack-deploy.env`, compilato e a `0600` |
@@ -58,6 +60,7 @@ sudo install -m 0644 -D systemd/journald.conf.d/10-persistent.conf \
      /etc/systemd/journald.conf.d/10-persistent.conf
 sudo install -m 0644 systemd/*.service systemd/*.timer /etc/systemd/system/
 sudo install -m 0755 bin/*.sh bin/*.py /usr/local/bin/
+sudo install -m 0644 logrotate/traefik-access.conf /etc/logrotate.traefik.conf
 
 sudo systemctl restart systemd-journald
 sudo systemctl daemon-reload
