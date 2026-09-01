@@ -12,6 +12,11 @@
                 "key": "default"
             },
             {
+                "url": "assets/images/ui/continue-button.png",
+                "type": "image",
+                "key": "continue"
+            },
+            {
                 "url": "assets/images/ui/fullscreen.png",
                 "frameConfig": {
                     "frameWidth": 64,

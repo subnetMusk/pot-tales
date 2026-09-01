@@ -85,8 +85,8 @@
             {
                 "url": "assets/images/items/minerals.png",
                 "frameConfig": {
-                    "frameWidth": 16,
-                    "frameHeight": 16,
+                    "frameWidth": 18,
+                    "frameHeight": 18,
                     "startFrame": 0,
                     "endFrame": -1,
                     "spacing": 0,

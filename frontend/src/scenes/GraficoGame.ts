@@ -236,8 +236,6 @@ class GraficoGame extends Phaser.Scene {
 							{ message: i18n.welcome_5_narrator, preset: "dark" },
 							{ message: i18n.instructions, preset: "hint" }
 						]).then(() => {
-							this.input.keyboard?.off('keydown-ENTER');
-
 							startLevel(0);
 
 							this.input.keyboard?.on('keydown-SPACE', () => {

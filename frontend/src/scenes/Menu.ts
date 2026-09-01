@@ -68,7 +68,7 @@ class Menu extends Phaser.Scene {
 		resume.setStyle({ "align": "center", "color": "#f0f8ff", "fontFamily": "PixelifySans-VariableFont_wght", "fontSize": "30px", "stroke": "#000000" });
 
 		// resume_icon
-		const resume_icon = this.add.image(478, 420, "play", 0);
+		const resume_icon = this.add.image(478, 420, "continue");
 		resume_icon.scaleX = 2;
 		resume_icon.scaleY = 2;
 
@@ -169,7 +169,7 @@ class Menu extends Phaser.Scene {
 		// Il rettangolo editor-generato resta come hit-area invisibile.
 		const playPanel = this.setupMenuButton(this.play_button, "Play", 0xf98170);
 		const galleryPanel = this.setupMenuButton(this.gallery_button, "Gallery", 0x8fd3f1);
-		const resumePanel = this.setupMenuButton(this.resume_button, "Resume", 0x70bcff);
+		const resumePanel = this.setupMenuButton(this.resume_button, "Resume", 0x83f772);
 
 		// Aggiunge i nuovi pannelli agli stessi gruppi di fade-in/out usati dagli altri
 		// elementi UI, così appaiono/scompaiono in sincrono col resto del menu.

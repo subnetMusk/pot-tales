@@ -145,19 +145,33 @@ export function setupPixelButton(
 	// L'icona può avere già uno scale base (es. 2x) impostato in editorCreate: il fattore
 	// va applicato relativo a quello, non sovrascritto (altrimenti si rimpicciolisce).
 	const iconBaseScale = icon?.scaleX ?? 1;
+	const textBaseX = text?.x ?? 0;
+	const textBaseY = text?.y ?? 0;
+	const iconBaseX = icon?.x ?? 0;
+	const iconBaseY = icon?.y ?? 0;
 	let restState: PixelPanelState = 'idle';
 
-	const tweenScale = (factor: number, duration: number) => {
+	// In stato "press" il pannello affonda visivamente in diagonale di panel.pressSink
+	// (vedi PixelPanel.redraw): il testo è un GameObject separato e non eredita quello
+	// spostamento, quindi va traslato a mano per restare allineato al pannello. L'icona
+	// invece scarta verso destra/basso di un valore proprio (iconPressShiftX/Y),
+	// indipendente dal sink diagonale del pannello/testo.
+	const iconPressShiftX = 9;
+	const iconPressShiftY = 6;
+	const tweenScale = (factor: number, duration: number, sink: number = 0, iconShiftX: number = 0, iconShiftY: number = 0) => {
 		const flatTargets: Array<Phaser.GameObjects.Graphics | Phaser.GameObjects.Text> = text ? [graphics, text] : [graphics];
 		scene.tweens.add({ targets: flatTargets, scale: factor, duration, ease: 'Sine.easeOut' });
+		if (text) {
+			scene.tweens.add({ targets: text, x: textBaseX + sink, y: textBaseY + sink, duration, ease: 'Sine.easeOut' });
+		}
 		if (icon) {
-			scene.tweens.add({ targets: icon, scale: iconBaseScale * factor, duration, ease: 'Sine.easeOut' });
+			scene.tweens.add({ targets: icon, scale: iconBaseScale * factor, x: iconBaseX + iconShiftX, y: iconBaseY + iconShiftY, duration, ease: 'Sine.easeOut' });
 		}
 	};
 
 	rect.on('pointerover', () => { panel.redraw('hover'); tweenScale(1.05, 100); });
 	rect.on('pointerout', () => { panel.redraw(restState); tweenScale(restState === 'hover' ? 1.05 : 1, 100); });
-	rect.on('pointerdown', () => { panel.redraw('press'); tweenScale(0.95, 80); });
+	rect.on('pointerdown', () => { panel.redraw('press'); tweenScale(0.95, 80, panel.pressSink, iconPressShiftX, iconPressShiftY); });
 	rect.on('pointerup', () => { panel.redraw('hover'); tweenScale(1.05, 80); });
 
 	const setActive = (active: boolean) => {

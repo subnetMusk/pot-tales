@@ -18,11 +18,6 @@ class Shooter extends Phaser.Scene {
 
 	editorCreate(): void {
 
-		// screen_back
-		const screen_back = this.add.rectangle(640, 360, 462, 302);
-		screen_back.isFilled = true;
-		screen_back.fillColor = 331285;
-
 		// timerText
 		const timerText = this.add.text(449, 230, "", {});
 		timerText.name = "timerText";
@@ -39,12 +34,19 @@ class Shooter extends Phaser.Scene {
 		resultText.setOrigin(0.5, 0.5);
 		resultText.setStyle({ "align": "center", "color": "#f0f8ff", "fontFamily": "PixelifySans-VariableFont_wght", "fontSize": "20px", "stroke": "#000000" });
 
+		// time_bar
+		const time_bar = this.add.rectangle(911, 492, 12, 264);
+		time_bar.setOrigin(0.5, 1);
+		time_bar.isFilled = true;
+		time_bar.fillColor = 5636095;
+
 		// shooter_screen
 		const shooter_screen = this.add.image(640, 360, "shooter_screen");
 
 		this.timerText = timerText;
 		this.scoreText = scoreText;
 		this.resultText = resultText;
+		this.time_bar = time_bar;
 		this.shooter_screen = shooter_screen;
 
 		this.events.emit("scene-awake");
@@ -53,6 +55,7 @@ class Shooter extends Phaser.Scene {
 	private timerText!: Phaser.GameObjects.Text;
 	private scoreText!: Phaser.GameObjects.Text;
 	private resultText!: Phaser.GameObjects.Text;
+	private time_bar!: Phaser.GameObjects.Rectangle;
 	private shooter_screen!: Phaser.GameObjects.Image;
 
 	/* START-USER-CODE */
@@ -155,6 +158,14 @@ class Shooter extends Phaser.Scene {
 	private videoPlayer?: VideoPlayer;
 	private healthIcons: Phaser.GameObjects.Image[] = [];
 
+	// time_bar drains top-down over the round like a liquid level, so its bottom edge must
+	// stay fixed while only its height shrinks — tracked separately from roundActive's
+	// second-granular timeLeft so the drain reads as continuous instead of ticking down in
+	// visible one-second steps.
+	private timeBarInitialHeight = 0;
+	private roundStartTime = 0;
+	private roundDurationMs = 0;
+
 	preload() {
 		this.load.pack("icons-pack", "assets/images/icons-pack.json");
 		this.load.pack("stage2-pack", "assets/images/stage2-pack.json");
@@ -223,6 +234,10 @@ class Shooter extends Phaser.Scene {
 		this.scoreText.setVisible(false);
 		this.timerText.setOrigin(1, 0);
 		this.timerText.setPosition(this.screenRight - 15, 230);
+
+		// time_bar is bottom-anchored in editorCreate() (origin 0.5,1) so shrinking its height
+		// below only eats away at the top, leaving the bottom fixed like a liquid running out.
+		this.timeBarInitialHeight = this.time_bar.height;
 
 		// (re)build the masked playfield container that clips all gun/bullet/target sprites
 		// to the visible display rect
@@ -386,6 +401,8 @@ class Shooter extends Phaser.Scene {
 
 	private startRound() {
 		this.roundActive = true;
+		this.roundStartTime = this.time.now;
+		this.roundDurationMs = this.levelConfig.timeLeft * 1000;
 
 		this.targetSpawnTimer = this.time.addEvent({
 			delay: this.levelConfig.targetDelay,
@@ -459,6 +476,8 @@ class Shooter extends Phaser.Scene {
 		if (!this.roundActive) {
 			return;
 		}
+
+		this.updateTimeBar();
 
 		const moveSpeed = this.levelConfig.playerSpeed;
 		if (this.cursors.left.isDown) {
@@ -662,6 +681,20 @@ class Shooter extends Phaser.Scene {
 			const y = baseY - Phaser.Math.Between(0, Shooter.SPREAD_PATTERN_Y_JITTER);
 			this.spawnSingleTarget(x, y);
 		}
+	}
+
+	// Drains time_bar linearly against wall-clock progress through the round (rather than the
+	// integer-second timeLeft, which only ticks once per second and would make the bar visibly
+	// stair-step). setSize() recomputes the shape's fill geometry; time_bar's bottom-anchored
+	// origin (set in editorCreate()) keeps its bottom edge fixed as height shrinks toward it.
+	private updateTimeBar() {
+		if (this.roundDurationMs <= 0) {
+			return;
+		}
+
+		const elapsed = this.time.now - this.roundStartTime;
+		const fraction = Phaser.Math.Clamp(1 - elapsed / this.roundDurationMs, 0, 1);
+		this.time_bar.setSize(this.time_bar.width, this.timeBarInitialHeight * fraction);
 	}
 
 	private tickTimer() {

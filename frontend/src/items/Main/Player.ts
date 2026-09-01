@@ -113,8 +113,8 @@ class Player extends Phaser.GameObjects.Container {
 		// (movePlayer's direct this.x/this.y writes) and tweened movement (walkTo/fallDown).
 		this.scene.events.on("update", () => this.hud.setPosition(this.x, this.y), this);
 
-		this.Ikey = this.scene.input.keyboard?.addKey(Phaser.Input.Keyboard.KeyCodes.I);
-		this.Ikey?.on("down", () => {
+		this.interactKey = this.scene.input.keyboard?.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
+		this.interactKey?.on("down", () => {
 			// Controllo collisione
 			this.controllaInterazioneOggetto();
 		});
@@ -189,7 +189,7 @@ class Player extends Phaser.GameObjects.Container {
 	private downKey!: Phaser.Input.Keyboard.Key;
 	private upKey!: Phaser.Input.Keyboard.Key;
 	private leftKey!: Phaser.Input.Keyboard.Key;
-	private Ikey?: Phaser.Input.Keyboard.Key;
+	private interactKey?: Phaser.Input.Keyboard.Key;
 
 	// Posizioni degli slot oggetto nell'HUD, relative al centro di playerUi (a destra del
 	// ritratto). Un'offset per ogni oggetto mostrato all'avvio: aggiungerne altre qui quando

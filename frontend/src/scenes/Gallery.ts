@@ -190,6 +190,7 @@ class Gallery extends Phaser.Scene {
 
 		// Handle keyboard escape or back button press
 		if (this.input.keyboard) {
+			this.input.keyboard.off("keydown-ESC");
 			this.input.keyboard.on("keydown-ESC", () => {
 				this.events.off("video-ended", videoEndHandler);
 				this.returnToGallery();

@@ -1,6 +1,6 @@
 {
     "movement_hint": "Use the arrow keys to move.",
-    "interact_hint": "Press 'I' to interact with objects.",
+    "interact_hint": "Press SPACE to interact with objects.",
 
     "lipidi_intro_1": "You notice something small and shiny on the ground.",
     "lipidi_intro_2": "Before you pick it up, let's see if you're paying attention.",

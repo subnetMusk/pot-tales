@@ -229,6 +229,8 @@ class Stage1 extends Phaser.Scene {
 	private currentLight!: OggettoInterattivo;
 	private currentLightDrift?: Phaser.GameObjects.Particles.ParticleEmitter;
 	private lightInteraction = () => {
+		if (this.currentLightIndex >= this.lightsPositions.length) return;
+
 		this.player.isMovementAllowed = false;
 		const i18n = this.cache.json.get("stage1_i18n");
 
@@ -296,7 +298,11 @@ class Stage1 extends Phaser.Scene {
 		} else if(this.currentLightIndex < this.lightsPositions.length - 1) {
 			// Luci intermedie
 			light.setAlpha(0.75);
-			light.interagisci = this.lightInteraction;
+			light.interagisci = () => {
+				this.player.interactionAllowed = false;
+				this.lightInteraction();
+				this.player.interactionAllowed = true;
+			};
 		} else {
 			// Penultima luce - dialogo con il tutorial
 			light.setAlpha(0.75);
@@ -332,6 +338,11 @@ class Stage1 extends Phaser.Scene {
 		const previousDrift = this.currentLightDrift;
 
 		if(this.currentLight) {
+			// Disattiva subito l'interazione con la luce precedente: altrimenti resta
+			// "set" (quindi reinteragibile) per tutta la durata del fade-out, e un
+			// secondo tocco su di essa richiamerebbe lightInteraction() con l'indice
+			// già avanzato, sfasando (o mandando fuori limite) currentLightIndex.
+			this.currentLight.set = false;
 			let duration = 2500;
 
 			// Elimina la luce precedente

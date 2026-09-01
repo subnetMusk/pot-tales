@@ -115,8 +115,7 @@
             "label": "resume_icon",
             "displayName": "Continue Icon",
             "texture": {
-                "key": "play",
-                "frame": 0
+                "key": "continue"
             },
             "x": 478,
             "y": 420,

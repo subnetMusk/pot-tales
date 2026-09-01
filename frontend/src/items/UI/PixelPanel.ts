@@ -71,22 +71,24 @@ export default class PixelPanel {
 
         g.fillStyle(borderColor, borderAlpha);
         g.fillRect(
-            this.x - borderThickness,
+            this.x - borderThickness + sink,
             this.y - borderThickness + sink,
             this.width + borderThickness * 2,
             this.height + borderThickness * 2
         );
 
         g.fillStyle(state === 'hover' ? hoverColor : fillColor, fillAlpha);
-        g.fillRect(this.x, this.y + sink, this.width, this.height);
+        g.fillRect(this.x + sink, this.y + sink, this.width, this.height);
 
         g.fillStyle(0xffffff, highlightAlpha * fillAlpha);
         const highlightHeight = Math.max(2, Math.round(this.height * 0.12));
-        g.fillRect(this.x, this.y + sink, this.width, highlightHeight);
+        g.fillRect(this.x + sink, this.y + sink, this.width, highlightHeight);
     }
 
-    // Offset verticale corrente (utile per riposizionare testo/icone sopra al pannello in stato "press")
-    public get verticalSink(): number {
+    // Offset (orizzontale = verticale, il pannello affonda in diagonale nello spazio
+    // dell'ombra) corrente in stato "press", utile per riposizionare testo/icone sopra
+    // al pannello.
+    public get pressSink(): number {
         return this.state === 'press' ? this.opts.shadowOffset : 0;
     }
 }
