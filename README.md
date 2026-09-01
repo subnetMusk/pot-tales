@@ -36,7 +36,8 @@ Lo stack è descritto da file diversi a seconda dell'ambiente:
 
 ## Requisiti
 
-- Docker 20.10+ con Compose v2. Per la produzione il demone deve essere in swarm mode.
+- Docker 20.10+ con Compose v2. In produzione lo swarm serve, ma non va
+  inizializzato a mano: lo fa lo script di deploy se sul nodo non esiste.
 - Almeno 4 GB di RAM liberi se si avvia anche Elastic.
 - Go 1.26+ e Node 24+ servono solo per compilare fuori dai container. I target di
   verifica girano in immagini ancorate per digest e non richiedono toolchain sull'host.
@@ -99,7 +100,7 @@ aggiungili a `/etc/hosts`:
 
 ## Avvio in produzione (Docker Swarm)
 
-I passi sono in ordine di dipendenza. I primi tre si eseguono una volta sola per
+I passi sono in ordine di dipendenza. I primi due si eseguono una volta sola per
 macchina, gli altri a ogni cambio di configurazione o di immagine. La procedura
 completa di preparazione dell'host, comprese le unità systemd, è in
 [provisioning/README.md](provisioning/README.md).
@@ -109,16 +110,13 @@ completa di preparazione dell'host, comprese le unità systemd, è in
 #    Senza --apply lo script mostra soltanto i comandi che eseguirebbe.
 sudo ./provisioning/bin/setup-volumes.sh --apply
 
-# 2. Swarm mode. Senza, `docker stack deploy` non ha nulla su cui applicare.
-docker swarm init
-
-# 3. Secret dello stack. Idempotente: quelli già presenti non vengono toccati,
+# 2. Secret dello stack. Idempotente: quelli già presenti non vengono toccati,
 #    perché rigenerarli invaliderebbe le credenziali con cui i servizi si sono
 #    già registrati.
 make secrets SECRETS_DIR=/srv/progetti_innovativi/secrets
 
-# 4. Elenchi di utenze delle dashboard. Non sono generabili: vanno scelti e
-#    distribuiti a persone. Lo script del passo 3 si limita a segnalarne l'assenza.
+# 3. Elenchi di utenze delle dashboard. Non sono generabili: vanno scelti e
+#    distribuiti a persone. Lo script del passo 2 si limita a segnalarne l'assenza.
 htpasswd -cbB /srv/progetti_innovativi/secrets/dashboard_users_esercizio <utente> <password>
 htpasswd -cbB /srv/progetti_innovativi/secrets/dashboard_users_evento    <utente> <password>
 cat /srv/progetti_innovativi/secrets/dashboard_users_esercizio \
@@ -126,14 +124,15 @@ cat /srv/progetti_innovativi/secrets/dashboard_users_esercizio \
     > /srv/progetti_innovativi/secrets/dashboard_users
 chmod 0400 /srv/progetti_innovativi/secrets/dashboard_users*
 
-# 5. Parametri del deploy: hostname pubblico, recapito per il certificato e le tre
+# 4. Parametri del deploy: hostname pubblico, recapito per il certificato e le tre
 #    immagini riferite per digest. Il modello commentato è in provisioning/systemd/.
 sudo install -m 0600 -o root -g root \
      provisioning/systemd/stack-deploy.env.example /etc/stack-deploy.env
 sudo "${EDITOR:-vi}" /etc/stack-deploy.env
 
-# 6. Applica lo stack. Da qui in poi il riavvio della macchina basta: l'unità
-#    riapplica `deploy/stack.yml` a ogni avvio, e il comando è idempotente.
+# 5. Applica lo stack, inizializzando lo swarm se manca. Da qui in poi il riavvio
+#    della macchina basta: l'unità riapplica `deploy/stack.yml` a ogni avvio, e il
+#    comando è idempotente.
 sudo systemctl start stack-deploy.service
 ```
 

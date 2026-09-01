@@ -20,6 +20,9 @@
 #   LANDING_IMAGE    riferimento per digest della pagina di ingresso
 #   EXPORT_DEST      directory degli archivi, servita in sola lettura dal bordo
 #                    (predefinita /srv/export, come in stack-data.env)
+#   SWARM_ADVERTISE_ADDR  indirizzo annunciato all'inizializzazione dello swarm.
+#                    Serve solo se il nodo ha piu' indirizzi e il demone non
+#                    puo' sceglierne uno da solo.
 set -uo pipefail
 
 CONF=${CONF:-/etc/stack-deploy.env}
@@ -49,6 +52,44 @@ for v in SERVER_IMAGE FRONTEND_IMAGE LANDING_IMAGE; do
     *) echo "$v non e' ancorata per digest: ${!v}" >&2; exit 1 ;;
   esac
 done
+
+# Swarm mode. Senza, `docker stack deploy` non ha nulla su cui applicare, e su
+# una macchina appena installata nessuno lo ha ancora inizializzato: farlo qui e'
+# cio' che rende non presidiato anche il primo avvio, non solo quelli successivi.
+#
+# L'inizializzazione parte solo dallo stato `inactive`, che il demone riporta
+# quando sul nodo non esiste alcuno stato di swarm. Gli altri stati descrivono
+# uno swarm che esiste: `pending` e `locked` sono un ripristino in corso, e
+# inizializzarne uno nuovo sopra scarterebbe servizi e secret gia' registrati.
+# In quel caso si esce con errore e l'unita' riprova, che e' il comportamento
+# che il file dell'unita' prevede gia'.
+stato_swarm=$(docker info --format '{{.Swarm.LocalNodeState}}' 2>/dev/null)
+case "$stato_swarm" in
+  active) ;;
+  inactive)
+    echo "swarm non inizializzato: inizializzazione in corso"
+    esito=0
+    if [ -n "${SWARM_ADVERTISE_ADDR:-}" ]; then
+      docker swarm init --advertise-addr "$SWARM_ADVERTISE_ADDR" || esito=$?
+    else
+      docker swarm init || esito=$?
+    fi
+    if [ "$esito" -ne 0 ]; then
+      echo "inizializzazione dello swarm fallita." >&2
+      echo "Con piu' indirizzi sul nodo il demone non ne sceglie uno da solo:" >&2
+      echo "indicare SWARM_ADVERTISE_ADDR in $CONF." >&2
+      exit 1
+    fi
+    ;;
+  "")
+    echo "demone Docker non raggiungibile" >&2
+    exit 1
+    ;;
+  *)
+    echo "swarm in stato '$stato_swarm': non applicabile adesso" >&2
+    exit 1
+    ;;
+esac
 
 cd "$STACK_DIR" || { echo "directory dello stack non trovata: $STACK_DIR" >&2; exit 1; }
 

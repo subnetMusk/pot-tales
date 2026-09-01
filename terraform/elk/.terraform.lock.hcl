@@ -5,6 +5,7 @@ provider "registry.terraform.io/elastic/elasticstack" {
   version     = "0.16.3"
   constraints = "~> 0.16"
   hashes = [
+    "h1:7UM1Mro61PQLsUgVKZoiK+p8J9FjZM5ioEeBG8MXDRY=",
     "h1:LCdhICi+Xa6vKRxOqxGStjQ2z7l9hwU9D28apTLhuao=",
     "zh:01b288e572ae7bed3070c2a005ba6b6034fb5ae8c39333f5702d2d2ed6fb2a3b",
     "zh:1cd44aa1a48370bbe98e88933284ed13454e1fdd7f9de677090d723220f026e7",

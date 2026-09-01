@@ -100,6 +100,13 @@ idempotente, quindi rieseguirlo su uno stack gia' in servizio aggiorna soltanto
 cio' che e' cambiato: il file dello stack resta la sola descrizione di cio' che
 deve girare.
 
+Lo swarm non va inizializzato a mano: lo script lo fa da se' se sul nodo non ne
+esiste ancora uno. Non lo fa negli altri stati, perche' `pending` e `locked`
+descrivono uno swarm che esiste ed e' in corso di ripristino, e inizializzarne
+uno nuovo sopra scarterebbe servizi e secret gia' registrati: li' lo script
+esce con errore e l'unita' riprova. Su una macchina con piu' indirizzi il
+demone non ne sceglie uno da solo, e va indicato `SWARM_ADVERTISE_ADDR`.
+
 Lo script rifiuta di procedere se un'immagine non e' ancorata per digest, e se
 un file di secret e' assente o vuoto. Entrambi i controlli servono a far
 fallire il deploy prima di iniziare, invece di lasciare lo stack applicato a
