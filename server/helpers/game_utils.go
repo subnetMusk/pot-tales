@@ -14,6 +14,7 @@ import (
 	"github.com/redis/go-redis/v9"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 
 	"github.com/subnetMusk/progetti_innovativi/server/models"
 )
@@ -90,6 +91,40 @@ func (gm *GameManager) AddCheckpoint(ctx context.Context, sessionID string, chec
 	}
 	_, err := gm.gameCol.UpdateOne(ctx, bson.M{"_id": sessionID}, update)
 	return err
+}
+
+// ConcludiPartita chiude una partita per un motivo noto ed emette l'evento.
+//
+// Esiste per il caso che la spazzata non puo' coprire: quando il gioco avra' un
+// finale, chi lo raggiunge va distinto da chi si e' fermato. Senza questa
+// distinzione l'evento di chiusura direbbe "inattivita" anche per chi ha
+// completato, e il numero di partite portate a termine — che e' la misura
+// d'impatto piu' diretta — non sarebbe ricavabile.
+//
+// La rivendicazione e' la stessa della spazzata e per la stessa ragione: il
+// marcatore viene posto e letto in una sola operazione, quindi una partita
+// conclusa qui non viene chiusa una seconda volta dalla spazzata quando smette
+// di segnalare. Due conclusioni per un solo inizio falserebbero l'imbuto in modo
+// silenzioso.
+//
+// Restituisce false senza errore se la partita era gia' conclusa: e' una corsa
+// attesa, non un guasto.
+func (gm *GameManager) ConcludiPartita(ctx context.Context, sessionID, motivo string) (bool, error) {
+	var stato models.GameState
+	err := gm.gameCol.FindOneAndUpdate(ctx,
+		bson.M{"_id": sessionID, "meta.closed_at": bson.M{"$exists": false}},
+		bson.M{"$set": bson.M{"meta.closed_at": time.Now()}},
+		options.FindOneAndUpdate().SetReturnDocument(options.Before),
+	).Decode(&stato)
+	if err != nil {
+		if errors.Is(err, mongo.ErrNoDocuments) {
+			return false, nil
+		}
+		return false, err
+	}
+
+	emettiConclusione(ctx, &stato, motivo)
+	return true, nil
 }
 
 // DeleteState cancella la sessione di gioco (Ban/Wipe).
