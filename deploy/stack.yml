@@ -201,9 +201,31 @@ services:
       # I file di configurazione statica non espandono le variabili d'ambiente:
       # il recapito ACME deve quindi arrivare come argomento del processo.
       - --certificatesresolvers.principale.acme.email=${ACME_EMAIL}
+      # Directory dell'autorita'. Il collaudo va condotto contro quella di
+      # prova: l'autorita' di produzione limita i certificati duplicati per
+      # settimana, e pochi tentativi con configurazione sbagliata lasciano il
+      # dominio senza certificato valido per giorni. Il valore predefinito e' la
+      # produzione, perche' e' quello giusto in esercizio; il collaudo lo
+      # sovrascrive deliberatamente.
+      - --certificatesresolvers.principale.acme.caserver=${ACME_CA_SERVER:-https://acme-v02.api.letsencrypt.org/directory}
     environment:
       APP_HOST: "${APP_HOST:-localhost}"
       ACME_EMAIL: "${ACME_EMAIL}"
+      # Durata dichiarata di HSTS, letta dai file dinamici che Traefik
+      # interpreta come template.
+      #
+      # Il valore predefinito e' zero, cioe' HSTS assente, e la direzione del
+      # default e' deliberata: un'intestazione che manca e' hardening non
+      # applicato, un'intestazione presente con un certificato rotto e' un
+      # blocco che il visitatore non puo' aggirare e che dura quanto la durata
+      # dichiarata. Fra i due errori possibili, la configurazione incompleta
+      # deve produrre il primo.
+      #
+      # Si alza solo a catena verificata da rete esterna. Su un esercizio di
+      # poche settimane un anno non porta alcun beneficio: alla prima emissione
+      # andata storta il blocco sopravvive alla macchina che lo ha causato.
+      HSTS_MAX_AGE: "${HSTS_MAX_AGE:-0}"
+      HSTS_INCLUDE_SUBDOMAINS: "${HSTS_INCLUDE_SUBDOMAINS:-false}"
       # In produzione il default rifiuta handshake privi di un certificato per
       # il nome richiesto. Le verifiche locali possono disabilitarlo per usare
       # il certificato predefinito di Traefik prima di un'emissione ACME.

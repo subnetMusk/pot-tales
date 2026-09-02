@@ -15,6 +15,11 @@
 #   SECRETS_DIR      directory dei file di secret, riferita da stack.yml
 #   APP_HOST         hostname pubblico
 #   ACME_EMAIL       recapito per l'autorita' di certificazione
+#   ACME_CA_SERVER   directory dell'autorita'. Non impostata vale produzione;
+#                    in collaudo va puntata a quella di prova
+#   HSTS_MAX_AGE     durata dichiarata di HSTS, in secondi. Non impostata vale
+#                    zero, cioe' HSTS assente
+#   HSTS_INCLUDE_SUBDOMAINS  estensione di HSTS ai sottodomini
 #   SERVER_IMAGE     riferimento per digest dell'immagine del backend
 #   FRONTEND_IMAGE   riferimento per digest dell'immagine del gioco
 #   LANDING_IMAGE    riferimento per digest della pagina di ingresso
@@ -110,6 +115,13 @@ export CROWDSEC_DISABLE_ONLINE_API="${CROWDSEC_DISABLE_ONLINE_API:-false}"
 # Il nome dello stack entra nei nomi dei config: Docker antepone il prefisso
 # dello stack solo ai nomi impliciti, e questi sono espliciti.
 export STACK_NAME
+
+# Parametri del bordo, letti da stack.yml. Vanno esportati anche quando non
+# sono configurati: `stack.yml` dichiara i valori predefiniti, e sono quelli
+# prudenti — autorita' di produzione e HSTS assente.
+export ACME_CA_SERVER="${ACME_CA_SERVER:-}"
+export HSTS_MAX_AGE="${HSTS_MAX_AGE:-0}"
+export HSTS_INCLUDE_SUBDOMAINS="${HSTS_INCLUDE_SUBDOMAINS:-false}"
 
 # Revisione dei config, derivata dal contenuto.
 #
