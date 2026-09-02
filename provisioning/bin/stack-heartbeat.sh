@@ -21,6 +21,15 @@
 #                    e' un guasto da segnalare, non da confondere con la
 #                    liveness.
 #
+#   tls-pubblico     il certificato servito sul nome pubblico e' verificabile e
+#                    non prossimo alla scadenza. Il controllo di liveness
+#                    interroga l'endpoint in chiaro sul loopback e non
+#                    attraversa TLS: se l'emissione automatica non riesce, il
+#                    proxy serve il proprio certificato predefinito e
+#                    l'applicazione continua a rispondere. Senza questo
+#                    controllo ogni check resterebbe verde mentre il pubblico
+#                    trova un avviso, che con HSTS dichiarato non e' aggirabile.
+#
 # I ping sui due relay partono solo sulle transizioni. Lo storico di un check e'
 # limitato a 100 eventi, e un ping a ogni esecuzione lo riempirebbe di rumore
 # facendo scorrere via proprio gli allarmi.
@@ -49,6 +58,12 @@ MEM_MIN_PCT=${MEM_MIN_PCT:-15}
 SWAP_MAX_PCT=${SWAP_MAX_PCT:-50}
 DISK_MAX_PCT=${DISK_MAX_PCT:-85}
 DISK_MOUNTS=${DISK_MOUNTS:-/ /srv/docker}
+
+# Certificato pubblico. Con TLS_HOST vuoto il controllo non viene eseguito, che
+# e' lo stato corretto finche' un nome pubblico non esiste.
+TLS_HOST=${TLS_HOST:-}
+TLS_CONNECT=${TLS_CONNECT:-127.0.0.1}
+TLS_MIN_DAYS=${TLS_MIN_DAYS:-10}
 
 if [ -z "$HC_PING_KEY" ]; then
   echo "HC_PING_KEY non configurata in $CONF" >&2
@@ -195,7 +210,56 @@ if [ -n "$ES_URL" ]; then
   esac
 fi
 
-# --- 4. Esito del battito ---------------------------------------------------
+# --- 4. Certificato servito sul nome pubblico -------------------------------
+#
+# `--resolve` tiene il nome pubblico nella SNI e nella verifica, ma dirige la
+# connessione all'indirizzo indicato. Serve a due cose: sulla macchina stessa il
+# nome puo' risolvere altrove, e il ritorno dall'esterno verso il proprio
+# indirizzo pubblico non e' garantito da tutte le reti. Cosi' si verifica
+# esattamente il certificato che il proxy presenta per quel nome.
+#
+# Non si usa `-f`: qui interessa che la sessione TLS si stabilisca, non quale
+# stato HTTP torni. Lo stato dell'applicazione e' il controllo 1, e confondere i
+# due farebbe segnalare un certificato rotto quando la rotta risponde 404.
+#
+# E' un relay e non un fallimento del battito: con un certificato non valido il
+# servizio sta comunque servendo, e sommarlo alla liveness renderebbe ambiguo il
+# silenzio del battito, che e' l'unico segnale su cui si distingue una macchina
+# morta.
+
+if [ -n "$TLS_HOST" ]; then
+  tls_problema=""
+
+  if ! curl -sS -o /dev/null --max-time "$TIMEOUT" \
+       --resolve "$TLS_HOST:443:$TLS_CONNECT" \
+       "https://$TLS_HOST/" 2>/dev/null; then
+    tls_problema="catena-non-verificabile"
+  else
+    # La scadenza si legge separatamente: una catena valida oggi ma prossima
+    # alla scadenza va segnalata prima che diventi un guasto, perche' rimediare
+    # richiede un'emissione che a sua volta puo' fallire.
+    fine=$(echo | openssl s_client -connect "$TLS_CONNECT:443" \
+             -servername "$TLS_HOST" 2>/dev/null \
+           | openssl x509 -noout -enddate 2>/dev/null | cut -d= -f2)
+    if [ -n "$fine" ]; then
+      scade=$(date -d "$fine" +%s 2>/dev/null)
+      adesso=$(date +%s)
+      if [ -n "$scade" ]; then
+        giorni=$(( (scade - adesso) / 86400 ))
+        [ "$giorni" -lt "$TLS_MIN_DAYS" ] && \
+          tls_problema="scadenza-fra-${giorni}-giorni"
+      fi
+    fi
+  fi
+
+  if [ -n "$tls_problema" ]; then
+    segnala tls-pubblico ko "certificato su $TLS_HOST: $tls_problema"
+  else
+    segnala tls-pubblico ok "certificato su $TLS_HOST valido"
+  fi
+fi
+
+# --- 5. Esito del battito ---------------------------------------------------
 
 if [ -n "$fallimenti" ]; then
   # Il corpo viene conservato dal servizio e compare nella notifica: e' il primo

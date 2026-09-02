@@ -26,6 +26,16 @@
 # definizione presuppongono una macchina viva. La condizione "macchina che non
 # risponde" e' coperta dal battito.
 #
+# Questo processo invia anche un battito per conto proprio, su un check dedicato.
+# E' l'unico modo di accorgersi che si e' fermato: i quattro check che alimenta
+# sono relay con periodo di un anno, quindi non scendono da soli, e un relay che
+# non riceve nulla resta verde. Senza battito, un relay morto e uno che non ha
+# niente da segnalare sono indistinguibili — lo stesso difetto che sulla classe
+# `security` aveva lasciato un check verde senza alcun produttore.
+#
+# Il battito parte a esecuzione conclusa e non parte se un recapito e' fallito:
+# un processo che gira ma non riesce a consegnare non e' un processo sano.
+#
 # Configurazione in /etc/stack-surveillance.env.
 set -uo pipefail
 
@@ -48,10 +58,22 @@ TIMEOUT=${TIMEOUT:-15}
 # malformato e' esso stesso un difetto della catena di osservabilita'.
 DEFAULT_CHECK=${DEFAULT_CHECK:-observability}
 
+# Check su cui questo processo dichiara di essere vivo.
+SELF_CHECK=${SELF_CHECK:-alert-relay}
+
 if [ -z "$HC_PING_KEY" ]; then
   echo "HC_PING_KEY non configurata in $CONF" >&2
   exit 1
 fi
+
+# Definito prima della lettura dell'indice perche' serve anche sul ritorno
+# anticipato: un indice ancora inesistente e' uno stato normale, e in quel caso
+# il processo ha fatto tutto cio' che doveva.
+ping_self() {
+  [ -n "$SELF_CHECK" ] || return 0
+  curl -fsS --max-time "$TIMEOUT" \
+    "$HC_BASE/$HC_PING_KEY/$SELF_CHECK" >/dev/null 2>&1
+}
 
 # Elasticsearch non pubblica porte sull'host: il proxy e' l'unico servizio che
 # lo fa, ed e' una proprieta' del disegno, non una dimenticanza. Interrogarlo su
@@ -103,6 +125,9 @@ risposta=$(es_curl -fsS --max-time "$TIMEOUT" $ca_opt \
 
 if [ -z "$risposta" ]; then
   # L'indice puo' non esistere finche' nessuna regola ha prodotto un allarme.
+  # Il cluster irraggiungibile produce la stessa risposta vuota, ma non e' questo
+  # il controllo che deve distinguerli: il battito lo segnala su `observability`.
+  ping_self
   exit 0
 fi
 
@@ -117,6 +142,7 @@ recapita() {
 # consecutivi quando appartengono agli spazi bianchi, e un campo vuoto farebbe
 # slittare tutti quelli successivi.
 ultimo=""
+recapito_fallito=0
 while IFS=$'\x1f' read -r ts severita regola messaggio check stato; do
   [ -z "$ts" ] && continue
   [ -z "$check" ] && check=$DEFAULT_CHECK
@@ -134,6 +160,7 @@ $ts"; then
     # non puo' rappresentare un recapito parziale. Fermarsi al primo errore
     # mantiene gli allarmi successivi dietro di esso, in ordine.
     echo "recapito fallito su $ts ($check), ritento al ciclo successivo" >&2
+    recapito_fallito=1
     break
   fi
   ultimo="$ts"
@@ -157,4 +184,9 @@ for h in json.load(sys.stdin).get('hits', {}).get('hits', []):
 # Il marcatore avanza solo sugli allarmi effettivamente recapitati: se il
 # recapito fallisce, al giro successivo vengono ritentati invece di perdersi.
 [ -n "$ultimo" ] && printf '%s' "$ultimo" > "$STATE_FILE"
+
+# Il battito non parte se un recapito e' fallito. Se la causa e' il servizio di
+# sorveglianza irraggiungibile, il battito fallirebbe comunque e il check scade
+# da se'; se la causa e' altrove, il silenzio e' il segnale corretto.
+[ "$recapito_fallito" -eq 0 ] && ping_self
 exit 0
