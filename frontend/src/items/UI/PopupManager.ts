@@ -199,6 +199,34 @@ const POPUP_PRESETS: Record<string, PopupPreset> = {
         allowSkipTypewriter: false,
         speakerName: 'Tutorial',
         speakerNameColor: '#ffffff'
+    },
+    shooterNarrator: { // narratore dello Shooter: stesso look di 'shooterHint', nome distinto
+        bgColor: 0x2c3e50,
+        bgAlpha: 0.8,
+        borderColor: 0xf39c12,
+        borderAlpha: 0.65,
+        textFontSize: '12px',
+        textColor: '#ecf0f1',
+        buttonWidth: 55,
+        buttonHeight: 14,
+        buttonBgColor: 0xf39c12,
+        buttonBorderColor: 0xe67e22,
+        buttonTextColor: '#ffffff',
+        padding: 12,
+        buttonMargin: -4,
+        minWidth: 110,
+        textWordWrapWidth: 360,
+        animationDuration: 300,
+        animationEase: 'Back.easeOut',
+        closeAnimationDuration: 200,
+        closeAnimationEase: 'Power2.easeIn',
+        showButton: true,
+        allowKeyClose: true,
+        typewriterEnabled: false,
+        typewriterDelay: 0,
+        allowSkipTypewriter: false,
+        speakerName: 'Tutorial',
+        speakerNameColor: '#ffffff'
     }
 };
 

@@ -35,13 +35,26 @@ class Gallery extends Phaser.Scene {
 
 	private back_button!: BackButton;
 	private videoPlayer?: VideoPlayer;
+	private imageViewer?: Phaser.GameObjects.Image;
 	private galleryElements: Array<Phaser.GameObjects.GameObject> = [];
 
+	private readonly edsKey = "stage2-eds";
+
 	// Write your code here
+
+	preload() {
+		// Gallery is reachable straight from the Menu, without ever visiting Stage2 (which is
+		// what normally loads this texture) — load it directly here too so the card always has
+		// something to show. Guarded since Stage2's own load may already have populated it.
+		if (!this.textures.exists(this.edsKey)) {
+			this.load.image(this.edsKey, "assets/images/backgrounds/EDS.png");
+		}
+	}
 
 	create() {
 		this.editorCreate();
 		this.setupVideoElements();
+		this.setupEdsElement();
 	}
 
 	private setupVideoElements() {
@@ -110,6 +123,98 @@ class Gallery extends Phaser.Scene {
 
 			this.galleryElements.push(container);
 		});
+	}
+
+	// EDS.png is a static analysis image, not a video, so it gets a plain thumbnail card (no
+	// play icon, no video preview capture) placed below the video row. Clicking it opens an
+	// enlarged view, mirroring the video cards' open/close interaction via viewImage/
+	// closeImageViewer instead of playVideo/returnToGallery.
+	private setupEdsElement() {
+		const cardWidth = 320;
+		const cardHeight = 175;
+		const x = 640;
+		const y = 615;
+
+		const container = this.add.container(x, y);
+		container.setDepth(1);
+
+		const previewBg = this.add.rectangle(0, 0, cardWidth, cardHeight);
+		previewBg.setFillStyle(0x333333);
+		previewBg.setStrokeStyle(2, 0xffffff);
+		previewBg.setInteractive({ useHandCursor: true });
+		container.add(previewBg);
+
+		const thumbnail = this.add.image(0, 0, this.edsKey);
+		thumbnail.setDisplaySize(cardWidth - 4, cardHeight - 4);
+		container.add(thumbnail);
+
+		const label = this.add.text(0, cardHeight / 2 + 20, "EDS", {
+			fontFamily: "PixelifySans-VariableFont_wght",
+			fontSize: "24px",
+			color: "#f0f8ff",
+			align: "center"
+		});
+		label.setOrigin(0.5, 0.5);
+		container.add(label);
+
+		previewBg.on("pointerover", () => {
+			previewBg.setStrokeStyle(3, 0x72d572);
+			label.setColor("#72d572");
+			this.tweens.add({ targets: container, scale: 1.03, duration: 100, ease: "Sine.easeOut" });
+		});
+
+		previewBg.on("pointerout", () => {
+			previewBg.setStrokeStyle(2, 0xf0f8ff);
+			label.setColor("#f0f8ff");
+			this.tweens.add({ targets: container, scale: 1, duration: 100, ease: "Sine.easeOut" });
+		});
+
+		previewBg.on("pointerup", () => this.viewImage());
+
+		this.galleryElements.push(container);
+	}
+
+	// Full-screen enlarged view of the EDS image: fades the gallery cards out, fades the image
+	// in, and lets the player dismiss it by clicking it, pressing ESC, or the back button —
+	// same dismissal surface as playVideo()/returnToGallery(), just without a VideoPlayer.
+	private viewImage() {
+		fadeElements(this.galleryElements, false, 500);
+
+		const image = this.add.image(640, 360, this.edsKey);
+		image.setDepth(100);
+		image.setAlpha(0);
+		image.setInteractive({ useHandCursor: true });
+
+		const maxWidth = 1100;
+		const maxHeight = 600;
+		const scale = Math.min(maxWidth / image.width, maxHeight / image.height, 1);
+		image.setScale(scale);
+
+		this.tweens.add({ targets: image, alpha: 1, duration: 300, ease: "Sine.easeOut" });
+
+		this.imageViewer = image;
+		image.on("pointerup", () => this.closeImageViewer());
+
+		if (this.input.keyboard) {
+			this.input.keyboard.off("keydown-ESC");
+			this.input.keyboard.on("keydown-ESC", () => this.closeImageViewer());
+		}
+	}
+
+	private closeImageViewer() {
+		const image = this.imageViewer;
+		if (!image) return;
+
+		this.imageViewer = undefined;
+		this.tweens.add({
+			targets: image,
+			alpha: 0,
+			duration: 300,
+			ease: "Sine.easeIn",
+			onComplete: () => image.destroy()
+		});
+
+		fadeElements(this.galleryElements, true, 500);
 	}
 
 	/**

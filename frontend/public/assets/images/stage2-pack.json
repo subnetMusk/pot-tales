@@ -132,6 +132,11 @@
                 "key": "stage2-crater"
             },
             {
+                "url": "assets/images/backgrounds/EDS.png",
+                "type": "image",
+                "key": "stage2-eds"
+            },
+            {
                 "url": [
                     "assets/sfx/steam.mp3"
                 ],

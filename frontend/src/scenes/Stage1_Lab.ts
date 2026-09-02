@@ -107,9 +107,6 @@ class Stage1_Lab extends Phaser.Scene {
 			this.popupManager.showNextPopup();
 
 			this.popupManager.on("queueEmpty", () => {
-				this.popupManager.queuePopup(i18n.lab_entrance_2);
-				this.popupManager.queuePopup(i18n.lab_entrance_3);
-				this.popupManager.showNextPopup(200);
 
 				// Start walking animation and move to x=680
 				this.player.play('walk_side', true);

@@ -229,12 +229,12 @@ class GraficoGame extends Phaser.Scene {
 					onComplete: () => {
 						//Popup per spiegare il gioco
 						void playSequence(this.popupManager, [
-							{ message: i18n.welcome_1, preset: "hint" },
+							{ message: i18n.welcome_1_tutorial, preset: "hint" },
 							i18n.welcome_2,
 							{ message: i18n.welcome_3_narrator, preset: "dark" },
 							i18n.welcome_4,
 							{ message: i18n.welcome_5_narrator, preset: "dark" },
-							{ message: i18n.instructions, preset: "hint" }
+							{ message: i18n.instructions_tutorial, preset: "hint" }
 						]).then(() => {
 							startLevel(0);
 
@@ -256,7 +256,7 @@ class GraficoGame extends Phaser.Scene {
 									for(let i = 0; i < picchi.length; i++){
 										console.log(`[GraficoGame] picco ${i} - x: ${picchi[i].x}, trovato: ${picchi[i].found}`);
 										if(this.indicator.x <= picchi[i].x+4 && this.indicator.x >= picchi[i].x-4	&&  picchi[i].found == false){
-											lines.push({ message: risposte[i], preset: "minigame" });
+											lines.push({ message: risposte[i], preset: "dark" });
 											if(this.currentLevel === 0 && i === 1) lines.push(i18n.peak_2_you);
 
 											picchiTrovati++;
@@ -274,7 +274,7 @@ class GraficoGame extends Phaser.Scene {
 
 									if(!foundPeak){
 										const i18n = this.cache.json.get("graficoGame_i18n");
-										lines.push({ message: i18n.miss, preset: "minigame" });
+										lines.push({ message: i18n.miss, preset: "dark" });
 
 										this.flashIndicator(0x8b0000);
 										this.cameras.main.shake(150, 0.004);

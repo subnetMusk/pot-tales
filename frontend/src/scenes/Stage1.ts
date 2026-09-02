@@ -205,8 +205,8 @@ class Stage1 extends Phaser.Scene {
 			]).then(() => {
 				// Abilita il movimento del giocatore una volta terminato il dialogo dei suggerimenti
 				const hintsDone = playSequence(this.popupManager, [
-					{ message: i18n.movement_hint, preset: "hint" },
-					{ message: i18n.interact_hint, preset: "hint" }
+					{ message: i18n.movement_tutorial, preset: "hint" },
+					{ message: i18n.interact_tutorial, preset: "hint" }
 				]);
 				this.lightInteraction();
 				hintsDone.then(() => {
@@ -267,19 +267,20 @@ class Stage1 extends Phaser.Scene {
 				this.player.interactionAllowed = false;
 
 				await playSequence(this.popupManager, [
-					{ message: i18n.light_1_hint, preset: "hint" },
+					{ message: i18n.light_1_0_narrator, preset: "dark" },
 					i18n.light_1_1,
 					i18n.light_1_2,
-					{ message: i18n.light_1_3_dark, preset: "dark" },
+					{ message: i18n.light_1_3_narrator, preset: "dark" },
 					i18n.light_1_4,
-					{ message: i18n.light_1_5_dark, preset: "dark" },
+					{ message: i18n.light_1_5_narrator, preset: "dark" },
 					i18n.light_1_6,
 					i18n.light_1_7,
-					{ message: i18n.light_1_8_dark, preset: "dark" },
+					{ message: i18n.light_1_8_narrator, preset: "dark" },
 					i18n.light_1_9,
-					{ message: i18n.light_1_10_dark, preset: "dark" },
-					{ message: i18n.light_1_11_dark, preset: "dark" },
-					i18n.light_1_12
+					{ message: i18n.light_1_10_narrator, preset: "dark" },
+					{ message: i18n.light_1_11_narrator, preset: "dark" },
+					i18n.light_1_12,
+					{ message: i18n.light_1_13_narrator, preset: "dark" }
 				]);
 				this.lightInteraction();
 				this.player.interactionAllowed = true;
@@ -291,7 +292,7 @@ class Stage1 extends Phaser.Scene {
 				this.player.isMovementAllowed = false;
 				this.player.interactionAllowed = false;
 
-				await playSequence(this.popupManager, [{ message: i18n.light_2_dark, preset: "dark" }]);
+				await playSequence(this.popupManager, [{ message: i18n.light_2_narrator, preset: "dark" }]);
 				this.lightInteraction();
 				this.player.interactionAllowed = true;
 			};
@@ -311,8 +312,8 @@ class Stage1 extends Phaser.Scene {
 				this.player.interactionAllowed = false;
 
 				await playSequence(this.popupManager, [
-					{ message: i18n.light_3_1_dark, preset: "dark" },
-					{ message: i18n.light_3_2_dark, preset: "dark" },
+					{ message: i18n.light_3_1_narrator, preset: "dark" },
+					{ message: i18n.light_3_2_narrator, preset: "dark" },
 					i18n.light_3_3,
 					{ message: i18n.light_3_4_narrator, preset: "dark" },
 					i18n.light_3_5,
@@ -450,12 +451,16 @@ class Stage1 extends Phaser.Scene {
 
 		// Mostra un messaggio di successo
 		const i18n = this.cache.json.get("stage1_i18n");
-		await playSequence(this.popupManager, [{ message: i18n.minigame_success_1, preset: "hint" }]);
+		await playSequence(this.popupManager, [
+			i18n.returning_1,
+			i18n.ending_1,
+			{ message: i18n.ending_2_narrator, preset: "dark" }
+		]);
 
 		// Primo oggetto sbloccato dalla storia: assegnato subito dopo il primo dialogo
 		this.player.addInventoryItem(2);
 
-		const secondPopupDone = playSequence(this.popupManager, [i18n.minigame_success_2]);
+		const secondPopupDone = playSequence(this.popupManager, [i18n.ending_3]);
 
 		this.cameras.main.shake(6000, 0.0012);
 		this.sound.play("earthquake", {

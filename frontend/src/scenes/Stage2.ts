@@ -493,8 +493,21 @@ class Stage2 extends Phaser.Scene {
 			ease: "Linear",
 			onComplete: () => {
 				fadeRect.destroy();
-				this.player.isMovementAllowed = true;
 				this.player.surprise();
+
+				void playSequence(this.popupManager, [
+					this.i18n.wake_up_1,
+					this.i18n.wake_up_2,
+					this.i18n.wake_up_3,
+					{ message: this.i18n.wake_up_4_narrator, preset: "dark" },
+					this.i18n.wake_up_5,
+					{ message: this.i18n.wake_up_6_narrator, preset: "dark" },
+					{ message: this.i18n.wake_up_7_narrator, preset: "dark" },
+					{ message: this.i18n.wake_up_8_narrator, preset: "dark" },
+					this.i18n.wake_up_9
+				]).then(() => {
+					this.player.isMovementAllowed = true;
+				});
 			}
 		});
 	}
@@ -588,7 +601,10 @@ class Stage2 extends Phaser.Scene {
 				this.probe.set = false;
 				this.probe.play("sem_probe_activate");
 				this.probe.once("animationcomplete", () => {
-					this.time.delayedCall(500, () => this.activateLaser());
+					this.time.delayedCall(500, () => {
+						this.activateLaser();
+						void playSequence(this.popupManager, [{ message: this.i18n.laser_online_narrator, preset: "dark" }]);
+					});
 				});
 			});
 		});
@@ -673,10 +689,12 @@ class Stage2 extends Phaser.Scene {
 					ease: "Back.easeOut"
 				});
 				flashBurst(this, turret.x, turret.y, { tint: 0x7fd27f });
+			}
 
-				// Oggetto sbloccato dal minigioco di questa torretta specifica
-				// (frame 4 per la prima torretta, 5 per la seconda, ecc.).
-				this.player.addInventoryItem(4 + turretIndex);
+			// Reazione del giocatore allo specchio, solo la prima volta (dopo il primo turret,
+			// cioè il secondo shooter incontrato in totale dopo la sonda).
+			if (turretIndex === 0) {
+				void playSequence(this.popupManager, [this.i18n.mirror_1, this.i18n.mirror_2]);
 			}
 
 			this.currentShooterLevel = Math.min(3, this.currentShooterLevel + 1);
@@ -849,6 +867,15 @@ class Stage2 extends Phaser.Scene {
 		await this.brightenBeam(900);
 		await this.triggerCraterExplosion();
 		await playSequence(this.popupManager, [this.i18n.finale_crater]);
+		await playSequence(this.popupManager, [
+			{ message: this.i18n.finale_1_narrator, preset: "dark" },
+			{ message: this.i18n.finale_2_narrator, preset: "dark" },
+			this.i18n.finale_3,
+			{ message: this.i18n.finale_4_narrator, preset: "dark" },
+			{ message: this.i18n.finale_5_narrator, preset: "dark" },
+			this.i18n.finale_6,
+			{ message: this.i18n.finale_7_narrator, preset: "dark" }
+		]);
 		await this.player.walkTo(this.player.x, this.player.y + 30, 900);
 		await playSequence(this.popupManager, [this.i18n.finale_falling]);
 		await this.player.fallDown(1400);
@@ -906,7 +933,63 @@ class Stage2 extends Phaser.Scene {
 			this.time.delayedCall(350, () => {
 				this.add.image(x, y, "stage2-crater").setDepth(2);
 				this.stopLaser();
-				resolve();
+
+				// Beat before the EDS reveal pops up, so it doesn't land in the same instant as
+				// the crater sprite/burst above — gives the player a moment to register the crater
+				// itself first.
+				this.time.delayedCall(1000, () => {
+					void this.showEdsReveal().then(resolve);
+				});
+			});
+		});
+	}
+
+	// Screen-centered reveal of the EDS analysis image right after it lands in the inventory:
+	// alpha-in and scale-down (starts oversized/transparent, settles to its display size), holds
+	// for ~2s, then fades away. Sized off cameras.main.zoom (not a fixed pixel size) because by
+	// this point in the finale zoomOutToRevealTarget() has already changed the camera's zoom away
+	// from its default 5.0 — dividing the desired on-screen size by the current zoom is what keeps
+	// the image at a consistent apparent size on screen regardless of that value.
+	private showEdsReveal(): Promise<void> {
+		const camera = this.cameras.main;
+		const naturalWidth = this.textures.get("stage2-eds").getSourceImage().width;
+		const naturalHeight = this.textures.get("stage2-eds").getSourceImage().height;
+		const desiredScreenWidth = 640;
+		const worldWidth = desiredScreenWidth / camera.zoom;
+		const worldHeight = worldWidth * (naturalHeight / naturalWidth);
+
+		const image = this.add.image(camera.centerX, camera.centerY, "stage2-eds");
+		image.setScrollFactor(0);
+		image.setDepth(60);
+		image.setDisplaySize(worldWidth, worldHeight);
+
+		const targetScaleX = image.scaleX;
+		const targetScaleY = image.scaleY;
+		image.setScale(targetScaleX * 1.3, targetScaleY * 1.3);
+		image.setAlpha(0);
+
+		return new Promise<void>(resolve => {
+			this.tweens.add({
+				targets: image,
+				alpha: 1,
+				scaleX: targetScaleX,
+				scaleY: targetScaleY,
+				duration: 400,
+				ease: "Cubic.easeOut",
+				onComplete: () => {
+					this.time.delayedCall(1600, () => {
+						this.tweens.add({
+							targets: image,
+							alpha: 0,
+							duration: 300,
+							ease: "Power2.easeIn",
+							onComplete: () => {
+								image.destroy();
+								resolve();
+							}
+						});
+					});
+				}
 			});
 		});
 	}

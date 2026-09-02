@@ -380,11 +380,11 @@ class Shooter extends Phaser.Scene {
 			this.popupManager = new PopupManager(this, { anchor: "center" });
 			void playSequence(this.popupManager, [
 				{ message: i18n.tutorial_1, preset: "shooterYou" },
-				{ message: i18n.tutorial_2, preset: "shooterHint" },
-				{ message: i18n.tutorial_3, preset: "shooterHint" },
+				{ message: i18n.tutorial_2, preset: "shooterNarrator" },
+				{ message: i18n.tutorial_3, preset: "shooterNarrator" },
 				{ message: i18n.tutorial_4, preset: "shooterHint" },
-				{ message: i18n.tutorial_5, preset: "shooterHint" },
-				{ message: i18n.tutorial_6, preset: "shooterYou" }
+				{ message: i18n.tutorial_5, preset: "shooterNarrator" },
+				{ message: i18n.tutorial_6, preset: "shooterNarrator" }
 			]).then(() => {
 				this.startRound();
 			});
