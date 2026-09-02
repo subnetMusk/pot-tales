@@ -26,6 +26,24 @@ output.elasticsearch:
   password: "${ELASTICSEARCH_PASSWORD}"
   ssl.certificate_authorities: ["/usr/share/filebeat/certs/ca/ca.crt"]
 
+  # I fatti di partita vanno su un data stream dedicato, separato da quello
+  # tecnico.
+  #
+  # Non e' una preferenza di ordine: con licenza basic la sicurezza a livello
+  # di documento non esiste, quindi non c'e' modo di concedere alla platea
+  # divulgativa un sottoinsieme di documenti dentro `filebeat-*`. O legge tutti
+  # i log di sistema, o non legge nulla. La separazione in indici distinti e'
+  # l'unico meccanismo disponibile per delimitare cio' che viene condiviso.
+  #
+  # Il nome segue lo schema `logs-<dataset>-<namespace>`, che il template
+  # predefinito di Elasticsearch riconosce creando il data stream alla prima
+  # scrittura. Le voci che non corrispondono alla condizione mantengono la
+  # destinazione predefinita.
+  indices:
+    - index: "logs-gioco.partita-default"
+      when.equals:
+        event.dataset: "gioco.partita"
+
 # Il data stream standalone `filebeat-*` non compone `logs@custom`: la replica
 # va quindi impostata nel template che Filebeat installa prima dell'ingestione.
 setup.template.settings:

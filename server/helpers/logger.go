@@ -38,6 +38,10 @@ func InitLogger(name, environment string) {
 	)
 
 	slog.SetDefault(globalLogger)
+
+	// I fatti di partita hanno un logger proprio, con un dataset diverso: vedi
+	// gameplay_events.go per la ragione della separazione.
+	initGameplay(name, environment)
 }
 
 // Private helper per arricchire il logger con contesto e tracciamento
