@@ -107,6 +107,40 @@ fi
 export APP_HOST ACME_EMAIL SERVER_IMAGE FRONTEND_IMAGE LANDING_IMAGE
 export CROWDSEC_DISABLE_ONLINE_API="${CROWDSEC_DISABLE_ONLINE_API:-false}"
 
+# Il nome dello stack entra nei nomi dei config: Docker antepone il prefisso
+# dello stack solo ai nomi impliciti, e questi sono espliciti.
+export STACK_NAME
+
+# Revisione dei config, derivata dal contenuto.
+#
+# Un config di Swarm e' immutabile: modificare il file lasciando invariato il
+# nome non produce un aggiornamento. Il demone rifiuta con `only updates to
+# Labels are allowed`, il deploy esce con errore e i servizi restano montati sul
+# contenuto vecchio. Legare il nome all'impronta del file rende la modifica
+# applicabile senza intervento: contenuto uguale, nome uguale, nessun effetto;
+# contenuto diverso, config nuovo e servizi aggiornati.
+#
+# Le coppie nome-percorso si leggono da stack.yml invece di essere elencate qui,
+# perche' un elenco separato si sarebbe disallineato alla prima aggiunta.
+revisioni=$(awk '
+  /^configs:/            { dentro = 1; next }
+  dentro && /^[a-zA-Z]/  { dentro = 0 }
+  dentro && /^  [a-zA-Z0-9_]+:[[:space:]]*$/ {
+    nome = $1; sub(/:$/, "", nome); next
+  }
+  dentro && /^    file:/ { print nome, $2 }
+' stack.yml)
+
+while read -r nome percorso; do
+  [ -n "$nome" ] || continue
+  if [ ! -r "$percorso" ]; then
+    echo "file di configurazione non leggibile: $percorso (config $nome)" >&2
+    exit 1
+  fi
+  impronta=$(sha256sum "$percorso" | cut -c1-12)
+  export "CFG_REV_${nome^^}=$impronta"
+done <<< "$revisioni"
+
 # Stessa destinazione che usa `data-export.sh`, e stesso valore predefinito. Va
 # esportata perche' il servizio che consegna gli archivi la monta: se le due
 # divergessero, l'esportazione scriverebbe in un posto e il prelievo servirebbe
@@ -129,3 +163,30 @@ docker stack deploy \
   --prune \
   --with-registry-auth \
   -c stack.yml "$STACK_NAME"
+esito_deploy=$?
+
+# Rimozione dei config non piu' riferiti.
+#
+# `--prune` agisce sui servizi e non sui config: verificato che quelli sostituiti
+# restino registrati a tempo indeterminato. Con il nome legato al contenuto ogni
+# modifica ne lascia indietro uno, quindi la rimozione va fatta qui o l'elenco
+# cresce a ogni deploy.
+#
+# Il tentativo e' cieco di proposito: il demone rifiuta la rimozione di un config
+# montato da un servizio, quindi quelli in uso si difendono da soli e non serve
+# ricostruire chi riferisce cosa. Gli errori sono attesi e vanno scartati.
+#
+# Solo dopo un deploy riuscito: se il deploy e' fallito, i servizi possono essere
+# ancora fermi sulla revisione precedente, che a quel punto non va rimossa.
+if [ "$esito_deploy" -eq 0 ]; then
+  docker config ls --format '{{.Name}}' 2>/dev/null \
+    | grep -E "^${STACK_NAME}_" \
+    | while read -r vecchio; do
+        docker config rm "$vecchio" >/dev/null 2>&1
+      done
+fi
+
+# L'uscita e' quella del deploy, non quella della rimozione: l'unita' systemd
+# riprova in base a questo valore, e mascherarlo con l'esito della pulizia
+# renderebbe un deploy fallito indistinguibile da uno riuscito.
+exit "$esito_deploy"

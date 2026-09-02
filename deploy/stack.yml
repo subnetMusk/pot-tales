@@ -22,40 +22,75 @@
 # con la forma `nome@sha256:...` prodotta dalla pipeline.
 # ==============================================================================
 
+# ------------------------------------------------------------------------------
+# Configurazioni, con il nome che porta la revisione del contenuto.
+#
+# Verificato sul demone: un config di Swarm e' immutabile. Modificare il file
+# mantenendo lo stesso nome non aggiorna nulla — il demone risponde
+# `only updates to Labels are allowed`, il deploy esce con codice 1 e i
+# contenitori continuano a montare il contenuto vecchio. Il guasto e' quindi
+# rumoroso sul comando ma silenzioso sullo stato: chi non legge l'uscita crede
+# di aver applicato una modifica che non e' mai arrivata.
+#
+# Il nome esplicito porta l'impronta del file, calcolata da `stack-deploy.sh`:
+# a contenuto uguale il nome non cambia e non succede nulla, a contenuto diverso
+# nasce un config nuovo e i servizi che lo montano vengono aggiornati.
+#
+# Il nome esplicito **non** viene preceduto dal nome dello stack, che Docker
+# aggiunge solo ai nomi impliciti: il prefisso e' quindi dichiarato qui, e serve
+# anche alla rimozione dei config orfani, che `--prune` non esegue.
+# ------------------------------------------------------------------------------
 configs:
   prod_traefik_yml:
+    name: ${STACK_NAME}_prod_traefik_yml_${CFG_REV_PROD_TRAEFIK_YML}
     file: ./config/traefik.yml
   prod_routes_yml:
+    name: ${STACK_NAME}_prod_routes_yml_${CFG_REV_PROD_ROUTES_YML}
     file: ./config/dynamic/routes.yml
   prod_middlewares_yml:
+    name: ${STACK_NAME}_prod_middlewares_yml_${CFG_REV_PROD_MIDDLEWARES_YML}
     file: ./config/dynamic/middlewares.yml
   prod_tls_yml:
+    name: ${STACK_NAME}_prod_tls_yml_${CFG_REV_PROD_TLS_YML}
     file: ./config/dynamic/tls.yml
   prod_crowdsec_middleware:
+    name: ${STACK_NAME}_prod_crowdsec_middleware_${CFG_REV_PROD_CROWDSEC_MIDDLEWARE}
     file: ./config/dynamic/crowdsec.yml
   prod_crowdsec_acquis:
+    name: ${STACK_NAME}_prod_crowdsec_acquis_${CFG_REV_PROD_CROWDSEC_ACQUIS}
     file: ../docker/crowdsec/acquis.yaml
   prod_crowdsec_profiles:
+    name: ${STACK_NAME}_prod_crowdsec_profiles_${CFG_REV_PROD_CROWDSEC_PROFILES}
     file: ../docker/crowdsec/profiles.yaml
   prod_redis_conf:
+    name: ${STACK_NAME}_prod_redis_conf_${CFG_REV_PROD_REDIS_CONF}
     file: ../docker/redis/redis.conf
   prod_redis_acl:
+    name: ${STACK_NAME}_prod_redis_acl_${CFG_REV_PROD_REDIS_ACL}
     file: ../docker/redis/users.acl
   prod_setup_certs:
+    name: ${STACK_NAME}_prod_setup_certs_${CFG_REV_PROD_SETUP_CERTS}
     file: ./config/setup-certs.sh
   prod_kibana_yml:
+    name: ${STACK_NAME}_prod_kibana_yml_${CFG_REV_PROD_KIBANA_YML}
     file: ./config/kibana.yml
   prod_kibana_entrypoint:
+    name: ${STACK_NAME}_prod_kibana_entrypoint_${CFG_REV_PROD_KIBANA_ENTRYPOINT}
     file: ./config/kibana-entrypoint.sh
   prod_filebeat_yml:
+    name: ${STACK_NAME}_prod_filebeat_yml_${CFG_REV_PROD_FILEBEAT_YML}
     file: ./config/filebeat.yml
   prod_filebeat_entrypoint:
+    name: ${STACK_NAME}_prod_filebeat_entrypoint_${CFG_REV_PROD_FILEBEAT_ENTRYPOINT}
     file: ./config/filebeat-entrypoint.sh
   prod_agent_entrypoint:
+    name: ${STACK_NAME}_prod_agent_entrypoint_${CFG_REV_PROD_AGENT_ENTRYPOINT}
     file: ./config/agent-entrypoint.sh
   prod_export_nginx:
+    name: ${STACK_NAME}_prod_export_nginx_${CFG_REV_PROD_EXPORT_NGINX}
     file: ./config/export-nginx.conf
   prod_server_entrypoint:
+    name: ${STACK_NAME}_prod_server_entrypoint_${CFG_REV_PROD_SERVER_ENTRYPOINT}
     file: ./config/server-entrypoint.sh
 
 # Swarm trasmette i secret ai nodi su mTLS, li cifra nel Raft log e li monta in
