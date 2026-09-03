@@ -18,6 +18,7 @@ interface Stage2Turret extends OggettoInterattivo {
 	orientation: TurretOrientation;
 	gridX: number;
 	gridY: number;
+	hitByBeam: boolean;
 }
 
 // Clockwise cycle used when the player rotates an unlocked turret
@@ -538,6 +539,7 @@ class Stage2 extends Phaser.Scene {
 		turret.orientation = cell.orientation;
 		turret.gridX = cell.x;
 		turret.gridY = cell.y;
+		turret.hitByBeam = false;
 		turret.set = false;
 		turret.setDisplaySize(32, 32);
 		turret.setDepth(4);
@@ -767,6 +769,25 @@ class Stage2 extends Phaser.Scene {
 			const hit = traced.cells.find(cell => cell.x === turret.gridX && cell.y === turret.gridY);
 			if (hit) {
 				turret.setAngle(directionAngle(hit.direction));
+
+				// One-shot reveal pulse on hit
+				if (!turret.hitByBeam) {
+					turret.hitByBeam = true;
+					const beamHitWave = this.add.circle(turret.x, turret.y, 1200, 0x55ffff);
+					beamHitWave.setBlendMode(Phaser.BlendModes.ADD);
+					beamHitWave.setAlpha(0.3);
+					beamHitWave.setScale(0);
+					this.tweens.add({
+						targets: beamHitWave,
+						scale: 1,
+						alpha: 0,
+						duration: 2500,
+						ease: "Cubic.easeOut",
+						onComplete: () => beamHitWave.destroy()
+					});
+				}
+			} else {
+				turret.hitByBeam = false;
 			}
 		}
 

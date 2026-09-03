@@ -108,9 +108,9 @@ class Shooter extends Phaser.Scene {
 	private static readonly LEVEL_CONFIGS: ReadonlyArray<{
 		timeLeft: number; lives: number; targetDelay: number; bulletCooldown: number; targetSpeed: number; playerSpeed: number; patternChance: number;
 	}> = [
-		{ timeLeft: 30, lives: 4, targetDelay: 820, bulletCooldown: 210, targetSpeed: 1.0, playerSpeed: 5, patternChance: 0.25 },
-		{ timeLeft: 28, lives: 4, targetDelay: 780, bulletCooldown: 200, targetSpeed: 1.15, playerSpeed: 6, patternChance: 0.35 },
-		{ timeLeft: 28, lives: 4, targetDelay: 600, bulletCooldown: 130, targetSpeed: 1.25, playerSpeed: 6.5, patternChance: 0.55 }
+		{ timeLeft: 30, lives: 3, targetDelay: 810, bulletCooldown: 200, targetSpeed: 1.20, playerSpeed: 5, patternChance: 0.25 },
+		{ timeLeft: 30, lives: 3, targetDelay: 770, bulletCooldown: 165, targetSpeed: 1.30, playerSpeed: 5.5, patternChance: 0.35 },
+		{ timeLeft: 30, lives: 3, targetDelay: 590, bulletCooldown: 150, targetSpeed: 1.40, playerSpeed: 6, patternChance: 0.55 }
 	];
 
 	private screenLeft = 0;
@@ -487,7 +487,6 @@ class Shooter extends Phaser.Scene {
 			this.cannon.x = Math.min(this.playerRightBound, this.cannon.x + moveSpeed);
 		}
 
-		if (Phaser.Input.Keyboard.JustDown(this.cursors.space) && this.canFire) {
 			this.fireBullet();
 		}
 

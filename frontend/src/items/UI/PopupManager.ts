@@ -251,6 +251,13 @@ export default class PopupManager {
     // 'center' is used by Shooter, whose arcade-screen layout has no room at the bottom for popups.
     protected anchor: 'bottom' | 'center';
 
+    // Zoom della camera al primo popup effettivamente mostrato: da lì in poi i popup vengono
+    // ridimensionati per apparire sempre a questa stessa dimensione sullo schermo, anche se lo
+    // zoom della camera cambia in seguito (es. lo zoom-out del finale di Stage2). Non viene
+    // catturato nel costruttore perché alcune scene (GraficoGame, Stage1_Lab) lo costruiscono
+    // prima che lo zoom/fade introduttivo si assesti sul valore "di riposo".
+    protected baseZoom: number | null = null;
+
     constructor(scene: Phaser.Scene, options?: { anchor?: 'bottom' | 'center' }) {
         this.scene = scene;
         this.anchor = options?.anchor ?? 'bottom';
@@ -537,6 +544,12 @@ export default class PopupManager {
     protected createInteractivePopup(message: string, presetName: string = "default", autoCloseDelay: number | 'infinite' = 'infinite'): Phaser.GameObjects.Container {
         const preset = POPUP_PRESETS[presetName] || POPUP_PRESETS.default;
 
+        const zoom = this.scene.cameras.main.zoom;
+        if (this.baseZoom === null) {
+            this.baseZoom = zoom;
+        }
+        const zoomCompensation = this.baseZoom / zoom;
+
         // Container per il popup
         const popup = this.scene.add.container(this.scene.scale.width / 2, this.scene.scale.height / 2);
 
@@ -562,6 +575,8 @@ export default class PopupManager {
         });
         text.setOrigin(0, 0.5);
         
+        text.texture.setFilter(Phaser.Textures.FilterMode.LINEAR);
+
         // Calcola le dimensioni del contenitore basate sul testo
         const textWidth = text.width;
         const textHeight = text.height;
@@ -595,6 +610,7 @@ export default class PopupManager {
             resolution: 5,
             align: 'center'
         });
+        speakerText.texture.setFilter(Phaser.Textures.FilterMode.LINEAR);
         const speakerBoxWidth = speakerText.width + speakerBoxPadding * 2;
         const speakerBoxHeight = speakerText.height + speakerBoxPadding * 2;
         
@@ -645,6 +661,7 @@ export default class PopupManager {
             });
             okText.setOrigin(0.5);
             okText.setScrollFactor(0, 0);
+            okText.texture.setFilter(Phaser.Textures.FilterMode.LINEAR);
         }
         
         // Aggiungi tutto al container
@@ -652,7 +669,7 @@ export default class PopupManager {
         if (okButton) items.push(okButton);
         if (okText) items.push(okText);
         popup.add(items);
-        popup.setScale(0.8);
+        popup.setScale(0.8 * zoomCompensation);
         popup.setAlpha(0);
         
         // Posiziona il popup al basso al centro dello schermo (o al centro, per le scene con anchor 'center').
@@ -667,7 +684,7 @@ export default class PopupManager {
         this.scene.tweens.add({
             targets: popup,
             alpha: 1,
-            scale: 1,
+            scale: zoomCompensation,
             duration: preset.animationDuration,
             ease: preset.animationEase
         });

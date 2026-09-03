@@ -42,6 +42,15 @@ export default class QuizManager {
         }
         this.active = true;
 
+        // Rimescola l'ordine delle risposte ad ogni domanda, così la posizione di quella
+        // corretta non è prevedibile (in Stage3.ts è sempre l'indice 0 nella config del quiz).
+        const order = [0, 1, 2, 3];
+        Phaser.Utils.Array.Shuffle(order);
+        const shuffledAnswers = order.map(i => answers[i]) as [string, string, string, string];
+        const shuffledCorrectIndex = order.indexOf(correctIndex);
+        answers = shuffledAnswers;
+        correctIndex = shuffledCorrectIndex;
+
         return new Promise<boolean>(resolve => {
             const matrixWidth = 200;
             const padding = 6;
@@ -53,11 +62,10 @@ export default class QuizManager {
 
             // scale.width/2, scale.height/2 è l'unico punto invariante rispetto allo zoom della
             // camera per un oggetto scrollFactor(0) (stesso motivo per cui l'anchor 'center' di
-            // PopupManager non necessita compensazione, vedi PopupManager.ts createInteractivePopup).
-            // Qualunque scostamento da questo punto viene amplificato dallo zoom (5x in Stage3),
-            // quindi anche il piccolo offset verso il basso richiesto (0.525 invece di 0.5) si
-            // traduce in un salto ben più grande a schermo di quanto sembri qui.
-            const container = this.scene.add.container(this.scene.scale.width / 2, this.scene.scale.height * 0.525);
+            // PopupManager non necessita compensazione, vedi PopupManager.ts createInteractivePopup) —
+            // qualunque scostamento da questo punto verrebbe amplificato dallo zoom (5x in Stage3),
+            // quindi il container resta centrato esattamente su questo punto.
+            const container = this.scene.add.container(this.scene.scale.width / 2, this.scene.scale.height / 2);
             this.layer.add(container);
 
             // --- Testo della domanda, misurato per primo per calcolare l'altezza del popup ---
