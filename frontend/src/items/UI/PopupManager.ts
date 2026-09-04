@@ -1,4 +1,5 @@
 import PixelPanel from "./PixelPanel";
+import { soundManager } from "../../audio/SoundManager";
 
 // Define popup preset configuration
 interface PopupPreset {
@@ -28,6 +29,7 @@ interface PopupPreset {
     allowSkipTypewriter: boolean;
     speakerName: string;
     speakerNameColor: string;
+    voicePitch: number;
 }
 
 // Configurazioni predefinite dei popup
@@ -58,7 +60,8 @@ const POPUP_PRESETS: Record<string, PopupPreset> = {
         typewriterDelay: 20,
         allowSkipTypewriter: true,
         speakerName: 'You',
-        speakerNameColor: '#000000'
+        speakerNameColor: '#000000',
+        voicePitch: 1
     },
     dark: { // preset per il narratore, presentato come una figura oscura
         bgColor: 0x000000,
@@ -86,7 +89,8 @@ const POPUP_PRESETS: Record<string, PopupPreset> = {
         typewriterDelay: 40,
         allowSkipTypewriter: true,
         speakerName: '...',
-        speakerNameColor: '#ffffff'
+        speakerNameColor: '#ffffff',
+        voicePitch: 0.65
     },
     hint: { // preset per suggerimenti e istruzioni
         bgColor: 0x2c3e50,
@@ -114,35 +118,8 @@ const POPUP_PRESETS: Record<string, PopupPreset> = {
         typewriterDelay: 0,
         allowSkipTypewriter: false,
         speakerName: 'Tutorial',
-        speakerNameColor: '#ffffff'
-    },
-    minigame: { // preset per i popup di risposta ai minigiochi 
-        bgColor: 0x16a085, // verde acqua
-        bgAlpha: 0.85,
-        borderColor: 0x27ae60, // verde scuro
-        borderAlpha: 0.7,
-        textFontSize: '8px',
-        textColor: '#ffffff',
-        buttonWidth: 40,
-        buttonHeight: 10,
-        buttonBgColor: 0x27ae60,
-        buttonBorderColor: 0x1e8449,
-        buttonTextColor: '#ffffff',
-        padding: 6,
-        buttonMargin: -2.5,
-        minWidth: 60,
-        textWordWrapWidth: 200,
-        animationDuration: 200,
-        animationEase: 'Back.easeOut',
-        closeAnimationDuration: 150,
-        closeAnimationEase: 'Power2.easeIn',
-        showButton: true,
-        allowKeyClose: true,
-        typewriterEnabled: true,
-        typewriterDelay: 20,
-        allowSkipTypewriter: true,
-        speakerName: 'System',
-        speakerNameColor: '#ffffff'
+        speakerNameColor: '#ffffff',
+        voicePitch: 1.35
     },
     shooterYou: { // variante ingrandita di 'default', per i dialoghi del tutorial dello Shooter
         bgColor: 0x111111,
@@ -170,7 +147,8 @@ const POPUP_PRESETS: Record<string, PopupPreset> = {
         typewriterDelay: 20,
         allowSkipTypewriter: true,
         speakerName: 'You',
-        speakerNameColor: '#000000'
+        speakerNameColor: '#000000',
+        voicePitch: 1
     },
     shooterHint: { // variante ingrandita di 'hint', per i dialoghi del tutorial dello Shooter
         bgColor: 0x2c3e50,
@@ -198,7 +176,8 @@ const POPUP_PRESETS: Record<string, PopupPreset> = {
         typewriterDelay: 0,
         allowSkipTypewriter: false,
         speakerName: 'Tutorial',
-        speakerNameColor: '#ffffff'
+        speakerNameColor: '#ffffff',
+        voicePitch: 1.35
     },
     shooterNarrator: { // narratore dello Shooter: stesso look di 'shooterHint', nome distinto
         bgColor: 0x2c3e50,
@@ -226,7 +205,8 @@ const POPUP_PRESETS: Record<string, PopupPreset> = {
         typewriterDelay: 0,
         allowSkipTypewriter: false,
         speakerName: 'Tutorial',
-        speakerNameColor: '#ffffff'
+        speakerNameColor: '#ffffff',
+        voicePitch: 1.35
     }
 };
 
@@ -508,6 +488,7 @@ export default class PopupManager {
             if (segment.instant) {
                 completedText += segment.isBold ? segment.text.toUpperCase() : segment.text;
                 textObject.setText(completedText);
+                if (segment.isBold) soundManager.playSfx(this.scene, "vine_boom");
                 segmentIndex++;
                 charIndex = 0;
                 waitMs = preset.typewriterDelay;
@@ -521,6 +502,9 @@ export default class PopupManager {
                 
                 textObject.setText(completedText + styledChar);
                 completedText += styledChar;
+                // Throttled to every other non-space character - a per-char blip at a ~10-40ms
+                // tick would otherwise machine-gun the same short sample.
+                if (currentChar !== ' ' && charIndex % 2 === 0) soundManager.playSfx(this.scene, "type_blip", { rate: preset.voicePitch });
                 charIndex++;
 
                 waitMs = Math.max(10, preset.typewriterDelay * segment.speedMultiplier);

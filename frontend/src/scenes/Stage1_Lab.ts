@@ -2,6 +2,7 @@
 // You can write more code here
 import PopupManager from "../items/UI/PopupManager";
 import { applyTranslations, launchSubScene } from "../utils";
+import { soundManager } from "../audio/SoundManager";
 
 /* START OF COMPILED CODE */
 
@@ -139,10 +140,6 @@ class Stage1_Lab extends Phaser.Scene {
 								});
 							}
 						};
-
-						this.sound.play("keyboard", {
-							volume: this.game.sound.volume * parseFloat(localStorage.getItem("sfxVolume") || "1")
-						})
 
 						this.tweens.add({
 							targets: this.cameras.main,

@@ -1,5 +1,6 @@
 
 // You can write more code here
+import { soundManager } from "../../audio/SoundManager";
 
 /* START OF COMPILED CODE */
 
@@ -18,8 +19,8 @@ class BackButton extends Phaser.GameObjects.Image {
 
 		this.setInteractive()
 			.on('pointerdown', () => { this.setTint(0xbababa); tweenTo(0.9); })
-			.on('pointerup', () => this.scene.scene.start('Menu'))
-			.on('pointerover', () => { this.setTint(0xbdbdbd); tweenTo(1.15); })
+			.on('pointerup', () => { soundManager.playSfx(scene, "ui_click"); this.scene.scene.start('Menu'); })
+			.on('pointerover', () => { this.setTint(0xbdbdbd); tweenTo(1.15); soundManager.playSfx(scene, "ui_hover"); })
 			.on('pointerout', () => { this.clearTint(); tweenTo(1); });
 		/* END-USER-CTR-CODE */
 	}

@@ -2,6 +2,7 @@ import PopupManager from "../items/UI/PopupManager";
 import { applyTranslations, playSequence } from "../utils";
 import VideoPlayer from "../items/UI/VideoPlayer";
 import { flashBurst, sparkBurst } from "../items/ParticleFx";
+import { soundManager } from "../audio/SoundManager";
 
 // You can write more code here
 
@@ -120,6 +121,13 @@ class GraficoGame extends Phaser.Scene {
 
 		// Video introduttivo
 		this.popupManager = new PopupManager(this);
+
+		this.events.once("video-ended", () => {
+			soundManager.playMusic(this, "grafico_theme");
+		});
+		this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
+			soundManager.stopMusic("grafico_theme");
+		});
 
 		// Video come finestra sullo schermo del computer
 		const videoPlayer = new VideoPlayer(this, 0, 0);
@@ -241,10 +249,6 @@ class GraficoGame extends Phaser.Scene {
 							this.input.keyboard?.on('keydown-SPACE', () => {
 								//ferma scansione e valuta posizione
 								if(this.time.now - this.lastPeakTime > 500 && !this.popupManager.isActive){
-									this.sound.play("pluck", {
-											volume: this.game.sound.volume * parseFloat(localStorage.getItem("sfxVolume") || "1")
-									});
-
 									this.lastPeakTime = this.time.now;
 									tween.pause();
 
@@ -266,6 +270,7 @@ class GraficoGame extends Phaser.Scene {
 											this.flashIndicator(0xffffff);
 
 											picchi[i].found = true;
+											soundManager.playSfx(this, "quiz_correct");
 											foundPeak = true;
 
 											break;
@@ -275,6 +280,7 @@ class GraficoGame extends Phaser.Scene {
 									if(!foundPeak){
 										const i18n = this.cache.json.get("graficoGame_i18n");
 										lines.push({ message: i18n.miss, preset: "dark" });
+										soundManager.playSfx(this, "quiz_incorrect");
 
 										this.flashIndicator(0x8b0000);
 										this.cameras.main.shake(150, 0.004);
@@ -315,9 +321,7 @@ class GraficoGame extends Phaser.Scene {
 		}
 
 		if(!this.victoryShown){
-			this.sound.play("success", {
-					volume: this.game.sound.volume * parseFloat(localStorage.getItem("sfxVolume") || "1")
-			});
+			soundManager.playSfx(this, "success");
 
 			this.victoryShown = true;
 			tween.stop();

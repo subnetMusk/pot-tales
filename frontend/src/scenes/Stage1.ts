@@ -6,6 +6,7 @@ import {APISession, CreateSessionRequest} from "../network/APISession";
 
 import OggettoInterattivo from "../items/Main/OggettoInterattivo";
 import { ambientDrift } from "../items/ParticleFx";
+import { soundManager } from "../audio/SoundManager";
 
 /* START OF COMPILED CODE */
 
@@ -109,10 +110,9 @@ class Stage1 extends Phaser.Scene {
 		// Play the black mass animation
 		this.blackMass.play("black_mass_anim");
 
-		this.sound.play("dripping_water", {
-			loop: true, 
-			volume: this.game.sound.volume * parseFloat(localStorage.getItem("musicVolume") || "1")
-		});
+		soundManager.playMusic(this, "stage1_theme", { loop: true });
+
+		this.scheduleAmbientSounds();
 
 		// Applicazione delle traduzioni sui testi già presenti nella scena
 		const i18n = this.cache.json.get("stage1_i18n");
@@ -427,7 +427,7 @@ class Stage1 extends Phaser.Scene {
 
 			await playSequence(this.popupManager, [i18n.light_final_1, i18n.light_final_2, i18n.light_final_3]);
 			this.cameras.main.fadeOut(1000, 255, 0, 0);
-			this.sound.stopAll();
+			soundManager.stopAll();
 			this.time.delayedCall(1000, () => {this.startMinigame();});
 		};
 
@@ -463,9 +463,7 @@ class Stage1 extends Phaser.Scene {
 		const secondPopupDone = playSequence(this.popupManager, [i18n.ending_3]);
 
 		this.cameras.main.shake(6000, 0.0012);
-		this.sound.play("earthquake", {
-			volume: this.game.sound.volume * parseFloat(localStorage.getItem("sfxVolume") || "1")
-		});
+		soundManager.playSfx(this, "earthquake", { volume: 0.5 });
 
 		await secondPopupDone;
 
@@ -518,6 +516,17 @@ class Stage1 extends Phaser.Scene {
 				});
 			}
 		});
+	}
+
+	private playAmbientSound() {
+		const soundType = Math.random() > 0.5 ? "droplet" : "stone";
+		soundManager.playSfx(this, soundType, { rate: Phaser.Math.FloatBetween(0.8, 1.2), volume: 0.3 });
+		const nextDelay = Phaser.Math.Between(7000, 13000);
+		this.time.delayedCall(nextDelay, () => this.playAmbientSound());
+	}
+
+	private scheduleAmbientSounds() {
+		this.time.delayedCall(Phaser.Math.Between(5000, 15000), () => this.playAmbientSound());
 	}
 
 	/* END-USER-CODE */

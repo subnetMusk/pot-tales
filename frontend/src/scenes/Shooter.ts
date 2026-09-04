@@ -3,6 +3,7 @@ import PopupManager from "../items/UI/PopupManager";
 import VideoPlayer from "../items/UI/VideoPlayer";
 import { playSequence } from "../utils";
 import { circleBurst } from "../items/ParticleFx";
+import { soundManager } from "../audio/SoundManager";
 
 /* START OF COMPILED CODE */
 
@@ -108,15 +109,16 @@ class Shooter extends Phaser.Scene {
 	private static readonly LEVEL_CONFIGS: ReadonlyArray<{
 		timeLeft: number; lives: number; targetDelay: number; bulletCooldown: number; targetSpeed: number; playerSpeed: number; patternChance: number;
 	}> = [
-		{ timeLeft: 30, lives: 3, targetDelay: 810, bulletCooldown: 200, targetSpeed: 1.20, playerSpeed: 5, patternChance: 0.25 },
-		{ timeLeft: 30, lives: 3, targetDelay: 770, bulletCooldown: 165, targetSpeed: 1.30, playerSpeed: 5.5, patternChance: 0.35 },
-		{ timeLeft: 30, lives: 3, targetDelay: 590, bulletCooldown: 150, targetSpeed: 1.40, playerSpeed: 6, patternChance: 0.55 }
+		{ timeLeft: 30, lives: 3, targetDelay: 780, bulletCooldown: 220, targetSpeed: 1.20, playerSpeed: 5, patternChance: 0.25 },
+		{ timeLeft: 30, lives: 3, targetDelay: 740, bulletCooldown: 185, targetSpeed: 1.30, playerSpeed: 5.5, patternChance: 0.35 },
+		{ timeLeft: 30, lives: 3, targetDelay: 570, bulletCooldown: 160, targetSpeed: 1.40, playerSpeed: 6, patternChance: 0.55 }
 	];
 
 	private screenLeft = 0;
 	private screenRight = 0;
 	private screenTop = 0;
 	private screenBottom = 0;
+	private gunRestY = 0;
 	private playerLeftBound = 0;
 	private playerRightBound = 0;
 
@@ -177,6 +179,10 @@ class Shooter extends Phaser.Scene {
 	create(data: { level?: number; returnSceneKey?: string } = {}) {
 		this.editorCreate();
 		this.cameras.main.setZoom(1.75);
+
+		this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
+			soundManager.stopMusic("shooter_theme");
+		});
 
 		// "CRT power-on": squash the camera vertically then snap it open, like an old tube TV
 		// turning on. Purely a camera-zoom effect, so it applies uniformly to everything drawn
@@ -358,6 +364,7 @@ class Shooter extends Phaser.Scene {
 		// eases up to its resting firing position, overshooting past it before settling back —
 		// the "spaceship" arriving and decelerating into place.
 		const gunRestY = this.screenBottom - Shooter.GUN_BOTTOM_OFFSET;
+		this.gunRestY = gunRestY;
 		const gun = this.add.sprite(Shooter.SCREEN_CENTER_X, gunRestY + Shooter.GUN_ENTRANCE_RISE, "electron_gun", 0);
 		this.playfield.add(gun);
 		this.cannon = gun;
@@ -400,6 +407,7 @@ class Shooter extends Phaser.Scene {
 	}
 
 	private startRound() {
+		soundManager.playMusic(this, "shooter_theme", { loop: false });
 		this.roundActive = true;
 		this.roundStartTime = this.time.now;
 		this.roundDurationMs = this.levelConfig.timeLeft * 1000;
@@ -487,6 +495,7 @@ class Shooter extends Phaser.Scene {
 			this.cannon.x = Math.min(this.playerRightBound, this.cannon.x + moveSpeed);
 		}
 
+		if (this.cursors.space.isDown && this.canFire) {
 			this.fireBullet();
 		}
 
@@ -499,7 +508,7 @@ class Shooter extends Phaser.Scene {
 		}
 
 		for (const target of [...this.targets.getChildren()] as Phaser.Physics.Arcade.Sprite[]) {
-			if (target.y > this.screenBottom + Shooter.OFFSCREEN_MARGIN) {
+			if (target.y > this.gunRestY) {
 				target.destroy();
 				this.lives -= 1;
 				this.refreshHud();
@@ -525,6 +534,7 @@ class Shooter extends Phaser.Scene {
 		const target = targetObj as Phaser.Physics.Arcade.Sprite;
 
 		circleBurst(this, target.x, target.y + target.displayHeight / 2, { container: this.playfield });
+		soundManager.playSfx(this, "target_hit");
 
 		bullet.destroy();
 		target.destroy();
@@ -533,6 +543,7 @@ class Shooter extends Phaser.Scene {
 	// Camera shake + a brief translucent red flash over the display, so losing a life reads
 	// immediately instead of only being noticeable via the HUD text/icons.
 	private onLifeLost() {
+		soundManager.playSfx(this, "life_lost");
 		this.cameras.main.shake(180, 0.01);
 		const flash = this.add.rectangle(Shooter.SCREEN_CENTER_X, Shooter.SCREEN_CENTER_Y, Shooter.SCREEN_WIDTH, Shooter.SCREEN_HEIGHT, 0xff0000, 0.35);
 		flash.setDepth(Shooter.HUD_DEPTH + 1);
@@ -561,6 +572,7 @@ class Shooter extends Phaser.Scene {
 		this.cannon.off("animationcomplete", this.onGunShootComplete, this);
 		this.cannon.once("animationcomplete", this.onGunShootComplete, this);
 		this.cannon.play("gun-shoot");
+		soundManager.playSfx(this, "gun_shoot", { volume: 0.6, rate: Phaser.Math.FloatBetween(0.85, 1.15) });
 	}
 
 	private onGunShootComplete = (anim: Phaser.Animations.Animation) => {
@@ -785,6 +797,11 @@ class Shooter extends Phaser.Scene {
 		this.bullets.clear(true, true);
 		this.targets.clear(true, true);
 
+		if (!timeUp) {
+			soundManager.stopMusic("shooter_theme");
+			soundManager.playSfx(this, "round_fail");
+		}
+
 		const i18n = this.cache.json.get("shooter_i18n");
 		const title = timeUp ? i18n.result_level_clear : i18n.result_game_over;
 		this.resultText.setText(`${title}\n${i18n.result_press_enter}`);
@@ -838,6 +855,7 @@ class Shooter extends Phaser.Scene {
 		this.maskGraphics?.destroy();
 		this.popupManager?.destroy();
 		this.videoPlayer?.destroy();
+		soundManager.stopMusic("shooter_theme");
 	}
 
 	/* END-USER-CODE */

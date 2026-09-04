@@ -1,6 +1,7 @@
 import PixelPanel from "./PixelPanel";
 import { setupPixelButton } from "../../utils";
 import { flashBurst, sparkBurst } from "../ParticleFx";
+import { soundManager } from "../../audio/SoundManager";
 
 const FONT_FAMILY = "PixelifySans-VariableFont_wght";
 
@@ -116,8 +117,7 @@ export default class QuizManager {
             const top = -containerHeight / 2;
 
             // Sfondo del popup della domanda (stesso linguaggio visivo di PopupManager: pannello
-            // scuro/verde acqua con bordo, coerente col preset "minigame" già usato per il
-            // feedback del quiz in Stage3).
+            // scuro/verde acqua con bordo).
             const popupBg = this.scene.add.graphics().setScrollFactor(0, 0);
             new PixelPanel(popupBg, -matrixWidth / 2, top, matrixWidth, popupHeight, {
                 fillColor: 0x16a085,
@@ -227,6 +227,7 @@ export default class QuizManager {
     // coordinate schermo fisse, così i fuochi d'artificio appaiono sempre sull'area inquadrata
     // qualunque sia la posizione della camera in quel momento.
     private celebrate(): void {
+        soundManager.playSfx(this.scene, "quiz_correct");
         const view = this.scene.cameras.main.worldView;
         const bursts = 16;
         // Sopra sia al layer del quiz (1001) che al suo eventuale flash rosso (1002).
@@ -245,6 +246,7 @@ export default class QuizManager {
     // Feedback per la risposta sbagliata: flash rosso a schermo intero (stesso schema del
     // flashScreen() di Stage2, in scala di grigi lì) più uno scatto secco della camera.
     private shakeWrong(): void {
+        soundManager.playSfx(this.scene, "quiz_incorrect");
         const cam = this.scene.cameras.main;
 
         const flash = this.scene.add.rectangle(cam.centerX, cam.centerY, cam.width, cam.height, 0xff0000);

@@ -59,9 +59,9 @@ class Gallery extends Phaser.Scene {
 
 	private setupVideoElements() {
 		const videos = [
-			{ filename: "intro.mp4", x: 210, y: 360, label: "Intro" },
-			{ filename: "IR.mp4", x: 640, y: 360, label: "IR" },
-			{ filename: "SEM.mp4", x: 1070, y: 360, label: "SEM" }
+			{ filename: "intro.mp4", x: 210, y: 480, label: "Intro" },
+			{ filename: "IR.mp4", x: 640, y: 480, label: "IR" },
+			{ filename: "SEM.mp4", x: 1070, y: 480, label: "SEM" }
 		];
 
 		videos.forEach(video => {
@@ -126,14 +126,14 @@ class Gallery extends Phaser.Scene {
 	}
 
 	// EDS.png is a static analysis image, not a video, so it gets a plain thumbnail card (no
-	// play icon, no video preview capture) placed below the video row. Clicking it opens an
+	// play icon, no video preview capture) placed above the video row. Clicking it opens an
 	// enlarged view, mirroring the video cards' open/close interaction via viewImage/
 	// closeImageViewer instead of playVideo/returnToGallery.
 	private setupEdsElement() {
 		const cardWidth = 320;
 		const cardHeight = 175;
 		const x = 640;
-		const y = 615;
+		const y = 200;
 
 		const container = this.add.container(x, y);
 		container.setDepth(1);

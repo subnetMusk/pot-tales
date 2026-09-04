@@ -46,13 +46,6 @@
                 "key": "electron_gun"
             },
             {
-                "url": [
-                    "assets/sfx/gears.mp3"
-                ],
-                "type": "audio",
-                "key": "gears"
-            },
-            {
                 "url": "assets/images/backgrounds/Shooter/5063_4.png",
                 "type": "image",
                 "key": "lvl1_bg"
@@ -138,10 +131,73 @@
             },
             {
                 "url": [
-                    "assets/sfx/steam.mp3"
+                    "assets/music/stage2_theme.wav"
                 ],
                 "type": "audio",
-                "key": "steam"
+                "key": "stage2_theme"
+            },
+            {
+                "url": [
+                    "assets/music/shooter_theme.wav"
+                ],
+                "type": "audio",
+                "key": "shooter_theme"
+            },
+            {
+                "url": [
+                    "assets/sfx/gun_shoot.wav"
+                ],
+                "type": "audio",
+                "key": "gun_shoot"
+            },
+            {
+                "url": [
+                    "assets/sfx/target_hit.wav"
+                ],
+                "type": "audio",
+                "key": "target_hit"
+            },
+            {
+                "url": [
+                    "assets/sfx/life_lost.wav"
+                ],
+                "type": "audio",
+                "key": "life_lost"
+            },
+            {
+                "url": [
+                    "assets/sfx/round_fail.wav"
+                ],
+                "type": "audio",
+                "key": "round_fail"
+            },
+            {
+                "url": [
+                    "assets/sfx/laser_charge.wav"
+                ],
+                "type": "audio",
+                "key": "laser_charge"
+            },
+            {
+                "url": [
+                    "assets/sfx/crystal_chime.wav"
+                ],
+                "type": "audio",
+                "key": "crystal_chime"
+            },
+            {
+                "url": [
+                    "assets/sfx/crater_explosion.wav"
+                ],
+                "type": "audio",
+                "key": "crater_explosion"
+            },
+            {
+                "url": [
+                    "assets/sfx/laser_saw.wav"
+                ],
+                "type": "audio",
+                "key": "laser_saw"
             }
         ]
     },

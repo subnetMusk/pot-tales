@@ -1,5 +1,6 @@
 // You can write more code here
 import { launchSubScene } from "../../utils";
+import { soundManager } from "../../audio/SoundManager";
 
 /* START OF COMPILED CODE */
 
@@ -141,8 +142,8 @@ class Player extends Phaser.GameObjects.Container {
 		};
 		settingsIcon
 			.on('pointerdown', () => { settingsIcon.setTint(0xbdbdbd); tweenSettingsIcon(0.9); })
-			.on('pointerup', () => { settingsIcon.clearTint(); tweenSettingsIcon(1); this.openSettings(); })
-			.on('pointerover', () => { settingsIcon.setTint(0xbababa); tweenSettingsIcon(1.15); })
+			.on('pointerup', () => { settingsIcon.clearTint(); tweenSettingsIcon(1); soundManager.playSfx(this.scene, "ui_click"); this.openSettings(); })
+			.on('pointerover', () => { settingsIcon.setTint(0xbababa); tweenSettingsIcon(1.15); soundManager.playSfx(this.scene, "ui_hover"); })
 			.on('pointerout', () => { settingsIcon.clearTint(); tweenSettingsIcon(1); });
 
 		// inventoryIcons: player_items è uno spritesheet 12x12, un frame per oggetto nell'ordine
@@ -170,6 +171,9 @@ class Player extends Phaser.GameObjects.Container {
 	private playerUi: Phaser.GameObjects.Image;
 	private surpriseBalloon: Phaser.GameObjects.Image;
 	private inventoryIcons: Phaser.GameObjects.Image[] = [];
+	// Frame corrispondente a ciascuna icona in inventoryIcons, stesso indice — necessario a
+	// removeInventoryItem() per trovare quale icona/voce di registry rimuovere dato un frame.
+	private inventoryFrames: number[] = [];
 	private settingsIcon: Phaser.GameObjects.Image;
 
 	/* START-USER-CODE */
@@ -425,23 +429,65 @@ class Player extends Phaser.GameObjects.Container {
 	// usando il frame indicato di player_items. Gli slot si riempiono in ordine, linearmente
 	// con il progredire della storia. persist=false è usato solo per ricreare gli oggetti già
 	// salvati nel registry all'avvio (per non duplicarli), altrimenti va sempre lasciato true.
-	public addInventoryItem(frame: number, persist: boolean = true): void {
+	// Ritorna l'icona creata (o undefined se non c'è più spazio) così un chiamante può
+	// eventualmente modificarla subito dopo (es. nasconderla se la HUD è già in fade-out).
+	public addInventoryItem(frame: number, persist: boolean = true): Phaser.GameObjects.Image | undefined {
 		const slotIndex = this.inventoryIcons.length;
 		const offset = this.inventorySlotOffsets[slotIndex];
 
 		if (!offset) {
 			console.log("Nessuno slot libero nell'inventario per il frame", frame);
-			return;
+			return undefined;
 		}
 
 		const icon = this.scene.add.image(this.playerUi.x + offset.x, this.playerUi.y + offset.y, "player_items", frame);
 		this.hud.add(icon);
 		this.inventoryIcons.push(icon);
+		this.inventoryFrames.push(frame);
 
 		if (persist) {
 			const saved = (this.scene.registry.get(this.inventoryRegistryKey) as number[] | undefined) ?? [];
 			this.scene.registry.set(this.inventoryRegistryKey, [...saved, frame]);
 		}
+
+		return icon;
+	}
+
+	// Rimuove una singola istanza dell'oggetto con questo frame dall'inventario (usato dai
+	// quiz di Stage3 per "consumare" un oggetto raccolto in precedenza): distrugge la sua
+	// icona, ricompatta le icone rimanenti sui loro nuovi slot e toglie una sola occorrenza
+	// corrispondente dal registry.
+	public removeInventoryItem(frame: number): void {
+		const index = this.inventoryFrames.indexOf(frame);
+		if (index === -1) {
+			console.log("Nessun oggetto in inventario con il frame", frame);
+			return;
+		}
+
+		const [icon] = this.inventoryIcons.splice(index, 1);
+		this.inventoryFrames.splice(index, 1);
+		icon.destroy();
+		this.relayoutInventoryIcons();
+
+		const saved = (this.scene.registry.get(this.inventoryRegistryKey) as number[] | undefined) ?? [];
+		const savedIndex = saved.indexOf(frame);
+		if (savedIndex !== -1) {
+			const next = [...saved];
+			next.splice(savedIndex, 1);
+			this.scene.registry.set(this.inventoryRegistryKey, next);
+		}
+	}
+
+	// Riposiziona le icone rimaste sui loro (eventualmente nuovi) slot dopo una rimozione,
+	// così non resta un buco vuoto in mezzo alla fila — lo slot di ciascuna è sempre il suo
+	// indice corrente nell'array, stessa convenzione usata da addInventoryItem().
+	private relayoutInventoryIcons(): void {
+		this.inventoryIcons.forEach((icon, slotIndex) => {
+			const offset = this.inventorySlotOffsets[slotIndex];
+			if (offset) {
+				icon.setPosition(this.playerUi.x + offset.x, this.playerUi.y + offset.y);
+			}
+		});
 	}
 
 	// Apre la scena Settings (la stessa usata dal menu) mettendo in pausa la scena di gioco
@@ -548,6 +594,7 @@ class Player extends Phaser.GameObjects.Container {
 	// per il beat finale in cui il player viene inghiottito dal cratere.
 	public fallDown(duration: number = 800): Promise<void> {
 		return new Promise(resolve => {
+			soundManager.playSfx(this.scene, "cartoon_fall");
 			this.scene.tweens.add({
 				targets: this,
 				y: this.y + 260,

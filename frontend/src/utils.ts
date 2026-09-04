@@ -1,5 +1,6 @@
 import PopupManager from "./items/UI/PopupManager";
 import PixelPanel, { PixelPanelState } from "./items/UI/PixelPanel";
+import { soundManager } from "./audio/SoundManager";
 
 export function applyTranslations(parent: Phaser.Scene | Phaser.GameObjects.Container, i18n: Record<string, string>): void {
     Object.entries(i18n).forEach(([key, value]) => {
@@ -169,10 +170,10 @@ export function setupPixelButton(
 		}
 	};
 
-	rect.on('pointerover', () => { panel.redraw('hover'); tweenScale(1.05, 100); });
+	rect.on('pointerover', () => { panel.redraw('hover'); tweenScale(1.05, 100); soundManager.playSfx(scene, "ui_hover"); });
 	rect.on('pointerout', () => { panel.redraw(restState); tweenScale(restState === 'hover' ? 1.05 : 1, 100); });
 	rect.on('pointerdown', () => { panel.redraw('press'); tweenScale(0.95, 80, panel.pressSink, iconPressShiftX, iconPressShiftY); });
-	rect.on('pointerup', () => { panel.redraw('hover'); tweenScale(1.05, 80); });
+	rect.on('pointerup', () => { panel.redraw('hover'); tweenScale(1.05, 80); soundManager.playSfx(scene, "ui_click"); });
 
 	const setActive = (active: boolean) => {
 		restState = active ? 'hover' : 'idle';

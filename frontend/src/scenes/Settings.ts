@@ -4,6 +4,7 @@ import { applyTranslations, setupPixelButton } from "../utils";
 import MenuBackground from "../items/UI/MenuBackground";
 import BackButton from "../items/UI/BackButton";
 import VolumeBar from "../items/UI/VolumeBar";
+import { soundManager } from "../audio/SoundManager";
 
 /* START OF COMPILED CODE */
 
@@ -186,21 +187,16 @@ class Settings extends Phaser.Scene {
 				break;
 		}
 
-		const mainVolumeValue = Number(localStorage.getItem("mainVolume") ?? this.game.sound.volume);
-		const musicVolumeValue = Number(localStorage.getItem("musicVolume") ?? 1);
-		const sfxVolumeValue = Number(localStorage.getItem("sfxVolume") ?? 1);
-
-		this.mainVolumeSlider.init(mainVolumeValue * 10, (value: number) => {
-			this.game.sound.volume = value / 10;
-			localStorage.setItem("mainVolume", (value / 10).toString());
+		this.mainVolumeSlider.init(soundManager.getMainVolume() * 10, (value: number) => {
+			soundManager.setMainVolume(value / 10);
 		});
 
-		this.musicVolumeSlider.init(musicVolumeValue * 10, (value: number) => {
-			localStorage.setItem("musicVolume", (value / 10).toString());
+		this.musicVolumeSlider.init(soundManager.getMusicVolume() * 10, (value: number) => {
+			soundManager.setMusicVolume(value / 10);
 		});
 
-		this.sfxVolumeSlider.init(sfxVolumeValue * 10, (value: number) => {
-			localStorage.setItem("sfxVolume", (value / 10).toString());
+		this.sfxVolumeSlider.init(soundManager.getSfxVolume() * 10, (value: number) => {
+			soundManager.setSfxVolume(value / 10);
 		});
 
 		this.enButton.setInteractive();

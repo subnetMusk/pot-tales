@@ -31,13 +31,6 @@
             },
             {
                 "url": [
-                    "assets/sfx/dripping_water.mp3"
-                ],
-                "type": "audio",
-                "key": "dripping_water"
-            },
-            {
-                "url": [
                     "assets/sfx/earthquake.mp3"
                 ],
                 "type": "audio",
@@ -49,23 +42,9 @@
                 "key": "grafico1"
             },
             {
-                "url": [
-                    "assets/sfx/keyboard.mp3"
-                ],
-                "type": "audio",
-                "key": "keyboard"
-            },
-            {
                 "url": "assets/images/backgrounds/laboratory.png",
                 "type": "image",
                 "key": "lab_bg"
-            },
-            {
-                "url": [
-                    "assets/sfx/pluck.mp3"
-                ],
-                "type": "audio",
-                "key": "pluck"
             },
             {
                 "url": "assets/images/items/red_light.png",
@@ -82,10 +61,52 @@
             },
             {
                 "url": [
-                    "assets/sfx/success.mp3"
+                    "assets/sfx/success.wav"
                 ],
                 "type": "audio",
                 "key": "success"
+            },
+            {
+                "url": [
+                    "assets/music/stage1_theme.wav"
+                ],
+                "type": "audio",
+                "key": "stage1_theme"
+            },
+            {
+                "url": [
+                    "assets/music/grafico_theme.wav"
+                ],
+                "type": "audio",
+                "key": "grafico_theme"
+            },
+            {
+                "url": [
+                    "assets/sfx/quiz_correct.wav"
+                ],
+                "type": "audio",
+                "key": "quiz_correct"
+            },
+            {
+                "url": [
+                    "assets/sfx/quiz_incorrect.wav"
+                ],
+                "type": "audio",
+                "key": "quiz_incorrect"
+            },
+            {
+                "url": [
+                    "assets/sfx/droplet.wav"
+                ],
+                "type": "audio",
+                "key": "droplet"
+            },
+            {
+                "url": [
+                    "assets/sfx/stone.wav"
+                ],
+                "type": "audio",
+                "key": "stone"
             }
         ]
     },

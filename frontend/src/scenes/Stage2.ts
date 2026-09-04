@@ -8,6 +8,7 @@ import { flashBurst, sparkBurst } from "../items/ParticleFx";
 import PopupManager from "../items/UI/PopupManager";
 import { APISession } from "../network/APISession";
 import { applyInventoryCheckpoints } from "../items/inventoryCheckpoints";
+import { soundManager } from "../audio/SoundManager";
 
 type TurretOrientation = "neutral" | "right" | "back" | "left";
 
@@ -276,7 +277,7 @@ class Stage2 extends Phaser.Scene {
 		this.add.image(640, 360, "bg-stage2");
 
 		// player
-		const player = new Player(this, 169, 567);
+		const player = new Player(this, 89, 567);
 		this.add.existing(player);
 
 		// lists
@@ -331,6 +332,7 @@ class Stage2 extends Phaser.Scene {
 	private currentShooterLevel = 1;
 	private activeShooter = false;
 	private stageComplete = false;
+	private laserSawSound?: Phaser.Sound.BaseSound;
 
 	private apiSession!: APISession;
 	private resumeData?: { x?: number; y?: number; checkpoints?: string[] };
@@ -372,6 +374,7 @@ class Stage2 extends Phaser.Scene {
 
 		this.popupManager = new PopupManager(this);
 		this.apiSession = new APISession();
+		soundManager.playMusic(this, "stage2_theme");
 
 		// Configurazione del giocatore
 		this.player.debug(false);
@@ -568,6 +571,7 @@ class Stage2 extends Phaser.Scene {
 		turret.orientation = ORIENTATION_CYCLE[(currentIndex + 1) % ORIENTATION_CYCLE.length];
 		console.log(`[Stage2] turret (${turret.gridX}, ${turret.gridY}) orientation -> ${turret.orientation} (frame ${ORIENTATION_FRAMES[turret.orientation]})`);
 		this.applyTurretStyle(turret);
+		soundManager.playSfx(this, "crystal_chime");
 		this.redrawBeam();
 		this.saveTurretOrientation(index, turret.orientation);
 	}
@@ -598,9 +602,8 @@ class Stage2 extends Phaser.Scene {
 
 				this.currentShooterLevel += 1;
 				void this.apiSession.saveCheckpoint("stage2_probe_activated");
-				// Oggetto sbloccato dal minigioco della probe (frame 3 di player_items).
-				this.player.addInventoryItem(3);
 				this.probe.set = false;
+				soundManager.playSfx(this, "laser_charge");
 				this.probe.play("sem_probe_activate");
 				this.probe.once("animationcomplete", () => {
 					this.time.delayedCall(500, () => {
@@ -639,6 +642,8 @@ class Stage2 extends Phaser.Scene {
 	// playIntroSequence a riabilitarlo al termine del fade-in).
 	private activateLaser(options: { silent?: boolean } = {}) {
 		this.laserActive = true;
+
+		this.laserSawSound = soundManager.playSfx(this, "laser_saw", { loop: true });
 
 		if (!options.silent) {
 			this.player.isMovementAllowed = true;
@@ -707,6 +712,7 @@ class Stage2 extends Phaser.Scene {
 	// Launches the Shooter minigame, pausing this scene until it reports success/failure
 	private runShooterChallenge(level: number, onResult: (success: boolean) => void) {
 		this.activeShooter = true;
+		soundManager.stopMusic("stage2_theme");
 
 		launchSubScene(
 			this,
@@ -714,6 +720,7 @@ class Stage2 extends Phaser.Scene {
 			{ launchData: { level, returnSceneKey: "Stage2" }, completionEvent: "shooter-complete", listenOn: "parent", overlay: false },
 			(result: { level: number; success: boolean }) => {
 				this.scene.resume();
+				soundManager.playMusic(this, "stage2_theme");
 				this.activeShooter = false;
 				onResult(result.success);
 			}
@@ -885,6 +892,7 @@ class Stage2 extends Phaser.Scene {
 			this.zoomOutToRevealTarget(this.craterPosition.x, this.craterPosition.y, 1600)
 		]);
 
+		soundManager.playSfx(this, "laser_charge", { rate: 1.6 });
 		await this.brightenBeam(900);
 		await this.triggerCraterExplosion();
 		await playSequence(this.popupManager, [this.i18n.finale_crater]);
@@ -897,7 +905,15 @@ class Stage2 extends Phaser.Scene {
 			this.i18n.finale_6,
 			{ message: this.i18n.finale_7_narrator, preset: "dark" }
 		]);
-		await this.player.walkTo(this.player.x, this.player.y + 30, 900);
+		await new Promise<void>(resolve => {
+			this.tweens.add({
+				targets: this.player,
+				y: this.player.y + 30,
+				duration: 900,
+				ease: "Sine.easeInOut",
+				onComplete: () => resolve()
+			});
+		});
 		await playSequence(this.popupManager, [this.i18n.finale_falling]);
 		await this.player.fallDown(1400);
 
@@ -948,11 +964,17 @@ class Stage2 extends Phaser.Scene {
 			const { x, y } = this.craterPosition;
 
 			sparkBurst(this, x, y, { count: 18, tint: 0xffffff, speedMin: 90, speedMax: 220, lifespan: 700 });
+			soundManager.playSfx(this, "crater_explosion");
 			this.flashScreen(250);
 			this.cameras.main.shake(400, 0.02);
 
 			this.time.delayedCall(350, () => {
 				this.add.image(x, y, "stage2-crater").setDepth(2);
+				// fadeOutUi() (già chiamata prima nella finale) nasconde solo le icone esistenti
+				// al momento della chiamata: questa è creata dopo, quindi va nascosta a mano per
+				// non farla comparire di colpo sopra una HUD altrimenti invisibile.
+				const craterIcon = this.player.addInventoryItem(3);
+				craterIcon?.setVisible(false);
 				this.stopLaser();
 
 				// Beat before the EDS reveal pops up, so it doesn't land in the same instant as
@@ -1043,6 +1065,8 @@ class Stage2 extends Phaser.Scene {
 	// keep firing afterward.
 	private stopLaser(): void {
 		this.laserActive = false;
+		this.laserSawSound?.stop();
+		this.laserSawSound = undefined;
 		this.beamGlowBoost = 0;
 		this.redrawBeam();
 	}
@@ -1066,7 +1090,10 @@ class Stage2 extends Phaser.Scene {
 			alpha: 1,
 			duration: 1500,
 			ease: "Linear",
-			onComplete: () => this.scene.start("Stage3")
+			onComplete: () => {
+				soundManager.stopMusic("stage2_theme");
+				this.scene.start("Stage3");
+			}
 		});
 	}
 
