@@ -1,4 +1,5 @@
 import PixelPanel from "./PixelPanel";
+import { soundManager } from "../../audio/SoundManager";
 
 // Define popup preset configuration
 interface PopupPreset {
@@ -28,6 +29,7 @@ interface PopupPreset {
     allowSkipTypewriter: boolean;
     speakerName: string;
     speakerNameColor: string;
+    voicePitch: number;
 }
 
 // Configurazioni predefinite dei popup
@@ -58,7 +60,8 @@ const POPUP_PRESETS: Record<string, PopupPreset> = {
         typewriterDelay: 20,
         allowSkipTypewriter: true,
         speakerName: 'You',
-        speakerNameColor: '#000000'
+        speakerNameColor: '#000000',
+        voicePitch: 1
     },
     dark: { // preset per il narratore, presentato come una figura oscura
         bgColor: 0x000000,
@@ -86,7 +89,8 @@ const POPUP_PRESETS: Record<string, PopupPreset> = {
         typewriterDelay: 40,
         allowSkipTypewriter: true,
         speakerName: '...',
-        speakerNameColor: '#ffffff'
+        speakerNameColor: '#ffffff',
+        voicePitch: 0.65
     },
     hint: { // preset per suggerimenti e istruzioni
         bgColor: 0x2c3e50,
@@ -114,35 +118,8 @@ const POPUP_PRESETS: Record<string, PopupPreset> = {
         typewriterDelay: 0,
         allowSkipTypewriter: false,
         speakerName: 'Tutorial',
-        speakerNameColor: '#ffffff'
-    },
-    minigame: { // preset per i popup di risposta ai minigiochi 
-        bgColor: 0x16a085, // verde acqua
-        bgAlpha: 0.85,
-        borderColor: 0x27ae60, // verde scuro
-        borderAlpha: 0.7,
-        textFontSize: '8px',
-        textColor: '#ffffff',
-        buttonWidth: 40,
-        buttonHeight: 10,
-        buttonBgColor: 0x27ae60,
-        buttonBorderColor: 0x1e8449,
-        buttonTextColor: '#ffffff',
-        padding: 6,
-        buttonMargin: -2.5,
-        minWidth: 60,
-        textWordWrapWidth: 200,
-        animationDuration: 200,
-        animationEase: 'Back.easeOut',
-        closeAnimationDuration: 150,
-        closeAnimationEase: 'Power2.easeIn',
-        showButton: true,
-        allowKeyClose: true,
-        typewriterEnabled: true,
-        typewriterDelay: 20,
-        allowSkipTypewriter: true,
-        speakerName: 'System',
-        speakerNameColor: '#ffffff'
+        speakerNameColor: '#ffffff',
+        voicePitch: 1.35
     },
     shooterYou: { // variante ingrandita di 'default', per i dialoghi del tutorial dello Shooter
         bgColor: 0x111111,
@@ -170,7 +147,8 @@ const POPUP_PRESETS: Record<string, PopupPreset> = {
         typewriterDelay: 20,
         allowSkipTypewriter: true,
         speakerName: 'You',
-        speakerNameColor: '#000000'
+        speakerNameColor: '#000000',
+        voicePitch: 1
     },
     shooterHint: { // variante ingrandita di 'hint', per i dialoghi del tutorial dello Shooter
         bgColor: 0x2c3e50,
@@ -198,7 +176,37 @@ const POPUP_PRESETS: Record<string, PopupPreset> = {
         typewriterDelay: 0,
         allowSkipTypewriter: false,
         speakerName: 'Tutorial',
-        speakerNameColor: '#ffffff'
+        speakerNameColor: '#ffffff',
+        voicePitch: 1.35
+    },
+    shooterNarrator: { // narratore dello Shooter: stesso look di 'shooterHint', nome distinto
+        bgColor: 0x2c3e50,
+        bgAlpha: 0.8,
+        borderColor: 0xf39c12,
+        borderAlpha: 0.65,
+        textFontSize: '12px',
+        textColor: '#ecf0f1',
+        buttonWidth: 55,
+        buttonHeight: 14,
+        buttonBgColor: 0xf39c12,
+        buttonBorderColor: 0xe67e22,
+        buttonTextColor: '#ffffff',
+        padding: 12,
+        buttonMargin: -4,
+        minWidth: 110,
+        textWordWrapWidth: 360,
+        animationDuration: 300,
+        animationEase: 'Back.easeOut',
+        closeAnimationDuration: 200,
+        closeAnimationEase: 'Power2.easeIn',
+        showButton: true,
+        allowKeyClose: true,
+        typewriterEnabled: false,
+        typewriterDelay: 0,
+        allowSkipTypewriter: false,
+        speakerName: 'Tutorial',
+        speakerNameColor: '#ffffff',
+        voicePitch: 1.35
     }
 };
 
@@ -222,6 +230,13 @@ export default class PopupManager {
     // 'bottom' (default) keeps the original bottom-center placement used by Stage1/GraficoGame;
     // 'center' is used by Shooter, whose arcade-screen layout has no room at the bottom for popups.
     protected anchor: 'bottom' | 'center';
+
+    // Zoom della camera al primo popup effettivamente mostrato: da lì in poi i popup vengono
+    // ridimensionati per apparire sempre a questa stessa dimensione sullo schermo, anche se lo
+    // zoom della camera cambia in seguito (es. lo zoom-out del finale di Stage2). Non viene
+    // catturato nel costruttore perché alcune scene (GraficoGame, Stage1_Lab) lo costruiscono
+    // prima che lo zoom/fade introduttivo si assesti sul valore "di riposo".
+    protected baseZoom: number | null = null;
 
     constructor(scene: Phaser.Scene, options?: { anchor?: 'bottom' | 'center' }) {
         this.scene = scene;
@@ -473,6 +488,7 @@ export default class PopupManager {
             if (segment.instant) {
                 completedText += segment.isBold ? segment.text.toUpperCase() : segment.text;
                 textObject.setText(completedText);
+                if (segment.isBold) soundManager.playSfx(this.scene, "vine_boom");
                 segmentIndex++;
                 charIndex = 0;
                 waitMs = preset.typewriterDelay;
@@ -486,6 +502,9 @@ export default class PopupManager {
                 
                 textObject.setText(completedText + styledChar);
                 completedText += styledChar;
+                // Throttled to every other non-space character - a per-char blip at a ~10-40ms
+                // tick would otherwise machine-gun the same short sample.
+                if (currentChar !== ' ' && charIndex % 2 === 0) soundManager.playSfx(this.scene, "type_blip", { rate: preset.voicePitch });
                 charIndex++;
 
                 waitMs = Math.max(10, preset.typewriterDelay * segment.speedMultiplier);
@@ -508,6 +527,12 @@ export default class PopupManager {
     // Crea il popup interattivo
     protected createInteractivePopup(message: string, presetName: string = "default", autoCloseDelay: number | 'infinite' = 'infinite'): Phaser.GameObjects.Container {
         const preset = POPUP_PRESETS[presetName] || POPUP_PRESETS.default;
+
+        const zoom = this.scene.cameras.main.zoom;
+        if (this.baseZoom === null) {
+            this.baseZoom = zoom;
+        }
+        const zoomCompensation = this.baseZoom / zoom;
 
         // Container per il popup
         const popup = this.scene.add.container(this.scene.scale.width / 2, this.scene.scale.height / 2);
@@ -534,6 +559,8 @@ export default class PopupManager {
         });
         text.setOrigin(0, 0.5);
         
+        text.texture.setFilter(Phaser.Textures.FilterMode.LINEAR);
+
         // Calcola le dimensioni del contenitore basate sul testo
         const textWidth = text.width;
         const textHeight = text.height;
@@ -567,6 +594,7 @@ export default class PopupManager {
             resolution: 5,
             align: 'center'
         });
+        speakerText.texture.setFilter(Phaser.Textures.FilterMode.LINEAR);
         const speakerBoxWidth = speakerText.width + speakerBoxPadding * 2;
         const speakerBoxHeight = speakerText.height + speakerBoxPadding * 2;
         
@@ -617,6 +645,7 @@ export default class PopupManager {
             });
             okText.setOrigin(0.5);
             okText.setScrollFactor(0, 0);
+            okText.texture.setFilter(Phaser.Textures.FilterMode.LINEAR);
         }
         
         // Aggiungi tutto al container
@@ -624,7 +653,7 @@ export default class PopupManager {
         if (okButton) items.push(okButton);
         if (okText) items.push(okText);
         popup.add(items);
-        popup.setScale(0.8);
+        popup.setScale(0.8 * zoomCompensation);
         popup.setAlpha(0);
         
         // Posiziona il popup al basso al centro dello schermo (o al centro, per le scene con anchor 'center').
@@ -639,7 +668,7 @@ export default class PopupManager {
         this.scene.tweens.add({
             targets: popup,
             alpha: 1,
-            scale: 1,
+            scale: zoomCompensation,
             duration: preset.animationDuration,
             ease: preset.animationEase
         });

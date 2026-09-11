@@ -2,6 +2,7 @@ import PopupManager from "../items/UI/PopupManager";
 import { applyTranslations, playSequence } from "../utils";
 import VideoPlayer from "../items/UI/VideoPlayer";
 import { flashBurst, sparkBurst } from "../items/ParticleFx";
+import { soundManager } from "../audio/SoundManager";
 
 // You can write more code here
 
@@ -121,6 +122,13 @@ class GraficoGame extends Phaser.Scene {
 		// Video introduttivo
 		this.popupManager = new PopupManager(this);
 
+		this.events.once("video-ended", () => {
+			soundManager.playMusic(this, "grafico_theme");
+		});
+		this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
+			soundManager.stopMusic("grafico_theme");
+		});
+
 		// Video come finestra sullo schermo del computer
 		const videoPlayer = new VideoPlayer(this, 0, 0);
 		this.add.existing(videoPlayer);
@@ -229,22 +237,18 @@ class GraficoGame extends Phaser.Scene {
 					onComplete: () => {
 						//Popup per spiegare il gioco
 						void playSequence(this.popupManager, [
-							{ message: i18n.welcome_1, preset: "hint" },
+							{ message: i18n.welcome_1_tutorial, preset: "hint" },
 							i18n.welcome_2,
 							{ message: i18n.welcome_3_narrator, preset: "dark" },
 							i18n.welcome_4,
 							{ message: i18n.welcome_5_narrator, preset: "dark" },
-							{ message: i18n.instructions, preset: "hint" }
+							{ message: i18n.instructions_tutorial, preset: "hint" }
 						]).then(() => {
 							startLevel(0);
 
 							this.input.keyboard?.on('keydown-SPACE', () => {
 								//ferma scansione e valuta posizione
 								if(this.time.now - this.lastPeakTime > 500 && !this.popupManager.isActive){
-									this.sound.play("pluck", {
-											volume: this.game.sound.volume * parseFloat(localStorage.getItem("sfxVolume") || "1")
-									});
-
 									this.lastPeakTime = this.time.now;
 									tween.pause();
 
@@ -256,7 +260,7 @@ class GraficoGame extends Phaser.Scene {
 									for(let i = 0; i < picchi.length; i++){
 										console.log(`[GraficoGame] picco ${i} - x: ${picchi[i].x}, trovato: ${picchi[i].found}`);
 										if(this.indicator.x <= picchi[i].x+4 && this.indicator.x >= picchi[i].x-4	&&  picchi[i].found == false){
-											lines.push({ message: risposte[i], preset: "minigame" });
+											lines.push({ message: risposte[i], preset: "dark" });
 											if(this.currentLevel === 0 && i === 1) lines.push(i18n.peak_2_you);
 
 											picchiTrovati++;
@@ -266,6 +270,7 @@ class GraficoGame extends Phaser.Scene {
 											this.flashIndicator(0xffffff);
 
 											picchi[i].found = true;
+											soundManager.playSfx(this, "quiz_correct");
 											foundPeak = true;
 
 											break;
@@ -274,7 +279,8 @@ class GraficoGame extends Phaser.Scene {
 
 									if(!foundPeak){
 										const i18n = this.cache.json.get("graficoGame_i18n");
-										lines.push({ message: i18n.miss, preset: "minigame" });
+										lines.push({ message: i18n.miss, preset: "dark" });
+										soundManager.playSfx(this, "quiz_incorrect");
 
 										this.flashIndicator(0x8b0000);
 										this.cameras.main.shake(150, 0.004);
@@ -315,9 +321,7 @@ class GraficoGame extends Phaser.Scene {
 		}
 
 		if(!this.victoryShown){
-			this.sound.play("success", {
-					volume: this.game.sound.volume * parseFloat(localStorage.getItem("sfxVolume") || "1")
-			});
+			soundManager.playSfx(this, "success");
 
 			this.victoryShown = true;
 			tween.stop();

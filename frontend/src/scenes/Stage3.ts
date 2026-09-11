@@ -6,6 +6,7 @@ import { playSequence, reloadTranslations } from "../utils";
 import OggettoInterattivo from "../items/Main/OggettoInterattivo";
 import { APISession } from "../network/APISession";
 import { applyInventoryCheckpoints } from "../items/inventoryCheckpoints";
+import { soundManager } from "../audio/SoundManager";
 
 /* START OF COMPILED CODE */
 
@@ -36,15 +37,18 @@ class Stage3 extends Phaser.Scene {
 		this.add.existing(player);
 
 		// lipidi
-		const lipidi = new OggettoInterattivo(this, 700, 450, "lipidi");
+		const lipidi = new OggettoInterattivo(this, 940, 430, "lipidi");
+		lipidi.setVisible(false);
 		this.add.existing(lipidi);
 
 		// cellulosa
-		const cellulosa = new OggettoInterattivo(this, 1000, 300, "cellulosa");
+		const cellulosa = new OggettoInterattivo(this, 1000, 350, "cellulosa");
+		cellulosa.setVisible(false);
 		this.add.existing(cellulosa);
 
 		// carbon
-		const carbon = new OggettoInterattivo(this, 1300, 450, "carbon");
+		const carbon = new OggettoInterattivo(this, 1060, 430, "carbon");
+		carbon.setVisible(false);
 		this.add.existing(carbon);
 
 		// lists
@@ -77,14 +81,58 @@ class Stage3 extends Phaser.Scene {
 	// lingua da Settings al resume della scena (stesso schema di Stage1.ts).
 	private loadedLang!: string;
 
-	// Metadati di gioco per ogni quiz: quale frame di player_items viene assegnato e quale
-	// indice di risposta è corretto. Tenuto nel codice (non nell'i18n) perché è logica di
-	// gioco, non contenuto traducibile — stesso schema di GraficoGame.ts.
+	// Metadati di gioco per ogni quiz: quale frame viene consumato dall'inventario nel
+	// momento in cui il giocatore interagisce con la luce (deve restare in sync con
+	// CHECKPOINT_CONSUMES in inventoryCheckpoints.ts) e quale indice di risposta è corretto.
+	// Tenuto nel codice (non nell'i18n) perché è logica di gioco, non contenuto traducibile —
+	// stesso schema di GraficoGame.ts.
+	// consumesFrame segue la storia: lipidi consuma la fialetta (2, da Stage1), carbon
+	// consuma uno dei due oggetti raccolti in Stage2 (4), cellulosa l'altro (5). Nessun
+	// frame viene più assegnato in cambio: risolvere il quiz salva solo il checkpoint, la
+	// "ricompensa" è l'oggetto stesso che prende il posto della luce pulsante (vedi
+	// runQuiz() e setupQuizLights()).
+	// promptKey è il prefisso usato dalle chiavi i18n di domanda/risposte del quiz (item_1/2/3,
+	// stesso schema di introSequences sotto) — distinto da objKey perché _success/_fail usano
+	// invece objKey direttamente (vedi runQuiz()).
 	private readonly quizConfig = {
-		lipidi: { frame: 6, correctIndex: 0 },
-		cellulosa: { frame: 7, correctIndex: 0 },
-		carbon: { frame: 8, correctIndex: 0 },
+		lipidi: { correctIndex: 0, consumesFrame: 2, promptKey: "item_3" },
+		cellulosa: { correctIndex: 0, consumesFrame: 5, promptKey: "item_2" },
+		carbon: { correctIndex: 0, consumesFrame: 4, promptKey: "item_1" },
 	} as const;
+
+	// Luce pulsante bianca semitrasparente che segnala ciascun punto quiz non ancora
+	// "riempito"; rimossa (tween fermato + cerchio distrutto) alla prima interazione, quando
+	// l'oggetto le prende il posto (vedi runQuiz()/setupQuizLights()).
+	private quizLights: Partial<Record<keyof typeof this.quizConfig, { light: Phaser.GameObjects.Arc; tween: Phaser.Tweens.Tween }>> = {};
+
+	// Sequenze di dialogo introduttivo per ciascun oggetto, giocate prima della domanda del
+	// quiz in runQuiz(): a differenza delle due righe fisse _intro_1/_intro_2 di prima, ogni
+	// oggetto ha ora un numero diverso di battute (item_1 ne ha 6, item_2/item_3 ne hanno 4).
+	private readonly introSequences: Record<"lipidi" | "cellulosa" | "carbon", Array<{ key: string; preset?: string }>> = {
+		carbon: [
+			{ key: "item_1_narrator", preset: "dark" },
+			{ key: "item_1_player_1" },
+			{ key: "item_1_player_2" },
+			{ key: "item_1_narrator_1b", preset: "dark" },
+			{ key: "item_1_player_3" },
+			{ key: "item_1_narrator_2", preset: "dark" }
+		],
+		cellulosa: [
+			{ key: "item_2_player" },
+			{ key: "item_2_narrator", preset: "dark" },
+			{ key: "item_2_player_2" },
+			{ key: "item_2_narrator_2", preset: "dark" }
+		],
+		lipidi: [
+			{ key: "item_3_player" },
+			{ key: "item_3_narrator", preset: "dark" },
+			{ key: "item_3_player_2" },
+			{ key: "item_3_narrator_2", preset: "dark" }
+		]
+	};
+
+	// Evita di rigiocare il recap più di una volta nella stessa sessione di scena.
+	private recapShown: boolean = false;
 
 	private apiSession!: APISession;
 	private resumeData?: { x?: number; y?: number; checkpoints?: string[] };
@@ -128,6 +176,7 @@ class Stage3 extends Phaser.Scene {
 
 		this.popupManager = new PopupManager(this);
 		this.quizManager = new QuizManager(this);
+		soundManager.playMusic(this, "stage3_theme");
 
 		this.events.on("resume", () => {
 			const currentLang = localStorage.getItem("lang") || "en";
@@ -142,25 +191,53 @@ class Stage3 extends Phaser.Scene {
 		this.carbon.interagisci = () => this.runQuiz("carbon", this.carbon);
 
 		this.applyResumeCheckpoints();
+		this.setupQuizLights();
+
+		// I due oggetti "torretta" (ex Stage2) sono assegnati qui invece che in Stage2, per
+		// poter essere eventualmente consumati dai quiz di questa scena (vedi runQuiz()) — ma
+		// solo al primo arrivo "fresco" da Stage2, non su Resume: in quel caso li ha già
+		// ricostruiti (ed eventualmente consumati) applyResumeCheckpoints() sopra, a partire
+		// dai soli checkpoint salvati sul server. Stessa condizione di early-return usata da
+		// applyResumeCheckpoints() stesso — un controllo di verità su resumeData da solo non
+		// basta, perché Phaser passa data = {} di default a init() anche su uno
+		// scene.start("Stage3") senza argomenti.
+		const freshArrival = !this.resumeData?.checkpoints || this.resumeData.checkpoints.length === 0;
+		if (freshArrival) {
+			this.player.addInventoryItem(4);
+			this.player.addInventoryItem(5);
+		}
 
 		// Ping periodico (5-10s) con la posizione corrente: mantiene aggiornato lo stato
 		// autoritativo sul server per il Resume, e passa dal validatore anti-cheat.
 		this.pingTimer = this.time.addEvent({ delay: 7000, loop: true, callback: () => this.sendPing() });
 		this.events.once("shutdown", () => this.pingTimer?.remove());
 
-		const i18n = this.cache.json.get("stage3_i18n");
-
-		void playSequence(this.popupManager, [
-			{ message: i18n.movement_hint, preset: "hint" },
-			{ message: i18n.interact_hint, preset: "hint" }
-		]).then(() => {
+		// Niente hint di movimento/interazione qui: il giocatore li ha già visti in Stage1.
+		// La battuta d'apertura (risveglio dalla caduta + invito a guardare nello zaino) va
+		// invece giocata solo al primo arrivo, non a ogni Resume.
+		if (freshArrival) {
+			const i18n = this.cache.json.get("stage3_i18n");
+			void playSequence(this.popupManager, [
+				i18n.workbench_intro_1,
+				i18n.workbench_intro_2,
+				i18n.workbench_intro_3,
+				{ message: i18n.workbench_narrator_1, preset: "dark" },
+				i18n.workbench_player_1,
+				{ message: i18n.workbench_narrator_2, preset: "dark" }
+			]).then(() => {
+				this.player.isMovementAllowed = true;
+			});
+		} else {
 			this.player.isMovementAllowed = true;
-		});
+		}
 	}
 
 	// Dialogo introduttivo + domanda a scelta multipla per uno dei tre oggetti interagibili.
-	// Risposta corretta: assegna l'oggetto all'inventario e disattiva l'oggetto per sempre.
-	// Risposta sbagliata: solo feedback, l'oggetto resta interagibile per un altro tentativo.
+	// Alla primissima interazione (luce ancora presente): l'oggetto viene tolto
+	// dall'inventario e reso visibile al posto della luce, indipendentemente dall'esito del
+	// quiz che segue. Risposta corretta: disattiva l'oggetto per sempre e salva il checkpoint,
+	// senza assegnare alcun oggetto in cambio. Risposta sbagliata: solo feedback, l'oggetto
+	// resta interagibile (e visibile) per un altro tentativo.
 	private async runQuiz(objKey: keyof typeof this.quizConfig, ogg: OggettoInterattivo) {
 		const i18n = this.cache.json.get("stage3_i18n");
 		const cfg = this.quizConfig[objKey];
@@ -168,37 +245,101 @@ class Stage3 extends Phaser.Scene {
 		this.player.isMovementAllowed = false;
 		this.player.interactionAllowed = false;
 
-		await playSequence(this.popupManager, [
-			{ message: i18n[`${objKey}_intro_1`], preset: "dark" },
-			{ message: i18n[`${objKey}_intro_2`], preset: "dark" }
-		]);
+		const pendingLight = this.quizLights[objKey];
+		if (pendingLight) {
+			pendingLight.tween.stop();
+			pendingLight.light.destroy();
+			delete this.quizLights[objKey];
+			this.player.removeInventoryItem(cfg.consumesFrame);
+			ogg.setVisible(true);
+		}
+
+		await playSequence(
+			this.popupManager,
+			this.introSequences[objKey].map(line => ({ message: i18n[line.key], preset: line.preset }))
+		);
 
 		const correct = await this.quizManager.askQuestion(
-			i18n[`${objKey}_question`],
+			i18n[`${cfg.promptKey}_question`],
 			[
-				i18n[`${objKey}_answer_1`],
-				i18n[`${objKey}_answer_2`],
-				i18n[`${objKey}_answer_3`],
-				i18n[`${objKey}_answer_4`]
+				i18n[`${cfg.promptKey}_answer_1`],
+				i18n[`${cfg.promptKey}_answer_2`],
+				i18n[`${cfg.promptKey}_answer_3`],
+				i18n[`${cfg.promptKey}_answer_4`]
 			],
 			cfg.correctIndex
 		);
 
 		if (correct) {
-			this.player.addInventoryItem(cfg.frame);
 			ogg.set = false;
 			void this.apiSession.saveCheckpoint(`stage3_${objKey}_solved`);
 			await playSequence(this.popupManager, [
-				{ message: i18n[`${objKey}_success`], preset: "minigame" }
+				{ message: i18n[`${objKey}_success`], preset: "dark" }
 			]);
+
+			if (!this.recapShown && this.lipidi.set === false && this.cellulosa.set === false && this.carbon.set === false) {
+				this.recapShown = true;
+				await this.playRecapSequence(i18n);
+			}
 		} else {
 			await playSequence(this.popupManager, [
-				{ message: i18n[`${objKey}_fail`], preset: "minigame" }
+				{ message: i18n[`${objKey}_fail`], preset: "dark" }
 			]);
 		}
 
 		this.player.isMovementAllowed = true;
 		this.player.interactionAllowed = true;
+	}
+
+	// Crea la luce pulsante bianca semitrasparente che segnala un punto quiz non ancora
+	// "riempito": alpha fissa a 32/255 (~0.125), il "pulsare" è solo sulla scala (in e out),
+	// non sull'alpha. Stesso schema procedurale (add.circle + tween yoyo/repeat infinito)
+	// già usato altrove nel gioco (es. Stage2.startBeamPulse, Stage1 brightZone) — non esiste
+	// nessun asset di glow/luce generico nel progetto, quindi il cerchio è disegnato a runtime.
+	private createQuizLight(x: number, y: number): { light: Phaser.GameObjects.Arc; tween: Phaser.Tweens.Tween } {
+		const light = this.add.circle(x, y, 22, 0xffffff, 32 / 255);
+
+		const tween = this.tweens.add({
+			targets: light,
+			scale: { from: 0.85, to: 1.15 },
+			duration: 1000,
+			yoyo: true,
+			repeat: -1,
+			ease: "Sine.easeInOut"
+		});
+
+		return { light, tween };
+	}
+
+	// Per ciascun punto quiz, decide lo stato visivo iniziale in base a quanto già risolto
+	// (applyResumeCheckpoints() sopra ha già impostato .set = false per i checkpoint presenti):
+	// già risolto → l'oggetto è mostrato subito, senza luce; non risolto → luce pulsante al suo
+	// posto, oggetto nascosto finché il giocatore non ci interagisce (vedi runQuiz()).
+	private setupQuizLights() {
+		for (const key of Object.keys(this.quizConfig) as (keyof typeof this.quizConfig)[]) {
+			const ogg = this[key];
+			if (ogg.set === false) {
+				ogg.setVisible(true);
+			} else {
+				this.quizLights[key] = this.createQuizLight(ogg.x, ogg.y);
+			}
+		}
+	}
+
+	// Epilogo giocato una sola volta, alla risoluzione del terzo e ultimo quiz: ricapitola il
+	// significato dei tre reperti raccolti. L'ultima battuta rimanda "all'altra stanza", una
+	// scena/meccanica non ancora costruita — qui si ferma senza alcuna transizione.
+	private async playRecapSequence(i18n: Record<string, string>) {
+		await playSequence(this.popupManager, [
+			{ message: i18n.recap_narrator, preset: "dark" },
+			i18n.recap_player,
+			{ message: i18n.memory_narrator_1, preset: "dark" },
+			{ message: i18n.memory_narrator_2, preset: "dark" },
+			i18n.memory_player,
+			{ message: i18n.memory_narrator_3, preset: "dark" },
+			i18n.memory_player_2,
+			{ message: i18n.memory_narrator_4, preset: "dark" }
+		]);
 	}
 
 	// Ricostruisce lo stato della scena a partire dai checkpoint opachi salvati sul server,

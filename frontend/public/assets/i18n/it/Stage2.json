@@ -1,10 +1,24 @@
 {
     "wake_up_1": "Dove sono?",
     "wake_up_2": "Questo è inquietante...",
-    "pool_1": "C'è qualcosa di luccicante sul fondo...",
-    "pool_2": "Forse dovrei indagare più a fondo...",
+    "wake_up_3": "Ma questa fialetta che contiene?",
+    "wake_up_4_narrator": "Ragiona,|| cosa può succedere all'interno di un vaso?",
+    "wake_up_5": "E io che ne so?|| Li utilizzavano per fare così tante cose..",
+    "wake_up_6_narrator": "Non ti preoccupare, per ora va bene così ;)",
+    "wake_up_7_narrator": "Ora va avanti.",
+    "wake_up_8_narrator": "Una placca metallica affiora dal terreno||, ti sembra familiare||, sembra possa essere attivata in qualche modo",
+    "wake_up_9": "Forse dovrei indagare più a fondo...",
     "shaking": "Che sta succedendo?",
-    "laser_online": "La sonda si riattiva con un ronzio, e un sottile fascio di luce squarcia il buio.",
+    "laser_online_narrator": "La sonda si riattiva con un ronzio, e un sottile fascio di luce squarcia il buio.",
+    "mirror_1": "A cosa serve questo?",
+    "mirror_2": "Non lo so, ma sembra che il raggio della sonda possa essere deviato.",
     "finale_crater": "Il raggio ha squarciato il terreno...",
-    "finale_falling": "Il pavimento sta cedendo sotto i miei piedi!"
+    "finale_1_narrator": "Complimenti, ce l'hai fatta!",
+    "finale_2_narrator": "Era molto che non si vedeva dell'azione qui!",
+    "finale_3": "Mi spiegheresti meglio cosa ho fatto???",
+    "finale_4_narrator": "Dopo aver risvegliato la sonda sei riuscito a concentrare il suo raggio finché non è penetrato all'interno del reticolo cristallino della matrice minerale del campione così da un'analisi superficiale hai eseguito una diffrazione a raggi X",
+    "finale_5_narrator": "Ogni minerale ha una propria disposizione atomica che restituisce un segnale unico, permettendo di identificarlo.",
+    "finale_6": "Quindi in breve tutte quelle apparizioni di prima a cosa sono servite?",
+    "finale_7_narrator": "A breve tutto sarà più chiaro ;)",
+    "finale_falling": ">>Il pavimento sta cedendo sotto i miei piedi!>>"
 }

@@ -97,6 +97,48 @@
                 "url": "assets/images/ui/volume.png",
                 "type": "image",
                 "key": "volume"
+            },
+            {
+                "url": [
+                    "assets/music/menu_theme.wav"
+                ],
+                "type": "audio",
+                "key": "menu_theme"
+            },
+            {
+                "url": [
+                    "assets/sfx/ui_click.wav"
+                ],
+                "type": "audio",
+                "key": "ui_click"
+            },
+            {
+                "url": [
+                    "assets/sfx/ui_hover.wav"
+                ],
+                "type": "audio",
+                "key": "ui_hover"
+            },
+            {
+                "url": [
+                    "assets/sfx/type_blip.wav"
+                ],
+                "type": "audio",
+                "key": "type_blip"
+            },
+            {
+                "url": [
+                    "assets/sfx/vine_boom.wav"
+                ],
+                "type": "audio",
+                "key": "vine_boom"
+            },
+            {
+                "url": [
+                    "assets/sfx/cartoon_fall.wav"
+                ],
+                "type": "audio",
+                "key": "cartoon_fall"
             }
         ]
     },

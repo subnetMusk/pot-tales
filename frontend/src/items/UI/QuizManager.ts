@@ -1,6 +1,7 @@
 import PixelPanel from "./PixelPanel";
 import { setupPixelButton } from "../../utils";
 import { flashBurst, sparkBurst } from "../ParticleFx";
+import { soundManager } from "../../audio/SoundManager";
 
 const FONT_FAMILY = "PixelifySans-VariableFont_wght";
 
@@ -42,6 +43,15 @@ export default class QuizManager {
         }
         this.active = true;
 
+        // Rimescola l'ordine delle risposte ad ogni domanda, così la posizione di quella
+        // corretta non è prevedibile (in Stage3.ts è sempre l'indice 0 nella config del quiz).
+        const order = [0, 1, 2, 3];
+        Phaser.Utils.Array.Shuffle(order);
+        const shuffledAnswers = order.map(i => answers[i]) as [string, string, string, string];
+        const shuffledCorrectIndex = order.indexOf(correctIndex);
+        answers = shuffledAnswers;
+        correctIndex = shuffledCorrectIndex;
+
         return new Promise<boolean>(resolve => {
             const matrixWidth = 200;
             const padding = 6;
@@ -53,11 +63,10 @@ export default class QuizManager {
 
             // scale.width/2, scale.height/2 è l'unico punto invariante rispetto allo zoom della
             // camera per un oggetto scrollFactor(0) (stesso motivo per cui l'anchor 'center' di
-            // PopupManager non necessita compensazione, vedi PopupManager.ts createInteractivePopup).
-            // Qualunque scostamento da questo punto viene amplificato dallo zoom (5x in Stage3),
-            // quindi anche il piccolo offset verso il basso richiesto (0.525 invece di 0.5) si
-            // traduce in un salto ben più grande a schermo di quanto sembri qui.
-            const container = this.scene.add.container(this.scene.scale.width / 2, this.scene.scale.height * 0.525);
+            // PopupManager non necessita compensazione, vedi PopupManager.ts createInteractivePopup) —
+            // qualunque scostamento da questo punto verrebbe amplificato dallo zoom (5x in Stage3),
+            // quindi il container resta centrato esattamente su questo punto.
+            const container = this.scene.add.container(this.scene.scale.width / 2, this.scene.scale.height / 2);
             this.layer.add(container);
 
             // --- Testo della domanda, misurato per primo per calcolare l'altezza del popup ---
@@ -108,8 +117,7 @@ export default class QuizManager {
             const top = -containerHeight / 2;
 
             // Sfondo del popup della domanda (stesso linguaggio visivo di PopupManager: pannello
-            // scuro/verde acqua con bordo, coerente col preset "minigame" già usato per il
-            // feedback del quiz in Stage3).
+            // scuro/verde acqua con bordo).
             const popupBg = this.scene.add.graphics().setScrollFactor(0, 0);
             new PixelPanel(popupBg, -matrixWidth / 2, top, matrixWidth, popupHeight, {
                 fillColor: 0x16a085,
@@ -219,6 +227,7 @@ export default class QuizManager {
     // coordinate schermo fisse, così i fuochi d'artificio appaiono sempre sull'area inquadrata
     // qualunque sia la posizione della camera in quel momento.
     private celebrate(): void {
+        soundManager.playSfx(this.scene, "quiz_correct");
         const view = this.scene.cameras.main.worldView;
         const bursts = 16;
         // Sopra sia al layer del quiz (1001) che al suo eventuale flash rosso (1002).
@@ -237,6 +246,7 @@ export default class QuizManager {
     // Feedback per la risposta sbagliata: flash rosso a schermo intero (stesso schema del
     // flashScreen() di Stage2, in scala di grigi lì) più uno scatto secco della camera.
     private shakeWrong(): void {
+        soundManager.playSfx(this.scene, "quiz_incorrect");
         const cam = this.scene.cameras.main;
 
         const flash = this.scene.add.rectangle(cam.centerX, cam.centerY, cam.width, cam.height, 0xff0000);

@@ -3,6 +3,7 @@ import { showElements } from "../utils";
 import { fadeElements } from "../utils";
 import { setupPixelButton } from "../utils";
 import MenuBackground from "../items/UI/MenuBackground";
+import { soundManager } from "../audio/SoundManager";
 
 import {APISession} from "@/network/APISession";
 
@@ -241,11 +242,13 @@ class Menu extends Phaser.Scene {
 
 					fadeElements(this.uI, true);
 					fadeElements(this.resume_button_items, true, 1000, undefined, resume_alpha);
+					soundManager.playMusic(this, "menu_theme");
 				});
 			});
 		} else {
 			fadeElements(this.uI.filter(el => !this.resume_button_items.includes(el)), true);
 			fadeElements(this.resume_button_items, true, 1000, undefined, resume_alpha);
+			soundManager.playMusic(this, "menu_theme");
 		}
 
 		// Apply translations
@@ -287,6 +290,7 @@ class Menu extends Phaser.Scene {
 							console.error("Reset dei progressi fallito:", error);
 						}
 					}
+					soundManager.stopMusic("menu_theme");
 					this.scene.start("Stage1");
 				});
 			});
@@ -324,6 +328,7 @@ class Menu extends Phaser.Scene {
 						const target = this.resumeData && RESUMABLE_SCENES.includes(this.resumeData.sceneId)
 							? this.resumeData.sceneId
 							: "Stage1";
+						soundManager.stopMusic("menu_theme");
 						this.scene.start(target, {
 							x: this.resumeData?.x,
 							y: this.resumeData?.y,

@@ -34,6 +34,15 @@ h1, h2, h3 {
     font-family: 'Pixelify Sans', 'Segoe UI', Arial, sans-serif;
 }
 
+h3 {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--accent);
+    margin-bottom: 1rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
 .container {
     width: 100%;
     max-width: 1200px;
@@ -140,6 +149,7 @@ button {
     font-family: 'Pixelify Sans', 'Segoe UI', Arial, sans-serif;
     border: none;
     cursor: pointer;
+    transition: transform 0.1s ease, box-shadow 0.1s ease, background-color 0.2s ease;
     box-shadow: 0px 5px black,
                 0px -5px black,
                 5px 0px black,
@@ -156,12 +166,21 @@ button:hover {
 
 button:active {
     background-color: var(--accent-hover);
-    transform: translateY(5px);
+    transform: translateY(2px);
     box-shadow: 0px 5px black,
                 0px -5px black,
                 5px 0px black,
                 -5px 0px black,
+                0px 6px #00000038,
+                5px 3px #00000038,
+                -5px 3px #00000038,
                 inset 0px 5px #00000038;
+}
+
+.carousel-btn:active,
+.carousel-dot:active {
+    transform: none;
+    box-shadow: none;
 }
 
 #play-button {
@@ -174,11 +193,8 @@ button:active {
    ============================================ */
 
 .hero {
-    background: radial-gradient(circle at 20% 30%, rgba(198, 12, 48, 0.25) 0%, transparent 55%),
-                linear-gradient(rgba(16, 16, 16, 0.8), rgba(16, 16, 16, 0.8)),
-                url('/assets/images/backgrounds/stage3.png');
-    background-size: cover;
-    background-position: center;
+    position: relative;
+    overflow: hidden;
     color: var(--paper);
     min-height: 100vh;
     display: flex;
@@ -188,7 +204,30 @@ button:active {
     padding: 6rem 2rem;
 }
 
+.hero-video {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    min-width: 100%;
+    min-height: 100%;
+    width: auto;
+    height: auto;
+    transform: translate(-50%, -50%);
+    object-fit: cover;
+    z-index: 0;
+}
+
+.hero-overlay {
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(circle at 20% 30%, rgba(198, 12, 48, 0.25) 0%, transparent 55%),
+                linear-gradient(rgba(16, 16, 16, 0.8), rgba(16, 16, 16, 0.8));
+    z-index: 1;
+}
+
 .hero .container {
+    position: relative;
+    z-index: 2;
     max-width: 800px;
 }
 
@@ -213,109 +252,202 @@ button:active {
 
 .descrizione_progetto {
     background: var(--paper);
-    padding: 5rem 2rem;
+    margin-top: 4rem;
+}
+
+.descrizione_progetto.fullscreen {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
 }
 
 .descrizione_progetto h2 {
     font-size: 2.5rem;
-    margin-bottom: 2rem;
+    margin-bottom: 3rem;
     text-align: center;
 }
 
-.contenuti {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-    gap: 2rem;
-    margin-bottom: 1rem;
-}
-
-.card {
-    background: white;
-    padding: 2rem;
-    border: 3px solid var(--ink-dark);
-    box-shadow: 6px 6px 0 var(--ink-dark);
-    transition: var(--transition);
-}
-
-.card:hover {
-    transform: translate(-2px, -2px);
-    box-shadow: 8px 8px 0 var(--ink-dark);
-}
-
-.card h3 {
-    color: var(--accent-hover);
-    font-size: 1.3rem;
-    margin-bottom: 1rem;
-}
-
-.card p {
+.descrizione_progetto p {
+    max-width: 900px;
+    margin: 0 auto 2.5rem;
     color: var(--gray);
-    line-height: 1.6;
-    font-size: 0.95rem;
+    line-height: 2;
+    font-size: 1.3rem;
+}
+
+.descrizione_progetto p:last-child {
+    margin-bottom: 0;
+}
+
+#solution {
+    padding: 5rem 2rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
 }
 
 /* ============================================
-   RICERCA & TEAM (griglia feature condivisa)
+   GALLERIA (carosello immagini)
    ============================================ */
 
-.ricerca, .corollario {
+.galleria {
     padding: 5rem 2rem;
-}
-
-.ricerca {
     background: linear-gradient(180deg, var(--paper) 0%, #e8e8e8 100%);
 }
 
-.corollario {
-    background: var(--paper);
-}
-
-.ricerca h2, .corollario h2 {
+.galleria h2 {
     font-size: 2.5rem;
     text-align: center;
     margin-bottom: 3rem;
 }
 
-.caratteristiche {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-    gap: 2rem;
-}
-
-.feature {
-    text-align: center;
-    padding: 2rem;
-    background: white;
-    border: 3px solid var(--ink-dark);
-    box-shadow: 6px 6px 0 var(--ink-dark);
+#gallery-title {
+    cursor: pointer;
     transition: var(--transition);
 }
 
-.feature:hover {
-    background: var(--accent);
-    transform: translate(-2px, -2px);
-    box-shadow: 8px 8px 0 var(--ink-dark);
+#gallery-title:hover {
+    color: var(--accent-hover);
 }
 
-.feature-icon {
-    font-size: 3rem;
+.carousel {
+    position: relative;
+    max-width: min(900px, 90vw);
+    margin: 0 auto;
+    width: 100%;
+}
+
+@media (max-width: 768px) {
+    .carousel {
+        max-width: 100%;
+        width: 100vw;
+    }
+}
+
+.carousel-viewport {
+    overflow: hidden;
+    border: 3px solid var(--ink-dark);
+    box-shadow: 6px 6px 0 var(--ink-dark);
+    touch-action: pan-y;
+    aspect-ratio: 16 / 9;
+}
+
+.carousel-track {
+    display: flex;
+    transition: transform 0.4s ease;
+}
+
+.carousel-slide {
+    flex: 0 0 100%;
+}
+
+.carousel-slide img {
+    width: 100%;
+    height: 100%;
+    display: block;
+    object-fit: cover;
+}
+
+.carousel-btn {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    background: rgba(16, 16, 16, 0.8);
+    color: var(--paper);
+    border: none;
+    width: 44px;
+    height: 44px;
+    font-size: 1.2rem;
+    cursor: pointer;
+    box-shadow: none;
+    margin: 0;
+    padding: 0;
+    z-index: 2;
+    transition: var(--transition);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.carousel-btn:hover {
+    background: var(--accent);
+}
+
+.carousel-btn:active {
+    transform: translateY(-50%) scale(0.95);
+}
+
+.carousel-btn.prev {
+    left: 8px;
+}
+
+.carousel-btn.next {
+    right: 8px;
+}
+
+.carousel-dots {
+    display: flex;
+    justify-content: center;
+    gap: 0.5rem;
+    margin-top: 1.5rem;
+    flex-wrap: wrap;
+}
+
+.carousel-dot {
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    border: 2px solid var(--ink-dark);
+    background: white;
+    cursor: pointer;
+    padding: 0;
+    margin: 0;
+    box-shadow: none;
+    transition: var(--transition);
+    min-width: 14px;
+    min-height: 14px;
+}
+
+.carousel-dot:active {
+    transform: scale(1.1);
+}
+
+.carousel-dot.active {
+    background: var(--accent);
+}
+
+/* ============================================
+   TEAM (lista persone)
+   ============================================ */
+
+.corollario {
+    padding: 5rem 2rem;
+    background: var(--paper);
+}
+
+.corollario h2 {
+    font-size: 2.5rem;
+    text-align: center;
     margin-bottom: 1rem;
 }
 
-.feature h3 {
-    font-size: 1.2rem;
-    margin-bottom: 0.5rem;
-    color: var(--ink);
-}
-
-.feature p {
+.corollario > .container > p {
+    text-align: center;
     color: var(--gray);
-    line-height: 1.6;
-    font-size: 0.95rem;
+    font-style: italic;
+    margin-bottom: 2.5rem;
 }
 
-.feature:hover p, .feature:hover h3 {
-    color: white;
+#team-members {
+    max-width: 100%;
+    margin: 0 auto;
+    font-size: 1.1rem;
+    color: var(--ink);
+    line-height: 1.8;
+    word-break: keep-all;
 }
 
 /* ============================================
@@ -353,9 +485,31 @@ footer p {
     }
 
     .descrizione_progetto h2,
-    .ricerca h2,
+    .galleria h2,
     .corollario h2 {
         font-size: 1.8rem;
+    }
+
+
+    .carousel-btn {
+        width: 48px;
+        height: 48px;
+        font-size: 1.3rem;
+    }
+
+    .carousel-btn.prev {
+        left: 4px;
+    }
+
+    .carousel-btn.next {
+        right: 4px;
+    }
+
+    .carousel-dot {
+        width: 16px;
+        height: 16px;
+        min-width: 16px;
+        min-height: 16px;
     }
 
     #landing-header .container {
@@ -380,8 +534,25 @@ footer p {
         gap: 0.5rem;
     }
 
-    .feature {
-        padding: 1.5rem;
+    .carousel-btn {
+        width: 40px;
+        height: 40px;
+        font-size: 1.1rem;
+    }
+
+    .carousel-btn.prev {
+        left: 4px;
+    }
+
+    .carousel-btn.next {
+        right: 4px;
+    }
+
+    .carousel-dot {
+        width: 12px;
+        height: 12px;
+        min-width: 12px;
+        min-height: 12px;
     }
 }
 
@@ -400,6 +571,6 @@ footer p {
     }
 }
 
-.card, .feature {
+.carousel {
     animation: fadeInUp 0.5s ease-out;
 }

@@ -9,7 +9,7 @@
             <ul>
                 <li><a href="#hero" id="nav-home">Home</a></li>
                 <li><a href="#project" id="nav-project">Progetto</a></li>
-                <li><a href="#research" id="nav-research">Ricerca</a></li>
+                <li><a href="#gallery" id="nav-gallery">Galleria</a></li>
                 <li><a href="#team" id="nav-team">Team</a></li>
             </ul>
         </nav>
@@ -24,6 +24,10 @@
 </header>
 
 <section id="hero" class="hero">
+    <video class="hero-video" autoplay muted loop playsinline poster="/assets/images/backgrounds/stage3.png">
+        <source src="/assets/videos/meatthezoo.mp4" type="video/mp4">
+    </video>
+    <div class="hero-overlay"></div>
     <div class="container">
         <h1 id="hero-title">Un'avventura tra scienza e gioco</h1>
         <p id="hero-desc">Esplora un laboratorio di ricerca trasformato in un'esperienza interattiva:
@@ -32,78 +36,62 @@
     </div>
 </section>
 
-<section id="project" class="descrizione_progetto">
+<section id="project" class="descrizione_progetto fullscreen">
     <div class="container">
         <h2 id="project-title">Il progetto</h2>
-        <div class="contenuti">
-            <div class="card">
-                <h3 id="project-card1-title">Di cosa si tratta</h3>
-                <p id="project-card1-desc">Lorem ipsum dolor sit amet, consectetur adipiscing elit. Il progetto
-                   nasce dall'idea di rendere accessibile e coinvolgente un percorso di
-                   ricerca scientifica attraverso il linguaggio del videogioco.</p>
-            </div>
-            <div class="card">
-                <h3 id="project-card2-title">Obiettivi</h3>
-                <p id="project-card2-desc">Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.
-                   Avvicinare il pubblico, in particolare gli studenti, ai temi della
-                   ricerca in modo pratico e divertente.</p>
-            </div>
-            <div class="card">
-                <h3 id="project-card3-title">Metodologia</h3>
-                <p id="project-card3-desc">Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris.
-                   Meccaniche di gioco pensate insieme a ricercatori e sviluppatori per
-                   restituire fedelmente il contesto scientifico.</p>
-            </div>
-        </div>
+        <h3 id="subtitle-background"></h3>
+        <p id="project-background"></p>
+        <h3 id="subtitle-research"></h3>
+        <p id="project-research"></p>
+        <h3 id="subtitle-challenge"></h3>
+        <p id="project-challenge"></p>
     </div>
 </section>
 
-<section id="research" class="ricerca">
+<section id="gallery" class="galleria">
     <div class="container">
-        <h2 id="research-title">La ricerca</h2>
-        <div class="caratteristiche">
-            <div class="feature">
-                <div class="feature-icon">🔬</div>
-                <h3 id="research-feature1-title">Ambito scientifico</h3>
-                <p id="research-feature1-desc">Duis aute irure dolor in reprehenderit in voluptate velit esse
-                   cillum dolore eu fugiat nulla pariatur.</p>
-            </div>
-            <div class="feature">
-                <div class="feature-icon">📊</div>
-                <h3 id="research-feature2-title">Dati e risultati</h3>
-                <p id="research-feature2-desc">Excepteur sint occaecat cupidatat non proident, sunt in culpa qui
-                   officia deserunt mollit anim id est laborum.</p>
-            </div>
-            <div class="feature">
-                <div class="feature-icon">🎓</div>
-                <h3 id="research-feature3-title">Ricadute didattiche</h3>
-                <p id="research-feature3-desc">Curabitur pretium tincidunt lacus, nulla gravida orci a odio
-                   pretium risus sed fermentum tellus eget urna.</p>
+        <h2 id="gallery-title">Scopri il gioco</h2>
+    </div>
+    <div class="carousel" id="carousel">
+        <button class="carousel-btn prev" id="carousel-prev" aria-label="Precedente">&#10094;</button>
+        <div class="carousel-viewport">
+            <div class="carousel-track" id="carousel-track">
+                <div class="carousel-slide">
+                    <img src="/assets/images/screenshots/screenshot_1.png" alt="Screenshot 1">
+                </div>
+                <div class="carousel-slide">
+                    <img src="/assets/images/screenshots/screenshot_2.png" alt="Screenshot 2">
+                </div>
+                <div class="carousel-slide">
+                    <img src="/assets/images/screenshots/screenshot_3.png" alt="Screenshot 3">
+                </div>
+                <div class="carousel-slide">
+                    <img src="/assets/images/screenshots/screenshot_4.png" alt="Screenshot 4">
+                </div>
+                <div class="carousel-slide">
+                    <img src="/assets/images/screenshots/screenshot_5.png" alt="Screenshot 5">
+                </div>
             </div>
         </div>
+        <button class="carousel-btn next" id="carousel-next" aria-label="Successivo">&#10095;</button>
+    </div>
+    <div class="container">
+        <div class="carousel-dots" id="carousel-dots"></div>
+    </div>
+</section>
+
+<section id="solution" class="descrizione_progetto">
+    <div class="container">
+        <h3 id="subtitle-solution"></h3>
+        <p id="project-solution"></p>
     </div>
 </section>
 
 <section id="team" class="corollario">
     <div class="container">
         <h2 id="team-title">Il team</h2>
-        <div class="caratteristiche">
-            <div class="feature">
-                <div class="feature-icon">🧑‍💻</div>
-                <h3>Nome Cognome</h3>
-                <p id="team-member1-desc">Ruolo nel progetto — sviluppo, lorem ipsum dolor sit amet.</p>
-            </div>
-            <div class="feature">
-                <div class="feature-icon">🧑‍🔬</div>
-                <h3>Nome Cognome</h3>
-                <p id="team-member2-desc">Ruolo nel progetto — ricerca, consectetur adipiscing elit.</p>
-            </div>
-            <div class="feature">
-                <div class="feature-icon">🎨</div>
-                <h3>Nome Cognome</h3>
-                <p id="team-member3-desc">Ruolo nel progetto — design, sed do eiusmod tempor incididunt.</p>
-            </div>
-        </div>
+        <p id="team-intro">Un piccolo gruppo di sognatori dietro questo progetto:</p>
+        <p id="team-members"></p>
     </div>
 </section>
 
@@ -118,59 +106,49 @@
         it: {
             "nav-home": "Home",
             "nav-project": "Progetto",
-            "nav-research": "Ricerca",
+            "nav-gallery": "Galleria",
             "nav-team": "Team",
             "lang-label": "Lingua:",
             "hero-title": "Un'avventura tra scienza e gioco",
-            "hero-desc": "Esplora un laboratorio di ricerca trasformato in un'esperienza interattiva: scopri il progetto giocando in prima persona.",
+            "hero-desc": "Esplora un laboratorio di ricerca archeologica trasformato in un'esperienza interattiva.",
             "play-button": "Gioca ora",
             "project-title": "Il progetto",
-            "project-card1-title": "Di cosa si tratta",
-            "project-card1-desc": "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Il progetto nasce dall'idea di rendere accessibile e coinvolgente un percorso di ricerca scientifica attraverso il linguaggio del videogioco.",
-            "project-card2-title": "Obiettivi",
-            "project-card2-desc": "Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Avvicinare il pubblico, in particolare gli studenti, ai temi della ricerca in modo pratico e divertente.",
-            "project-card3-title": "Metodologia",
-            "project-card3-desc": "Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris. Meccaniche di gioco pensate insieme a ricercatori e sviluppatori per restituire fedelmente il contesto scientifico.",
-            "research-title": "La ricerca",
-            "research-feature1-title": "Ambito scientifico",
-            "research-feature1-desc": "Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur.",
-            "research-feature2-title": "Dati e risultati",
-            "research-feature2-desc": "Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.",
-            "research-feature3-title": "Ricadute didattiche",
-            "research-feature3-desc": "Curabitur pretium tincidunt lacus, nulla gravida orci a odio pretium risus sed fermentum tellus eget urna.",
+            "subtitle-background": "Il contesto della ricerca",
+            "subtitle-research": "Metodologie e scoperte",
+            "subtitle-challenge": "La sfida della comunicazione",
+            "subtitle-solution": "La soluzione: un videogioco interattivo",
+            "project-background": "Questo progetto presenta i risultati di un'innovativa iniziativa didattica che ha coinvolto studenti di diverse discipline nella comunicazione dei risultati di uno studio archeometrico. I depositi neri, che si trovano spesso all'interno di contenitori in ceramica, agiscono come capsule temporali, fornendo preziose intuzioni sulle attività quotidiane del passato.",
+            "project-research": "Lo studio approfondito di questi residui, nonché degli oggetti in ceramica stessi, è stato condotto mediante analisi di laboratorio, tra cui analisi petrografica, mineralogica, chimica e spettroscopica, nonché microscopia elettronica e datazione. Ciò ha rivelato dettagli finora sconosciuti sulla vita quotidiana delle comunità antiche, permettendo agli studenti di scoprire storie affascinanti da ambienti domestici e oltre.",
+            "project-challenge": "Comunicare efficacemente i risultati della ricerca archeologica non è mai facile; questo progetto si concentra sulla creazione di una narrativa esplorativa in cui i giocatori entrano virtualmente nelle 'profondità oscure' e devono trovare la loro strada per uscire dall'oscurità e scoprire i risultati della ricerca scientifica.",
+            "project-solution": "La collaborazione tra studenti di archeologia e informatica, nonché professionisti del settore audiovisivo, ha portato alla creazione di un videogioco online 2D in cui i giocatori possono esplorare questi 'depositi neri' come se fosse una caverna oscura. Gli utenti possono quindi 'emergere dall'oscurità' trovando il percorso giusto, imparando e trovando la loro strada o perdersi nel buio.",
+            "team-members": "F. M. Valente • C.D. Baeza Vega • D. Favale • L. Mocchiutti • I. Malliota • I. Garcia Trivès • T.T. Kahveci • R. Buso • A. Cipriani • L. Soligo • I. Rossi • F. Marcon",
+            "gallery-title": "Scopri il gioco",
             "team-title": "Il team",
-            "team-member1-desc": "Ruolo nel progetto — sviluppo, lorem ipsum dolor sit amet.",
-            "team-member2-desc": "Ruolo nel progetto — ricerca, consectetur adipiscing elit.",
-            "team-member3-desc": "Ruolo nel progetto — design, sed do eiusmod tempor incididunt.",
+            "team-intro": "Un piccolo gruppo di persone dietro questo progetto:",
             "footer-text": "© 2026 AAAAAAAAAAAAA. Tutti i diritti riservati."
         },
         en: {
             "nav-home": "Home",
             "nav-project": "Project",
-            "nav-research": "Research",
+            "nav-gallery": "Gallery",
             "nav-team": "Team",
             "lang-label": "Language:",
-            "hero-title": "An adventure between science and play",
-            "hero-desc": "Explore a research lab turned into an interactive experience: discover the project by playing it firsthand.",
+            "hero-title": "An adventure between science and game",
+            "hero-desc": "Explore a research lab turned into an interactive experience: discover the project by playing it!",
             "play-button": "Play now",
             "project-title": "The project",
-            "project-card1-title": "What it's about",
-            "project-card1-desc": "Lorem ipsum dolor sit amet, consectetur adipiscing elit. The project was born from the idea of making a scientific research journey accessible and engaging through the language of video games.",
-            "project-card2-title": "Goals",
-            "project-card2-desc": "Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Bringing the public, especially students, closer to research topics in a practical and enjoyable way.",
-            "project-card3-title": "Methodology",
-            "project-card3-desc": "Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris. Game mechanics designed together with researchers and developers to faithfully represent the scientific context.",
-            "research-title": "The research",
-            "research-feature1-title": "Scientific scope",
-            "research-feature1-desc": "Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur.",
-            "research-feature2-title": "Data and results",
-            "research-feature2-desc": "Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.",
-            "research-feature3-title": "Educational impact",
-            "research-feature3-desc": "Curabitur pretium tincidunt lacus, nulla gravida orci a odio pretium risus sed fermentum tellus eget urna.",
+            "subtitle-background": "Research context and insights",
+            "subtitle-research": "Methods and discoveries",
+            "subtitle-challenge": "The communication challenge",
+            "subtitle-solution": "The solution: an interactive game",
+            "project-background": "This work presents the results of an innovative teaching project that involved students from a wide range of disciplines in communicating the findings of an archacometric study. Black deposits, which are often found inside ceramic containers, act as time capsules, providing valuable insights into past daily activities.",
+            "project-research": "In-depth study of these residues, as well as the ceramic objects themselves, was conducted through laboratory analysis, including petrographic, mineralogical, chemical and spectroscopic analyses, as well as electron microscopy and dating. This revealed hitherto unknown details about the daily lives of ancient communities, enabling students to uncover fascinating stories from domestic environments and possibly beyond.",
+            "project-challenge": "Effectively communicating the results of archaeological research is never easy; this project focuses on creating an exploratory narrative in which players virtually enter the 'dark depths' and must find their way out of the darkness to discover the results of scientific research.",
+            "project-solution": "The collaboration between archaeology and computer science students, as well as professionals in the audiovisual sector, has resulted in the creation of a 2D online video game in which players can explore these 'black deposits' as if they were a dark cave. Users can therefore 'emerge from the darkness' by finding the right path, learning and finding their way or getting lost in the dark.",
+            "team-members": "F. M. Valente • C.D. Baeza Vega • D. Favale • L. Mocchiutti • I. Malliota • I. Garcia Trivès • T.T. Kahveci • R. Buso • A. Cipriani • L. Soligo • I. Rossi • F. Marcon",
+            "gallery-title": "Discover the game",
             "team-title": "The team",
-            "team-member1-desc": "Role in the project — development, lorem ipsum dolor sit amet.",
-            "team-member2-desc": "Role in the project — research, consectetur adipiscing elit.",
-            "team-member3-desc": "Role in the project — design, sed do eiusmod tempor incididunt.",
+            "team-intro": "A small bunch of people behind this project:",
             "footer-text": "© 2026 AAAAAAAAAAAAA. All rights reserved."
         }
     };
@@ -179,7 +157,13 @@
         const dict = landingTranslations[lang] || landingTranslations.it;
         Object.keys(dict).forEach(id => {
             const el = document.getElementById(id);
-            if (el) el.textContent = dict[id];
+            if (el) {
+                let text = dict[id];
+                if (id === 'team-members') {
+                    text = text.split(' • ').map(name => name.replace(/ /g, ' ')).join(' • ');
+                }
+                el.textContent = text;
+            }
         });
     }
 
@@ -194,7 +178,74 @@
         updateLandingLang(landingLangSelect.value);
     });
 
-    document.getElementById('play-button').addEventListener('click', () => {
-        window.location.href = '/play';
-    });
+    const goToPlay = () => window.location.href = '/play';
+    document.getElementById('play-button').addEventListener('click', goToPlay);
+    document.getElementById('gallery-title').addEventListener('click', goToPlay);
+
+    const carousel = document.getElementById('carousel');
+    const carouselTrack = document.getElementById('carousel-track');
+    const carouselSlides = carouselTrack.children;
+    const carouselDots = document.getElementById('carousel-dots');
+    const slideCount = carouselSlides.length;
+    let currentSlide = 0;
+    let autoplayTimer = null;
+    let touchStartX = 0;
+    let touchEndX = 0;
+
+    for (let i = 0; i < slideCount; i++) {
+        const dot = document.createElement('button');
+        dot.classList.add('carousel-dot');
+        dot.setAttribute('aria-label', `Vai alla slide ${i + 1}`);
+        dot.addEventListener('click', () => goToSlide(i));
+        carouselDots.appendChild(dot);
+    }
+    const dotElements = carouselDots.children;
+
+    function goToSlide(index) {
+        currentSlide = (index + slideCount) % slideCount;
+        carouselTrack.style.transform = `translateX(-${currentSlide * 100}%)`;
+        for (let i = 0; i < dotElements.length; i++) {
+            dotElements[i].classList.toggle('active', i === currentSlide);
+        }
+    }
+
+    function startAutoplay() {
+        autoplayTimer = setInterval(() => goToSlide(currentSlide + 1), 4000);
+    }
+
+    function stopAutoplay() {
+        clearInterval(autoplayTimer);
+    }
+
+    function handleSwipe() {
+        const swipeThreshold = 50;
+        const diff = touchStartX - touchEndX;
+        if (Math.abs(diff) > swipeThreshold) {
+            if (diff > 0) {
+                goToSlide(currentSlide + 1);
+            } else {
+                goToSlide(currentSlide - 1);
+            }
+        }
+    }
+
+    document.getElementById('carousel-prev').addEventListener('click', () => goToSlide(currentSlide - 1));
+    document.getElementById('carousel-next').addEventListener('click', () => goToSlide(currentSlide + 1));
+
+    carousel.addEventListener('touchstart', (e) => {
+        touchStartX = e.changedTouches[0].screenX;
+        stopAutoplay();
+    }, false);
+
+    carousel.addEventListener('touchend', (e) => {
+        touchEndX = e.changedTouches[0].screenX;
+        handleSwipe();
+        startAutoplay();
+    }, false);
+
+    carousel.addEventListener('mouseenter', stopAutoplay);
+    carousel.addEventListener('mouseleave', startAutoplay);
+
+    goToSlide(0);
+    startAutoplay();
 </script>
