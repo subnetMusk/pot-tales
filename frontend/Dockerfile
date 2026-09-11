@@ -28,7 +28,7 @@ RUN find /app/dist \( -name '*.ase' -o -name '*.aseprite' -o -name '*.tif' \
 	-o -name '*.tiff' -o -name '*.psd' -o -name '*.xcf' \) -type f -delete
 
 # Stage 2: serve i file statici con Nginx, linea stable
-FROM nginx:1.30.4-alpine@sha256:97d490c12ba55b4946b01546d1c3ed324e8d41ab1c9fcb2a616aa470620e5b46
+FROM nginx:1.30.4-alpine@sha256:dc5069ad14f19660b141b21236140b91656bf89bbc3e2417c70ae650cd66104c
 
 # Pacchetti di sistema aggiornati a build time. Il digest della base resta
 # fissato, ma le correzioni di sicurezza delle librerie di sistema arrivano nei
