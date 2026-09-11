@@ -283,15 +283,29 @@ func TestPosizioneRestituisceLoStatoIniziale(t *testing.T) {
 		t.Fatalf("codice = %d, atteso %d", risposta.StatusCode, http.StatusOK)
 	}
 
-	var payload map[string]string
+	// La risposta non e' fatta di sole stringhe: accanto a scena e ultimo ping
+	// porta l'elenco dei traguardi raggiunti.
+	var payload struct {
+		SceneID     string   `json:"scene_id"`
+		LastPing    string   `json:"last_ping"`
+		Checkpoints []string `json:"checkpoints"`
+	}
 	if err := json.NewDecoder(risposta.Body).Decode(&payload); err != nil {
 		t.Fatalf("risposta non in formato JSON: %v", err)
 	}
-	if payload["scene_id"] == "" {
+	if payload.SceneID == "" {
 		t.Error("scena assente nella risposta")
 	}
-	if payload["last_ping"] == "" {
+	if payload.LastPing == "" {
 		t.Error("istante dell'ultimo ping assente")
+	}
+	// Su una sessione appena creata l'handler serve un elenco vuoto e non null:
+	// decodificato, un campo assente o null resta nil.
+	if payload.Checkpoints == nil {
+		t.Error("elenco dei traguardi assente o null")
+	}
+	if len(payload.Checkpoints) != 0 {
+		t.Errorf("traguardi su una sessione appena creata: %v", payload.Checkpoints)
 	}
 }
 
