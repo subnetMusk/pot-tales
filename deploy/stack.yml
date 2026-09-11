@@ -867,7 +867,13 @@ services:
       # I file di log dei container restano un montaggio: sono la sorgente da
       # leggere, e nessuna API li espone. L'arricchimento con i metadati passa
       # invece dal proxy.
-      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+      #
+      # La sorgente e' la directory dati del demone, che `daemon.json` sposta
+      # su `/srv/docker`: montare il percorso predefinito lascerebbe Filebeat
+      # su una directory vuota, senza alcun errore. `stack-deploy.sh` ricava il
+      # valore dal demone stesso, quindi le due configurazioni non possono
+      # divergere. La destinazione resta quella attesa da `filebeat.yml`.
+      - ${DOCKER_ROOT_DIR:-/srv/docker}/containers:/var/lib/docker/containers:ro
     configs:
       - source: prod_filebeat_yml
         target: /usr/share/filebeat/filebeat.yml

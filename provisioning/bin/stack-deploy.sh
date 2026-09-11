@@ -159,6 +159,17 @@ done <<< "$revisioni"
 # una directory vuota, senza che nulla lo segnali.
 export EXPORT_DEST="${EXPORT_DEST:-/srv/export}"
 
+# Directory dati del demone, da cui Filebeat legge i log dei container. Si
+# chiede al demone invece di dichiararla: `daemon.json` la sposta dal percorso
+# predefinito, e un valore scritto a mano in due posti lascerebbe Filebeat su
+# una directory vuota alla prima divergenza, senza alcun errore.
+DOCKER_ROOT_DIR=$(docker info --format '{{.DockerRootDir}}' 2>/dev/null)
+if [ -z "$DOCKER_ROOT_DIR" ] || [ ! -d "$DOCKER_ROOT_DIR/containers" ]; then
+  echo "directory dati del demone non determinabile: '${DOCKER_ROOT_DIR}'" >&2
+  exit 1
+fi
+export DOCKER_ROOT_DIR
+
 # La directory deve esistere prima del deploy. In swarm mode un bind mount non
 # crea la propria sorgente come farebbe `docker run`: il task viene rifiutato e
 # riprovato all'infinito, con il servizio fermo a zero repliche. Senza questa
