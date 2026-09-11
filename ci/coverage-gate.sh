@@ -1,19 +1,19 @@
 #!/usr/bin/env sh
 # Misura la copertura del backend e la confronta con il pavimento.
 #
-# Il pavimento non e' l'obiettivo. L'obiettivo dichiarato e' 85%; il punto di
-# partenza misurato e' 20,4%. Imporre subito l'obiettivo produrrebbe una pipeline
-# stabilmente rossa, e una pipeline sempre rossa smette di essere letta: non
-# viene piu' guardata proprio quando comincia a segnalare qualcosa di vero.
+# Il pavimento e' partito dal valore misurato, 20,4%, ed e' salito man mano
+# fino all'obiettivo dell'85%, con cui oggi coincide. Imporre subito l'obiettivo
+# avrebbe prodotto una pipeline stabilmente rossa, e una pipeline sempre rossa
+# smette di essere letta proprio quando comincia a segnalare qualcosa di vero.
 #
-# Il pavimento puo' quindi solo salire. Serve a impedire che la copertura
-# arretri mentre il codice cresce, che e' il modo in cui si arriva a fine
-# progetto con meno copertura di quanta se ne aveva a meta'.
+# Il pavimento puo' solo salire. Serve a impedire che la copertura arretri
+# mentre il codice cresce, che e' il modo in cui si arriva a fine progetto con
+# meno copertura di quanta se ne aveva a meta'.
 #
 # Eseguito dentro il container Go: si aspetta di trovarsi nel modulo.
 set -u
 
-PAVIMENTO=${COVERAGE_FLOOR:-20}
+PAVIMENTO=${COVERAGE_FLOOR:-85}
 OBIETTIVO=${COVERAGE_TARGET:-85}
 PROFILO=${COVERAGE_PROFILE:-/tmp/cover.out}
 

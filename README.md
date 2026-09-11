@@ -42,9 +42,6 @@ l'osservabilità come codice, [`secrets/`](secrets/README.md) per i segreti,
 | `docker-compose.security.yml` | sviluppo, overlay CrowdSec | `make security-up` |
 | `deploy/stack.yml` | produzione, Docker Swarm | `make stack-deploy` |
 
-> `docker-compose.prod.yml` è un residuo dell'era Node e non è allineato allo stack
-> attuale. La produzione è `deploy/stack.yml`.
-
 ## Requisiti
 
 - Docker 20.10+ con Compose v2. In produzione lo swarm serve, ma non va inizializzato

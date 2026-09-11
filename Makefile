@@ -175,16 +175,7 @@ go-cover: ## Misura la copertura del backend, per pacchetto e totale
 .PHONY: lint-shell
 lint-shell: ## Analizza gli script di infrastruttura
 	$(DOCKER) run --rm -v "$(CURDIR)":/mnt -w /mnt $(SHELLCHECK_IMAGE) \
-		--severity=warning provisioning/bin/*.sh ci/*.sh swarm-prototype/*.sh deploy/config/*.sh scripts/fleet-bootstrap.sh
-
-# `scripts/` raccoglie utilita' precedenti a questo lavoro e produce oltre
-# settecento segnalazioni. Tenerle nel controllo bloccante renderebbe la
-# batteria stabilmente rossa, e una batteria sempre rossa smette di essere
-# letta: restano in un target a parte finche' non vengono affrontate.
-.PHONY: lint-shell-legacy
-lint-shell-legacy: ## Analizza gli script preesistenti in scripts/ (non bloccante)
-	-$(DOCKER) run --rm -v "$(CURDIR)":/mnt -w /mnt $(SHELLCHECK_IMAGE) \
-		--severity=warning scripts/*.sh
+		--severity=warning provisioning/bin/*.sh ci/*.sh swarm-prototype/*.sh deploy/config/*.sh scripts/*.sh
 
 .PHONY: lint-docker
 lint-docker: ## Analizza i Dockerfile
