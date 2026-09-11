@@ -39,22 +39,46 @@ class Gallery extends Phaser.Scene {
 	private galleryElements: Array<Phaser.GameObjects.GameObject> = [];
 
 	private readonly edsKey = "stage2-eds";
+	private readonly xrdKey = "stage2-xrd";
+	private readonly c14Key = "stage3-c14graph";
 
 	// Write your code here
 
 	preload() {
-		// Gallery is reachable straight from the Menu, without ever visiting Stage2 (which is
-		// what normally loads this texture) — load it directly here too so the card always has
-		// something to show. Guarded since Stage2's own load may already have populated it.
+		// Gallery is reachable straight from the Menu, without ever visiting Stage2/Stage3
+		// (which normally load these textures) — load them directly here too so the cards always
+		// have something to show. Guarded since Stage2's/Stage3's own load may already have
+		// populated them.
 		if (!this.textures.exists(this.edsKey)) {
 			this.load.image(this.edsKey, "assets/images/backgrounds/EDS.png");
+		}
+		if (!this.textures.exists(this.xrdKey)) {
+			this.load.image(this.xrdKey, "assets/images/backgrounds/XRD.png");
+		}
+		if (!this.textures.exists(this.c14Key)) {
+			this.load.image(this.c14Key, "assets/images/ui/c14_graph.png");
 		}
 	}
 
 	create() {
 		this.editorCreate();
+		this.galleryElements = [];
 		this.setupVideoElements();
-		this.setupEdsElement();
+		this.setupImageRow();
+
+		this.events.on("resume", () => {
+			this.galleryElements = [];
+			this.setupVideoElements();
+			this.setupImageRow();
+		});
+	}
+
+	// Card row degli scatti di analisi, allineata alle stesse colonne x della riga video
+	// sottostante (210/640/1070) per coerenza visiva fra le due file.
+	private setupImageRow() {
+		this.setupImageElement(this.edsKey, "EDS", 300, 200);
+		this.setupImageElement(this.c14Key, "C14", 640, 200);
+		this.setupImageElement(this.xrdKey, "XRD", 980, 200);
 	}
 
 	private setupVideoElements() {
@@ -125,15 +149,13 @@ class Gallery extends Phaser.Scene {
 		});
 	}
 
-	// EDS.png is a static analysis image, not a video, so it gets a plain thumbnail card (no
-	// play icon, no video preview capture) placed above the video row. Clicking it opens an
-	// enlarged view, mirroring the video cards' open/close interaction via viewImage/
+	// EDS.png and XRD.png are static analysis images, not videos, so they get plain thumbnail
+	// cards (no play icon, no video preview capture) placed above the video row. Clicking one
+	// opens an enlarged view, mirroring the video cards' open/close interaction via viewImage/
 	// closeImageViewer instead of playVideo/returnToGallery.
-	private setupEdsElement() {
-		const cardWidth = 320;
-		const cardHeight = 175;
-		const x = 640;
-		const y = 200;
+	private setupImageElement(textureKey: string, label: string, x: number, y: number) {
+		const cardWidth = 260;
+		const cardHeight = 140;
 
 		const container = this.add.container(x, y);
 		container.setDepth(1);
@@ -144,43 +166,43 @@ class Gallery extends Phaser.Scene {
 		previewBg.setInteractive({ useHandCursor: true });
 		container.add(previewBg);
 
-		const thumbnail = this.add.image(0, 0, this.edsKey);
+		const thumbnail = this.add.image(0, 0, textureKey);
 		thumbnail.setDisplaySize(cardWidth - 4, cardHeight - 4);
 		container.add(thumbnail);
 
-		const label = this.add.text(0, cardHeight / 2 + 20, "EDS", {
+		const labelText = this.add.text(0, cardHeight / 2 + 20, label, {
 			fontFamily: "PixelifySans-VariableFont_wght",
 			fontSize: "24px",
 			color: "#f0f8ff",
 			align: "center"
 		});
-		label.setOrigin(0.5, 0.5);
-		container.add(label);
+		labelText.setOrigin(0.5, 0.5);
+		container.add(labelText);
 
 		previewBg.on("pointerover", () => {
 			previewBg.setStrokeStyle(3, 0x72d572);
-			label.setColor("#72d572");
+			labelText.setColor("#72d572");
 			this.tweens.add({ targets: container, scale: 1.03, duration: 100, ease: "Sine.easeOut" });
 		});
 
 		previewBg.on("pointerout", () => {
 			previewBg.setStrokeStyle(2, 0xf0f8ff);
-			label.setColor("#f0f8ff");
+			labelText.setColor("#f0f8ff");
 			this.tweens.add({ targets: container, scale: 1, duration: 100, ease: "Sine.easeOut" });
 		});
 
-		previewBg.on("pointerup", () => this.viewImage());
+		previewBg.on("pointerup", () => this.viewImage(textureKey));
 
 		this.galleryElements.push(container);
 	}
 
-	// Full-screen enlarged view of the EDS image: fades the gallery cards out, fades the image
-	// in, and lets the player dismiss it by clicking it, pressing ESC, or the back button —
+	// Full-screen enlarged view of an analysis image: fades the gallery cards out, fades the
+	// image in, and lets the player dismiss it by clicking it, pressing ESC, or the back button —
 	// same dismissal surface as playVideo()/returnToGallery(), just without a VideoPlayer.
-	private viewImage() {
+	private viewImage(textureKey: string) {
 		fadeElements(this.galleryElements, false, 500);
 
-		const image = this.add.image(640, 360, this.edsKey);
+		const image = this.add.image(640, 360, textureKey);
 		image.setDepth(100);
 		image.setAlpha(0);
 		image.setInteractive({ useHandCursor: true });

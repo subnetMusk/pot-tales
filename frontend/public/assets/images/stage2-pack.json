@@ -130,6 +130,11 @@
                 "key": "stage2-eds"
             },
             {
+                "url": "assets/images/backgrounds/XRD.png",
+                "type": "image",
+                "key": "stage2-xrd"
+            },
+            {
                 "url": [
                     "assets/music/stage2_theme.wav"
                 ],

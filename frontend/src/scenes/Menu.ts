@@ -105,7 +105,7 @@ class Menu extends Phaser.Scene {
 		const demo = this.add.text(316, 680, "", {});
 		demo.name = "Demo";
 		demo.setOrigin(0.5, 0.5);
-		demo.text = "Demo 0.2";
+		demo.text = "";
 		demo.setStyle({ "color": "#f0f8ff", "fixedWidth": 500, "fontFamily": "PixelifySans-VariableFont_wght", "fontSize": "30px", "stroke": "#000000" });
 
 		// lists
@@ -255,7 +255,12 @@ class Menu extends Phaser.Scene {
         const i18n = this.cache.json.get("menu_i18n");
         applyTranslations(this, i18n);
 		// Set demo text based on session state
-		const demoText = resume_alpha === 1 ? i18n['DemoThankYou'] : i18n['Demo'];
+		const gameFinished = localStorage.getItem("gameFinished") === "true";
+		let demoText = "1.0";
+		if (gameFinished) {
+			demoText = i18n['ThanksForPlaying'] || "Thanks for playing the game!";
+			localStorage.removeItem("gameFinished");
+		}
 		this.demo.setText(demoText);
 
 		// add click events

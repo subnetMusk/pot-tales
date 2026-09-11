@@ -498,6 +498,7 @@ class Stage2 extends Phaser.Scene {
 			onComplete: () => {
 				fadeRect.destroy();
 				this.player.surprise();
+				this.player.isMovementAllowed = false;
 
 				void playSequence(this.popupManager, [
 					this.i18n.wake_up_1,
@@ -607,8 +608,11 @@ class Stage2 extends Phaser.Scene {
 				this.probe.play("sem_probe_activate");
 				this.probe.once("animationcomplete", () => {
 					this.time.delayedCall(500, () => {
+						this.player.isMovementAllowed = false;
 						this.activateLaser();
-						void playSequence(this.popupManager, [{ message: this.i18n.laser_online_narrator, preset: "dark" }]);
+						void playSequence(this.popupManager, [{ message: this.i18n.laser_online_narrator, preset: "dark" }]).finally(() => {
+							this.player.isMovementAllowed = true;
+						});
 					});
 				});
 			});
@@ -674,9 +678,8 @@ class Stage2 extends Phaser.Scene {
 
 	private runChallengeForTurret(turretIndex: number) {
 		this.runShooterChallenge(this.currentShooterLevel, success => {
-			this.player.isMovementAllowed = true;
-
 			if (!success) {
+				this.player.isMovementAllowed = true;
 				return;
 			}
 
@@ -698,11 +701,28 @@ class Stage2 extends Phaser.Scene {
 				flashBurst(this, turret.x, turret.y, { tint: 0x7fd27f });
 			}
 
-			// Reazione del giocatore allo specchio, solo la prima volta (dopo il primo turret,
-			// cioè il secondo shooter incontrato in totale dopo la sonda).
-			if (turretIndex === 0) {
-				void playSequence(this.popupManager, [this.i18n.mirror_1, this.i18n.mirror_2]);
-			}
+			this.player.isMovementAllowed = false;
+
+			const finishDialogue = async () => {
+				try {
+					// Reazione del giocatore allo specchio, solo la prima volta (dopo il primo turret,
+					// cioè il secondo shooter incontrato in totale dopo la sonda).
+					if (turretIndex === 0) {
+						await playSequence(this.popupManager, [this.i18n.mirror_1, this.i18n.mirror_2]);
+						await this.showImageReveal("stage2-eds");
+						await playSequence(this.popupManager, [
+							{ message: this.i18n.eds_silicate_1_narrator, preset: "dark" },
+							this.i18n.eds_silicate_2,
+							{ message: this.i18n.eds_silicate_3_narrator, preset: "dark" }
+						]);
+					} else if (turretIndex === 1) {
+						await this.showImageReveal("stage2-xrd");
+					}
+				} finally {
+					this.player.isMovementAllowed = true;
+				}
+			};
+			void finishDialogue();
 
 			this.currentShooterLevel = Math.min(3, this.currentShooterLevel + 1);
 			this.redrawBeam();
@@ -879,6 +899,7 @@ class Stage2 extends Phaser.Scene {
 	// fade-to-black in transitionToStage3() hands off to Stage3. Paced slower than a normal
 	// beat (900ms+ per step) since this is the stage's ending, not a quick reaction.
 	private async playFinaleSequence() {
+		this.player.isMovementAllowed = false;
 		this.cameras.main.stopFollow();
 
 		await playSequence(this.popupManager, [this.i18n.shaking]);
@@ -976,32 +997,26 @@ class Stage2 extends Phaser.Scene {
 				const craterIcon = this.player.addInventoryItem(3);
 				craterIcon?.setVisible(false);
 				this.stopLaser();
-
-				// Beat before the EDS reveal pops up, so it doesn't land in the same instant as
-				// the crater sprite/burst above — gives the player a moment to register the crater
-				// itself first.
-				this.time.delayedCall(1000, () => {
-					void this.showEdsReveal().then(resolve);
-				});
+				resolve();
 			});
 		});
 	}
 
-	// Screen-centered reveal of the EDS analysis image right after it lands in the inventory:
-	// alpha-in and scale-down (starts oversized/transparent, settles to its display size), holds
-	// for ~2s, then fades away. Sized off cameras.main.zoom (not a fixed pixel size) because by
-	// this point in the finale zoomOutToRevealTarget() has already changed the camera's zoom away
-	// from its default 5.0 — dividing the desired on-screen size by the current zoom is what keeps
-	// the image at a consistent apparent size on screen regardless of that value.
-	private showEdsReveal(): Promise<void> {
+	// Screen-centered reveal of an analysis image (EDS after the first turret, XRD after the
+	// second) right after it's obtained: alpha-in and scale-down (starts oversized/transparent,
+	// settles to its display size), holds for ~2s, then fades away. Sized off cameras.main.zoom
+	// (not a fixed pixel size) so the apparent on-screen size stays consistent regardless of the
+	// current zoom level — the puzzle's 5.0 zoom for the turret reveals, or the finale's
+	// zoomed-out value for later calls.
+	private showImageReveal(textureKey: string): Promise<void> {
 		const camera = this.cameras.main;
-		const naturalWidth = this.textures.get("stage2-eds").getSourceImage().width;
-		const naturalHeight = this.textures.get("stage2-eds").getSourceImage().height;
+		const naturalWidth = this.textures.get(textureKey).getSourceImage().width;
+		const naturalHeight = this.textures.get(textureKey).getSourceImage().height;
 		const desiredScreenWidth = 640;
 		const worldWidth = desiredScreenWidth / camera.zoom;
 		const worldHeight = worldWidth * (naturalHeight / naturalWidth);
 
-		const image = this.add.image(camera.centerX, camera.centerY, "stage2-eds");
+		const image = this.add.image(camera.centerX, camera.centerY, textureKey);
 		image.setScrollFactor(0);
 		image.setDepth(60);
 		image.setDisplaySize(worldWidth, worldHeight);

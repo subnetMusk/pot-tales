@@ -1,0 +1,31 @@
+1
+00:00:02,000 --> 00:00:07,500
+Unlike optical microscopes, a Scanning Electron Microscope uses a focused beam of electrons instead of light,
+
+2
+00:00:08,000 --> 00:00:12,000
+allowing it to resolve details far smaller than the wavelength of visible light.
+
+3
+00:00:13,000 --> 00:00:18,500
+The electron beam is scanned across the sample surface in a raster pattern, point by point,
+
+4
+00:00:19,000 --> 00:00:24,000
+while electromagnetic lenses focus and steer it with nanometer precision.
+
+5
+00:00:25,000 --> 00:00:30,500
+As electrons strike the sample, they knock loose low-energy secondary electrons from its surface,
+
+6
+00:00:31,000 --> 00:00:35,500
+and it is these secondary electrons that a detector collects to build the image.
+
+7
+00:00:36,500 --> 00:00:41,000
+The result is a highly detailed, three-dimensional-looking map of the sample's topography,
+
+8
+00:00:41,500 --> 00:00:51,300
+revealing structures invisible to any light-based microscope.
