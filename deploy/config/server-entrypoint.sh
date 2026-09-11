@@ -37,6 +37,19 @@ else
 	echo "server-entrypoint: sale degli identificativi non leggibile in $SALT_FILE, ne verra' generato uno a ogni avvio" >&2
 fi
 
+# Chiave delle sfide a prova di lavoro. Senza, il backend usa il predefinito del
+# codice, pubblico nel repository: chiunque potrebbe firmarsi una sfida a
+# difficolta' zero, e la soglia sulla creazione di sessioni non tratterrebbe
+# nessuno. Come per il sale, lo si dichiara e si prosegue.
+POW_SECRET_FILE=${POW_SECRET_FILE:-/run/secrets/pow_secret}
+
+if [ -r "$POW_SECRET_FILE" ]; then
+	POW_SECRET=$(cat "$POW_SECRET_FILE")
+	export POW_SECRET
+else
+	echo "server-entrypoint: chiave delle sfide non leggibile in $POW_SECRET_FILE, la soglia sulla creazione di sessioni e' aggirabile" >&2
+fi
+
 # Credenziali di Redis. In produzione Redis non accetta connessioni senza utente
 # (vedi redis-entrypoint.sh): l'indirizzo con utente e password si costruisce qui
 # dal secret, cosi' la password resta nell'ambiente del solo processo e non

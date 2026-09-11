@@ -552,6 +552,7 @@ file.
 | `elastic_password`, `mongo_root_password` | prima nel servizio, poi nel file: Elasticsearch e MongoDB leggono il file solo alla prima inizializzazione |
 | `kibana_encryption_key` | non si cambia: cifra i saved object esistenti, che con una chiave nuova diventano illeggibili |
 | `gameplay_id_salt` | non si cambia durante l'esercizio: le partite in corso cambierebbero identificativo |
+| `pow_secret` | nel file: smettono di valere solo le sfide a prova di lavoro gia' emesse, che durano 5 minuti |
 
 ---
 

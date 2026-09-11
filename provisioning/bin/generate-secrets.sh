@@ -52,6 +52,10 @@ genera apm_secret_token 32
 # conosce puo' ricalcolare l'identificativo di una partita dal token di
 # sessione: per questo sta con i segreti.
 genera gameplay_id_salt 32
+# Chiave con cui il backend firma le sfide a prova di lavoro. Senza, vale il
+# predefinito del codice, pubblico nel repository: chiunque potrebbe firmarsi una
+# sfida a difficolta' zero e aggirare la soglia sulla creazione di sessioni.
+genera pow_secret 48
 # Password dell'utenza con cui Filebeat scrive, creata da Terraform al
 # bootstrap: una fonte sola per i due lati, come per il token APM.
 genera filebeat_writer_password 32

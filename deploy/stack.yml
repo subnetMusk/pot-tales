@@ -132,6 +132,12 @@ secrets:
   gameplay_id_salt:
     name: ${STACK_NAME}_gameplay_id_salt_${SEC_REV_GAMEPLAY_ID_SALT}
     file: ../secrets/gameplay_id_salt
+  # Chiave con cui il backend firma le sfide a prova di lavoro, esportata
+  # dall'entrypoint: con il predefinito del codice, pubblico, chiunque potrebbe
+  # firmarsi una sfida a difficolta' zero.
+  pow_secret:
+    name: ${STACK_NAME}_pow_secret_${SEC_REV_POW_SECRET}
+    file: ../secrets/pow_secret
   # Password di filebeat_writer: la legge Filebeat per scrivere e
   # fleet-bootstrap.sh per creare l'utenza con Terraform.
   filebeat_writer_password:
@@ -574,6 +580,9 @@ services:
         mode: 0444
       - source: gameplay_id_salt
         target: gameplay_id_salt
+        mode: 0444
+      - source: pow_secret
+        target: pow_secret
         mode: 0444
     healthcheck:
       test: ["CMD-SHELL", "wget -q -O - http://localhost:3000/health | grep -q '\"server\":true'"]
