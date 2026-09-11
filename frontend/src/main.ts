@@ -67,6 +67,13 @@ function checkConsent(): boolean {
     return localStorage.getItem("consentGiven") == "true";
 }
 
+// Il gioco richiede tastiera/mouse e uno schermo ampio: blocca i dispositivi mobili
+function isMobileDevice(): boolean {
+    return /Android|iPhone|iPad|iPod|Windows Phone|BlackBerry|IEMobile|Opera Mini/i.test(
+        navigator.userAgent
+    );
+}
+
 // Flusso principale all'avvio: la landing page vive su "/", il gioco su "/play"
 (async () => {
     if (window.location.pathname.startsWith("/play")) {
@@ -82,11 +89,19 @@ async function showLanding() {
 
 // Chiamata dal bottone Play della landing page: avvia il flusso di consenso/gioco
 async function enterGame() {
+    if (isMobileDevice()) {
+        await showMobileBlocked();
+        return;
+    }
     if (checkConsent()) {
         await startGame();
     } else {
         await injectAndExecute("/static/pages/consent.html");
     }
+}
+
+async function showMobileBlocked() {
+    await injectAndExecute('/static/pages/desktopOnly.html');
 }
 
 async function startGame() {
@@ -100,4 +115,5 @@ async function startGame() {
 (window as any).injectAndExecute = injectAndExecute;
 (window as any).showLanding = showLanding;
 (window as any).enterGame = enterGame;
+(window as any).showMobileBlocked = showMobileBlocked;
 (window as any).startGame = startGame;

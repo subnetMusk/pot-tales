@@ -37,4 +37,6 @@ const game = new Phaser.Game({
 	pixelArt: true
 });
 
+(window as any).game = game; // TEMP: QA-only, for manual scene jumps in devtools
+
 game.scene.start("Boot");

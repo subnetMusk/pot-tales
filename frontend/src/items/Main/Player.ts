@@ -14,9 +14,7 @@ class Player extends Phaser.GameObjects.Container {
 		// order within whatever single depth slot the container occupies), so portrait/settings/
 		// inventory icons added directly to `this` are stuck at whatever depth each scene gives
 		// the player for gameplay-occlusion purposes (e.g. Stage2 sets it below other effects) —
-		// which is wrong for UI that must always render on top. Kept in sync with the player's
-		// position every frame instead (see the "update" listener below).
-		this.hud = scene.add.container(this.x, this.y);
+		this.hud = scene.add.container(scene.scale.width / 2, scene.scale.height / 2);
 		this.hud.setDepth(Player.UI_DEPTH);
 
 		// player
@@ -80,6 +78,7 @@ class Player extends Phaser.GameObjects.Container {
 
 		// playerUi
 		const playerUi = scene.add.image(-64, -54, "player_ui");
+		playerUi.setScrollFactor(0, 0);
 		this.hud.add(playerUi);
 
 		this.player = player;
@@ -109,10 +108,10 @@ class Player extends Phaser.GameObjects.Container {
 		this.player.play('idle_front', true);
 
 		this.scene.events.on("update", (time: number) => this.movePlayer(time), this);
-		// hud isn't a child of `this` (see its creation above), so it needs its own per-frame
-		// sync instead of inheriting the container's transform — covers both keyboard movement
-		// (movePlayer's direct this.x/this.y writes) and tweened movement (walkTo/fallDown).
-		this.scene.events.on("update", () => this.hud.setPosition(this.x, this.y), this);
+		// hud is anchored once at screen-center (see its creation above); only its scale needs a
+		// per-frame refresh so it tracks camera.zoom even though zoom isn't known yet when Player
+		// is constructed (each Stage sets it later in its own create()) — same BASE_ZOOM/zoom
+		this.scene.events.on("update", () => this.hud.setScale(Player.HUD_BASE_ZOOM / this.scene.cameras.main.zoom), this);
 
 		this.interactKey = this.scene.input.keyboard?.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
 		this.interactKey?.on("down", () => {
@@ -131,7 +130,7 @@ class Player extends Phaser.GameObjects.Container {
 		// scena di gioco corrente invece di distruggerla — vedi openSettings().
 		const settingsIcon = this.scene.add.image(110, -53, "settings");
 		settingsIcon.setScale(0.4);
-		settingsIcon.setInteractive({ useHandCursor: true });
+		settingsIcon.setInteractive({ useHandCursor: true }).setScrollFactor(0, 0);
 		this.hud.add(settingsIcon);
 		this.settingsIcon = settingsIcon;
 
@@ -180,6 +179,9 @@ class Player extends Phaser.GameObjects.Container {
 	// Always-on-top portrait/settings/inventory cluster — see its creation in the constructor.
 	private hud: Phaser.GameObjects.Container;
 	private static readonly UI_DEPTH = 900;
+	// Zoom di riferimento su cui sono tarati gli offset/scale degli elementi hud (vedi la loro
+	// creazione sopra) — stessa convenzione di PopupManager.BASE_ZOOM / QuizManager's BASE_ZOOM.
+	private static readonly HUD_BASE_ZOOM = 5;
 
 	private stepSize: number = 8;					// Grandezza del passo
 	private stepDelay: number = 100;				// Attesa in ms tra i frame
@@ -425,6 +427,12 @@ class Player extends Phaser.GameObjects.Container {
 		this.playerUi.visible = state;
 	}
 
+	// Imposta il ritardo tra i passi in millisecondi (valori più alti = movimento più lento)
+	public setStepDelay(delay: number) {
+		this.stepDelay = delay;
+	}
+
+
 	// Aggiunge un oggetto all'inventario: crea l'icona nel prossimo slot libero dell'HUD
 	// usando il frame indicato di player_items. Gli slot si riempiono in ordine, linearmente
 	// con il progredire della storia. persist=false è usato solo per ricreare gli oggetti già
@@ -441,6 +449,7 @@ class Player extends Phaser.GameObjects.Container {
 		}
 
 		const icon = this.scene.add.image(this.playerUi.x + offset.x, this.playerUi.y + offset.y, "player_items", frame);
+		icon.setScrollFactor(0, 0);
 		this.hud.add(icon);
 		this.inventoryIcons.push(icon);
 		this.inventoryFrames.push(frame);
@@ -795,11 +804,12 @@ class Player extends Phaser.GameObjects.Container {
 
 	private controllaInterazioneOggetto() {
 		if (!this.interactionAllowed) return;  	// Controlla se l'interazione è permessa
-		const oggVector = (this.scene as any).oggVector as { x: number; y: number; set: boolean; interagisci: () => void; }[] | undefined;
+		const oggVector = (this.scene as any).oggVector as { x: number; y: number; set: boolean; interagisci: () => void; interactionRadius?: number; }[] | undefined;
 
         if (oggVector) for (const ogg of oggVector) {
+            const raggio = ogg.interactionRadius ?? 32;
             const distanza = Phaser.Math.Distance.Between(this.x, this.y, ogg.x, ogg.y);
-            if (distanza < 32 && ogg.set) {
+            if (distanza < raggio && ogg.set) {
                 ogg.interagisci();
                 break;
             }

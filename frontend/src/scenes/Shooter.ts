@@ -106,12 +106,19 @@ class Shooter extends Phaser.Scene {
 	private static readonly MIN_LEVEL = 1;
 	private static readonly PROJ_ANIM_FRAMERATE = 36;
 
+	// Level 2's micrograph has a diagonal streak — the silicate deposit — around y = 580 of the
+	// 1500px source. That level opens framed on it instead of on the default top-of-stack
+	// framing, so it's on screen at the start and scrolls past while the intro dialogue reacts
+	// to it.
+	private static readonly DEPOSIT_LEVEL = 2;
+	private static readonly DEPOSIT_SOURCE_Y = 580;
+
 	private static readonly LEVEL_CONFIGS: ReadonlyArray<{
 		timeLeft: number; lives: number; targetDelay: number; bulletCooldown: number; targetSpeed: number; playerSpeed: number; patternChance: number;
 	}> = [
-		{ timeLeft: 30, lives: 3, targetDelay: 780, bulletCooldown: 220, targetSpeed: 1.20, playerSpeed: 5, patternChance: 0.25 },
-		{ timeLeft: 30, lives: 3, targetDelay: 740, bulletCooldown: 185, targetSpeed: 1.30, playerSpeed: 5.5, patternChance: 0.35 },
-		{ timeLeft: 30, lives: 3, targetDelay: 570, bulletCooldown: 160, targetSpeed: 1.40, playerSpeed: 6, patternChance: 0.55 }
+		{ timeLeft: 30, lives: 3, targetDelay: 740, bulletCooldown: 220, targetSpeed: 1.25, playerSpeed: 5, patternChance: 0.25 },
+		{ timeLeft: 30, lives: 3, targetDelay: 700, bulletCooldown: 185, targetSpeed: 1.35, playerSpeed: 5.5, patternChance: 0.35 },
+		{ timeLeft: 30, lives: 3, targetDelay: 550, bulletCooldown: 160, targetSpeed: 1.45, playerSpeed: 6, patternChance: 0.65 }
 	];
 
 	private screenLeft = 0;
@@ -389,17 +396,29 @@ class Shooter extends Phaser.Scene {
 				{ message: i18n.tutorial_1, preset: "shooterYou" },
 				{ message: i18n.tutorial_2, preset: "shooterNarrator" },
 				{ message: i18n.tutorial_3, preset: "shooterNarrator" },
-				{ message: i18n.tutorial_4, preset: "shooterHint" },
+				{ message: i18n.tutorial_4, preset: "shooterNarrator" },
 				{ message: i18n.tutorial_5, preset: "shooterNarrator" },
 				{ message: i18n.tutorial_6, preset: "shooterNarrator" }
 			]).then(() => {
 				this.startRound();
 			});
 		} else {
-			// brief "get ready" beat before levels 2/3 (no full tutorial replay)
+			// brief "get ready" beat before levels 2/3 (no full tutorial replay), preceded on
+			// DEPOSIT_LEVEL by the exchange about the silicate streak the backdrop opens on —
+			// it has scrolled past by the time the popups are up, so the player asks about it
+			// in the past tense and the narrator describes it back.
 			this.popupManager = new PopupManager(this, { anchor: "center" });
+			const depositBeats = this.level === Shooter.DEPOSIT_LEVEL
+				? [
+					{ message: i18n.deposit_1, preset: "shooterYou" },
+					{ message: i18n.deposit_2_narrator, preset: "shooterNarrator" },
+					{ message: i18n.deposit_3_narrator, preset: "shooterNarrator" }
+				]
+				: [];
+
 			void playSequence(this.popupManager, [
-				{ message: i18n[`prepare_${this.level}`], preset: "shooterHint" }
+				...depositBeats,
+				{ message: i18n[`prepare_${this.level}`], preset: "shooterNarrator" }
 			]).then(() => {
 				this.startRound();
 			});
@@ -441,10 +460,21 @@ class Shooter extends Phaser.Scene {
 		// one spare tile above the visible area so there's always a full tile ready to slide
 		// into view as the stack scrolls downward
 		const tileCount = Math.max(2, Math.ceil(Shooter.SCREEN_HEIGHT / this.backgroundTileHeight) + 1);
+
+		// DEPOSIT_LEVEL opens with a specific point of the *unflipped* photo centered on the
+		// display, so the tile covering the screen has to be the normal one: the normal/flip
+		// alternation starts on odd indexes there instead of even, which keeps tile 0 (flip) as
+		// the spare above it and every seam still pixel-matched.
+		const framed = level === Shooter.DEPOSIT_LEVEL;
+		const firstTileTop = framed
+			? Shooter.SCREEN_CENTER_Y - Shooter.DEPOSIT_SOURCE_Y * scale - this.backgroundTileHeight
+			: this.screenTop - this.backgroundTileHeight;
+		const normalParity = framed ? 1 : 0;
+
 		this.backgroundTiles = [];
 		for (let i = 0; i < tileCount; i += 1) {
-			const key = i % 2 === 0 ? this.backgroundNormalKey : this.backgroundFlipKey;
-			const tile = this.add.image(Shooter.SCREEN_CENTER_X, this.screenTop - this.backgroundTileHeight + i * this.backgroundTileHeight, key);
+			const key = i % 2 === normalParity ? this.backgroundNormalKey : this.backgroundFlipKey;
+			const tile = this.add.image(Shooter.SCREEN_CENTER_X, firstTileTop + i * this.backgroundTileHeight, key);
 			tile.setOrigin(0.5, 0);
 			tile.setDisplaySize(Shooter.SCREEN_WIDTH, this.backgroundTileHeight);
 			this.playfield.add(tile);
@@ -532,6 +562,12 @@ class Shooter extends Phaser.Scene {
 	private onBulletHitTarget: Phaser.Types.Physics.Arcade.ArcadePhysicsCallback = (bulletObj, targetObj) => {
 		const bullet = bulletObj as Phaser.Physics.Arcade.Sprite;
 		const target = targetObj as Phaser.Physics.Arcade.Sprite;
+
+		// Only register hits for targets within the visible screen — the playfield mask
+		// hides off-screen sprites visually but doesn't disable their physics bodies.
+		if (target.y < this.screenTop || target.y > this.screenBottom) {
+			return;
+		}
 
 		circleBurst(this, target.x, target.y + target.displayHeight / 2, { container: this.playfield });
 		soundManager.playSfx(this, "target_hit");

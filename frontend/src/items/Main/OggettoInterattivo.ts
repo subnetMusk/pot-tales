@@ -15,6 +15,8 @@ class OggettoInterattivo extends Phaser.GameObjects.Sprite {
 	public interagisci!: () => void;
     public set : boolean = true;
 
+    public interactionRadius : number = 32;
+
 	/* START-USER-CODE */
 
 	public setImg(img: string) {

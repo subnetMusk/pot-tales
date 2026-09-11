@@ -202,19 +202,9 @@ button:active {
     justify-content: center;
     text-align: center;
     padding: 6rem 2rem;
-}
-
-.hero-video {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    min-width: 100%;
-    min-height: 100%;
-    width: auto;
-    height: auto;
-    transform: translate(-50%, -50%);
-    object-fit: cover;
-    z-index: 0;
+    background-image: url('/assets/images/backgrounds/stage3.png');
+    background-size: cover;
+    background-position: center;
 }
 
 .hero-overlay {

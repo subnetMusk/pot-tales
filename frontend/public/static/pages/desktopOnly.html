@@ -1,0 +1,47 @@
+<section id="mobile-blocked-screen">
+  <h1 id="mobile-blocked-title">🖥️ Solo da desktop</h1>
+  <p id="mobile-blocked-desc">Questo gioco richiede tastiera e mouse: riprova da un computer desktop o laptop.</p>
+
+  <div id="lang-container">
+    <label for="lang-select" id="lang-label">Lingua:</label>
+    <select id="lang-select">
+      <option value="it">🇮🇹 Italiano</option>
+      <option value="en">🇬🇧 English</option>
+    </select>
+  </div>
+</section>
+
+<script>
+  const mobileBlockedTranslations = {
+    it: {
+      title: "Solo da desktop",
+      desc: "Questo gioco richiede tastiera e mouse: riprova da un computer desktop o laptop.",
+      label: "Lingua:"
+    },
+    en: {
+      title: "Desktop only",
+      desc: "This game requires a keyboard and mouse: please try again from a desktop or laptop computer.",
+      label: "Language:"
+    }
+  };
+
+  function updateMobileBlockedLang(lang) {
+    document.getElementById("mobile-blocked-title").textContent = mobileBlockedTranslations[lang].title;
+    document.getElementById("mobile-blocked-desc").textContent = mobileBlockedTranslations[lang].desc;
+    document.getElementById("lang-label").textContent = mobileBlockedTranslations[lang].label;
+  }
+
+  const mobileBlockedLangSelect = document.getElementById("lang-select");
+  const savedLang = localStorage.getItem("lang");
+  if (savedLang && mobileBlockedTranslations[savedLang]) {
+    mobileBlockedLangSelect.value = savedLang;
+  }
+
+  mobileBlockedLangSelect.addEventListener("change", () => {
+    localStorage.setItem("lang", mobileBlockedLangSelect.value);
+    updateMobileBlockedLang(mobileBlockedLangSelect.value);
+  });
+
+  // Set initial language
+  updateMobileBlockedLang(mobileBlockedLangSelect.value);
+</script>
