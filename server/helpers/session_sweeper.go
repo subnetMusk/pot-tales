@@ -30,10 +30,17 @@ import (
 // Il contesto deve durare quanto il processo. Ereditare quello di avvio, che ha
 // un timeout, fermerebbe la spazzata poco dopo la partenza senza che nulla lo
 // segnali: i dati mancherebbero e la causa non comparirebbe da nessuna parte.
-func AvviaChiusuraSessioni(ctx context.Context, db *mongo.Database, inattivita, cadenza time.Duration) {
+//
+// Il canale restituito si chiude quando la spazzata si e' fermata. L'annullamento
+// del contesto interrompe l'attesa fra una rivendicazione e l'altra, non una
+// rivendicazione gia' iniziata, che viene portata a termine con il suo evento:
+// chi deve sapere che anche quell'evento e' stato scritto attende il canale.
+func AvviaChiusuraSessioni(ctx context.Context, db *mongo.Database, inattivita, cadenza time.Duration) <-chan struct{} {
 	col := JournaledCollection(db, GameStatesCollection)
+	fine := make(chan struct{})
 
 	go func() {
+		defer close(fine)
 		t := time.NewTicker(cadenza)
 		defer t.Stop()
 		for {
@@ -45,6 +52,7 @@ func AvviaChiusuraSessioni(ctx context.Context, db *mongo.Database, inattivita, 
 			}
 		}
 	}()
+	return fine
 }
 
 // chiudiPartiteFerme rivendica ed emette una alla volta le partite scadute.
@@ -64,14 +72,23 @@ func chiudiPartiteFerme(ctx context.Context, col *mongo.Collection, inattivita t
 	// stato di gioco, non il marcatore appena scritto.
 	opzioni := options.FindOneAndUpdate().SetReturnDocument(options.Before)
 
-	for {
+	for ctx.Err() == nil {
+		// La rivendicazione non eredita l'annullamento, che vale solo fra una
+		// rivendicazione e l'altra. MongoDB applica l'aggiornamento prima che la
+		// risposta arrivi, e con la conferma su journal la finestra si allarga:
+		// annullata li', la chiamata fallirebbe con la partita gia' marcata
+		// chiusa, e il suo evento non verrebbe emesso mai piu'. Il tetto di
+		// durata impedisce che una base dati bloccata trattenga l'arresto del
+		// processo.
+		opCtx, annulla := context.WithTimeout(context.WithoutCancel(ctx), 10*time.Second)
 		var stato models.GameState
-		err := col.FindOneAndUpdate(ctx, filtro,
+		err := col.FindOneAndUpdate(opCtx, filtro,
 			bson.M{"$set": bson.M{"meta.closed_at": adesso}}, opzioni).Decode(&stato)
+		annulla()
 		if err != nil {
 			// Nessun documento residuo è la condizione di uscita normale, non un
-			// errore. L'annullamento del contesto è l'arresto del processo.
-			if !errors.Is(err, mongo.ErrNoDocuments) && !errors.Is(err, context.Canceled) {
+			// errore.
+			if !errors.Is(err, mongo.ErrNoDocuments) {
 				slog.Error("chiusura delle partite ferme fallita", "error", err)
 			}
 			return

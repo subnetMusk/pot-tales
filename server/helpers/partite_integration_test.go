@@ -84,9 +84,9 @@ func TestAvviaChiusuraSessioniChiudeSoloLePartiteFerme(t *testing.T) {
 
 	// Dentro la cattura non si interrompe la prova: l'uscita standard resterebbe
 	// deviata sulle prove successive. L'esito si raccoglie e si verifica dopo.
-	chiusa := false
+	chiusa, fermata := false, false
 	righe := catturaLog(t, func() {
-		AvviaChiusuraSessioni(ctx, db, time.Minute, 20*time.Millisecond)
+		fine := AvviaChiusuraSessioni(ctx, db, time.Minute, 20*time.Millisecond)
 		scadenza := time.Now().Add(5 * time.Second)
 		for time.Now().Before(scadenza) {
 			if leggiPartita(t, db, "ferma").Meta.ClosedAt != nil {
@@ -96,10 +96,23 @@ func TestAvviaChiusuraSessioniChiudeSoloLePartiteFerme(t *testing.T) {
 			time.Sleep(20 * time.Millisecond)
 		}
 		annulla()
+
+		// La partita risulta chiusa appena la rivendicazione e' scritta, e
+		// l'evento segue: chiudere la cattura a quel punto lo perderebbe, perche'
+		// il logger scriverebbe su una pipe gia' chiusa. Si attende che la
+		// spazzata si sia fermata.
+		select {
+		case <-fine:
+			fermata = true
+		case <-time.After(5 * time.Second):
+		}
 	})
 
 	if !chiusa {
 		t.Fatal("la partita ferma non e' stata chiusa entro cinque secondi")
+	}
+	if !fermata {
+		t.Fatal("la spazzata non si e' fermata entro cinque secondi dall'annullamento")
 	}
 	if leggiPartita(t, db, "attiva").Meta.ClosedAt != nil {
 		t.Error("una partita che segnala e' stata chiusa")
