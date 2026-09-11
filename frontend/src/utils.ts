@@ -122,6 +122,10 @@ export function setupPixelButton(
 		inset?: number;
 		text?: Phaser.GameObjects.Text | null;
 		icon?: Phaser.GameObjects.Image | null;
+		// Scarto dell'icona in stato "press". Il default è tarato sui bottoni grandi del menu:
+		// su bottoni piccoli (es. le card immagine del quiz, ~60px di mondo) va ridotto, o
+		// l'icona sembra saltare fuori dal pannello invece di affondarci dentro.
+		iconPressShift?: { x: number; y: number };
 	}
 ): PixelButtonHandles {
 	rect.isStroked = false;
@@ -157,8 +161,8 @@ export function setupPixelButton(
 	// spostamento, quindi va traslato a mano per restare allineato al pannello. L'icona
 	// invece scarta verso destra/basso di un valore proprio (iconPressShiftX/Y),
 	// indipendente dal sink diagonale del pannello/testo.
-	const iconPressShiftX = 9;
-	const iconPressShiftY = 6;
+	const iconPressShiftX = options.iconPressShift?.x ?? 9;
+	const iconPressShiftY = options.iconPressShift?.y ?? 6;
 	const tweenScale = (factor: number, duration: number, sink: number = 0, iconShiftX: number = 0, iconShiftY: number = 0) => {
 		const flatTargets: Array<Phaser.GameObjects.Graphics | Phaser.GameObjects.Text> = text ? [graphics, text] : [graphics];
 		scene.tweens.add({ targets: flatTargets, scale: factor, duration, ease: 'Sine.easeOut' });

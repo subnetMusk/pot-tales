@@ -50,6 +50,25 @@ class SoundManager {
 		this.activeMusic.set(key, { sound, baseVolume });
 	}
 
+	fadeOutMusic(scene: Phaser.Scene, key: string, duration: number = 1000): Promise<void> {
+		const tracked = this.activeMusic.get(key);
+		if (!tracked) return Promise.resolve();
+
+		return new Promise(resolve => {
+			scene.tweens.add({
+				targets: tracked,
+				baseVolume: 0,
+				duration,
+				onUpdate: () => setSoundVolume(tracked.sound, tracked.baseVolume * this.musicVolume),
+				onComplete: () => {
+					tracked.sound.stop();
+					this.activeMusic.delete(key);
+					resolve();
+				}
+			});
+		});
+	}
+
 	stopMusic(key?: string): void {
 		if (key) {
 			this.activeMusic.get(key)?.sound.stop();

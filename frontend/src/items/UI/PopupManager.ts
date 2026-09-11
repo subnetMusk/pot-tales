@@ -126,17 +126,17 @@ const POPUP_PRESETS: Record<string, PopupPreset> = {
         bgAlpha: 0.7,
         borderColor: 0xffffff,
         borderAlpha: 0.8,
-        textFontSize: '13px',
+        textFontSize: '4.55px',
         textColor: '#ffffff',
-        buttonWidth: 60,
-        buttonHeight: 15,
+        buttonWidth: 21,
+        buttonHeight: 5.25,
         buttonBgColor: 0x4CAF50,
         buttonBorderColor: 0x45a049,
         buttonTextColor: '#ffffff',
-        padding: 10,
-        buttonMargin: -3.5,
-        minWidth: 100,
-        textWordWrapWidth: 340,
+        padding: 3.5,
+        buttonMargin: -1.225,
+        minWidth: 35,
+        textWordWrapWidth: 119,
         animationDuration: 200,
         animationEase: 'Back.easeOut',
         closeAnimationDuration: 150,
@@ -150,63 +150,36 @@ const POPUP_PRESETS: Record<string, PopupPreset> = {
         speakerNameColor: '#000000',
         voicePitch: 1
     },
-    shooterHint: { // variante ingrandita di 'hint', per i dialoghi del tutorial dello Shooter
-        bgColor: 0x2c3e50,
+    // Vedi la nota sopra shooterYou: stesso riscalamento di 0.35 (1.75/5) per compensare il
+    // BASE_ZOOM globale.
+    shooterNarrator: { // variante ingrandita di 'dark': lo stesso narratore anche dentro lo Shooter
+        bgColor: 0x000000,
         bgAlpha: 0.8,
-        borderColor: 0xf39c12,
-        borderAlpha: 0.65,
-        textFontSize: '12px',
-        textColor: '#ecf0f1',
-        buttonWidth: 55,
-        buttonHeight: 14,
-        buttonBgColor: 0xf39c12,
-        buttonBorderColor: 0xe67e22,
+        borderColor: 0x663399,
+        borderAlpha: 0.7,
+        textFontSize: '4.2px',
+        textColor: '#bdc3c7',
+        buttonWidth: 19.25,
+        buttonHeight: 4.9,
+        buttonBgColor: 0x663399,
+        buttonBorderColor: 0x5e3370,
         buttonTextColor: '#ffffff',
-        padding: 12,
-        buttonMargin: -4,
-        minWidth: 110,
-        textWordWrapWidth: 360,
+        padding: 4.2,
+        buttonMargin: -1.4,
+        minWidth: 38.5,
+        textWordWrapWidth: 126,
         animationDuration: 300,
         animationEase: 'Back.easeOut',
         closeAnimationDuration: 200,
         closeAnimationEase: 'Power2.easeIn',
         showButton: true,
         allowKeyClose: true,
-        typewriterEnabled: false,
-        typewriterDelay: 0,
-        allowSkipTypewriter: false,
-        speakerName: 'Tutorial',
+        typewriterEnabled: true,
+        typewriterDelay: 40,
+        allowSkipTypewriter: true,
+        speakerName: '...',
         speakerNameColor: '#ffffff',
-        voicePitch: 1.35
-    },
-    shooterNarrator: { // narratore dello Shooter: stesso look di 'shooterHint', nome distinto
-        bgColor: 0x2c3e50,
-        bgAlpha: 0.8,
-        borderColor: 0xf39c12,
-        borderAlpha: 0.65,
-        textFontSize: '12px',
-        textColor: '#ecf0f1',
-        buttonWidth: 55,
-        buttonHeight: 14,
-        buttonBgColor: 0xf39c12,
-        buttonBorderColor: 0xe67e22,
-        buttonTextColor: '#ffffff',
-        padding: 12,
-        buttonMargin: -4,
-        minWidth: 110,
-        textWordWrapWidth: 360,
-        animationDuration: 300,
-        animationEase: 'Back.easeOut',
-        closeAnimationDuration: 200,
-        closeAnimationEase: 'Power2.easeIn',
-        showButton: true,
-        allowKeyClose: true,
-        typewriterEnabled: false,
-        typewriterDelay: 0,
-        allowSkipTypewriter: false,
-        speakerName: 'Tutorial',
-        speakerNameColor: '#ffffff',
-        voicePitch: 1.35
+        voicePitch: 0.65
     }
 };
 
@@ -236,7 +209,9 @@ export default class PopupManager {
     // zoom della camera cambia in seguito (es. lo zoom-out del finale di Stage2). Non viene
     // catturato nel costruttore perché alcune scene (GraficoGame, Stage1_Lab) lo costruiscono
     // prima che lo zoom/fade introduttivo si assesti sul valore "di riposo".
-    protected baseZoom: number | null = null;
+    // Tutte le dimensioni sono tarate su zoom 5 (il valore storico); PopupManager compensa
+    // i diversi zoom delle scene diverse scalando il container di BASE_ZOOM / camera.zoom.
+    protected readonly BASE_ZOOM = 5;
 
     constructor(scene: Phaser.Scene, options?: { anchor?: 'bottom' | 'center' }) {
         this.scene = scene;
@@ -529,10 +504,7 @@ export default class PopupManager {
         const preset = POPUP_PRESETS[presetName] || POPUP_PRESETS.default;
 
         const zoom = this.scene.cameras.main.zoom;
-        if (this.baseZoom === null) {
-            this.baseZoom = zoom;
-        }
-        const zoomCompensation = this.baseZoom / zoom;
+        const zoomCompensation = this.BASE_ZOOM / zoom;
 
         // Container per il popup
         const popup = this.scene.add.container(this.scene.scale.width / 2, this.scene.scale.height / 2);
@@ -658,10 +630,14 @@ export default class PopupManager {
         
         // Posiziona il popup al basso al centro dello schermo (o al centro, per le scene con anchor 'center').
         // scale.width/2 e scale.height/2 sono il punto fisso della camera (invariante rispetto allo zoom, dato
-        // scrollX/scrollY = 0), quindi per l'anchor 'center' bastano senza alcuna compensazione dello zoom.
+        // scrollX/scrollY = 0), quindi per l'anchor 'center' bastano senza alcuna compensazione dello zoom. Per
+        // l'anchor 'bottom' invece containerHeight/buttonHeight/buttonMargin sono misure "locali" (le stesse unità
+        // che popup.setScale(zoomCompensation) sopra riporta a dimensione costante a schermo): senza moltiplicarle
+        // per zoomCompensation qui, la posizione a schermo del popup dipenderebbe linearmente dallo zoom della
+        // scena invece di restare fissa (visibile solo a zoom != BASE_ZOOM, es. Stage3 a zoom 10).
         const targetY = this.anchor === 'center'
             ? this.scene.scale.height / 2
-            : (this.scene.scale.height * (1 + 1 / (2 * this.scene.cameras.main.zoom)) - containerHeight - buttonHeight - buttonMargin) * 0.5;
+            : (this.scene.scale.height * (1 + 1 / (2 * zoom)) - (containerHeight + buttonHeight + buttonMargin) * zoomCompensation) * 0.5;
         popup.setPosition(this.scene.scale.width / 2, targetY);
         
         // Animazione
