@@ -52,7 +52,7 @@ FORCE ?= 0
 # cgo, che a sua volta richiede un compilatore C. L'immagine alpine non lo ha, e
 # `go test -race` fallirebbe con un errore che sembra di configurazione ma e' di
 # ambiente. L'immagine che costruisce l'artefatto resta quella alpine.
-GO_IMAGE         ?= golang:1.26.5@sha256:2005724102f45917a63e9d092fc0e4ea56ea575048ce147caad5f5f61502c365
+GO_IMAGE         ?= golang:1.26.6@sha256:0d1d3a794be25f809dd2cb3160d8c73276c4056a9f8242a138e908ddeee7b6b6
 NODE_IMAGE       ?= node:24-alpine@sha256:f70403e87646dc51b45295f4b8b70cdad0b63d2297c4c9899119b03f7af7a6b3
 HADOLINT_IMAGE   ?= hadolint/hadolint:v2.14.0-alpine@sha256:7aba693c1442eb31c0b015c129697cb3b6cb7da589d85c7562f9deb435a6657c
 SHELLCHECK_IMAGE ?= koalaman/shellcheck:v0.11.0@sha256:61862eba1fcf09a484ebcc6feea46f1782532571a34ed51fedf90dd25f925a8d
@@ -142,8 +142,12 @@ go-vet: ## Esegue l'analisi statica del backend
 	$(GO_RUN) go vet ./...
 
 .PHONY: go-build
+# Controllo di compilazione, non l'artefatto: quello lo costruisce il Dockerfile.
+# Senza timbro VCS perche' in pipeline il contenitore gira come root su un
+# checkout dell'utente del runner, e git rifiuta un repository di un altro
+# proprietario: go build fallirebbe leggendone lo stato.
 go-build: ## Compila il backend
-	$(GO_RUN) go build ./...
+	$(GO_RUN) go build -buildvcs=false ./...
 
 .PHONY: go-test
 go-test: ## Esegue i test del backend con il rilevatore di corse critiche
@@ -247,9 +251,18 @@ scan-secrets-history: ## Cerca credenziali nell'intera cronologia (non bloccante
 scan-deps-go: ## Cerca vulnerabilita' note nelle dipendenze del backend
 	$(GO_RUN) sh -c 'go install golang.org/x/vuln/cmd/govulncheck@latest && govulncheck ./...'
 
+# Tutte le immagini vengono analizzate prima di dichiarare l'esito: fermarsi
+# alla prima con vulnerabilita' nasconderebbe quelle delle altre, che
+# emergerebbero solo una correzione alla volta.
 .PHONY: scan-images
 scan-images: ## Cerca vulnerabilita' note nelle immagini costruite localmente
-	@for i in progetti-innovativi/server:locale progetti-innovativi/frontend:locale progetti-innovativi/landing:locale; do 		echo "== $$i"; 		$(DOCKER) run --rm -v /var/run/docker.sock:/var/run/docker.sock $(TRIVY_IMAGE) 			image --scanners vuln --severity HIGH,CRITICAL --exit-code 1 --quiet "$$i" || exit 1; 	done
+	@esito=0; \
+	for i in progetti-innovativi/server:locale progetti-innovativi/frontend:locale progetti-innovativi/landing:locale; do \
+		echo "== $$i"; \
+		$(DOCKER) run --rm -v /var/run/docker.sock:/var/run/docker.sock $(TRIVY_IMAGE) \
+			image --scanners vuln --severity HIGH,CRITICAL --exit-code 1 --quiet "$$i" || esito=1; \
+	done; \
+	exit $$esito
 
 ##@ Immagini
 

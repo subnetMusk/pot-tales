@@ -6,7 +6,7 @@
 # runtime interroga gli artefatti, e non richiede nulla di installato sull'host.
 set -uo pipefail
 
-GO_IMAGE=${GO_IMAGE:-golang:1.26.5}
+GO_IMAGE=${GO_IMAGE:-golang:1.26.6@sha256:0d1d3a794be25f809dd2cb3160d8c73276c4056a9f8242a138e908ddeee7b6b6}
 MONGO_IMAGE=${MONGO_IMAGE:-mongo:8.2.12@sha256:e0ce8c35124d4a9f9785532d1f268f39e9728ffa1cb38f46fa482436424c4bd3}
 REDIS_IMAGE=${REDIS_IMAGE:-redis:8.10.0-alpine@sha256:978f0e01593e65eed801f2402944efcd936d43b5027e4908a7897baf88ed6241}
 

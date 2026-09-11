@@ -14,13 +14,20 @@
 
 name: CI
 
+# Il ramo di integrazione dell'infrastruttura riceve commit diretti che poi
+# confluiscono in develop: senza verifica propria, un difetto emergerebbe solo
+# al passaggio, lontano dal commit che lo ha introdotto.
 on:
   push:
-    branches: [main, develop]
+    branches: [main, develop, integrazione/infra]
   pull_request:
-    branches: [main, develop]
+    branches: [main, develop, integrazione/infra]
 
 # Nessun permesso predefinito: ogni lavoro dichiara solo cio' che gli serve.
+#
+# Il repository e' privato: senza `contents: read` il token del lavoro non vede
+# il repository, e il checkout fallisce con "Repository not found" prima di
+# eseguire qualunque verifica. Ogni lavoro che fa il checkout lo dichiara.
 permissions: {}
 
 # Una esecuzione per riferimento: quelle superate vengono annullate invece di
@@ -33,6 +40,8 @@ jobs:
 
   backend:
     name: Backend Go
+    permissions:
+      contents: read
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
@@ -56,6 +65,8 @@ jobs:
 
   frontend:
     name: Frontend
+    permissions:
+      contents: read
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
@@ -70,6 +81,8 @@ jobs:
 
   statica:
     name: Analisi statica
+    permissions:
+      contents: read
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -86,6 +99,8 @@ jobs:
 
   sicurezza:
     name: Analisi di sicurezza
+    permissions:
+      contents: read
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
@@ -100,6 +115,8 @@ jobs:
 
   runtime:
     name: Verifica a runtime
+    permissions:
+      contents: read
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
@@ -122,11 +139,15 @@ jobs:
   #
   # Dipende dalla verifica a runtime: non si pubblica un'immagine che non e'
   # stata vista partire.
+  #
+  # Solo da main e develop. Il ramo di integrazione esegue le verifiche ma non
+  # pubblica: le immagini in registro vengono dalle revisioni promosse, e il
+  # passaggio su develop e' il punto in cui la promozione si decide.
   publish-images:
     name: Build e push immagini su GHCR
     runs-on: ubuntu-latest
     timeout-minutes: 30
-    if: github.event_name != 'pull_request'
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop')
     needs: [backend, frontend, statica, runtime]
     permissions:
       contents: read
