@@ -1,4 +1,5 @@
 import {z} from 'zod';
+import {risolviProvaDiLavoro} from './pow';
 
 // --- Definizione Schemi e Tipi ---
 
@@ -15,6 +16,17 @@ const CreateSessionResponseSchema = z.object({
     expires: z.string().datetime(),
 }).strict();
 export type CreateSessionResponse = z.infer<typeof CreateSessionResponseSchema>;
+
+// Corpo della risposta 429: la sfida e' anche nell'intestazione X-PoW-Challenge, ma
+// il corpo e' leggibile anche quando le intestazioni non sono esposte.
+const PowChallengeSchema = z.object({
+    challenge: z.string().min(1),
+    difficulty: z.number().int().nonnegative(),
+});
+
+// Sfide consecutive accettate per una creazione: una sfida scaduta o gia' usata
+// ne produce un'altra, e oltre questo numero l'errore risale al chiamante.
+const POW_TENTATIVI = 3;
 // ------------------
 
 // VALIDATE SESSION -----
@@ -81,20 +93,24 @@ export class APISession {
             networkErrorLogPrefix: string;
             networkErrorMessage: string;
             httpErrorLogPrefix: string;
-            onHttpError?: (response: Response) => TRes | undefined;
+            onHttpError?: (response: Response) => TRes | undefined | Promise<TRes | undefined>;
             validationErrorLogPrefix: string;
             validationErrorMessage: string;
             onValidated: (data: TRes) => void;
         }
     ): Promise<TRes> {
+        // Le intestazioni della singola chiamata si aggiungono a quelle comuni:
+        // lasciate dentro `init` le sostituirebbero per intero.
+        const {headers, ...resto} = init;
         let response: Response;
         try {
             response = await fetch(url, {
+                ...resto,
                 headers: {
                     'Content-Type': 'application/json',
                     'Accept': 'application/json',
+                    ...(headers as Record<string, string> | undefined),
                 },
-                ...init,
             });
 
         } catch (networkError) {
@@ -103,7 +119,7 @@ export class APISession {
         }
 
         if (!response.ok) {
-            const shortCircuit = ctx.onHttpError?.(response);
+            const shortCircuit = await ctx.onHttpError?.(response);
             if (shortCircuit !== undefined) {
                 return shortCircuit;
             }
@@ -126,26 +142,52 @@ export class APISession {
     }
 
     // INVIA LA RICHIESTA PER LA CREAZIONE DI UNA NUOVA SESSIONE
+    //
+    // Oltre la soglia di sessioni create dallo stesso indirizzo, che dietro il NAT
+    // di una conferenza e' condiviso da tutta la sala, il backend risponde 429 con
+    // una sfida a prova di lavoro: la si risolve e si ripete la richiesta con la
+    // soluzione.
+    //
+    // Il cookie di sessione lo imposta il backend nella stessa risposta, HttpOnly:
+    // il client non lo scrive, e non puo' leggerlo.
     public async createSession(requestData: CreateSessionRequest): Promise<CreateSessionResponse> {
         console.log('Creazione sessione con i dati:', requestData);
 
+        return this.inviaCreazione(requestData, {}, POW_TENTATIVI);
+    }
+
+    private async inviaCreazione(
+        requestData: CreateSessionRequest,
+        prova: Record<string, string>,
+        tentativiRimasti: number,
+    ): Promise<CreateSessionResponse> {
         return this.request(
             `${this.baseUrl}/session`,
-            { method: 'POST', body: JSON.stringify(requestData) },
+            { method: 'POST', body: JSON.stringify(requestData), headers: prova },
             CreateSessionResponseSchema,
             {
                 networkErrorLogPrefix: 'Errore di rete:',
                 networkErrorMessage: 'Errore di rete durante la richiesta.',
                 httpErrorLogPrefix: 'Errore HTTP:',
+                onHttpError: async (response) => {
+                    if (response.status !== 429 || tentativiRimasti === 0) {
+                        return undefined;
+                    }
+                    const sfida = PowChallengeSchema.safeParse(await response.json().catch(() => null));
+                    if (!sfida.success) {
+                        return undefined;
+                    }
+
+                    console.log(`Prova di lavoro richiesta, difficolta' ${sfida.data.difficulty}`);
+                    const soluzione = await risolviProvaDiLavoro(sfida.data.challenge, sfida.data.difficulty);
+                    return this.inviaCreazione(requestData, {
+                        'X-PoW-Challenge': sfida.data.challenge,
+                        'X-PoW-Solution': soluzione,
+                    }, tentativiRimasti - 1);
+                },
                 validationErrorLogPrefix: 'Risposta del server non valida:',
                 validationErrorMessage: 'Formato della risposta del server non valido.',
-                onValidated: (validatedResponse) => {
-                    console.log('Risposta del server valida:', validatedResponse);
-                    this.saveSessionCookie(
-                        validatedResponse.token,
-                        new Date(validatedResponse.expires)
-                    );
-                },
+                onValidated: (validatedResponse) => console.log('Risposta del server valida:', validatedResponse),
             }
         );
     }
@@ -242,10 +284,6 @@ export class APISession {
                 onValidated: () => {},
             }
         );
-    }
-
-    private saveSessionCookie(token: string, expires: Date): void {
-        document.cookie = `session_token=${token}; expires=${expires.toUTCString()}; path=/; SameSite=Strict; Secure`;
     }
 
 }
