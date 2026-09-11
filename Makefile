@@ -142,8 +142,12 @@ go-vet: ## Esegue l'analisi statica del backend
 	$(GO_RUN) go vet ./...
 
 .PHONY: go-build
+# Controllo di compilazione, non l'artefatto: quello lo costruisce il Dockerfile.
+# Senza timbro VCS perche' in pipeline il contenitore gira come root su un
+# checkout dell'utente del runner, e git rifiuta un repository di un altro
+# proprietario: go build fallirebbe leggendone lo stato.
 go-build: ## Compila il backend
-	$(GO_RUN) go build ./...
+	$(GO_RUN) go build -buildvcs=false ./...
 
 .PHONY: go-test
 go-test: ## Esegue i test del backend con il rilevatore di corse critiche
