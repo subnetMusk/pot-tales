@@ -51,7 +51,7 @@ registrano e vengono riavviati, mentre il resto dello stack resta funzionante.
 
 | Script | Cosa fa |
 |---|---|
-| `cleanup.sh` | Pulizia centralizzata: `--dev`, `--production`, `--soft`, `--full` (vedi [CLEANUP_SYSTEM.md](CLEANUP_SYSTEM.md)). |
+| `cleanup.sh` | Pulizia centralizzata: `--dev`, `--production`, `--soft`, `--full` (vedi sotto). |
 | `check-persistent-config.sh` | Verifica presenza/integrita' di config e dati persistenti. |
 
 ## Produzione
@@ -67,11 +67,34 @@ stack di produzione; una configurazione per Docker Swarm si trova in
 | `aseprite-converter.py` | Esporta/converte asset creati in Aseprite. |
 | `json_structure.py` | Utility di sviluppo per ispezionare struttura di cartelle/JSON. |
 
+## Pulizia e reinstallazione
+
+`cleanup.sh` e' il punto unico: sostituisce i vecchi `clean_build.sh` e
+`production-cleanup.sh`.
+
+| Modo | Effetto |
+|---|---|
+| `--soft` | solo cache e artefatti di build |
+| `--dev` | pulizia completa dell'ambiente di sviluppo (predefinito) |
+| `--production` | pulizia selettiva, preserva le configurazioni |
+| `--full` | cancella tutto, **compresi i dati** |
+
+Prima di procedere copia in `backups/config-<marca-temporale>/` le configurazioni
+critiche: `.env`, configurazione Kibana e Filebeat. Le dashboard non sono fra queste
+perche' non ne hanno bisogno: l'export e' versionato nel repository e reimportato da
+Terraform, quindi ricrearle su un'istanza vuota non richiede un backup a parte.
+
+`dev-reinstall.sh` ricostruisce l'ambiente da zero: pulizia con `cleanup.sh --dev`,
+reinstallazione delle dipendenze, ricostruzione delle immagini, avvio e verifica.
+
+Le dashboard si gestiscono dal Makefile — `dashboards-export`, `dashboards-list`,
+`dashboards-import` — e il vincolo di compatibilita' fra versioni di Kibana e' in
+[../terraform/elk/dashboards/README.md](../terraform/elk/dashboards/README.md).
+
 ## Note
 
 - Il proxy e' Traefik (config in `docker/traefik/`), il log shipping e' Filebeat,
-  gli Elastic Agent sono gestiti da Fleet. Riferimenti a NGINX Proxy Manager,
-  Fluent Bit o modalita' standalone in doc/script piu' vecchi sono superati.
+  gli Elastic Agent sono gestiti da Fleet.
 - Le configurazioni (Traefik, Kibana, Filebeat, Redis) sono versionate nel repo;
   lo stato runtime dell'ELK vive nei named volume Docker (`esdata01`, `kibanadata`,
   `certs`, `fleetserverdata`).

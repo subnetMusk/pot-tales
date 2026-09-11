@@ -5,7 +5,7 @@ Due meccanismi distinti, per due ambienti che non condividono nulla.
 ## Sviluppo: `.env`
 
 Il file non e' versionato. Si parte dal modello e si compilano i valori, che per
-lo sviluppo sono elencati in [SETUP.md](../SETUP.md):
+lo sviluppo sono elencati in [docs/SVILUPPO.md](../docs/SVILUPPO.md):
 
 ```bash
 cp .env.example .env

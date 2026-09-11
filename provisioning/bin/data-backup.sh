@@ -4,8 +4,11 @@
 # Due meccanismi con ruoli distinti.
 #
 #   Snapshot LVM     meccanismo primario. Cattura in un istante l'intero volume
-#                    che ospita i dati Docker, quindi MongoDB ed Elasticsearch
-#                    insieme, senza fermare le scritture.
+#                    che ospita i dati Docker, quindi MongoDB e gli altri
+#                    volumi con nome, senza fermare le scritture. Gli indici di
+#                    Elasticsearch stanno su un volume proprio e non sono
+#                    compresi: cio' che deve sopravvivere passa
+#                    dall'esportazione.
 #
 #   mongodump        formato portabile, destinato al prelievo manuale a evento
 #                    concluso. Si rilegge su un'altra macchina e su un'altra
@@ -26,8 +29,11 @@
 #
 # Lo snapshot resta sulla stessa macchina: copre corruzione applicativa,
 # cancellazione accidentale e processo che muore lasciando il disco sano. Non
-# copre la perdita della macchina, per la quale servono gli snapshot della VM
-# lato infrastruttura e il prelievo manuale dell'archivio portabile.
+# copre la perdita della macchina. Un server dedicato non ha snapshot del
+# fornitore: la sola copertura e' una copia dell'archivio portabile fuori dalla
+# macchina, su una Storage Box in una sede diversa. La sincronizzazione verso la
+# box non e' ancora in questo script, e finche' non c'e' la copia fuori dalla
+# macchina e' il prelievo manuale.
 #
 #   ./data-backup.sh [--solo-snapshot | --solo-dump] [--check <slug>]
 #
@@ -47,7 +53,7 @@ CONF_SORVEGLIANZA=${CONF_SORVEGLIANZA:-/etc/stack-surveillance.env}
 
 BIN_DIR=${BIN_DIR:-$(cd "$(dirname "$0")" && pwd)}
 
-VG_NAME=${VG_NAME:-ubuntu-vg}
+VG_NAME=${VG_NAME:-vg0}
 LV_DOCKER=${LV_DOCKER:-docker}
 # Spazio copy-on-write dello snapshot. Deve bastare a contenere le scritture
 # che avvengono mentre lo snapshot esiste: uno snapshot che esaurisce lo spazio

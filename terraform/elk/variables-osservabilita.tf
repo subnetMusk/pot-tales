@@ -22,8 +22,9 @@ variable "indici_evento" {
     Pattern di indici leggibili dalla platea divulgativa.
 
     Il valore predefinito segue lo schema di denominazione dei data stream
-    (`logs-<dataset>-<namespace>`) applicato al dataset che l'applicazione
-    dichiara sui propri eventi, `frontend.app`.
+    (`logs-<dataset>-<namespace>`) applicato al dataset dei fatti di partita,
+    `gioco.partita`, che il backend dichiara su ogni evento di gioco e che
+    l'ingestione instrada su un indice separato da quello tecnico.
 
     Il pattern non deve intersecare quelli tecnici. Con licenza basic la
     sicurezza a livello di documento non e' disponibile, quindi non esiste modo
@@ -37,7 +38,7 @@ variable "indici_evento" {
     pattern piu' largo che mostrerebbe cio' che non deve essere condiviso.
   EOT
   type        = list(string)
-  default     = ["logs-frontend.app-*"]
+  default     = ["logs-gioco.partita-*"]
 }
 
 locals {

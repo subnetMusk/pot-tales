@@ -1,0 +1,27 @@
+# Regole della catena DOCKER-USER per l'interfaccia pubblica.
+#
+# Docker scavalca ufw: il traffico diretto alle porte pubblicate dai contenitori
+# viene tradotto e inoltrato, e non attraversa INPUT, dove vivono le regole di
+# ufw. Il punto in cui filtrarlo e' la catena DOCKER-USER, che Docker valuta per
+# prima nell'inoltro e lascia alle regole dell'amministratore.
+#
+# Parametrizzata sull'interfaccia pubblica:
+#
+#   systemctl enable --now docker-user-rules@<interfaccia>.service
+#
+# `PartOf` la riapplica quando il demone viene riavviato. Lo script svuota la
+# catena prima di riempirla, quindi riapplicarla non duplica le regole.
+
+[Unit]
+Description=Regole della catena DOCKER-USER sull'interfaccia %i
+Requires=docker.service
+After=docker.service
+PartOf=docker.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/local/bin/docker-user-rules.sh %i
+
+[Install]
+WantedBy=docker.service

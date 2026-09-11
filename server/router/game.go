@@ -111,9 +111,19 @@ func (g *gameSvc) handlePing(w http.ResponseWriter, r *http.Request) {
 
 	switch action {
 	case helpers.ActionAccept:
+		scenaPrecedente := state.Data.SceneID
 		if err := g.mgr.UpdateState(ctx, sessionID, payload.SceneID, payload.X, payload.Y, addTime, now); err != nil {
 			helpers.WriteJSON(w, http.StatusInternalServerError, map[string]string{"error": "db error"})
 			return
+		}
+		// Il ping è l'unico punto in cui la scena cambia, quindi è qui che si
+		// osserva l'avanzamento. Emettere a ogni ping riempirebbe l'indice di
+		// ripetizioni: interessa la transizione, non la permanenza.
+		if payload.SceneID != scenaPrecedente {
+			helpers.LogGameplay(ctx, sessionID, "scena_iniziata", map[string]any{
+				"partita.scena":            payload.SceneID,
+				"partita.scena_precedente": scenaPrecedente,
+			})
 		}
 		respond(payload.SceneID, payload.X, payload.Y, now, "accept")
 	case helpers.ActionRubberband, helpers.ActionKick:
@@ -129,6 +139,15 @@ func (g *gameSvc) handlePing(w http.ResponseWriter, r *http.Request) {
 			helpers.WriteJSON(w, http.StatusInternalServerError, map[string]string{"error": "db error"})
 			return
 		}
+		// Lo stato viene cancellato, quindi la spazzata non lo troverà mai:
+		// senza questa emissione la partita resterebbe iniziata e mai conclusa,
+		// e l'imbuto conterebbe come abbandono un'espulsione.
+		helpers.LogGameplay(ctx, sessionID, "sessione_conclusa", map[string]any{
+			"partita.motivo":       helpers.MotivoEspulsione,
+			"partita.scena_finale": state.Data.SceneID,
+			"partita.durata_ms":    state.Data.TotalPlayTimeMs,
+			"partita.checkpoint_n": len(state.Data.Checkpoints),
+		})
 		respond(state.Data.SceneID, state.Data.X, state.Data.Y, now, "ban")
 	}
 }
@@ -150,6 +169,12 @@ func (g *gameSvc) handleCheckpoint(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// L'identificativo resta opaco anche qui: il backend non ne interpreta il
+	// significato, e la dashboard lo aggrega come etichetta.
+	helpers.LogGameplay(r.Context(), sessionID, "checkpoint_raggiunto", map[string]any{
+		"partita.checkpoint": payload.CheckpointID,
+	})
+
 	helpers.WriteJSON(w, http.StatusOK, map[string]string{"status": "ok"})
 }
 
@@ -158,10 +183,27 @@ func (g *gameSvc) handleCheckpoint(w http.ResponseWriter, r *http.Request) {
 // ripartire da zero anche se esistevano progressi salvati).
 func (g *gameSvc) handleReset(w http.ResponseWriter, r *http.Request) {
 	sessionID := r.Context().Value(helpers.UserIDKey).(string)
+	ctx := r.Context()
 
-	if err := g.mgr.DeleteState(r.Context(), sessionID); err != nil {
+	// Lo stato viene letto prima di cancellarlo: dopo la cancellazione non
+	// resterebbe nulla da riportare, e l'azzeramento comparirebbe nell'imbuto
+	// senza dire da dove il giocatore è ripartito. L'errore di lettura non
+	// impedisce l'azzeramento, che è cio' che l'utente ha chiesto.
+	precedente, errStato := g.mgr.GetState(ctx, sessionID)
+
+	if err := g.mgr.DeleteState(ctx, sessionID); err != nil {
 		helpers.WriteJSON(w, http.StatusInternalServerError, map[string]string{"error": "db error"})
 		return
+	}
+
+	// Azione distinta dalla conclusione: la partita non è finita, è ricominciata.
+	// Contarla come conclusione darebbe due fini per un solo inizio.
+	if errStato == nil {
+		helpers.LogGameplay(ctx, sessionID, "partita_azzerata", map[string]any{
+			"partita.scena_finale": precedente.Data.SceneID,
+			"partita.durata_ms":    precedente.Data.TotalPlayTimeMs,
+			"partita.checkpoint_n": len(precedente.Data.Checkpoints),
+		})
 	}
 
 	helpers.WriteJSON(w, http.StatusOK, map[string]string{"status": "ok"})

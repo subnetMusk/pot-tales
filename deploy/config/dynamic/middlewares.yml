@@ -29,8 +29,15 @@ http:
     # perche' Kibana ha bisogno della propria.
     intestazioni-sicurezza:
       headers:
-        stsSeconds: 31536000
-        stsIncludeSubdomains: true
+        # Parametrico: la durata si alza solo quando la catena del certificato
+        # e' stata verificata dall'esterno. Con la variabile non impostata il
+        # campo resta assente e HSTS non viene dichiarato, che e' il verso
+        # giusto in cui sbagliare.
+        stsSeconds: {{ env "HSTS_MAX_AGE" }}
+        stsIncludeSubdomains: {{ env "HSTS_INCLUDE_SUBDOMAINS" }}
+        # Non va mai attivato: l'inserimento nella lista di precaricamento e'
+        # compilato nei binari dei browser e la rimozione richiede mesi, quindi
+        # sopravvivrebbe alla dismissione della macchina.
         stsPreload: false
         contentTypeNosniff: true
         frameDeny: true
@@ -198,8 +205,8 @@ http:
     # romperebbe l'interfaccia. Restano le intestazioni che non interferiscono.
     intestazioni-dashboard:
       headers:
-        stsSeconds: 31536000
-        stsIncludeSubdomains: true
+        stsSeconds: {{ env "HSTS_MAX_AGE" }}
+        stsIncludeSubdomains: {{ env "HSTS_INCLUDE_SUBDOMAINS" }}
         contentTypeNosniff: true
         referrerPolicy: strict-origin-when-cross-origin
 

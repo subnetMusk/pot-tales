@@ -20,9 +20,41 @@ senza portare giu' il sistema.
 
 | Volume | Punto di mount | Contenuto |
 |---|---|---|
-| `docker` | `/srv/docker` | Immagini, container, volumi, log dei container |
+| sistema | `/` | Sistema operativo |
+| `var` | `/var` | Journal persistente |
+| `docker` | `/srv/docker` | Immagini, container, volumi con nome (MongoDB compreso), log dei container |
+| `elastic` | `/srv/data/elastic` | Indici di Elasticsearch |
 | `diagnostics` | `/srv/diagnostics` | Pacchetti diagnostici raccolti allo spegnimento |
-| sistema | `/` | Sistema operativo, journal persistente |
+| `backup` | `/srv/backup` | Archivi portabili della copia notturna |
+| `export` | `/srv/export` | Archivi di esportazione, serviti su `/export` |
+
+Il resto del volume group resta non allocato: e' lo spazio degli snapshot.
+
+**Gli indici hanno un volume proprio.** Sono telemetria, deliberatamente non
+protetta, e crescono con il traffico: sul volume dei dati Docker il loro
+riempimento porterebbe giu' MongoDB. Il volume `esdata01` dello stack e' un
+bind su questa directory (`ES_DATA_DIR` in `/etc/stack-deploy.env`), che
+l'immagine di Elasticsearch scrive come uid 1000 e gid 0. La proprieta' va
+assegnata con il volume montato, prima del primo deploy:
+
+```bash
+sudo chown 1000:0 /srv/data/elastic
+sudo chmod 2770 /srv/data/elastic
+```
+
+`stack-deploy.sh` verifica esistenza e proprieta' prima di applicare lo stack e
+si ferma con un messaggio se non corrispondono: senza, Elasticsearch non
+scriverebbe e resterebbe in riavvio ciclico. Il controllo coglie anche un
+volume non montato, perche' la directory sottostante resta di root.
+
+**MongoDB resta sul volume `docker`.** Lo snapshot LVM copre un volume solo: con
+MongoDB su un volume separato, la copia primaria dei dati non ricostruibili non
+lo comprenderebbe.
+
+**Creazione dei volumi.** Con un layout definito in fase di installazione i
+volumi esistono gia' e `bin/setup-volumes.sh` **non va eseguito**: presuppone il
+volume group `ubuntu-vg`, crea volumi con nomi e dimensioni propri e li
+formatta. Serve solo su una macchina consegnata con il volume group quasi vuoto.
 
 ```bash
 sudo ./bin/setup-volumes.sh            # mostra i comandi
@@ -48,6 +80,8 @@ verifica va fatta prima di installare qualunque cosa.
 | `systemd/data-export.service` | `/etc/systemd/system/` |
 | `systemd/backup-nightly.service`, `.timer` | `/etc/systemd/system/` |
 | `systemd/traefik-logrotate.service`, `.timer` | `/etc/systemd/system/` |
+| `systemd/nic-offload@.service` | `/etc/systemd/system/`, istanziata sull'interfaccia |
+| `systemd/docker-user-rules@.service` | `/etc/systemd/system/`, istanziata sull'interfaccia |
 | `logrotate/traefik-access.conf` | `/etc/logrotate.traefik.conf` |
 | `bin/*.sh`, `bin/*.py` | `/usr/local/bin/` |
 | `systemd/stack-surveillance.env.example` | `/etc/stack-surveillance.env`, compilato e a `0600` |
@@ -72,6 +106,54 @@ sudo systemctl restart docker
 
 `data-export.service` non viene abilitata: non ha timer e non deve partire da
 sola, la avvia l'operatore.
+
+## Rete dell'host
+
+Due unita' template, parametrizzate sul nome dell'interfaccia pubblica
+(`ip -br link`). I comandi di installazione sopra copiano unita' e script; le
+istanze si abilitano a mano, perche' il nome dell'interfaccia dipende dalla
+macchina.
+
+**Nessuna delle due e' ancora stata provata sulla macchina di esercizio.** Sono
+verificate la sintassi delle unita' (`systemd-analyze verify`) e l'applicazione
+delle regole in un contenitore, non l'effetto sulla scheda ne' sul traffico
+reale: le verifiche indicate sotto fanno parte dell'installazione.
+
+**Segmentazione in hardware.** `nic-offload@.service` disattiva TSO e GSO. Serve
+sulle schede Intel con driver `e1000e`, come la I219-LM, soggette sotto carico a
+blocchi della coda di trasmissione (`Detected Hardware Unit Hang`); su altre
+schede non va abilitata.
+
+```bash
+ethtool -i <interfaccia> | grep '^driver'      # atteso: e1000e
+sudo systemctl enable --now nic-offload@<interfaccia>.service
+ethtool -k <interfaccia> | grep -E '^(tcp-segmentation-offload|generic-segmentation-offload):'
+```
+
+Atteso: entrambe le voci a `off`, anche dopo un riavvio. Durante il load test
+`dmesg | grep -i 'hardware unit hang'` deve restare vuoto.
+
+**Firewall dei container.** Docker scavalca ufw: il traffico diretto alle porte
+pubblicate viene tradotto e inoltrato, e non attraversa `INPUT`, dove vivono le
+regole di ufw. `docker-user-rules@.service` riempie la catena `DOCKER-USER`: in
+ingresso dall'interfaccia pubblica raggiungono i contenitori solo le porte 80 e
+443 e le risposte alle connessioni stabilite, per IPv4 e IPv6. Il firewall
+dell'host resta ufw (`docs/ESERCIZIO.md`, sezione 3). La catena esiste solo con
+Docker installato, quindi l'unita' si abilita dopo il demone:
+
+```bash
+sudo systemctl enable --now docker-user-rules@<interfaccia>.service
+sudo iptables -S DOCKER-USER
+sudo ip6tables -S DOCKER-USER
+```
+
+Verifica con una porta di prova, interrogata da un'altra rete:
+
+```bash
+sudo docker run --rm -d --name prova-firewall -p 8080:80 nginx:alpine
+curl -m 5 http://<indirizzo-pubblico>:8080/     # dall'esterno: deve andare in timeout
+sudo docker stop prova-firewall
+```
 
 ## Avvio non presidiato
 
@@ -99,6 +181,13 @@ sudo systemctl start stack-deploy.service
 idempotente, quindi rieseguirlo su uno stack gia' in servizio aggiorna soltanto
 cio' che e' cambiato: il file dello stack resta la sola descrizione di cio' che
 deve girare.
+
+`start` vale per il primo avvio. Per riapplicare lo stack in seguito, dopo una
+modifica a `/etc/stack-deploy.env` o al repository, il comando e'
+`sudo systemctl restart stack-deploy.service`: l'unita' e' `oneshot` con
+`RemainAfterExit`, quindi dopo il primo deploy resta attiva, e su un'unita'
+attiva `start` non esegue nulla senza segnalarlo. Lo stesso vale per
+`fleet-bootstrap.service`, che il riavvio del deploy riesegue da se'.
 
 Lo swarm non va inizializzato a mano: lo script lo fa da se' se sul nodo non ne
 esiste ancora uno. Non lo fa negli altri stati, perche' `pending` e `locked`
@@ -195,6 +284,15 @@ sudo "${EDITOR:-vi}" /etc/stack-surveillance.env
 Un file unico per entrambe le unita': usano lo stesso endpoint e le stesse
 credenziali del cluster, e tenerli separati esporrebbe al caso in cui una
 rotazione ne aggiorna uno e dimentica l'altro.
+
+Il battito legge anche `/etc/stack-deploy.env`, e solo per il nome pubblico:
+interroga `/health` attraverso il proxy come un visitatore, con
+`curl --resolve <APP_HOST>:443:127.0.0.1`. Un controllo su `localhost`
+misurerebbe il proxy e non l'applicazione: l'entrypoint in chiaro reindirizza
+qualunque richiesta, i router rispondono solo al nome pubblico e con `sniStrict`
+un handshake per altri nomi viene rifiutato. Il certificato non viene
+verificato, per non fallire con quello dell'autorita' di prova: la sua validita'
+e' il controllo `tls-pubblico`.
 
 La cadenza del battito deve restare piu' breve del periodo atteso configurato
 sul servizio esterno. Con `OnUnitActiveSec=5min` il periodo va impostato a
@@ -297,8 +395,10 @@ segnalare nulla.
 Due meccanismi con ruoli distinti.
 
 **Snapshot LVM, primario.** Cattura in un istante l'intero volume che ospita i
-dati Docker, quindi MongoDB ed Elasticsearch insieme, senza fermare le
-scritture. Con il journaling attivo e file dati e journal sullo stesso volume,
+dati Docker, quindi MongoDB e gli altri volumi con nome, senza fermare le
+scritture. Gli indici di Elasticsearch stanno su un volume proprio e non sono
+compresi: cio' che di essi deve sopravvivere passa dall'esportazione.
+Con il journaling attivo e file dati e journal sullo stesso volume,
 uno snapshot a livello di volume cattura dati e journal come unita' singola e
 al ripristino MongoDB rigioca il journal: **`fsyncLock` non serve** e non viene
 eseguito, perche' bloccherebbe le scritture per tutta la durata della copia,
@@ -309,9 +409,9 @@ Il motivo per cui lo snapshot precede `mongodump`: su un'istanza standalone
 richiede un replica set. Un dump preso durante le scritture puo' contenere una
 sessione senza il relativo stato di gioco.
 
-Lo snapshot richiede **spazio non allocato nel volume group**. Se
-`setup-volumes.sh` ha assegnato tutto lo spazio ai volumi, lo snapshot non e'
-creabile e la copia primaria semplicemente non esiste: lo script lo dichiara
+Lo snapshot richiede **spazio non allocato nel volume group**. Se tutto lo
+spazio e' assegnato ai volumi, lo snapshot non e' creabile e la copia primaria
+semplicemente non esiste: lo script lo dichiara
 come guasto invece di proseguire in silenzio. Uno snapshot che esaurisce il
 proprio spazio copy-on-write viene invalidato dal kernel, resta elencato e non
 e' piu' ripristinabile, quindi `lvs` va letto e non presunto.
@@ -321,8 +421,11 @@ rilegge su un'altra macchina e su un'altra installazione, cosa che uno snapshot
 non consente. E' l'unico dei due che costituisce un off-host reale, e dipende
 dalla presenza di una persona.
 
-Nessuno dei due copre la perdita della macchina: per quella servono gli
-snapshot della VM lato infrastruttura.
+Nessuno dei due copre la perdita della macchina. Un server dedicato non ha
+snapshot del fornitore: la sola copertura e' una copia dell'archivio portabile
+fuori dalla macchina, su una Storage Box in una sede diversa. La
+sincronizzazione verso la box non e' ancora automatizzata, e finche' non lo e'
+la copia fuori dalla macchina e' il prelievo manuale.
 
 ### I sei check da creare sul pannello
 

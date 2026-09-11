@@ -35,9 +35,3 @@ Named volume Docker (monitoring, `docker-compose.monitoring.yml`):
 Cartelle runtime residue come `volumes/logs/esdata/` e `volumes/kibana/data/`
 sono ignorate da git e possono essere svuotate; lo stato reale dell'ELK vive nei
 named volume qui sopra.
-
-## Rimosso
-
-- `volumes/npm_data/`, `volumes/npm_letsencrypt/` — NGINX Proxy Manager sostituito da Traefik.
-- `volumes/fluent-bit/`, `volumes/fluent-bit-db/` — log shipping ora via Filebeat.
-- `volumes/elastic-agent/elastic-agent.yml` — modalita' standalone; gli agent sono gestiti da Fleet.

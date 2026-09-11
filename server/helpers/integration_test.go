@@ -14,6 +14,7 @@ package helpers
 import (
 	"context"
 	"os"
+	"sync"
 	"testing"
 	"time"
 
@@ -326,4 +327,98 @@ func TestValidateSessionEstendeLaDurata(t *testing.T) {
 		}
 	}
 	t.Errorf("scadenza non estesa entro il tempo atteso: %v", doc.ExpiresAt)
+}
+
+// La conclusione esplicita e la spazzata possono rivendicare la stessa partita:
+// quando il gioco avra' un finale, chi lo raggiunge smettera' anche di segnalare
+// poco dopo. Due conclusioni per un solo inizio falserebbero l'imbuto senza che
+// nulla lo segnali, quindi la rivendicazione deve riuscire una volta sola.
+func TestConcludiPartitaRivendicaUnaVoltaSola(t *testing.T) {
+	db := baseDati(t)
+	ctx := context.Background()
+
+	mgr := NewGameManager(nil, db)
+	col := JournaledCollection(db, GameStatesCollection)
+
+	stato := models.GameState{ID: "partita-di-prova", CreatedAt: time.Now()}
+	stato.Data.SceneID = "Stage3"
+	stato.Data.TotalPlayTimeMs = 42000
+	stato.Meta.LastPing = time.Now()
+	if _, err := col.InsertOne(ctx, stato); err != nil {
+		t.Fatalf("inserimento dello stato: %v", err)
+	}
+
+	emesso, err := mgr.ConcludiPartita(ctx, stato.ID, MotivoCompletata)
+	if err != nil {
+		t.Fatalf("prima conclusione: %v", err)
+	}
+	if !emesso {
+		t.Fatal("la prima conclusione non ha emesso nulla")
+	}
+
+	emesso, err = mgr.ConcludiPartita(ctx, stato.ID, MotivoInattivita)
+	if err != nil {
+		t.Fatalf("seconda conclusione: %v", err)
+	}
+	if emesso {
+		t.Error("la seconda conclusione ha emesso un secondo evento per la stessa partita")
+	}
+
+	// La spazzata non deve trovarla: il marcatore la esclude dal filtro.
+	chiudiPartiteFerme(ctx, col, 0)
+
+	var dopo models.GameState
+	if err := col.FindOne(ctx, bson.M{"_id": stato.ID}).Decode(&dopo); err != nil {
+		t.Fatalf("rilettura dello stato: %v", err)
+	}
+	if dopo.Meta.ClosedAt == nil {
+		t.Error("il marcatore di chiusura non e' stato scritto")
+	}
+}
+
+// Due repliche del backend spazzano in parallelo. La rivendicazione atomica e'
+// cio' che impedisce a entrambe di emettere la conclusione della stessa partita.
+func TestConcludiPartitaSottoConcorrenza(t *testing.T) {
+	db := baseDati(t)
+	ctx := context.Background()
+
+	mgr := NewGameManager(nil, db)
+	col := JournaledCollection(db, GameStatesCollection)
+
+	stato := models.GameState{ID: "partita-contesa", CreatedAt: time.Now()}
+	stato.Data.SceneID = "Stage2"
+	stato.Meta.LastPing = time.Now()
+	if _, err := col.InsertOne(ctx, stato); err != nil {
+		t.Fatalf("inserimento dello stato: %v", err)
+	}
+
+	const concorrenti = 8
+	esiti := make(chan bool, concorrenti)
+	var pronti sync.WaitGroup
+	pronti.Add(concorrenti)
+	via := make(chan struct{})
+
+	for i := 0; i < concorrenti; i++ {
+		go func() {
+			pronti.Done()
+			<-via
+			emesso, err := mgr.ConcludiPartita(ctx, stato.ID, MotivoCompletata)
+			if err != nil {
+				t.Errorf("conclusione concorrente: %v", err)
+			}
+			esiti <- emesso
+		}()
+	}
+	pronti.Wait()
+	close(via)
+
+	vincitori := 0
+	for i := 0; i < concorrenti; i++ {
+		if <-esiti {
+			vincitori++
+		}
+	}
+	if vincitori != 1 {
+		t.Errorf("conclusioni emesse = %d, attesa 1", vincitori)
+	}
 }

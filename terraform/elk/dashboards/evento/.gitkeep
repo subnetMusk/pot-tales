@@ -1,0 +1,5 @@
+# Tiene la directory nel repository anche senza export.
+#
+# `export.sh` rifiuta di scrivere in una directory che non esiste, e git non
+# versiona le directory vuote: senza questo file il primo export dello Space
+# fallirebbe su una copia appena clonata.

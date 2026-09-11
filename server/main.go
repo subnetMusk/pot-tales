@@ -90,6 +90,21 @@ func main() {
 		slog.Error("mongo index setup failed, continuing", "error", err)
 	}
 
+	// Contesto di vita del processo, distinto da quello di avvio.
+	//
+	// `ctx` porta un timeout di dieci secondi: un'attività di fondo che lo
+	// ereditasse smetterebbe di funzionare dieci secondi dopo la partenza, e il
+	// sintomo sarebbe l'assenza di dati senza alcun errore da nessuna parte.
+	fondoCtx, fermaFondo := context.WithCancel(context.Background())
+	defer fermaFondo()
+
+	// Le partite finiscono per abbandono e non con una chiamata: la chiusura
+	// differita è ciò che rende osservabili la durata e il punto di uscita.
+	helpers.AvviaChiusuraSessioni(fondoCtx, db,
+		time.Duration(helpers.EnvInt("SESSION_IDLE_CLOSE_MIN", 5))*time.Minute,
+		time.Duration(helpers.EnvInt("SESSION_SWEEP_SEC", 60))*time.Second,
+	)
+
 	sessionCol := helpers.JournaledCollection(db, helpers.SessionsCollection)
 
 	// Creiamo il Manager che incapsula la logica di sessione

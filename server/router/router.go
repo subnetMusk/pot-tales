@@ -89,6 +89,13 @@ func logIngestHandler(w http.ResponseWriter, r *http.Request) {
 	if payload.Details == nil {
 		payload.Details = make(map[string]any)
 	}
+	// Dataset tecnico, non quello dei fatti di partita.
+	//
+	// Categoria, azione e dettagli arrivano dal client e non sono verificabili:
+	// instradarli sull'indice che la platea divulgativa legge permetterebbe a
+	// chiunque parli con questo endpoint di scrivere righe nelle dashboard
+	// condivise. I fatti di partita li emette il backend, che li osserva invece
+	// di riceverli, e stanno in helpers.LogGameplay.
 	payload.Details["event.dataset"] = "frontend.app"
 
 	if payload.Level == "error" {

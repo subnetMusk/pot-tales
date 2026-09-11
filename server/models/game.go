@@ -28,6 +28,16 @@ type GameState struct {
 	Meta struct {
 		LastPing time.Time `bson:"last_ping"` // Fondamentale per calcolare Delta T
 		Warnings int       `bson:"warnings"`  // Contatore per logica di Soft-Ban (opzionale)
+
+		// ClosedAt segna che la fine partita è già stata emessa verso
+		// l'osservabilità. Non appartiene al gioco: esiste perché la
+		// rivendicazione della partita da chiudere sia atomica fra le repliche
+		// del backend, che altrimenti emetterebbero l'evento due volte.
+		//
+		// Puntatore con omitempty: il filtro di rivendicazione seleziona i
+		// documenti in cui il campo non esiste, e gli stati creati prima di
+		// questa aggiunta devono ricadere in quel caso.
+		ClosedAt *time.Time `bson:"closed_at,omitempty"`
 	} `bson:"meta"`
 }
 

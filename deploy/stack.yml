@@ -22,40 +22,75 @@
 # con la forma `nome@sha256:...` prodotta dalla pipeline.
 # ==============================================================================
 
+# ------------------------------------------------------------------------------
+# Configurazioni, con il nome che porta la revisione del contenuto.
+#
+# Verificato sul demone: un config di Swarm e' immutabile. Modificare il file
+# mantenendo lo stesso nome non aggiorna nulla — il demone risponde
+# `only updates to Labels are allowed`, il deploy esce con codice 1 e i
+# contenitori continuano a montare il contenuto vecchio. Il guasto e' quindi
+# rumoroso sul comando ma silenzioso sullo stato: chi non legge l'uscita crede
+# di aver applicato una modifica che non e' mai arrivata.
+#
+# Il nome esplicito porta l'impronta del file, calcolata da `stack-deploy.sh`:
+# a contenuto uguale il nome non cambia e non succede nulla, a contenuto diverso
+# nasce un config nuovo e i servizi che lo montano vengono aggiornati.
+#
+# Il nome esplicito **non** viene preceduto dal nome dello stack, che Docker
+# aggiunge solo ai nomi impliciti: il prefisso e' quindi dichiarato qui, e serve
+# anche alla rimozione dei config orfani, che `--prune` non esegue.
+# ------------------------------------------------------------------------------
 configs:
   prod_traefik_yml:
+    name: ${STACK_NAME}_prod_traefik_yml_${CFG_REV_PROD_TRAEFIK_YML}
     file: ./config/traefik.yml
   prod_routes_yml:
+    name: ${STACK_NAME}_prod_routes_yml_${CFG_REV_PROD_ROUTES_YML}
     file: ./config/dynamic/routes.yml
   prod_middlewares_yml:
+    name: ${STACK_NAME}_prod_middlewares_yml_${CFG_REV_PROD_MIDDLEWARES_YML}
     file: ./config/dynamic/middlewares.yml
   prod_tls_yml:
+    name: ${STACK_NAME}_prod_tls_yml_${CFG_REV_PROD_TLS_YML}
     file: ./config/dynamic/tls.yml
   prod_crowdsec_middleware:
+    name: ${STACK_NAME}_prod_crowdsec_middleware_${CFG_REV_PROD_CROWDSEC_MIDDLEWARE}
     file: ./config/dynamic/crowdsec.yml
   prod_crowdsec_acquis:
+    name: ${STACK_NAME}_prod_crowdsec_acquis_${CFG_REV_PROD_CROWDSEC_ACQUIS}
     file: ../docker/crowdsec/acquis.yaml
   prod_crowdsec_profiles:
+    name: ${STACK_NAME}_prod_crowdsec_profiles_${CFG_REV_PROD_CROWDSEC_PROFILES}
     file: ../docker/crowdsec/profiles.yaml
   prod_redis_conf:
+    name: ${STACK_NAME}_prod_redis_conf_${CFG_REV_PROD_REDIS_CONF}
     file: ../docker/redis/redis.conf
   prod_redis_acl:
+    name: ${STACK_NAME}_prod_redis_acl_${CFG_REV_PROD_REDIS_ACL}
     file: ../docker/redis/users.acl
   prod_setup_certs:
+    name: ${STACK_NAME}_prod_setup_certs_${CFG_REV_PROD_SETUP_CERTS}
     file: ./config/setup-certs.sh
   prod_kibana_yml:
+    name: ${STACK_NAME}_prod_kibana_yml_${CFG_REV_PROD_KIBANA_YML}
     file: ./config/kibana.yml
   prod_kibana_entrypoint:
+    name: ${STACK_NAME}_prod_kibana_entrypoint_${CFG_REV_PROD_KIBANA_ENTRYPOINT}
     file: ./config/kibana-entrypoint.sh
   prod_filebeat_yml:
+    name: ${STACK_NAME}_prod_filebeat_yml_${CFG_REV_PROD_FILEBEAT_YML}
     file: ./config/filebeat.yml
   prod_filebeat_entrypoint:
+    name: ${STACK_NAME}_prod_filebeat_entrypoint_${CFG_REV_PROD_FILEBEAT_ENTRYPOINT}
     file: ./config/filebeat-entrypoint.sh
   prod_agent_entrypoint:
+    name: ${STACK_NAME}_prod_agent_entrypoint_${CFG_REV_PROD_AGENT_ENTRYPOINT}
     file: ./config/agent-entrypoint.sh
   prod_export_nginx:
+    name: ${STACK_NAME}_prod_export_nginx_${CFG_REV_PROD_EXPORT_NGINX}
     file: ./config/export-nginx.conf
   prod_server_entrypoint:
+    name: ${STACK_NAME}_prod_server_entrypoint_${CFG_REV_PROD_SERVER_ENTRYPOINT}
     file: ./config/server-entrypoint.sh
 
 # Swarm trasmette i secret ai nodi su mTLS, li cifra nel Raft log e li monta in
@@ -90,7 +125,19 @@ secrets:
 
 volumes:
   certs:
+  # Indici su un filesystem dedicato, non sotto la directory dati del demone:
+  # il loro riempimento non deve raggiungere MongoDB, che vive li'. Il bind
+  # richiede che la sorgente esista e appartenga all'utente dell'immagine
+  # (uid 1000, gid 0), e `stack-deploy.sh` lo verifica prima del deploy.
+  #
+  # Le opzioni valgono alla creazione del volume: un volume con lo stesso nome
+  # gia' esistente resta com'e', e va rimosso perche' queste abbiano effetto.
   esdata01:
+    driver: local
+    driver_opts:
+      type: none
+      device: ${ES_DATA_DIR:-/srv/data/elastic}
+      o: bind
   kibanadata:
   fleetserverdata:
   apmagentdata:
@@ -166,9 +213,31 @@ services:
       # I file di configurazione statica non espandono le variabili d'ambiente:
       # il recapito ACME deve quindi arrivare come argomento del processo.
       - --certificatesresolvers.principale.acme.email=${ACME_EMAIL}
+      # Directory dell'autorita'. Il collaudo va condotto contro quella di
+      # prova: l'autorita' di produzione limita i certificati duplicati per
+      # settimana, e pochi tentativi con configurazione sbagliata lasciano il
+      # dominio senza certificato valido per giorni. Il valore predefinito e' la
+      # produzione, perche' e' quello giusto in esercizio; il collaudo lo
+      # sovrascrive deliberatamente.
+      - --certificatesresolvers.principale.acme.caserver=${ACME_CA_SERVER:-https://acme-v02.api.letsencrypt.org/directory}
     environment:
       APP_HOST: "${APP_HOST:-localhost}"
       ACME_EMAIL: "${ACME_EMAIL}"
+      # Durata dichiarata di HSTS, letta dai file dinamici che Traefik
+      # interpreta come template.
+      #
+      # Il valore predefinito e' zero, cioe' HSTS assente, e la direzione del
+      # default e' deliberata: un'intestazione che manca e' hardening non
+      # applicato, un'intestazione presente con un certificato rotto e' un
+      # blocco che il visitatore non puo' aggirare e che dura quanto la durata
+      # dichiarata. Fra i due errori possibili, la configurazione incompleta
+      # deve produrre il primo.
+      #
+      # Si alza solo a catena verificata da rete esterna. Su un esercizio di
+      # poche settimane un anno non porta alcun beneficio: alla prima emissione
+      # andata storta il blocco sopravvive alla macchina che lo ha causato.
+      HSTS_MAX_AGE: "${HSTS_MAX_AGE:-0}"
+      HSTS_INCLUDE_SUBDOMAINS: "${HSTS_INCLUDE_SUBDOMAINS:-false}"
       # In produzione il default rifiuta handshake privi di un certificato per
       # il nome richiesto. Le verifiche locali possono disabilitarlo per usare
       # il certificato predefinito di Traefik prima di un'emissione ACME.
@@ -434,6 +503,15 @@ services:
       SESSION_TTL_MIN: "${SESSION_TTL_MIN:-30}"
       SESSION_QUOTA_WINDOW_MIN: "${SESSION_QUOTA_WINDOW_MIN:-10}"
       DATA_RETENTION_DAYS: "${DATA_RETENTION_DAYS:-45}"
+      # Chiusura differita delle partite abbandonate: e' cio' che rende
+      # osservabili durata e punto di uscita, che nessuna richiesta puo'
+      # riportare perche' chi abbandona non ne invia piu'.
+      SESSION_IDLE_CLOSE_MIN: "${SESSION_IDLE_CLOSE_MIN:-5}"
+      SESSION_SWEEP_SEC: "${SESSION_SWEEP_SEC:-60}"
+      # Sale degli identificativi di partita. Vuoto: se ne genera uno per
+      # processo, e una partita a cavallo di un riavvio viene contata due volte.
+      # Valorizzarlo rende il conteggio stabile fra i riavvii.
+      GAMEPLAY_ID_SALT: "${GAMEPLAY_ID_SALT:-}"
       # Il proxy e' l'unico peer legittimo: fuori da questi intervalli gli
       # header di inoltro vengono ignorati invece che creduti.
       TRUSTED_PROXY_CIDRS: "${TRUSTED_PROXY_CIDRS:-10.0.0.0/8}"
@@ -488,6 +566,17 @@ services:
 
   db:
     image: mongo:8.2.12@sha256:e0ce8c35124d4a9f9785532d1f268f39e9728ffa1cb38f46fa482436424c4bd3
+    # Cache di WiredTiger dimensionata sul limite del contenitore e non sulla
+    # memoria dell'host. Il valore e' la formula predefinita di MongoDB, il 50%
+    # di (memoria - 1 GB), applicata al limite di 2G dichiarato sotto: va
+    # ricalcolato se il limite cambia. Misurato su mongo 8.2.12: con un limite
+    # in cgroup v2 il processo ricava gia' lo stesso valore, senza limite lo
+    # dimensiona sull'intera memoria dell'host. L'opzione lo rende indipendente
+    # da quel rilevamento.
+    #
+    # `mongod` resta il primo argomento: l'entrypoint dell'immagine lo riconosce
+    # ed esegue l'inizializzazione dell'utente amministrativo.
+    command: ["mongod", "--wiredTigerCacheSizeGB", "0.5"]
     networks:
       - data
     volumes:
@@ -801,7 +890,13 @@ services:
       # I file di log dei container restano un montaggio: sono la sorgente da
       # leggere, e nessuna API li espone. L'arricchimento con i metadati passa
       # invece dal proxy.
-      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+      #
+      # La sorgente e' la directory dati del demone, che `daemon.json` sposta
+      # su `/srv/docker`: montare il percorso predefinito lascerebbe Filebeat
+      # su una directory vuota, senza alcun errore. `stack-deploy.sh` ricava il
+      # valore dal demone stesso, quindi le due configurazioni non possono
+      # divergere. La destinazione resta quella attesa da `filebeat.yml`.
+      - ${DOCKER_ROOT_DIR:-/srv/docker}/containers:/var/lib/docker/containers:ro
     configs:
       - source: prod_filebeat_yml
         target: /usr/share/filebeat/filebeat.yml

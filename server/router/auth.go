@@ -223,7 +223,20 @@ func (a *authSvc) create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// 9. Risposta
+	// 9. Fatto di partita: inizio.
+	//
+	// Emesso a persistenza avvenuta, non prima: una sessione che non è stata
+	// scritta non è una partita iniziata, e contarla gonfierebbe l'affluenza
+	// proprio quando qualcosa non funziona.
+	//
+	// Il dispositivo compare come classe e non come stringa dichiarata: quella
+	// integrale distinguerebbe un visitatore dagli altri in un indice che la
+	// platea divulgativa può leggere.
+	helpers.LogGameplay(ctx, token, "sessione_iniziata", map[string]any{
+		"partita.dispositivo": helpers.ClasseDispositivo(reqPayload.Device),
+	})
+
+	// 10. Risposta
 	http.SetCookie(w, helpers.NewSessionCookie(token, expiresAt))
 
 	helpers.WriteJSON(w, http.StatusCreated, map[string]any{
