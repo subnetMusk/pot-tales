@@ -649,6 +649,7 @@ class Stage3 extends Phaser.Scene {
 		return text;
 	}
 
+	private pageCursor?: Phaser.GameObjects.Rectangle;
 	// Effetto typewriter minimale per il testo della pagina: stesso schema (tick a intervalli
 	// fissi, blip ogni due caratteri non-spazio) del typewriter di PopupManager, semplificato
 	// perché qui non serve alcun markup di formattazione/pausa. Include anche un cursore che si
@@ -661,8 +662,10 @@ class Stage3 extends Phaser.Scene {
 
 		return new Promise(resolve => {
 			let charIndex = 0;
+			this.pageCursor?.destroy();
 			const cursor = this.add.rectangle(0, 0, 1, 8, 0x000000);
 			cursor.setDepth(52);
+			this.pageCursor = cursor;
 
 			// Testo di scratch, invisibile, usato solo per misurare la larghezza dell'ULTIMA riga
 			// digitata (stesso stile di textObject): getBounds() su textObject dà invece il bordo
@@ -681,8 +684,7 @@ class Stage3 extends Phaser.Scene {
 				loop: true,
 				callback: () => {
 					const char = message[charIndex];
-					const currentText = message.substring(0, charIndex + 1);
-					textObject.setText(currentText);
+					textObject.setText(prefix + message.substring(0, charIndex + 1));
 
 					const lines = textObject.getWrappedText();
 					const lineCount = Math.max(1, lines.length);
