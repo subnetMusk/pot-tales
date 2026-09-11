@@ -130,8 +130,8 @@ fi
 export APP_HOST ACME_EMAIL SERVER_IMAGE FRONTEND_IMAGE LANDING_IMAGE
 export CROWDSEC_DISABLE_ONLINE_API="${CROWDSEC_DISABLE_ONLINE_API:-false}"
 
-# Il nome dello stack entra nei nomi dei config: Docker antepone il prefisso
-# dello stack solo ai nomi impliciti, e questi sono espliciti.
+# Il nome dello stack entra nei nomi dei config e dei secret: Docker antepone il
+# prefisso dello stack solo ai nomi impliciti, e questi sono espliciti.
 export STACK_NAME
 
 # Parametri del bordo, letti da stack.yml. Vanno esportati anche quando non
@@ -150,26 +150,37 @@ export HSTS_INCLUDE_SUBDOMAINS="${HSTS_INCLUDE_SUBDOMAINS:-false}"
 # applicabile senza intervento: contenuto uguale, nome uguale, nessun effetto;
 # contenuto diverso, config nuovo e servizi aggiornati.
 #
+# Lo stesso vale per i secret, verificato su Docker 29.6.2: cambiare un file di
+# secret, per esempio aggiungendo un'utenza alle dashboard, farebbe fallire il
+# deploy con lo stesso errore. L'impronta di un valore casuale lungo non ne
+# rivela nulla.
+#
 # Le coppie nome-percorso si leggono da stack.yml invece di essere elencate qui,
 # perche' un elenco separato si sarebbe disallineato alla prima aggiunta.
-revisioni=$(awk '
-  /^configs:/            { dentro = 1; next }
-  dentro && /^[a-zA-Z]/  { dentro = 0 }
-  dentro && /^  [a-zA-Z0-9_]+:[[:space:]]*$/ {
-    nome = $1; sub(/:$/, "", nome); next
-  }
-  dentro && /^    file:/ { print nome, $2 }
-' stack.yml)
+esporta_revisioni() {
+  local sezione=$1 prefisso=$2 voci nome percorso impronta
+  voci=$(awk -v sezione="$sezione:" '
+    $0 == sezione          { dentro = 1; next }
+    dentro && /^[a-zA-Z]/  { dentro = 0 }
+    dentro && /^  [a-zA-Z0-9_]+:[[:space:]]*$/ {
+      nome = $1; sub(/:$/, "", nome); next
+    }
+    dentro && /^    file:/ { print nome, $2 }
+  ' stack.yml)
 
-while read -r nome percorso; do
-  [ -n "$nome" ] || continue
-  if [ ! -r "$percorso" ]; then
-    echo "file di configurazione non leggibile: $percorso (config $nome)" >&2
-    exit 1
-  fi
-  impronta=$(sha256sum "$percorso" | cut -c1-12)
-  export "CFG_REV_${nome^^}=$impronta"
-done <<< "$revisioni"
+  while read -r nome percorso; do
+    [ -n "$nome" ] || continue
+    if [ ! -r "$percorso" ]; then
+      echo "file non leggibile: $percorso ($sezione $nome)" >&2
+      return 1
+    fi
+    impronta=$(sha256sum "$percorso" | cut -c1-12)
+    export "${prefisso}${nome^^}=$impronta"
+  done <<< "$voci"
+}
+
+esporta_revisioni configs CFG_REV_ || exit 1
+esporta_revisioni secrets SEC_REV_ || exit 1
 
 # Stessa destinazione che usa `data-export.sh`, e stesso valore predefinito. Va
 # esportata perche' il servizio che consegna gli archivi la monta: se le due
@@ -228,25 +239,28 @@ docker stack deploy \
   -c stack.yml "$STACK_NAME"
 esito_deploy=$?
 
-# Rimozione dei config non piu' riferiti.
+# Rimozione dei config e dei secret non piu' riferiti.
 #
-# `--prune` agisce sui servizi e non sui config: verificato che quelli sostituiti
-# restino registrati a tempo indeterminato. Con il nome legato al contenuto ogni
-# modifica ne lascia indietro uno, quindi la rimozione va fatta qui o l'elenco
-# cresce a ogni deploy.
+# `--prune` agisce sui servizi e non sui config ne' sui secret: verificato che
+# quelli sostituiti restino registrati a tempo indeterminato. Con il nome legato
+# al contenuto ogni modifica ne lascia indietro uno, quindi la rimozione va fatta
+# qui o l'elenco cresce a ogni deploy.
 #
 # Il tentativo e' cieco di proposito: il demone rifiuta la rimozione di un config
-# montato da un servizio, quindi quelli in uso si difendono da soli e non serve
-# ricostruire chi riferisce cosa. Gli errori sono attesi e vanno scartati.
+# o di un secret montato da un servizio, quindi quelli in uso si difendono da
+# soli e non serve ricostruire chi riferisce cosa. Gli errori sono attesi e vanno
+# scartati.
 #
 # Solo dopo un deploy riuscito: se il deploy e' fallito, i servizi possono essere
 # ancora fermi sulla revisione precedente, che a quel punto non va rimossa.
 if [ "$esito_deploy" -eq 0 ]; then
-  docker config ls --format '{{.Name}}' 2>/dev/null \
-    | grep -E "^${STACK_NAME}_" \
-    | while read -r vecchio; do
-        docker config rm "$vecchio" >/dev/null 2>&1
-      done
+  for tipo in config secret; do
+    docker "$tipo" ls --format '{{.Name}}' 2>/dev/null \
+      | grep -E "^${STACK_NAME}_" \
+      | while read -r vecchio; do
+          docker "$tipo" rm "$vecchio" >/dev/null 2>&1
+        done
+  done
 fi
 
 # L'uscita e' quella del deploy, non quella della rimozione: l'unita' systemd

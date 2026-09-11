@@ -534,6 +534,27 @@ curl -u <utente> --output esportazione.ndjson.gz \
 
 ---
 
+## Cambiare un secret
+
+I file in `secrets/` si modificano sulla macchina, poi si riapplica lo stack con
+`sudo systemctl restart stack-deploy.service`. Il nome di ogni secret porta
+l'impronta del contenuto: un file cambiato diventa un secret nuovo, e vengono
+aggiornati solo i servizi che lo montano. Non tutti i valori pero' vivono solo nel
+file.
+
+| Secret | Come si cambia |
+|---|---|
+| `dashboard_users*` | nel file. Le stesse utenze vanno create anche in Kibana (`terraform/elk/README.md`) |
+| `redis_password` | nel file: Redis ricostruisce le utenze all'avvio, il backend l'indirizzo, e lo stesso deploy riavvia entrambi |
+| `apm_secret_token`, `filebeat_writer_password` | nel file, poi `sudo systemctl restart fleet-bootstrap.service`, che porta lo stesso valore nella policy Fleet o nell'utenza di Elasticsearch |
+| `kibana_system_password` | nel file: il job `setup` monta lo stesso secret e viene rieseguito a ogni deploy, quindi reimposta la password in Elasticsearch; Kibana, aggiornato dallo stesso deploy, si autentica appena la password e' impostata |
+| `crowdsec_bouncer_key` | prima si rimuove il bouncer (`cscli bouncers delete key_traefik` nel contenitore di crowdsec), poi si cambia il file: il motore registra la chiave all'avvio solo se il bouncer non esiste gia' |
+| `elastic_password`, `mongo_root_password` | prima nel servizio, poi nel file: Elasticsearch e MongoDB leggono il file solo alla prima inizializzazione |
+| `kibana_encryption_key` | non si cambia: cifra i saved object esistenti, che con una chiave nuova diventano illeggibili |
+| `gameplay_id_salt` | non si cambia durante l'esercizio: le partite in corso cambierebbero identificativo |
+
+---
+
 ## Da non fare
 
 - **Non rimuovere lo stack** per riparare un singolo servizio. `docker service

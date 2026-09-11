@@ -96,40 +96,58 @@ configs:
 # Swarm trasmette i secret ai nodi su mTLS, li cifra nel Raft log e li monta in
 # un filesystem in memoria sotto /run/secrets. Non compaiono mai nell'ambiente
 # ne' nella specifica del servizio.
+#
+# Come i config, i secret sono immutabili: un file cambiato con lo stesso nome
+# fa fallire il deploy con `only updates to Labels are allowed`. Il nome porta
+# quindi l'impronta del contenuto, calcolata da `stack-deploy.sh`: aggiungere
+# un'utenza alle dashboard o cambiare una password produce un secret nuovo e
+# aggiorna i soli servizi che lo montano.
 secrets:
   elastic_password:
+    name: ${STACK_NAME}_elastic_password_${SEC_REV_ELASTIC_PASSWORD}
     file: ../secrets/elastic_password
   kibana_system_password:
+    name: ${STACK_NAME}_kibana_system_password_${SEC_REV_KIBANA_SYSTEM_PASSWORD}
     file: ../secrets/kibana_system_password
   kibana_encryption_key:
+    name: ${STACK_NAME}_kibana_encryption_key_${SEC_REV_KIBANA_ENCRYPTION_KEY}
     file: ../secrets/kibana_encryption_key
   mongo_root_password:
+    name: ${STACK_NAME}_mongo_root_password_${SEC_REV_MONGO_ROOT_PASSWORD}
     file: ../secrets/mongo_root_password
   redis_password:
+    name: ${STACK_NAME}_redis_password_${SEC_REV_REDIS_PASSWORD}
     file: ../secrets/redis_password
   crowdsec_bouncer_key:
+    name: ${STACK_NAME}_crowdsec_bouncer_key_${SEC_REV_CROWDSEC_BOUNCER_KEY}
     file: ../secrets/crowdsec_bouncer_key
   # Lo stesso valore che la policy Fleet impone al server APM: i due lati devono
   # combaciare o l'intake rifiuta ogni invio del backend.
   apm_secret_token:
+    name: ${STACK_NAME}_apm_secret_token_${SEC_REV_APM_SECRET_TOKEN}
     file: ../secrets/apm_secret_token
   # Sale degli identificativi di partita, esportato dall'entrypoint al solo
   # processo del backend: fisso per l'intero esercizio, cosi' una partita a
   # cavallo di un riavvio viene contata una volta sola.
   gameplay_id_salt:
+    name: ${STACK_NAME}_gameplay_id_salt_${SEC_REV_GAMEPLAY_ID_SALT}
     file: ../secrets/gameplay_id_salt
   # Password di filebeat_writer: la legge Filebeat per scrivere e
   # fleet-bootstrap.sh per creare l'utenza con Terraform.
   filebeat_writer_password:
+    name: ${STACK_NAME}_filebeat_writer_password_${SEC_REV_FILEBEAT_WRITER_PASSWORD}
     file: ../secrets/filebeat_writer_password
   # Elenchi di utenze in formato htpasswd. Le credenziali che accettano sono le
   # stesse con cui Kibana autentica: l'intestazione di autorizzazione non viene
   # rimossa dal proxy, quindi attraversa e vale anche a valle.
   dashboard_users:
+    name: ${STACK_NAME}_dashboard_users_${SEC_REV_DASHBOARD_USERS}
     file: ../secrets/dashboard_users
   dashboard_users_esercizio:
+    name: ${STACK_NAME}_dashboard_users_esercizio_${SEC_REV_DASHBOARD_USERS_ESERCIZIO}
     file: ../secrets/dashboard_users_esercizio
   dashboard_users_evento:
+    name: ${STACK_NAME}_dashboard_users_evento_${SEC_REV_DASHBOARD_USERS_EVENTO}
     file: ../secrets/dashboard_users_evento
 
 volumes:

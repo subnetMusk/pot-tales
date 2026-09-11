@@ -235,15 +235,24 @@ ciclo di vita, e nient'altro. Fino a quel momento riceve un 401 e ritenta, e dop
 primo avvio il servizio risulta non sano per qualche minuto: lo stack converge da solo,
 come per gli agenti Fleet.
 
-**I config di Swarm sono immutabili.** Modificare un file lasciando invariato il nome del
-config non aggiorna nulla: il demone rifiuta, il deploy esce con errore e i servizi
+**I config e i secret di Swarm sono immutabili.** Modificare un file lasciando invariato
+il nome non aggiorna nulla: il demone rifiuta, il deploy esce con errore e i servizi
 restano montati sul contenuto precedente. Il nome porta l'impronta del contenuto proprio
-per questo, e `--prune` non rimuove i config sostituiti, che vanno rimossi a parte.
+per questo, e `--prune` non rimuove i config e i secret sostituiti, che vanno rimossi a
+parte.
 
-**Segreti.** In sviluppo `.env` contiene password in chiaro. In produzione sono Docker
-secret, trasmessi su mTLS, cifrati nel Raft log e montati in un filesystem in memoria
-sotto `/run/secrets`: non compaiono mai nell'ambiente né nella specifica del servizio.
-Restano aperte la rotazione delle credenziali e la cifratura a riposo.
+**Segreti.** In sviluppo `.env` contiene password in chiaro. In produzione i valori sono
+generati sulla macchina da `provisioning/bin/generate-secrets.sh` e non entrano mai nel
+repository. Arrivano ai servizi come Docker secret, trasmessi su mTLS, cifrati nel Raft
+log e montati in un filesystem in memoria sotto `/run/secrets`: non compaiono mai
+nell'ambiente né nella specifica del servizio. Sul disco della macchina restano come file
+con permessi 0400 in una directory 0700.
+
+Cambiare un valore è un'operazione ordinaria, perché il nome del secret segue il contenuto
+come per i config; quali valori vanno prima cambiati nel servizio è descritto in
+[`ESERCIZIO.md`](ESERCIZIO.md#cambiare-un-secret). Cifrare i file, per esempio con SOPS,
+servirebbe a condividere il `.env` di sviluppo. In produzione sposterebbe il problema sulla
+chiave che li decifra, che l'avvio non presidiato dovrebbe comunque trovare sulla macchina.
 
 ## Riferimenti
 
