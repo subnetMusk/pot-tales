@@ -31,13 +31,28 @@
 #   SWARM_ADVERTISE_ADDR  indirizzo annunciato all'inizializzazione dello swarm.
 #                    Serve solo se il nodo ha piu' indirizzi e il demone non
 #                    puo' sceglierne uno da solo.
+#   TRAEFIK_SNI_STRICT  rifiuto degli handshake per nomi senza certificato. Non
+#                    impostata vale true, che e' il valore di esercizio; si
+#                    disattiva solo per verifiche locali prima di un'emissione.
+#
+# Le altre variabili lette da stack.yml (ES_JAVA_OPTS, DATA_RETENTION_DAYS, ...)
+# si possono impostare nello stesso file.
 set -uo pipefail
 
 CONF=${CONF:-/etc/stack-deploy.env}
-# Il percorso e' parametrico di proposito, quindi l'analizzatore non puo'
-# seguirlo: la direttiva glielo dichiara invece di lasciarlo protestare.
-# shellcheck source=/dev/null
-[ -r "$CONF" ] && . "$CONF"
+
+# Ogni variabile del file viene esportata, come fa `EnvironmentFile` quando lo
+# script parte dall'unita' systemd. Senza, i parametri di stack.yml che questo
+# script non esporta uno per uno avrebbero effetto dall'unita' e nessuno quando
+# lo script parte a mano, e lo stesso file produrrebbe due stack diversi.
+if [ -r "$CONF" ]; then
+  set -a
+  # Il percorso e' parametrico di proposito, quindi l'analizzatore non puo'
+  # seguirlo: la direttiva glielo dichiara invece di lasciarlo protestare.
+  # shellcheck source=/dev/null
+  . "$CONF"
+  set +a
+fi
 
 STACK_DIR=${STACK_DIR:-/srv/progetti_innovativi/deploy}
 STACK_NAME=${STACK_NAME:-pi}
