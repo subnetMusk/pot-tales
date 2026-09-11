@@ -253,13 +253,19 @@ manutenzione.
 
 ## Primi trenta secondi
 
-Prima di qualsiasi ipotesi, questi tre comandi in quest'ordine.
+Prima di qualsiasi ipotesi, questi tre controlli in quest'ordine.
 
 ```bash
 make stack-status      # servizi, repliche, task non in esecuzione
-curl -sk -o /dev/null -w '%{http_code}\n' https://localhost/health
+h=$(sudo sed -n 's/^APP_HOST=//p' /etc/stack-deploy.env)
+curl -sk -o /dev/null -w '%{http_code}\n' --resolve "$h:443:127.0.0.1" "https://$h/health"
 journalctl -u stack-deploy.service -u fleet-bootstrap.service -n 50 --no-pager
 ```
+
+La richiesta di salute passa dal proxy sul nome pubblico, risolto sulla macchina
+stessa: con `sniStrict` attivo un handshake per `localhost` viene rifiutato, e
+l'entrypoint in chiaro reindirizza ogni richiesta. `-k` perche' qui interessa che il
+backend risponda, non il certificato, che ha un controllo proprio.
 
 `make stack-status` distingue subito le due situazioni che richiedono risposte
 opposte: **repliche a zero** significa che l'orchestratore non riesce a piazzare

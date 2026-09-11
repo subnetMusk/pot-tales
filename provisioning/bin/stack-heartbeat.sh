@@ -23,18 +23,19 @@
 #
 #   tls-pubblico     il certificato servito sul nome pubblico e' verificabile e
 #                    non prossimo alla scadenza. Il controllo di liveness
-#                    interroga l'endpoint in chiaro sul loopback e non
-#                    attraversa TLS: se l'emissione automatica non riesce, il
-#                    proxy serve il proprio certificato predefinito e
-#                    l'applicazione continua a rispondere. Senza questo
-#                    controllo ogni check resterebbe verde mentre il pubblico
-#                    trova un avviso, che con HSTS dichiarato non e' aggirabile.
+#                    attraversa il proxy ma non verifica il certificato: se
+#                    l'emissione automatica non riesce, il proxy serve un
+#                    certificato non attendibile e l'applicazione continua a
+#                    rispondere. Senza questo controllo ogni check resterebbe
+#                    verde mentre il pubblico trova un avviso, che con HSTS
+#                    dichiarato non e' aggirabile.
 #
 # I ping sui due relay partono solo sulle transizioni. Lo storico di un check e'
 # limitato a 100 eventi, e un ping a ogni esecuzione lo riempirebbe di rumore
 # facendo scorrere via proprio gli allarmi.
 #
-# Configurazione in /etc/stack-surveillance.env.
+# Configurazione in /etc/stack-surveillance.env; il nome pubblico si legge da
+# /etc/stack-deploy.env.
 set -uo pipefail
 
 CONF=${CONF:-/etc/stack-surveillance.env}
@@ -43,9 +44,20 @@ CONF=${CONF:-/etc/stack-surveillance.env}
 # shellcheck source=/dev/null
 [ -r "$CONF" ] && . "$CONF"
 
+# Il nome pubblico viene dalla configurazione del deploy, la stessa da cui i
+# router del proxy prendono la regola `Host`: una copia in questo file potrebbe
+# divergere, e il controllo interrogherebbe un nome che nessun router serve. Il
+# file si legge in una subshell, per non importare altro che quel valore.
+CONF_DEPLOY=${CONF_DEPLOY:-/etc/stack-deploy.env}
+if [ -z "${APP_HOST:-}" ] && [ -r "$CONF_DEPLOY" ]; then
+  # shellcheck source=/dev/null
+  APP_HOST=$(. "$CONF_DEPLOY" && printf '%s' "${APP_HOST:-}")
+fi
+APP_HOST=${APP_HOST:-}
+HEALTH_CONNECT=${HEALTH_CONNECT:-127.0.0.1}
+
 HC_BASE=${HC_BASE:-https://hc-ping.com}
 HC_PING_KEY=${HC_PING_KEY:-}
-HEALTH_URL=${HEALTH_URL:-http://localhost/health}
 ES_URL=${ES_URL:-}
 ES_CA=${ES_CA:-}
 STATE_DIR=${STATE_DIR:-/var/lib/stack-surveillance}
@@ -104,14 +116,42 @@ segnala() {
 
 # --- 1. Liveness: l'applicazione risponde e si dichiara sana ----------------
 
+#
+# La richiesta attraversa il proxy come quella di un visitatore. Un controllo su
+# `localhost` misurerebbe il proxy e non l'applicazione: l'entrypoint in chiaro
+# risponde con un reindirizzamento qualunque sia lo stato del backend, i router
+# servono solo il nome pubblico, e con `sniStrict` gli handshake per altri nomi
+# sono rifiutati. `--resolve` tiene il nome pubblico nella SNI e nell'intestazione
+# Host ma dirige la connessione a HEALTH_CONNECT, quindi il controllo non dipende
+# dal DNS ne' dal ritorno verso il proprio indirizzo pubblico.
+#
+# Il certificato non viene verificato: qui interessa che il backend risponda, e
+# con quello dell'autorita' di prova il controllo fallirebbe a servizio sano. La
+# validita' del certificato ha il controllo proprio, il 4.
+#
+# Conta solo una risposta 200 del backend. Un reindirizzamento o una pagina di
+# errore del proxy hanno un corpo non vuoto, e non dicono nulla sull'applicazione.
+
 fallimenti=""
-salute=$(curl -fsS --max-time "$TIMEOUT" "$HEALTH_URL" 2>/dev/null)
-if [ -z "$salute" ]; then
-  fallimenti="$fallimenti applicazione-irraggiungibile"
+if [ -z "$APP_HOST" ]; then
+  fallimenti="$fallimenti nome-pubblico-non-configurato"
 else
-  # L'endpoint riporta lo stato delle dipendenze: un "false" qualsiasi indica
-  # che il servizio risponde ma non e' in grado di servire.
-  echo "$salute" | grep -q 'false' && fallimenti="$fallimenti dipendenza-degradata"
+  risposta=$(curl -sS --insecure --max-time "$TIMEOUT" \
+    --resolve "$APP_HOST:443:$HEALTH_CONNECT" \
+    -w '\n%{http_code}' "https://$APP_HOST/health" 2>/dev/null)
+  codice=${risposta##*$'\n'}
+  salute=${risposta%$'\n'*}
+  if [ "$codice" != "200" ]; then
+    fallimenti="$fallimenti applicazione-irraggiungibile-http-${codice:-000}"
+  elif ! echo "$salute" | grep -q '"server":true'; then
+    # Il backend dichiara sempre se stesso: una risposta 200 senza quel campo
+    # arriva da qualcos'altro.
+    fallimenti="$fallimenti risposta-non-riconosciuta"
+  else
+    # L'endpoint riporta lo stato delle dipendenze: un "false" qualsiasi indica
+    # che il servizio risponde ma non e' in grado di servire.
+    echo "$salute" | grep -q 'false' && fallimenti="$fallimenti dipendenza-degradata"
+  fi
 fi
 
 # --- 2. Risorse dell'host ---------------------------------------------------

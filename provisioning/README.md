@@ -223,6 +223,15 @@ Un file unico per entrambe le unita': usano lo stesso endpoint e le stesse
 credenziali del cluster, e tenerli separati esporrebbe al caso in cui una
 rotazione ne aggiorna uno e dimentica l'altro.
 
+Il battito legge anche `/etc/stack-deploy.env`, e solo per il nome pubblico:
+interroga `/health` attraverso il proxy come un visitatore, con
+`curl --resolve <APP_HOST>:443:127.0.0.1`. Un controllo su `localhost`
+misurerebbe il proxy e non l'applicazione: l'entrypoint in chiaro reindirizza
+qualunque richiesta, i router rispondono solo al nome pubblico e con `sniStrict`
+un handshake per altri nomi viene rifiutato. Il certificato non viene
+verificato, per non fallire con quello dell'autorita' di prova: la sua validita'
+e' il controllo `tls-pubblico`.
+
 La cadenza del battito deve restare piu' breve del periodo atteso configurato
 sul servizio esterno. Con `OnUnitActiveSec=5min` il periodo va impostato a
 cinque minuti e la tolleranza a quindici, cosi' che due battiti persi non
