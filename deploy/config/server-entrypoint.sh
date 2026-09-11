@@ -37,4 +37,16 @@ else
 	echo "server-entrypoint: sale degli identificativi non leggibile in $SALT_FILE, ne verra' generato uno a ogni avvio" >&2
 fi
 
+# Credenziali di Redis. In produzione Redis non accetta connessioni senza utente
+# (vedi redis-entrypoint.sh): l'indirizzo con utente e password si costruisce qui
+# dal secret, cosi' la password resta nell'ambiente del solo processo e non
+# nella specifica del servizio. Senza secret l'indirizzo resta quello
+# configurato.
+REDIS_PASSWORD_FILE=${REDIS_PASSWORD_FILE:-/run/secrets/redis_password}
+
+if [ -r "$REDIS_PASSWORD_FILE" ]; then
+	REDIS_URL="redis://app:$(cat "$REDIS_PASSWORD_FILE")@${REDIS_ADDR:-redis:6379}/0"
+	export REDIS_URL
+fi
+
 exec /server "$@"
