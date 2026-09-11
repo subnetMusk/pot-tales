@@ -30,8 +30,14 @@ const (
 	// UserIDKey è la chiave usata per salvare il token/ID nel context
 	UserIDKey ContextKey = "userID"
 
-	// SessionTTL definisce la durata standard della sessione (es. 30 minuti)
+	// SessionTTL e' la durata piena predefinita della sessione, usata quando
+	// SESSION_TTL_MIN non e' impostata.
 	SessionTTL = 30 * time.Minute
+
+	// Risposte di Redis a TTL per una chiave assente o senza scadenza: la
+	// libreria le restituisce come durate di -2 e -1 nanosecondi.
+	ttlChiaveAssente = -2 * time.Nanosecond
+	ttlSenzaScadenza = -1 * time.Nanosecond
 )
 
 var (
@@ -44,13 +50,21 @@ var (
 type SessionManager struct {
 	rdb      *redis.Client
 	mongoCol *mongo.Collection
+
+	// Durata piena della sessione, la stessa che il router dichiara nel cookie.
+	ttl time.Duration
 }
 
 // NewSessionManager crea una nuova istanza del manager con le dipendenze iniettate.
+//
+// La durata piena si legge da SESSION_TTL_MIN, come nel router che imposta il
+// cookie: con due valori distinti browser e server smetterebbero di considerare
+// valida la sessione in momenti diversi.
 func NewSessionManager(rdb *redis.Client, col *mongo.Collection) *SessionManager {
 	return &SessionManager{
 		rdb:      rdb,
 		mongoCol: col,
+		ttl:      time.Duration(EnvInt("SESSION_TTL_MIN", int(SessionTTL/time.Minute))) * time.Minute,
 	}
 }
 
@@ -61,8 +75,21 @@ func NewSessionManager(rdb *redis.Client, col *mongo.Collection) *SessionManager
 // Restituisce il token stesso (che funge da ID) se valido.
 func (sm *SessionManager) ValidateSession(ctx context.Context, token string) (string, error) {
 	// 1. Fast Path: Redis
-	// Controlliamo solo l'esistenza della chiave.
-	if sm.rdb.Exists(ctx, "sess:"+token).Val() > 0 {
+	//
+	// Oltre all'esistenza della chiave si legge la durata residua. La sessione
+	// nasce con una durata ridotta, pensata per quelle create e mai usate, e la
+	// prima richiesta autenticata deve portarla alla durata piena: senza, una
+	// partita in corso scadrebbe allo scadere di quella durata, con ping e
+	// traguardi respinti a meta' gioco e nessuna partita da riprendere.
+	//
+	// Il prolungamento parte quando resta meno di meta' della durata piena: la
+	// prima richiesta dopo la creazione lo ottiene sempre, le successive lo
+	// rinnovano al piu' una volta ogni mezza durata invece che a ogni ping, che
+	// raddoppierebbe le scritture sulla base dati.
+	if residuo, err := sm.rdb.TTL(ctx, "sess:"+token).Result(); err == nil && residuo != ttlChiaveAssente {
+		if residuo != ttlSenzaScadenza && residuo < sm.ttl/2 {
+			go sm.refreshSessionAsync(token)
+		}
 		return token, nil
 	}
 
@@ -99,12 +126,12 @@ func (sm *SessionManager) refreshSessionAsync(token string) {
 	defer cancel()
 
 	// Redis: Refresh TTL (valore "1" come placeholder)
-	if err := sm.rdb.Set(ctx, "sess:"+token, "1", SessionTTL).Err(); err != nil {
+	if err := sm.rdb.Set(ctx, "sess:"+token, "1", sm.ttl).Err(); err != nil {
 		log.Printf("[session] redis refresh failed for %s: %v", token, err)
 	}
 
 	// MongoDB: Estensione expires_at
-	newExpiry := time.Now().Add(SessionTTL)
+	newExpiry := time.Now().Add(sm.ttl)
 	_, err := sm.mongoCol.UpdateOne(
 		ctx,
 		bson.M{"_id": token},
