@@ -48,6 +48,13 @@ RUN CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH \
 # --- stadio di esecuzione: immagine leggera per la produzione ----------------
 FROM alpine:3.24@sha256:28bd5fe8b56d1bd048e5babf5b10710ebe0bae67db86916198a6eec434943f8b
 
+# Pacchetti di sistema aggiornati a build time. Il digest della base resta
+# fissato, ma le correzioni di sicurezza delle librerie di sistema arrivano nei
+# repository di Alpine prima che l'immagine di base venga ricostruita. Il
+# contenuto dipende quindi anche dai repository al momento della build: e' una
+# deroga deliberata alla regola di fissare tutto, e trivy ne verifica l'esito.
+RUN apk upgrade --no-cache
+
 # Copia il binario compilato dal builder
 COPY --from=builder /server /server
 
