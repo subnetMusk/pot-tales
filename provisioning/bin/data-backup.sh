@@ -59,7 +59,7 @@ LV_DOCKER=${LV_DOCKER:-docker}
 # Spazio copy-on-write dello snapshot. Deve bastare a contenere le scritture
 # che avvengono mentre lo snapshot esiste: uno snapshot che esaurisce lo spazio
 # viene invalidato dal kernel e non e' piu' ripristinabile.
-SNAP_SIZE=${SNAP_SIZE:-8G}
+SNAP_SIZE=${SNAP_SIZE:-16G}
 SNAP_KEEP=${SNAP_KEEP:-3}
 
 BACKUP_DEST=${BACKUP_DEST:-/srv/backup}

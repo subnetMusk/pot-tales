@@ -47,7 +47,7 @@ CONF=${CONF:-/etc/stack-data.env}
 [ -r "$CONF" ] && . "$CONF"
 
 EXPORT_DEST=${EXPORT_DEST:-/srv/export}
-EXPORT_KEEP=${EXPORT_KEEP:-5}
+EXPORT_KEEP=${EXPORT_KEEP:-2}
 LOCK_DIR=${LOCK_DIR:-/var/lock/data-export.lock}
 
 # Ancorata per digest come le altre immagini del progetto: un tag e' mutabile,
@@ -291,8 +291,8 @@ fi
   | xargs -0 sha256sum > SHA256SUMS ) 2>/dev/null
 
 # Ritenzione: le esportazioni piu' vecchie oltre EXPORT_KEEP vengono rimosse.
-# Il disco che le ospita e' lo stesso che serve agli indici, e riempirlo
-# porterebbe Elasticsearch in sola lettura.
+# Il volume che le ospita e' dimensionato su poche esportazioni complete, e
+# quelle precedenti sono gia' state prelevate a fine giornata.
 mapfile -t vecchie < <(find "$EXPORT_DEST" -mindepth 1 -maxdepth 1 -type d \
   | sort -r | tail -n "+$((EXPORT_KEEP + 1))")
 for vecchia in "${vecchie[@]}"; do

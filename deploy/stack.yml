@@ -194,6 +194,16 @@ networks:
 # non quote assegnate, e questi servizi non vanno sotto carico tutti insieme.
 # I valori sono tarati su otto CPU logiche e vanno rivisti se la macchina
 # cambia.
+#
+# Tetti di memoria
+# ------------------------------------------------------------
+# Tarati su 64 GB. La somma dei tetti e' di circa 24 GB: il resto resta al
+# sistema e alla cache dei file, e il margine assorbe un servizio che cresce
+# senza che il kernel debba scegliere chi terminare. I tetti restano comunque
+# tutti dichiarati: servono a decidere chi cede per primo, non a stare nella
+# memoria. La quota maggiore va a Elasticsearch, che oltre l'heap la usa come
+# cache dei segmenti; MongoDB ha 4 GB, con la cache di WiredTiger fissata di
+# conseguenza.
 services:
 
   # ===========================================================================
@@ -568,7 +578,7 @@ services:
     image: mongo:8.2.12@sha256:e0ce8c35124d4a9f9785532d1f268f39e9728ffa1cb38f46fa482436424c4bd3
     # Cache di WiredTiger dimensionata sul limite del contenitore e non sulla
     # memoria dell'host. Il valore e' la formula predefinita di MongoDB, il 50%
-    # di (memoria - 1 GB), applicata al limite di 2G dichiarato sotto: va
+    # di (memoria - 1 GB), applicata al limite di 4G dichiarato sotto: va
     # ricalcolato se il limite cambia. Misurato su mongo 8.2.12: con un limite
     # in cgroup v2 il processo ricava gia' lo stesso valore, senza limite lo
     # dimensiona sull'intera memoria dell'host. L'opzione lo rende indipendente
@@ -576,7 +586,7 @@ services:
     #
     # `mongod` resta il primo argomento: l'entrypoint dell'immagine lo riconosce
     # ed esegue l'inizializzazione dell'utente amministrativo.
-    command: ["mongod", "--wiredTigerCacheSizeGB", "0.5"]
+    command: ["mongod", "--wiredTigerCacheSizeGB", "1.5"]
     networks:
       - data
     volumes:
@@ -604,9 +614,9 @@ services:
       resources:
         limits:
           cpus: "2.0"
-          memory: 2G
+          memory: 4G
         reservations:
-          memory: 512M
+          memory: 1G
       update_config:
         # La base dati non tollera due istanze sullo stesso volume: il nuovo
         # task parte solo dopo che il precedente ha rilasciato il lock.
@@ -766,7 +776,11 @@ services:
       discovery.type: single-node
       ELASTIC_PASSWORD_FILE: /run/secrets/elastic_password
       bootstrap.memory_lock: "true"
-      ES_JAVA_OPTS: "${ES_JAVA_OPTS:--Xms1g -Xmx1g}"
+      # Heap di 4 GB, un terzo del tetto: il resto resta alla cache dei file,
+      # dove Lucene trova i segmenti senza rileggerli dal disco. Un heap piu'
+      # grande allungherebbe le pause di raccolta senza servire a un nodo con
+      # pochi indici.
+      ES_JAVA_OPTS: "${ES_JAVA_OPTS:--Xms4g -Xmx4g}"
       xpack.security.enabled: "true"
       xpack.security.http.ssl.enabled: "true"
       xpack.security.http.ssl.key: certs/es01/es01.key
@@ -800,9 +814,9 @@ services:
       resources:
         limits:
           cpus: "3.0"
-          memory: 2G
+          memory: 12G
         reservations:
-          memory: 1G
+          memory: 4G
       update_config:
         order: stop-first
         failure_action: rollback
@@ -869,9 +883,9 @@ services:
       resources:
         limits:
           cpus: "1.5"
-          memory: 1500M
+          memory: 2G
         reservations:
-          memory: 512M
+          memory: 1G
       update_config:
         order: stop-first
         failure_action: rollback

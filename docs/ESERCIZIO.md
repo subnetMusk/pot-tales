@@ -423,6 +423,16 @@ La ritenzione degli indici e' governata dalla configurazione dello stack e si
 applica da sola: non cancellare indici a mano durante l'esercizio, perche' il
 recupero e' modesto e la perdita e' definitiva.
 
+**Il volume degli indici si estende a caldo.** Il volume group tiene non
+allocati circa 165 GB, di cui gli snapshot ne usano al piu' 48: con
+`/srv/data/elastic` oltre l'85% la risposta e' estenderlo, non ridurre la
+ritenzione.
+
+```bash
+sudo lvextend -r -L +40G vg0/elastic   # -r estende anche il filesystem
+df -h /srv/data/elastic
+```
+
 ---
 
 ## Pressione di memoria
