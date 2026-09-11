@@ -14,11 +14,14 @@
 
 name: CI
 
+# Il ramo di integrazione dell'infrastruttura riceve commit diretti che poi
+# confluiscono in develop: senza verifica propria, un difetto emergerebbe solo
+# al passaggio, lontano dal commit che lo ha introdotto.
 on:
   push:
-    branches: [main, develop]
+    branches: [main, develop, integrazione/infra]
   pull_request:
-    branches: [main, develop]
+    branches: [main, develop, integrazione/infra]
 
 # Nessun permesso predefinito: ogni lavoro dichiara solo cio' che gli serve.
 permissions: {}
@@ -122,11 +125,15 @@ jobs:
   #
   # Dipende dalla verifica a runtime: non si pubblica un'immagine che non e'
   # stata vista partire.
+  #
+  # Solo da main e develop. Il ramo di integrazione esegue le verifiche ma non
+  # pubblica: le immagini in registro vengono dalle revisioni promosse, e il
+  # passaggio su develop e' il punto in cui la promozione si decide.
   publish-images:
     name: Build e push immagini su GHCR
     runs-on: ubuntu-latest
     timeout-minutes: 30
-    if: github.event_name != 'pull_request'
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop')
     needs: [backend, frontend, statica, runtime]
     permissions:
       contents: read
