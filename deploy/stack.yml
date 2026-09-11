@@ -566,6 +566,17 @@ services:
 
   db:
     image: mongo:8.2.12@sha256:e0ce8c35124d4a9f9785532d1f268f39e9728ffa1cb38f46fa482436424c4bd3
+    # Cache di WiredTiger dimensionata sul limite del contenitore e non sulla
+    # memoria dell'host. Il valore e' la formula predefinita di MongoDB, il 50%
+    # di (memoria - 1 GB), applicata al limite di 2G dichiarato sotto: va
+    # ricalcolato se il limite cambia. Misurato su mongo 8.2.12: con un limite
+    # in cgroup v2 il processo ricava gia' lo stesso valore, senza limite lo
+    # dimensiona sull'intera memoria dell'host. L'opzione lo rende indipendente
+    # da quel rilevamento.
+    #
+    # `mongod` resta il primo argomento: l'entrypoint dell'immagine lo riconosce
+    # ed esegue l'inizializzazione dell'utente amministrativo.
+    command: ["mongod", "--wiredTigerCacheSizeGB", "0.5"]
     networks:
       - data
     volumes:
