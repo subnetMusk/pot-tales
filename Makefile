@@ -251,9 +251,18 @@ scan-secrets-history: ## Cerca credenziali nell'intera cronologia (non bloccante
 scan-deps-go: ## Cerca vulnerabilita' note nelle dipendenze del backend
 	$(GO_RUN) sh -c 'go install golang.org/x/vuln/cmd/govulncheck@latest && govulncheck ./...'
 
+# Tutte le immagini vengono analizzate prima di dichiarare l'esito: fermarsi
+# alla prima con vulnerabilita' nasconderebbe quelle delle altre, che
+# emergerebbero solo una correzione alla volta.
 .PHONY: scan-images
 scan-images: ## Cerca vulnerabilita' note nelle immagini costruite localmente
-	@for i in progetti-innovativi/server:locale progetti-innovativi/frontend:locale progetti-innovativi/landing:locale; do 		echo "== $$i"; 		$(DOCKER) run --rm -v /var/run/docker.sock:/var/run/docker.sock $(TRIVY_IMAGE) 			image --scanners vuln --severity HIGH,CRITICAL --exit-code 1 --quiet "$$i" || exit 1; 	done
+	@esito=0; \
+	for i in progetti-innovativi/server:locale progetti-innovativi/frontend:locale progetti-innovativi/landing:locale; do \
+		echo "== $$i"; \
+		$(DOCKER) run --rm -v /var/run/docker.sock:/var/run/docker.sock $(TRIVY_IMAGE) \
+			image --scanners vuln --severity HIGH,CRITICAL --exit-code 1 --quiet "$$i" || esito=1; \
+	done; \
+	exit $$esito
 
 ##@ Immagini
 
