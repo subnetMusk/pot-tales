@@ -12,6 +12,19 @@ evento/<nome>.ndjson              export dello Space divulgativo
 evento/<nome>.ndjson.versione
 ```
 
+## I due Space
+
+**`esercizio/`** — vista tecnica: salute del servizio, risorse della macchina,
+contenimento. Non destinata alla distribuzione. Contiene `salute-risorse`, che copre
+host e container; mancano i pannelli applicativi e l'imbuto di partita.
+
+**`evento/`** — vista divulgativa, destinata alla condivisione. Ancora priva di export.
+
+Cio' che finisce in `evento/` viene condiviso: prima di esportare va verificato che i
+pannelli non mostrino indirizzi, identificativi di sessione o nomi di host. Il ruolo
+`osservabilita_evento` limita gli indici leggibili, ma non puo' impedire a un pannello
+di riportare un valore gia' aggregato.
+
 ## Perche' non sono generate da Terraform
 
 Una dashboard si disegna sui dati: quali campi esistono davvero, come si
