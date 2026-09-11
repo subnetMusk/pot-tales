@@ -20,9 +20,36 @@ senza portare giu' il sistema.
 
 | Volume | Punto di mount | Contenuto |
 |---|---|---|
-| `docker` | `/srv/docker` | Immagini, container, volumi, log dei container |
+| sistema | `/` | Sistema operativo |
+| `var` | `/var` | Journal persistente |
+| `docker` | `/srv/docker` | Immagini, container, volumi con nome (MongoDB compreso), log dei container |
+| `elastic` | `/srv/data/elastic` | Indici di Elasticsearch |
 | `diagnostics` | `/srv/diagnostics` | Pacchetti diagnostici raccolti allo spegnimento |
-| sistema | `/` | Sistema operativo, journal persistente |
+| `backup` | `/srv/backup` | Archivi portabili della copia notturna |
+| `export` | `/srv/export` | Archivi di esportazione, serviti su `/export` |
+
+Il resto del volume group resta non allocato: e' lo spazio degli snapshot.
+
+**Gli indici hanno un volume proprio.** Sono telemetria, deliberatamente non
+protetta, e crescono con il traffico: sul volume dei dati Docker il loro
+riempimento porterebbe giu' MongoDB. Il volume `esdata01` dello stack e' un
+bind su questa directory (`ES_DATA_DIR` in `/etc/stack-deploy.env`), che
+l'immagine di Elasticsearch scrive come uid 1000 e gid 0. La proprieta' va
+assegnata con il volume montato, prima del primo deploy:
+
+```bash
+sudo chown 1000:0 /srv/data/elastic
+sudo chmod 2770 /srv/data/elastic
+```
+
+`stack-deploy.sh` verifica esistenza e proprieta' prima di applicare lo stack e
+si ferma con un messaggio se non corrispondono: senza, Elasticsearch non
+scriverebbe e resterebbe in riavvio ciclico. Il controllo coglie anche un
+volume non montato, perche' la directory sottostante resta di root.
+
+**MongoDB resta sul volume `docker`.** Lo snapshot LVM copre un volume solo: con
+MongoDB su un volume separato, la copia primaria dei dati non ricostruibili non
+lo comprenderebbe.
 
 ```bash
 sudo ./bin/setup-volumes.sh            # mostra i comandi
@@ -297,8 +324,10 @@ segnalare nulla.
 Due meccanismi con ruoli distinti.
 
 **Snapshot LVM, primario.** Cattura in un istante l'intero volume che ospita i
-dati Docker, quindi MongoDB ed Elasticsearch insieme, senza fermare le
-scritture. Con il journaling attivo e file dati e journal sullo stesso volume,
+dati Docker, quindi MongoDB e gli altri volumi con nome, senza fermare le
+scritture. Gli indici di Elasticsearch stanno su un volume proprio e non sono
+compresi: cio' che di essi deve sopravvivere passa dall'esportazione.
+Con il journaling attivo e file dati e journal sullo stesso volume,
 uno snapshot a livello di volume cattura dati e journal come unita' singola e
 al ripristino MongoDB rigioca il journal: **`fsyncLock` non serve** e non viene
 eseguito, perche' bloccherebbe le scritture per tutta la durata della copia,

@@ -4,8 +4,11 @@
 # Due meccanismi con ruoli distinti.
 #
 #   Snapshot LVM     meccanismo primario. Cattura in un istante l'intero volume
-#                    che ospita i dati Docker, quindi MongoDB ed Elasticsearch
-#                    insieme, senza fermare le scritture.
+#                    che ospita i dati Docker, quindi MongoDB e gli altri
+#                    volumi con nome, senza fermare le scritture. Gli indici di
+#                    Elasticsearch stanno su un volume proprio e non sono
+#                    compresi: cio' che deve sopravvivere passa
+#                    dall'esportazione.
 #
 #   mongodump        formato portabile, destinato al prelievo manuale a evento
 #                    concluso. Si rilegge su un'altra macchina e su un'altra

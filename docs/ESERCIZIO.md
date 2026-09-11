@@ -52,9 +52,10 @@ Uscita: hardware accettato, indirizzi noti, nessun record DNS ancora creato.
 significa ridurre un filesystem in uso.
 
 1. Sistema di ripristino, chiave SSH autorizzata, accesso.
-2. Installazione con il layout previsto: volume di sistema al minimo, volumi distinti per
-   dati Docker, MongoDB, indici e diagnostica, **spazio abbondante non allocato nel
-   volume group**.
+2. Installazione con il layout previsto (`provisioning/README.md`, "Layout"): volume di
+   sistema al minimo, volumi distinti per dati Docker, indici di Elasticsearch,
+   diagnostica, copie ed esportazioni, **spazio abbondante non allocato nel volume
+   group**.
 3. Nessuna partizione di swap.
 
 **Perché lo spazio non allocato non è prudenza generica.** Lo snapshot LVM è il
@@ -62,9 +63,11 @@ meccanismo di copia primario e richiede extent liberi nel volume group. Allocare
 significa restare senza il meccanismo su cui è costruita la continuità dei dati, e
 accorgersene quando serve usarlo.
 
-**Perché volumi distinti per MongoDB e per gli indici.** I dati di sessione sono
-irrecuperabili, gli indici sono telemetria deliberatamente non protetta. Se condividono
-un filesystem, il riempimento del secondo porta giù il primo.
+**Perché gli indici hanno un volume proprio.** I dati di sessione sono irrecuperabili,
+gli indici sono telemetria deliberatamente non protetta. Se condividono un filesystem,
+il riempimento del secondo porta giù il primo. MongoDB resta invece sul volume dei dati
+Docker: lo snapshot LVM copre un volume solo, e con MongoDB altrove la copia primaria
+dei dati non ricostruibili non lo comprenderebbe.
 
 Verifica prima di proseguire:
 ```
@@ -102,14 +105,16 @@ Da eseguire con l'autorità di certificazione di prova e HSTS spento. Le ragioni
 punto 6.
 
 1. Prelievo del repository, generazione dei segreti.
-2. `/etc/stack-deploy.env` compilato: hostname, recapito per l'autorità, digest delle
+2. Directory degli indici `/srv/data/elastic` a `1000:0`, modo `2770`, con il volume
+   montato (`provisioning/README.md`, "Layout"). Il deploy si ferma se non lo è.
+3. `/etc/stack-deploy.env` compilato: hostname, recapito per l'autorità, digest delle
    immagini. **Le immagini vanno riferite per digest**, non per tag: lo stesso comando
    eseguito a distanza di tempo porterebbe in servizio contenuto diverso senza che nulla
    lo segnali.
-3. `ACME_CA_SERVER` puntata alla directory di prova, `HSTS_MAX_AGE=0`.
-4. `/etc/stack-surveillance.env` compilato, con `TLS_HOST` ancora **vuoto**: il controllo
+4. `ACME_CA_SERVER` puntata alla directory di prova, `HSTS_MAX_AGE=0`.
+5. `/etc/stack-surveillance.env` compilato, con `TLS_HOST` ancora **vuoto**: il controllo
    del certificato va acceso quando c'è un certificato vero da controllare.
-5. Deploy.
+6. Deploy.
 
 ### Verifica a stack acceso
 
@@ -361,7 +366,7 @@ Il battito segnala l'occupazione oltre l'**85%** su ciascun punto di mount
 sorvegliato, con la classe `host-resources`.
 
 ```bash
-df -h /srv/docker /srv/diagnostics /
+df -h / /var /srv/docker /srv/data/elastic /srv/backup /srv/export /srv/diagnostics
 docker system df
 lvs                      # occupazione copy-on-write degli snapshot
 ```

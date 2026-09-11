@@ -125,7 +125,19 @@ secrets:
 
 volumes:
   certs:
+  # Indici su un filesystem dedicato, non sotto la directory dati del demone:
+  # il loro riempimento non deve raggiungere MongoDB, che vive li'. Il bind
+  # richiede che la sorgente esista e appartenga all'utente dell'immagine
+  # (uid 1000, gid 0), e `stack-deploy.sh` lo verifica prima del deploy.
+  #
+  # Le opzioni valgono alla creazione del volume: un volume con lo stesso nome
+  # gia' esistente resta com'e', e va rimosso perche' queste abbiano effetto.
   esdata01:
+    driver: local
+    driver_opts:
+      type: none
+      device: ${ES_DATA_DIR:-/srv/data/elastic}
+      o: bind
   kibanadata:
   fleetserverdata:
   apmagentdata:

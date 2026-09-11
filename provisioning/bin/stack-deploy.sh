@@ -25,6 +25,9 @@
 #   LANDING_IMAGE    riferimento per digest della pagina di ingresso
 #   EXPORT_DEST      directory degli archivi, servita in sola lettura dal bordo
 #                    (predefinita /srv/export, come in stack-data.env)
+#   ES_DATA_DIR      directory degli indici di Elasticsearch, montata dal volume
+#                    esdata01 (predefinita /srv/data/elastic). Deve esistere e
+#                    appartenere a uid 1000 e gid 0
 #   SWARM_ADVERTISE_ADDR  indirizzo annunciato all'inizializzazione dello swarm.
 #                    Serve solo se il nodo ha piu' indirizzi e il demone non
 #                    puo' sceglierne uno da solo.
@@ -169,6 +172,28 @@ if [ -z "$DOCKER_ROOT_DIR" ] || [ ! -d "$DOCKER_ROOT_DIR/containers" ]; then
   exit 1
 fi
 export DOCKER_ROOT_DIR
+
+# Directory degli indici di Elasticsearch, sorgente del bind del volume
+# `esdata01`. Come per gli archivi, deve esistere prima del deploy, altrimenti
+# il task viene rifiutato e riprovato all'infinito. A differenza di quella non
+# viene creata: e' il punto di montaggio di un volume dedicato, e crearla qui
+# metterebbe gli indici sul volume di sistema se quello non fosse montato.
+#
+# L'immagine scrive come uid 1000 e gid 0. Con un altro proprietario il processo
+# non scrive e resta in riavvio ciclico, con il motivo visibile solo nei log del
+# contenitore. Il controllo coglie anche il volume non montato: la directory
+# sottostante resta di root.
+export ES_DATA_DIR="${ES_DATA_DIR:-/srv/data/elastic}"
+if [ ! -d "$ES_DATA_DIR" ]; then
+  echo "directory degli indici assente: $ES_DATA_DIR" >&2
+  exit 1
+fi
+proprietario=$(stat -c '%u:%g' "$ES_DATA_DIR" 2>/dev/null)
+if [ "$proprietario" != "1000:0" ]; then
+  echo "directory degli indici $ES_DATA_DIR di proprieta' '$proprietario', attesa 1000:0." >&2
+  echo "Con il volume montato: chown 1000:0 $ES_DATA_DIR && chmod 2770 $ES_DATA_DIR" >&2
+  exit 1
+fi
 
 # La directory deve esistere prima del deploy. In swarm mode un bind mount non
 # crea la propria sorgente come farebbe `docker run`: il task viene rifiutato e
