@@ -560,6 +560,13 @@ class Stage2 extends Phaser.Scene {
 		}
 
 		if (turret.mode === "locked") {
+			// The second mirror can only be unlocked once the beam (redirected by the first
+			// mirror) is actually hitting it — otherwise the player could solve it out of
+			// order and finish the level without ever having interacted with the first one.
+			if (index === 1 && !turret.hitByBeam) {
+				return;
+			}
+
 			this.startShooter(index);
 			return;
 		}
@@ -716,7 +723,7 @@ class Stage2 extends Phaser.Scene {
 							{ message: this.i18n.eds_silicate_3_narrator, preset: "dark" }
 						]);
 					} else if (turretIndex === 1) {
-						await this.showImageReveal("stage2-xrd");
+						await this.showImageReveal("stage2-xrd", 900);
 					}
 				} finally {
 					this.player.isMovementAllowed = true;
@@ -1008,26 +1015,12 @@ class Stage2 extends Phaser.Scene {
 	// (not a fixed pixel size) so the apparent on-screen size stays consistent regardless of the
 	// current zoom level — the puzzle's 5.0 zoom for the turret reveals, or the finale's
 	// zoomed-out value for later calls.
-	private showImageReveal(textureKey: string): Promise<void> {
+	private showImageReveal(textureKey: string, desiredScreenWidth: number = 640): Promise<void> {
 		const camera = this.cameras.main;
 		const naturalWidth = this.textures.get(textureKey).getSourceImage().width;
 		const naturalHeight = this.textures.get(textureKey).getSourceImage().height;
-		const desiredScreenWidth = 640;
 		const worldWidth = desiredScreenWidth / camera.zoom;
 		const worldHeight = worldWidth * (naturalHeight / naturalWidth);
-
-		const borderWidth = 24;
-		const border = this.add.rectangle(
-			camera.centerX,
-			camera.centerY,
-			worldWidth + borderWidth * 2,
-			worldHeight + borderWidth * 2,
-			0xffffff
-		);
-		border.setScrollFactor(0);
-		border.setDepth(59);
-		border.setScale(1.3);
-		border.setAlpha(0);
 
 		const image = this.add.image(camera.centerX, camera.centerY, textureKey);
 		image.setScrollFactor(0);
@@ -1041,7 +1034,7 @@ class Stage2 extends Phaser.Scene {
 
 		return new Promise<void>(resolve => {
 			this.tweens.add({
-				targets: [image, border],
+				targets: image,
 				alpha: 1,
 				scaleX: targetScaleX,
 				scaleY: targetScaleY,
@@ -1050,13 +1043,12 @@ class Stage2 extends Phaser.Scene {
 				onComplete: () => {
 					this.time.delayedCall(1600, () => {
 						this.tweens.add({
-							targets: [image, border],
+							targets: image,
 							alpha: 0,
 							duration: 300,
 							ease: "Power2.easeIn",
 							onComplete: () => {
 								image.destroy();
-								border.destroy();
 								resolve();
 							}
 						});
