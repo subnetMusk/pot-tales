@@ -80,6 +80,8 @@ verifica va fatta prima di installare qualunque cosa.
 | `systemd/data-export.service` | `/etc/systemd/system/` |
 | `systemd/backup-nightly.service`, `.timer` | `/etc/systemd/system/` |
 | `systemd/traefik-logrotate.service`, `.timer` | `/etc/systemd/system/` |
+| `systemd/nic-offload@.service` | `/etc/systemd/system/`, istanziata sull'interfaccia |
+| `systemd/docker-user-rules@.service` | `/etc/systemd/system/`, istanziata sull'interfaccia |
 | `logrotate/traefik-access.conf` | `/etc/logrotate.traefik.conf` |
 | `bin/*.sh`, `bin/*.py` | `/usr/local/bin/` |
 | `systemd/stack-surveillance.env.example` | `/etc/stack-surveillance.env`, compilato e a `0600` |
@@ -104,6 +106,54 @@ sudo systemctl restart docker
 
 `data-export.service` non viene abilitata: non ha timer e non deve partire da
 sola, la avvia l'operatore.
+
+## Rete dell'host
+
+Due unita' template, parametrizzate sul nome dell'interfaccia pubblica
+(`ip -br link`). I comandi di installazione sopra copiano unita' e script; le
+istanze si abilitano a mano, perche' il nome dell'interfaccia dipende dalla
+macchina.
+
+**Nessuna delle due e' ancora stata provata sulla macchina di esercizio.** Sono
+verificate la sintassi delle unita' (`systemd-analyze verify`) e l'applicazione
+delle regole in un contenitore, non l'effetto sulla scheda ne' sul traffico
+reale: le verifiche indicate sotto fanno parte dell'installazione.
+
+**Segmentazione in hardware.** `nic-offload@.service` disattiva TSO e GSO. Serve
+sulle schede Intel con driver `e1000e`, come la I219-LM, soggette sotto carico a
+blocchi della coda di trasmissione (`Detected Hardware Unit Hang`); su altre
+schede non va abilitata.
+
+```bash
+ethtool -i <interfaccia> | grep '^driver'      # atteso: e1000e
+sudo systemctl enable --now nic-offload@<interfaccia>.service
+ethtool -k <interfaccia> | grep -E '^(tcp-segmentation-offload|generic-segmentation-offload):'
+```
+
+Atteso: entrambe le voci a `off`, anche dopo un riavvio. Durante il load test
+`dmesg | grep -i 'hardware unit hang'` deve restare vuoto.
+
+**Firewall dei container.** Docker scavalca ufw: il traffico diretto alle porte
+pubblicate viene tradotto e inoltrato, e non attraversa `INPUT`, dove vivono le
+regole di ufw. `docker-user-rules@.service` riempie la catena `DOCKER-USER`: in
+ingresso dall'interfaccia pubblica raggiungono i contenitori solo le porte 80 e
+443 e le risposte alle connessioni stabilite, per IPv4 e IPv6. Il firewall
+dell'host resta ufw (`docs/ESERCIZIO.md`, sezione 3). La catena esiste solo con
+Docker installato, quindi l'unita' si abilita dopo il demone:
+
+```bash
+sudo systemctl enable --now docker-user-rules@<interfaccia>.service
+sudo iptables -S DOCKER-USER
+sudo ip6tables -S DOCKER-USER
+```
+
+Verifica con una porta di prova, interrogata da un'altra rete:
+
+```bash
+sudo docker run --rm -d --name prova-firewall -p 8080:80 nginx:alpine
+curl -m 5 http://<indirizzo-pubblico>:8080/     # dall'esterno: deve andare in timeout
+sudo docker stop prova-firewall
+```
 
 ## Avvio non presidiato
 
