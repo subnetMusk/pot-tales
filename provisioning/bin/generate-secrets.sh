@@ -46,6 +46,12 @@ genera crowdsec_bouncer_key 40
 # backend continuerebbe a dichiarare "APM initialized" e le tracce sarebbero
 # rifiutate senza che nulla lo segnali.
 genera apm_secret_token 32
+# Sale degli identificativi di partita, fisso per l'intero esercizio: generato
+# dal backend a ogni avvio cambierebbe con ogni riavvio, e una partita a cavallo
+# di un riavvio verrebbe contata due volte. Non e' una credenziale, ma chi lo
+# conosce puo' ricalcolare l'identificativo di una partita dal token di
+# sessione: per questo sta con i segreti.
+genera gameplay_id_salt 32
 
 mancanti=""
 for f in dashboard_users dashboard_users_esercizio dashboard_users_evento; do

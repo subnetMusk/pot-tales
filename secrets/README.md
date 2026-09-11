@@ -49,6 +49,7 @@ successivo.
 | `redis_password` | Utenza dell'applicazione su Redis |
 | `crowdsec_bouncer_key` | Chiave del bouncer Traefik |
 | `apm_secret_token` | Token dell'intake APM, condiviso fra policy Fleet e backend |
+| `gameplay_id_salt` | Sale degli identificativi di partita, fisso per l'intero esercizio |
 | `dashboard_users` | Utenze delle dashboard, unione dei due elenchi sotto |
 | `dashboard_users_esercizio` | Utenze della vista di esercizio |
 | `dashboard_users_evento` | Utenze della vista di evento |
@@ -56,6 +57,6 @@ successivo.
 I tre elenchi di utenze non sono generati: le credenziali vanno scelte e
 distribuite a persone, quindi si compilano a mano e lo script si limita a
 segnalarne l'assenza. La procedura, con i passi di deploy nell'ordine giusto, e'
-nel [README](../README.md#avvio-in-produzione-docker-swarm).
+in [provisioning/README.md](../provisioning/README.md#avvio-non-presidiato).
 
 Nessuno di questi file va versionato.

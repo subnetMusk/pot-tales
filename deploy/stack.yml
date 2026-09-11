@@ -113,6 +113,11 @@ secrets:
   # combaciare o l'intake rifiuta ogni invio del backend.
   apm_secret_token:
     file: ../secrets/apm_secret_token
+  # Sale degli identificativi di partita, esportato dall'entrypoint al solo
+  # processo del backend: fisso per l'intero esercizio, cosi' una partita a
+  # cavallo di un riavvio viene contata una volta sola.
+  gameplay_id_salt:
+    file: ../secrets/gameplay_id_salt
   # Elenchi di utenze in formato htpasswd. Le credenziali che accettano sono le
   # stesse con cui Kibana autentica: l'intestazione di autorizzazione non viene
   # rimossa dal proxy, quindi attraversa e vale anche a valle.
@@ -518,10 +523,6 @@ services:
       # riportare perche' chi abbandona non ne invia piu'.
       SESSION_IDLE_CLOSE_MIN: "${SESSION_IDLE_CLOSE_MIN:-5}"
       SESSION_SWEEP_SEC: "${SESSION_SWEEP_SEC:-60}"
-      # Sale degli identificativi di partita. Vuoto: se ne genera uno per
-      # processo, e una partita a cavallo di un riavvio viene contata due volte.
-      # Valorizzarlo rende il conteggio stabile fra i riavvii.
-      GAMEPLAY_ID_SALT: "${GAMEPLAY_ID_SALT:-}"
       # Il proxy e' l'unico peer legittimo: fuori da questi intervalli gli
       # header di inoltro vengono ignorati invece che creduti.
       TRUSTED_PROXY_CIDRS: "${TRUSTED_PROXY_CIDRS:-10.0.0.0/8}"
@@ -542,6 +543,9 @@ services:
         mode: 0444
       - source: apm_secret_token
         target: apm_secret_token
+        mode: 0444
+      - source: gameplay_id_salt
+        target: gameplay_id_salt
         mode: 0444
     healthcheck:
       test: ["CMD-SHELL", "wget -q -O - http://localhost:3000/health | grep -q '\"server\":true'"]
