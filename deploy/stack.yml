@@ -357,8 +357,13 @@ services:
         target: /etc/crowdsec/profiles.yaml
         mode: 0444
     secrets:
+      # Il motore registra all'avvio come chiave di bouncer ogni file di
+      # /run/secrets il cui nome inizia per `bouncer_key`, con il nome che segue
+      # il primo trattino basso: qui `key_traefik`. Con un nome diverso il file
+      # viene ignorato, la LAPI rifiuta la chiave e Traefik non riceve alcuna
+      # decisione. Verificato sull'immagine v1.7.8.
       - source: crowdsec_bouncer_key
-        target: crowdsec_bouncer_key
+        target: bouncer_key_traefik
         mode: 0444
     deploy:
       replicas: 1

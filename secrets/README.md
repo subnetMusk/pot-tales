@@ -47,7 +47,7 @@ successivo.
 | `kibana_encryption_key` | Cifratura dei saved object, almeno 32 caratteri |
 | `mongo_root_password` | Utenza amministrativa MongoDB |
 | `redis_password` | Utenza dell'applicazione su Redis |
-| `crowdsec_bouncer_key` | Chiave del bouncer Traefik |
+| `crowdsec_bouncer_key` | Chiave del bouncer Traefik, registrata in CrowdSec come `key_traefik` |
 | `apm_secret_token` | Token dell'intake APM, condiviso fra policy Fleet e backend |
 | `gameplay_id_salt` | Sale degli identificativi di partita, fisso per l'intero esercizio |
 | `filebeat_writer_password` | Utente `filebeat_writer`, con cui Filebeat scrive i log |
