@@ -416,11 +416,12 @@ services:
   # filesystem dell'host, e tenerlo distinto significa che il suo montaggio non
   # e' raggiungibile da nulla che serva il gioco.
   #
-  # L'immagine e' la stessa ancorata dai Dockerfile di landing e frontend: non
-  # serve costruirne una, perche' il contenuto arriva dal montaggio e non dal
-  # livello dell'immagine.
+  # Usa l'immagine della landing: nginx con i pacchetti di sistema aggiornati a
+  # build time, ancorata per digest e analizzata da trivy come le altre. Il
+  # contenuto arriva dal montaggio, e la configurazione montata sostituisce
+  # quella della landing: un'immagine propria non aggiungerebbe nulla.
   export:
-    image: nginx:1.30.4-alpine@sha256:dc5069ad14f19660b141b21236140b91656bf89bbc3e2417c70ae650cd66104c
+    image: ${LANDING_IMAGE}
     networks:
       - edge
     configs:
