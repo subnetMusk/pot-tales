@@ -118,6 +118,10 @@ secrets:
   # cavallo di un riavvio viene contata una volta sola.
   gameplay_id_salt:
     file: ../secrets/gameplay_id_salt
+  # Password di filebeat_writer: la legge Filebeat per scrivere e
+  # fleet-bootstrap.sh per creare l'utenza con Terraform.
+  filebeat_writer_password:
+    file: ../secrets/filebeat_writer_password
   # Elenchi di utenze in formato htpasswd. Le credenziali che accettano sono le
   # stesse con cui Kibana autentica: l'intestazione di autorizzazione non viene
   # rimossa dal proxy, quindi attraversa e vale anche a valle.
@@ -928,8 +932,8 @@ services:
         target: /filebeat-entrypoint.sh
         mode: 0555
     secrets:
-      - source: elastic_password
-        target: elastic_password
+      - source: filebeat_writer_password
+        target: filebeat_writer_password
         uid: "0"
         gid: "0"
         mode: 0400

@@ -52,6 +52,9 @@ genera apm_secret_token 32
 # conosce puo' ricalcolare l'identificativo di una partita dal token di
 # sessione: per questo sta con i segreti.
 genera gameplay_id_salt 32
+# Password dell'utenza con cui Filebeat scrive, creata da Terraform al
+# bootstrap: una fonte sola per i due lati, come per il token APM.
+genera filebeat_writer_password 32
 
 mancanti=""
 for f in dashboard_users dashboard_users_esercizio dashboard_users_evento; do

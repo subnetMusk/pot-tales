@@ -156,6 +156,15 @@ if [ -z "${TF_VAR_apm_secret_token:-}" ]; then
   [ -n "$TF_VAR_apm_secret_token" ] && export TF_VAR_apm_secret_token
 fi
 
+# Password dell'utenza con cui Filebeat scrive: Filebeat la legge dal secret
+# montato, quindi Terraform deve crearla dallo stesso file. Finche' l'utenza non
+# esiste Filebeat riceve un 401 e ritenta, e i log restano sul disco ad
+# attenderlo.
+if [ -z "${TF_VAR_filebeat_password:-}" ]; then
+  TF_VAR_filebeat_password=$(leggi_secret filebeat_writer_password || true)
+  [ -n "$TF_VAR_filebeat_password" ] && export TF_VAR_filebeat_password
+fi
+
 # ------------------------------------------------------------------ 1. attesa
 log "attendo Kibana su $KIBANA_URL"
 deadline=$(( $(date +%s) + WAIT_TIMEOUT ))

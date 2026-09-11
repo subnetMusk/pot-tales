@@ -2,14 +2,19 @@
 
 Configura lo stack Elastic GIA' AVVIATO (`docker-compose.monitoring.yml`) in
 modo ripetibile, invece che a mano da Kibana. L'host non e' provisionato da
-Terraform: e' una macchina virtuale fornita da terzi, preparata dagli script in
-`provisioning/`. Questo modulo agisce solo sull'API dello stack.
+Terraform: e' una macchina dedicata, preparata dagli script in `provisioning/`.
+Questo modulo agisce solo sull'API dello stack.
 
 ## Cosa gestisce
 
-- Utente `filebeat_writer` con privilegi minimi (sostituisce il superuser
-  `elastic` in `docker/volumes/filebeat/filebeat.yml`).
-- ILM policy `game-logs-retention` (rollover giornaliero, delete dopo 14 giorni).
+- Utente `filebeat_writer`, con cui Filebeat scrive in produzione: privilegi di
+  scrittura sui log e di gestione di template e ciclo di vita, nient'altro. La
+  password viene da `secrets/filebeat_writer_password`, letta sia da
+  `fleet-bootstrap.sh` sia da Filebeat.
+- ILM policy `game-logs-retention`: rollover giornaliero o a 5 GB per shard,
+  cancellazione dopo `log_retention` (30 giorni). La durata supera quella
+  dell'esercizio di proposito: i dati devono arrivare interi all'esportazione
+  finale.
 - Fleet: agent policy `apm-policy` (con integration APM: host, RUM, secret token)
   e `infra-policy` (integration system + docker).
 - Enrollment token generati per policy, esposti come output: sostituiscono i
@@ -86,8 +91,9 @@ terraform output -raw fleet_enrollment_token_apm     # -> FLEET_ENROLLMENT_TOKEN
 terraform output -raw fleet_enrollment_token_infra   # -> FLEET_ENROLLMENT_TOKEN_INFRA
 docker compose -f docker-compose.monitoring.yml up -d apm-agent infra-agent
 
-# 4. Aggiorna filebeat.yml con l'utente dedicato
-#    username: filebeat_writer / password: quella scelta in tfvars
+# 4. Solo in sviluppo: aggiorna filebeat.yml con l'utente dedicato
+#    username: filebeat_writer / password: quella scelta in tfvars.
+#    In produzione Filebeat usa gia' filebeat_writer dal proprio secret.
 docker restart filebeat
 ```
 

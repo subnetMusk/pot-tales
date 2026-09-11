@@ -50,6 +50,7 @@ successivo.
 | `crowdsec_bouncer_key` | Chiave del bouncer Traefik |
 | `apm_secret_token` | Token dell'intake APM, condiviso fra policy Fleet e backend |
 | `gameplay_id_salt` | Sale degli identificativi di partita, fisso per l'intero esercizio |
+| `filebeat_writer_password` | Utente `filebeat_writer`, con cui Filebeat scrive i log |
 | `dashboard_users` | Utenze delle dashboard, unione dei due elenchi sotto |
 | `dashboard_users_esercizio` | Utenze della vista di esercizio |
 | `dashboard_users_evento` | Utenze della vista di evento |

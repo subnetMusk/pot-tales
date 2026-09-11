@@ -229,8 +229,11 @@ race in cui `es01` parte prima che i certificati siano scritti. In produzione il
 non si pone: su Swarm non esiste `depends_on` e i servizi ripartono finché la dipendenza
 non è pronta.
 
-**Filebeat si autentica come superuser.** Il modulo Terraform crea `filebeat_writer` con
-i soli privilegi di scrittura sugli indici dei log: in produzione va usato quello.
+**Filebeat parte prima della propria utenza.** Scrive come `filebeat_writer`, che
+Terraform crea al bootstrap con i privilegi per scrivere i log e gestirne template e
+ciclo di vita, e nient'altro. Fino a quel momento riceve un 401 e ritenta, e dopo il
+primo avvio il servizio risulta non sano per qualche minuto: lo stack converge da solo,
+come per gli agenti Fleet.
 
 **I config di Swarm sono immutabili.** Modificare un file lasciando invariato il nome del
 config non aggiorna nulla: il demone rifiuta, il deploy esce con errore e i servizi

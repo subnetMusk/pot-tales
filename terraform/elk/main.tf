@@ -9,9 +9,15 @@
 
 # ---------- Utente dedicato per Filebeat ----------
 
+# Oltre ai privilegi di pubblicazione servono `manage_index_templates` e
+# `manage_ilm`: all'avvio Filebeat carica il proprio template e la politica di
+# ciclo di vita, e senza quei due la connessione fallisce con un 403 e nessun
+# documento viene scritto. Verificato su Elasticsearch e Filebeat 8.19.19.
+# Restano esclusi gli altri indici e la sicurezza, cioe' cio' che il superuser
+# concederebbe in piu'.
 resource "elasticstack_elasticsearch_security_role" "filebeat_writer" {
   name    = "filebeat_writer"
-  cluster = ["monitor", "read_ilm", "read_pipeline"]
+  cluster = ["monitor", "read_ilm", "read_pipeline", "manage_index_templates", "manage_ilm"]
 
   indices {
     names      = ["filebeat-*", "logs-*"]
