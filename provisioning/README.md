@@ -422,10 +422,11 @@ non consente. E' l'unico dei due che costituisce un off-host reale, e dipende
 dalla presenza di una persona.
 
 Nessuno dei due copre la perdita della macchina. Un server dedicato non ha
-snapshot del fornitore: la sola copertura e' una copia dell'archivio portabile
-fuori dalla macchina, su una Storage Box in una sede diversa. La
-sincronizzazione verso la box non e' ancora automatizzata, e finche' non lo e'
-la copia fuori dalla macchina e' il prelievo manuale.
+snapshot del fornitore: la copertura e' il prelievo dell'archivio portabile e
+delle esportazioni fuori dalla macchina, a fine giornata (`docs/ESERCIZIO.md`,
+sezione 9). Nulla dipende da uno spazio remoto: se in seguito se ne aggiungera'
+uno, la sincronizzazione sara' un passo in piu' dopo l'archivio, non un
+prerequisito.
 
 ### I sei check da creare sul pannello
 

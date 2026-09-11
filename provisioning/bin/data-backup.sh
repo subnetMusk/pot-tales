@@ -29,11 +29,12 @@
 #
 # Lo snapshot resta sulla stessa macchina: copre corruzione applicativa,
 # cancellazione accidentale e processo che muore lasciando il disco sano. Non
-# copre la perdita della macchina. Un server dedicato non ha snapshot del
-# fornitore: la sola copertura e' una copia dell'archivio portabile fuori dalla
-# macchina, su una Storage Box in una sede diversa. La sincronizzazione verso la
-# box non e' ancora in questo script, e finche' non c'e' la copia fuori dalla
-# macchina e' il prelievo manuale.
+# copre la perdita della macchina: un server dedicato non ha snapshot del
+# fornitore, e la copia fuori dalla macchina e' il prelievo dell'archivio
+# portabile e delle esportazioni (docs/ESERCIZIO.md, chiusura di una giornata).
+# Nulla qui dipende da uno spazio remoto: se in seguito se ne aggiungera' uno,
+# la sincronizzazione sara' un passo in piu' dopo l'archivio, non un
+# prerequisito.
 #
 #   ./data-backup.sh [--solo-snapshot | --solo-dump] [--check <slug>]
 #
