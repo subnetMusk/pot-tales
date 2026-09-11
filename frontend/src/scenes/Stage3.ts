@@ -136,11 +136,11 @@ class Stage3 extends Phaser.Scene {
 	// invece objKey direttamente (vedi runQuiz()).
 	private readonly quizConfig: Record<"lipidi" | "cellulosa" | "carbon", QuizEntry> = {
 		lipidi: {
-			correctIndex: 0, consumesFrame: 2, promptKey: "item_3", answerCount: 3,
-			answerImages: ["grafico2", "grafico1", "grafico3"]
+			correctIndex: 2, consumesFrame: 2, promptKey: "item_3", answerCount: 3,
+			answerImages: ["grafico1", "grafico2", "grafico3"]
 		},
 		cellulosa: {
-			correctIndex: 0, consumesFrame: 5, promptKey: "item_2", answerCount: 3,
+			correctIndex: 2, consumesFrame: 5, promptKey: "item_2", answerCount: 3,
 			answerImages: ["sem_fiber_a", "sem_fiber_b", "sem_fiber_c"]
 		},
 		carbon: { correctIndex: 0, consumesFrame: 4, promptKey: "item_1", answerCount: 4 },
@@ -486,9 +486,8 @@ class Stage3 extends Phaser.Scene {
 
 		await this.player.walkTo(74, 27, 900);
 
-		await this.playRandomBlips(6);
+		await this.playC14Machinery();
 		this.player.surprise();
-		await this.wait(1200);
 
 		await this.showImageReveal("stage3-c14graph");
 		await playSequence(this.popupManager, [i18n.finale_interesting]);
@@ -515,6 +514,24 @@ class Stage3 extends Phaser.Scene {
 		await this.wait(3000);
 
 		this.transitionToMenu();
+	}
+
+	// Machinery sound + camera shake + blips per 2 secondi, simulando il funzionamento
+	// del macchinario di datazione C14 mentre il giocatore armeggia.
+	private playC14Machinery(): Promise<void> {
+		return new Promise(resolve => {
+			soundManager.playSfx(this, "c14_machine");
+			this.cameras.main.shake(2000, 0.0002);
+
+			const blipTimes = [300, 600, 900, 1200, 1500];
+			for (const time of blipTimes) {
+				this.time.delayedCall(time, () => {
+					soundManager.playSfx(this, "type_blip", { rate: Phaser.Math.FloatBetween(0.8, 1.3) });
+				});
+			}
+
+			this.time.delayedCall(2000, resolve);
+		});
 	}
 
 	// Manciata di blip ravvicinati e a tono leggermente casuale, per simulare il giocatore
@@ -590,6 +607,19 @@ class Stage3 extends Phaser.Scene {
 		const worldWidth = desiredScreenWidth / camera.zoom;
 		const worldHeight = worldWidth * (naturalHeight / naturalWidth);
 
+		const borderWidth = 24;
+		const border = this.add.rectangle(
+			camera.centerX,
+			camera.centerY,
+			worldWidth + borderWidth * 2,
+			worldHeight + borderWidth * 2,
+			0xffffff
+		);
+		border.setScrollFactor(0);
+		border.setDepth(59);
+		border.setScale(1.3);
+		border.setAlpha(0);
+
 		const image = this.add.image(camera.centerX, camera.centerY, textureKey);
 		image.setScrollFactor(0);
 		image.setDepth(60);
@@ -602,7 +632,7 @@ class Stage3 extends Phaser.Scene {
 
 		return new Promise<void>(resolve => {
 			this.tweens.add({
-				targets: image,
+				targets: [image, border],
 				alpha: 1,
 				scaleX: targetScaleX,
 				scaleY: targetScaleY,
@@ -611,12 +641,13 @@ class Stage3 extends Phaser.Scene {
 				onComplete: () => {
 					this.time.delayedCall(1600, () => {
 						this.tweens.add({
-							targets: image,
+							targets: [image, border],
 							alpha: 0,
 							duration: 300,
 							ease: "Power2.easeIn",
 							onComplete: () => {
 								image.destroy();
+								border.destroy();
 								resolve();
 							}
 						});
@@ -715,6 +746,7 @@ class Stage3 extends Phaser.Scene {
 	// stage2_complete esistono già, vedi inventoryCheckpoints.ts).
 	private transitionToMenu() {
 		void this.apiSession.saveCheckpoint("stage3_complete");
+		localStorage.setItem("gameFinished", "true");
 
 		const blackRect = this.add.rectangle(
 			this.cameras.main.centerX,

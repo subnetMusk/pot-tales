@@ -91,6 +91,13 @@
                 ],
                 "type": "audio",
                 "key": "quiz_incorrect"
+            },
+            {
+                "url": [
+                    "assets/sfx/c14_machine.wav"
+                ],
+                "type": "audio",
+                "key": "c14_machine"
             }
         ]
     },

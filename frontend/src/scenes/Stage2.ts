@@ -1016,6 +1016,19 @@ class Stage2 extends Phaser.Scene {
 		const worldWidth = desiredScreenWidth / camera.zoom;
 		const worldHeight = worldWidth * (naturalHeight / naturalWidth);
 
+		const borderWidth = 24;
+		const border = this.add.rectangle(
+			camera.centerX,
+			camera.centerY,
+			worldWidth + borderWidth * 2,
+			worldHeight + borderWidth * 2,
+			0xffffff
+		);
+		border.setScrollFactor(0);
+		border.setDepth(59);
+		border.setScale(1.3);
+		border.setAlpha(0);
+
 		const image = this.add.image(camera.centerX, camera.centerY, textureKey);
 		image.setScrollFactor(0);
 		image.setDepth(60);
@@ -1028,7 +1041,7 @@ class Stage2 extends Phaser.Scene {
 
 		return new Promise<void>(resolve => {
 			this.tweens.add({
-				targets: image,
+				targets: [image, border],
 				alpha: 1,
 				scaleX: targetScaleX,
 				scaleY: targetScaleY,
@@ -1037,12 +1050,13 @@ class Stage2 extends Phaser.Scene {
 				onComplete: () => {
 					this.time.delayedCall(1600, () => {
 						this.tweens.add({
-							targets: image,
+							targets: [image, border],
 							alpha: 0,
 							duration: 300,
 							ease: "Power2.easeIn",
 							onComplete: () => {
 								image.destroy();
+								border.destroy();
 								resolve();
 							}
 						});
