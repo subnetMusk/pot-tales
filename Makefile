@@ -197,6 +197,7 @@ lint-compose: ## Valida i file compose
 .PHONY: lint-stack
 lint-stack: ## Valida lo stack Swarm di produzione
 	@$(MAKE) --no-print-directory stack-config >/dev/null && echo "stack valido: $(STACK_FILE)"
+	@bash ci/traefik-static-config.sh
 
 .PHONY: lint-terraform
 lint-terraform: ## Verifica la formattazione delle definizioni Terraform

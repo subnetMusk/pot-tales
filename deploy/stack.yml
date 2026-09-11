@@ -41,9 +41,6 @@
 # anche alla rimozione dei config orfani, che `--prune` non esegue.
 # ------------------------------------------------------------------------------
 configs:
-  prod_traefik_yml:
-    name: ${STACK_NAME}_prod_traefik_yml_${CFG_REV_PROD_TRAEFIK_YML}
-    file: ./config/traefik.yml
   prod_routes_yml:
     name: ${STACK_NAME}_prod_routes_yml_${CFG_REV_PROD_ROUTES_YML}
     file: ./config/dynamic/routes.yml
@@ -246,15 +243,42 @@ services:
   proxy:
     image: traefik:v3.7.10@sha256:9c3b91d5fb7770853ca5c1124a23c34bf2d9b47ffaebeab2614cbaf410dcb2ac
     command:
-      - --configfile=/etc/traefik/traefik.yml
-      # Plugin e middleware come argomenti e non nella configurazione statica:
-      # il bouncer e' sorgente interpretato scaricato all'avvio, e tenerlo qui
-      # rende esplicito che l'avvio del proxy dipende da quel download.
+      # La configurazione di avvio di Traefik deve usare un solo metodo. File,
+      # argomenti ed environment sono mutuamente esclusivi: con `--configfile`
+      # Traefik ignorava gli altri argomenti, inclusi CA di prova, plugin e
+      # middleware CrowdSec. Tutta la configurazione statica e' quindi qui;
+      # soltanto routing, middleware e TLS dinamico restano nei file montati.
+      - --api.dashboard=false
+      - --api.insecure=false
+      - --entrypoints.web.address=:80
+      - --entrypoints.web.http.redirections.entrypoint.to=websecure
+      - --entrypoints.web.http.redirections.entrypoint.scheme=https
+      - --entrypoints.web.http.redirections.entrypoint.permanent=true
+      - --entrypoints.websecure.address=:443
+      - --entrypoints.websecure.http.tls=true
+      - --entrypoints.websecure.http.tls.certresolver=principale
+      - --entrypoints.websecure.http.middlewares=crowdsec@file
+      - --entrypoints.ping.address=:8082
+      - --ping=true
+      - --ping.entrypoint=ping
+      - --certificatesresolvers.principale.acme.storage=/acme/acme.json
+      - --certificatesresolvers.principale.acme.httpchallenge=true
+      - --certificatesresolvers.principale.acme.httpchallenge.entrypoint=web
+      - --providers.file.directory=/etc/traefik/dynamic
+      - --providers.file.watch=true
+      - --log.level=INFO
+      - --accesslog=true
+      - --accesslog.filepath=/var/log/traefik/access.log
+      - --accesslog.format=json
+      - --accesslog.bufferingsize=100
+      - --accesslog.fields.headers.defaultmode=drop
+      - --accesslog.fields.headers.names.User-Agent=keep
+      # Il bouncer e' sorgente interpretato scaricato all'avvio: dichiararlo
+      # qui rende esplicito che l'avvio del proxy dipende da quel download.
       - --experimental.plugins.crowdsec.modulename=github.com/maxlerebourg/crowdsec-bouncer-traefik-plugin
       - --experimental.plugins.crowdsec.version=v1.7.1
-      - --entrypoints.websecure.http.middlewares=crowdsec@file
-      # I file di configurazione statica non espandono le variabili d'ambiente:
-      # il recapito ACME deve quindi arrivare come argomento del processo.
+      # Recapito e directory ACME arrivano dal file dell'host mediante
+      # l'interpolazione dello stack, prima dell'avvio del processo.
       - --certificatesresolvers.principale.acme.email=${ACME_EMAIL}
       # Directory dell'autorita'. Il collaudo va condotto contro quella di
       # prova: l'autorita' di produzione limita i certificati duplicati per
@@ -265,7 +289,6 @@ services:
       - --certificatesresolvers.principale.acme.caserver=${ACME_CA_SERVER:-https://acme-v02.api.letsencrypt.org/directory}
     environment:
       APP_HOST: "${APP_HOST:-localhost}"
-      ACME_EMAIL: "${ACME_EMAIL}"
       # Durata dichiarata di HSTS, letta dai file dinamici che Traefik
       # interpreta come template.
       #
@@ -302,9 +325,6 @@ services:
       - traefik_logs:/var/log/traefik
       - acme:/acme
     configs:
-      - source: prod_traefik_yml
-        target: /etc/traefik/traefik.yml
-        mode: 0444
       - source: prod_routes_yml
         target: /etc/traefik/dynamic/routes.yml
         mode: 0444
@@ -331,11 +351,16 @@ services:
         target: dashboard_users_evento
         mode: 0444
     healthcheck:
-      # L'immagine non contiene shell ne' client HTTP: la verifica passa dal
-      # sottocomando, che ricava indirizzo ed entrypoint del ping dalla
-      # configurazione statica. Il percorso e' indicato esplicitamente per non
-      # dipendere dalla posizione predefinita.
-      test: ["CMD", "traefik", "healthcheck", "--configfile=/etc/traefik/traefik.yml"]
+      # Il sottocomando usa lo stesso metodo CLI del processo principale. Gli
+      # bastano l'entrypoint interno e l'abilitazione del ping; non legge file
+      # statici separati che potrebbero divergere dalla configurazione servita.
+      test:
+        - CMD
+        - traefik
+        - healthcheck
+        - --entrypoints.ping.address=:8082
+        - --ping=true
+        - --ping.entrypoint=ping
       interval: 15s
       timeout: 5s
       retries: 5
