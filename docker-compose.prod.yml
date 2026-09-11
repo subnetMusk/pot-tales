@@ -7,7 +7,7 @@
 #     il backend ora è Go (binario /server, vedi server/Dockerfile), niente public/.
 #   - mancano redis e il mount di ./comms (richiesti dal backend Go).
 # TODO: riallineare la produzione al modello dev prima di un deploy reale.
-# Vedi README.md (sezione Produzione) e MONITORING_SETUP.md.
+# La produzione e' deploy/stack.yml; l'architettura e' in docs/ARCHITETTURA.md.
 
 version: "3.9"
 
