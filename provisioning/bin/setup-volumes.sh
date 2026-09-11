@@ -1,6 +1,12 @@
 #!/usr/bin/env bash
 # Crea i volumi logici per dati applicativi e diagnostica.
 #
+# NON si applica a un layout dei dischi definito in fase di installazione, come
+# quello della macchina di esercizio (provisioning/README.md, "Layout"): li' i
+# volumi esistono gia', e questo script non va eseguito. Presuppone il volume
+# group `ubuntu-vg`, crea volumi con nomi e dimensioni propri e li formatta.
+# Serve solo su una macchina consegnata con il volume group quasi vuoto.
+#
 # Presuppone un volume group con spazio non allocato. La verifica iniziale
 # esiste perche' una installazione che assegna tutto lo spazio al volume di
 # sistema richiede di ridurre un filesystem in uso per correggerla.

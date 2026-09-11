@@ -50,7 +50,7 @@ CONF_SORVEGLIANZA=${CONF_SORVEGLIANZA:-/etc/stack-surveillance.env}
 
 BIN_DIR=${BIN_DIR:-$(cd "$(dirname "$0")" && pwd)}
 
-VG_NAME=${VG_NAME:-ubuntu-vg}
+VG_NAME=${VG_NAME:-vg0}
 LV_DOCKER=${LV_DOCKER:-docker}
 # Spazio copy-on-write dello snapshot. Deve bastare a contenere le scritture
 # che avvengono mentre lo snapshot esiste: uno snapshot che esaurisce lo spazio

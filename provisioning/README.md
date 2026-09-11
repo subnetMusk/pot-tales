@@ -51,6 +51,11 @@ volume non montato, perche' la directory sottostante resta di root.
 MongoDB su un volume separato, la copia primaria dei dati non ricostruibili non
 lo comprenderebbe.
 
+**Creazione dei volumi.** Con un layout definito in fase di installazione i
+volumi esistono gia' e `bin/setup-volumes.sh` **non va eseguito**: presuppone il
+volume group `ubuntu-vg`, crea volumi con nomi e dimensioni propri e li
+formatta. Serve solo su una macchina consegnata con il volume group quasi vuoto.
+
 ```bash
 sudo ./bin/setup-volumes.sh            # mostra i comandi
 sudo ./bin/setup-volumes.sh --apply    # li esegue
@@ -347,9 +352,9 @@ Il motivo per cui lo snapshot precede `mongodump`: su un'istanza standalone
 richiede un replica set. Un dump preso durante le scritture puo' contenere una
 sessione senza il relativo stato di gioco.
 
-Lo snapshot richiede **spazio non allocato nel volume group**. Se
-`setup-volumes.sh` ha assegnato tutto lo spazio ai volumi, lo snapshot non e'
-creabile e la copia primaria semplicemente non esiste: lo script lo dichiara
+Lo snapshot richiede **spazio non allocato nel volume group**. Se tutto lo
+spazio e' assegnato ai volumi, lo snapshot non e' creabile e la copia primaria
+semplicemente non esiste: lo script lo dichiara
 come guasto invece di proseguire in silenzio. Uno snapshot che esaurisce il
 proprio spazio copy-on-write viene invalidato dal kernel, resta elencato e non
 e' piu' ripristinabile, quindi `lvs` va letto e non presunto.

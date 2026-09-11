@@ -69,7 +69,7 @@ TIMEOUT=${TIMEOUT:-10}
 MEM_MIN_PCT=${MEM_MIN_PCT:-15}
 SWAP_MAX_PCT=${SWAP_MAX_PCT:-50}
 DISK_MAX_PCT=${DISK_MAX_PCT:-85}
-DISK_MOUNTS=${DISK_MOUNTS:-/ /srv/docker}
+DISK_MOUNTS=${DISK_MOUNTS:-/ /var /srv/docker /srv/data/elastic /srv/backup /srv/export}
 
 # Certificato pubblico. Con TLS_HOST vuoto il controllo non viene eseguito, che
 # e' lo stato corretto finche' un nome pubblico non esiste.
