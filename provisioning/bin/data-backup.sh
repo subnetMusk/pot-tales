@@ -29,8 +29,11 @@
 #
 # Lo snapshot resta sulla stessa macchina: copre corruzione applicativa,
 # cancellazione accidentale e processo che muore lasciando il disco sano. Non
-# copre la perdita della macchina, per la quale servono gli snapshot della VM
-# lato infrastruttura e il prelievo manuale dell'archivio portabile.
+# copre la perdita della macchina. Un server dedicato non ha snapshot del
+# fornitore: la sola copertura e' una copia dell'archivio portabile fuori dalla
+# macchina, su una Storage Box in una sede diversa. La sincronizzazione verso la
+# box non e' ancora in questo script, e finche' non c'e' la copia fuori dalla
+# macchina e' il prelievo manuale.
 #
 #   ./data-backup.sh [--solo-snapshot | --solo-dump] [--check <slug>]
 #

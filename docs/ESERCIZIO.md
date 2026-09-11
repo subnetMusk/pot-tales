@@ -82,8 +82,16 @@ findmnt
 
 1. Utente amministrativo nominale, SSH a sola chiave, login root disabilitato,
    autenticazione con password disabilitata.
-2. `vm.max_map_count=262144` in `/etc/sysctl.d/`. **Verificare che sopravviva al
-   riavvio**, non solo all'applicazione a caldo: senza, Elasticsearch non parte.
+2. `vm.max_map_count` **almeno** 262144, il minimo di Elasticsearch. Ubuntu 24.04 lo
+   imposta già a 1048576 con un file in `/usr/lib/sysctl.d/`: si rende esplicito il
+   valore in uso **senza abbassarlo**, perché i file in `/etc/sysctl.d/` sono applicati
+   dopo, e scriverne uno più basso lo ridurrebbe.
+   ```
+   sysctl vm.max_map_count
+   echo 'vm.max_map_count=1048576' | sudo tee /etc/sysctl.d/60-elasticsearch.conf
+   ```
+   **Verificare che sopravviva al riavvio**, non solo all'applicazione a caldo: senza,
+   Elasticsearch non parte.
 3. Firewall host-level, default deny in ingresso, aperte 22, 80 e 443.
 
    **Docker scavalca ufw.** I pacchetti diretti alle porte pubblicate non attraversano
@@ -194,11 +202,27 @@ riempie.
 2. Spazio libero sui volumi. La soglia da guardare è **85%**: Elasticsearch smette di
    allocare shard, e al 95% impone agli indici il blocco in sola lettura, che si rimuove
    solo a mano.
-3. Il gioco si completa da una postazione, dall'inizio alla fine.
-4. Il sito risponde da rete cellulare, non solo dalla rete locale: è il percorso reale di
+3. **Contatori SMART dei dischi, per seriale.** Il nome del dispositivo non è stabile:
+   fra il sistema di ripristino e quello installato `nvme0n1` e `nvme1n1` risultano
+   invertiti, e possono cambiare fra un kernel e l'altro. Si legge il seriale di ogni
+   disco e il contatore si confronta con quello del proprio seriale.
+   ```bash
+   for d in /dev/nvme?n1; do printf '%s %s\n' "$d" "$(sudo smartctl -i "$d" | awk -F': *' '/Serial Number/ {print $2}')"; sudo smartctl -A "$d" | grep -E 'Media and Data|Error Information|^Temperature:'; done
+   ```
+   | Seriale | Disco | `Media and Data Integrity Errors` | Soglia di avviso della temperatura |
+   |---|---|---|---|
+   | `Y67S105STUHV` | Toshiba THNSN5512GPU7 | 0 | 78 °C |
+   | `S3W8NB0K413381` | Samsung PM981 | 3 | 81 °C |
+
+   Un contatore più alto del riferimento significa errori di integrità nuovi: si chiede
+   la sostituzione del disco indicando il seriale. `Error Information Log Entries` non è
+   un criterio: sul Samsung cresce con i comandi che il disco non supporta, compresi
+   quelli di `smartctl`.
+4. Il gioco si completa da una postazione, dall'inizio alla fine.
+5. Il sito risponde da rete cellulare, non solo dalla rete locale: è il percorso reale di
    chi arriva dal QR.
-5. Copia dei dati presa e **verificata leggibile**, non solo prodotta.
-6. Nessuna modifica alla configurazione da qui in avanti. Se una serve davvero, va fatta
+6. Copia dei dati presa e **verificata leggibile**, non solo prodotta.
+7. Nessuna modifica alla configurazione da qui in avanti. Se una serve davvero, va fatta
    ora e non domani.
 
 ---
@@ -293,9 +317,14 @@ make stack-status
 Se lo stack non c'e', riapplicalo. E' idempotente e non tocca i volumi:
 
 ```bash
-sudo systemctl start stack-deploy.service
+sudo systemctl restart stack-deploy.service
 journalctl -u stack-deploy.service -n 50 --no-pager
 ```
+
+`restart` e non `start`: l'unita' e' `oneshot` con `RemainAfterExit`, quindi dopo
+il primo avvio resta attiva, e su un'unita' attiva `start` non esegue nulla senza
+segnalarlo. `start` vale solo per il primo avvio. Il riavvio riesegue anche
+`fleet-bootstrap.service`, che dipende da questa unita' ed e' idempotente.
 
 Il deploy si rifiuta di partire se un'immagine non e' ancorata per digest o se
 un file di secret e' vuoto. Sono i due messaggi piu' probabili: l'errore arriva
@@ -339,7 +368,7 @@ devono esistere su entrambi i lati con la **stessa password**.
 
 ```bash
 cut -d: -f1 secrets/dashboard_users_esercizio secrets/dashboard_users_evento
-sudo systemctl start fleet-bootstrap.service   # ricrea le utenze via Terraform
+sudo systemctl restart fleet-bootstrap.service   # ricrea le utenze via Terraform
 ```
 
 Gli elenchi htpasswd contengono impronte e non password: il disallineamento non
@@ -354,10 +383,12 @@ make stack-verify        # controlli end-to-end, si ferma al primo che cede
 ```
 
 **Gli agenti non risultano registrati.** Il bootstrap e' idempotente e si puo'
-rieseguire a ogni avvio.
+rieseguire a ogni avvio. Come per il deploy, `restart` e non `start`: anche questa
+unita' e' `oneshot` con `RemainAfterExit`, e una volta attiva `start` non la
+riesegue.
 
 ```bash
-sudo systemctl start fleet-bootstrap.service
+sudo systemctl restart fleet-bootstrap.service
 journalctl -u fleet-bootstrap.service -n 80 --no-pager
 ```
 

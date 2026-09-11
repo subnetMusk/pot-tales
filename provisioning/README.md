@@ -182,6 +182,13 @@ idempotente, quindi rieseguirlo su uno stack gia' in servizio aggiorna soltanto
 cio' che e' cambiato: il file dello stack resta la sola descrizione di cio' che
 deve girare.
 
+`start` vale per il primo avvio. Per riapplicare lo stack in seguito, dopo una
+modifica a `/etc/stack-deploy.env` o al repository, il comando e'
+`sudo systemctl restart stack-deploy.service`: l'unita' e' `oneshot` con
+`RemainAfterExit`, quindi dopo il primo deploy resta attiva, e su un'unita'
+attiva `start` non esegue nulla senza segnalarlo. Lo stesso vale per
+`fleet-bootstrap.service`, che il riavvio del deploy riesegue da se'.
+
 Lo swarm non va inizializzato a mano: lo script lo fa da se' se sul nodo non ne
 esiste ancora uno. Non lo fa negli altri stati, perche' `pending` e `locked`
 descrivono uno swarm che esiste ed e' in corso di ripristino, e inizializzarne
@@ -414,8 +421,11 @@ rilegge su un'altra macchina e su un'altra installazione, cosa che uno snapshot
 non consente. E' l'unico dei due che costituisce un off-host reale, e dipende
 dalla presenza di una persona.
 
-Nessuno dei due copre la perdita della macchina: per quella servono gli
-snapshot della VM lato infrastruttura.
+Nessuno dei due copre la perdita della macchina. Un server dedicato non ha
+snapshot del fornitore: la sola copertura e' una copia dell'archivio portabile
+fuori dalla macchina, su una Storage Box in una sede diversa. La
+sincronizzazione verso la box non e' ancora automatizzata, e finche' non lo e'
+la copia fuori dalla macchina e' il prelievo manuale.
 
 ### I sei check da creare sul pannello
 
