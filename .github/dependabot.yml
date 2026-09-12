@@ -8,6 +8,12 @@
 #
 # Le proposte arrivano su `develop`: `main` riceve solo quanto e' gia' passato
 # dalla pipeline.
+#
+# SOSPESO fino a dopo l'evento: `open-pull-requests-limit: 0` blocca le
+# proposte di versione, che a ridosso dell'apertura porterebbero salti maggiori
+# non collaudati in produzione. Gli avvisi e gli aggiornamenti di sicurezza di
+# GitHub non dipendono da questo limite e restano attivi. Per riprendere,
+# riportare i limiti a 5.
 
 version: 2
 updates:
@@ -17,7 +23,7 @@ updates:
     schedule:
       interval: weekly
     target-branch: develop
-    open-pull-requests-limit: 5
+    open-pull-requests-limit: 0
     commit-message:
       prefix: "chore(ci)"
 
@@ -26,7 +32,7 @@ updates:
     schedule:
       interval: weekly
     target-branch: develop
-    open-pull-requests-limit: 5
+    open-pull-requests-limit: 0
     commit-message:
       prefix: "chore(deps)"
 
@@ -35,7 +41,7 @@ updates:
     schedule:
       interval: weekly
     target-branch: develop
-    open-pull-requests-limit: 5
+    open-pull-requests-limit: 0
     commit-message:
       prefix: "chore(deps)"
 
@@ -51,6 +57,6 @@ updates:
     schedule:
       interval: weekly
     target-branch: develop
-    open-pull-requests-limit: 5
+    open-pull-requests-limit: 0
     commit-message:
       prefix: "chore(deps)"
