@@ -174,9 +174,16 @@ func (v *Validator) Handler(next http.Handler) http.Handler {
 				return
 			}
 
-			// C. Context Injection
-			// Iniettiamo l'ID nel contesto per gli handler successivi
+			// C. Context Injection. La sessione resta valida anche se la lettura
+			// della preferenza fallisce; in quel caso il default privacy-safe e'
+			// non produrre telemetria facoltativa.
+			analyticsConsent, consentErr := v.sessionMgr.AnalyticsConsent(r.Context(), validTokenID)
+			if consentErr != nil {
+				slog.Warn("analytics consent unavailable; optional logging disabled")
+				analyticsConsent = false
+			}
 			ctx := context.WithValue(r.Context(), helpers.UserIDKey, validTokenID)
+			ctx = helpers.WithAnalyticsConsent(ctx, analyticsConsent)
 			r = r.WithContext(ctx)
 
 			// D. Quota per sessione

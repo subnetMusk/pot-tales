@@ -32,6 +32,17 @@ func inserisciPartita(t *testing.T, db *mongo.Database, id, scena string, fa tim
 	}
 }
 
+func abilitaAnaliticaPartita(t *testing.T, db *mongo.Database, id string) {
+	t.Helper()
+	if _, err := JournaledCollection(db, GameStatesCollection).UpdateOne(
+		context.Background(),
+		bson.M{"_id": id},
+		bson.M{"$set": bson.M{"meta.analytics_consent": true}},
+	); err != nil {
+		t.Fatalf("abilitazione analitica della partita %s: %v", id, err)
+	}
+}
+
 // leggiPartita rilegge lo stato di gioco dalla base dati.
 func leggiPartita(t *testing.T, db *mongo.Database, id string) models.GameState {
 	t.Helper()
@@ -77,6 +88,7 @@ func TestAddCheckpointCitaLaChiave(t *testing.T) {
 func TestAvviaChiusuraSessioniChiudeSoloLePartiteFerme(t *testing.T) {
 	db := baseDati(t)
 	inserisciPartita(t, db, "ferma", "Stage3", time.Hour)
+	abilitaAnaliticaPartita(t, db, "ferma")
 	inserisciPartita(t, db, "attiva", "Stage2", 0)
 
 	ctx, annulla := context.WithCancel(context.Background())

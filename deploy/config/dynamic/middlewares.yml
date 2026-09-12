@@ -101,12 +101,13 @@ http:
       circuitBreaker:
         expression: "NetworkErrorRatio() > 0.30 || ResponseCodeRatio(500, 600, 0, 600) > 0.30"
 
-    # La pagina serve se stessa alla radice: il prefisso su cui e' esposta va
-    # rimosso prima di inoltrare.
-    landing-prefisso:
-      stripPrefix:
-        prefixes:
-          - "/info"
+    # La landing e' ora la home del frontend. Mantiene funzionanti i vecchi
+    # collegamenti senza conservare una pagina o un servizio separati.
+    info-alla-radice:
+      redirectRegex:
+        regex: "^https://{{ env "APP_HOST" }}/info(?:/.*)?$"
+        replacement: "https://{{ env "APP_HOST" }}/"
+        permanent: true
 
     # ---------------------------------------------------------------------
     # Telemetria

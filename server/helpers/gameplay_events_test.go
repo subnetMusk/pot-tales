@@ -50,7 +50,7 @@ func catturaLogGrezzo(t *testing.T, f func()) string {
 // porterebbe la chiave due volte e quale valore vince dipenderebbe dal parser.
 func TestLogGameplayDatasetDedicato(t *testing.T) {
 	righe := catturaLog(t, func() {
-		LogGameplay(context.Background(), "sessione-x", "sessione_iniziata", nil)
+		LogGameplay(WithAnalyticsConsent(context.Background(), true), "sessione-x", "sessione_iniziata", nil)
 	})
 
 	if len(righe) != 1 {
@@ -68,7 +68,7 @@ func TestLogGameplayDatasetDedicato(t *testing.T) {
 // sola chiave: va verificata sul testo grezzo.
 func TestLogGameplayDatasetNonDuplicato(t *testing.T) {
 	grezzo := catturaLogGrezzo(t, func() {
-		LogGameplay(context.Background(), "sessione-x", "sessione_iniziata", nil)
+		LogGameplay(WithAnalyticsConsent(context.Background(), true), "sessione-x", "sessione_iniziata", nil)
 	})
 
 	if n := strings.Count(grezzo, `"event.dataset"`); n != 1 {
@@ -82,7 +82,7 @@ func TestLogGameplayDatasetNonDuplicato(t *testing.T) {
 // piu' a impedire di collegare una riga a un browser preciso.
 func TestLogGameplayNonEsponeLaSessione(t *testing.T) {
 	const token = "token-di-sessione-riconoscibile"
-	ctx := context.WithValue(context.Background(), UserIDKey, token)
+	ctx := context.WithValue(WithAnalyticsConsent(context.Background(), true), UserIDKey, token)
 
 	grezzo := catturaLogGrezzo(t, func() {
 		LogGameplay(ctx, token, "checkpoint_raggiunto", map[string]any{
@@ -98,6 +98,15 @@ func TestLogGameplayNonEsponeLaSessione(t *testing.T) {
 	}
 	if !strings.Contains(grezzo, `"partita.id"`) {
 		t.Errorf("manca partita.id, senza il quale non si contano le partite: %s", grezzo)
+	}
+}
+
+func TestLogGameplaySenzaConsensoNonProduceEventi(t *testing.T) {
+	grezzo := catturaLogGrezzo(t, func() {
+		LogGameplay(WithAnalyticsConsent(context.Background(), false), "sessione-x", "sessione_iniziata", nil)
+	})
+	if grezzo != "" {
+		t.Fatalf("evento prodotto senza consenso: %s", grezzo)
 	}
 }
 

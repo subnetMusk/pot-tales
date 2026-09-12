@@ -1,11 +1,16 @@
 <link rel="stylesheet" href="/static/pages/style.css">
 
+<div class="landing-shell">
+<a class="skip-link" href="#main-content" id="skip-link">Vai al contenuto principale</a>
+
 <header id="landing-header">
     <div class="container">
         <div class="logo">
-            <img src="/assets/images/ui/title.png" alt="Pot Tale">
+            <a href="/" aria-label="Pot Tales — Home">
+                <img src="/assets/images/ui/title.png" alt="Pot Tales">
+            </a>
         </div>
-        <nav>
+        <nav id="primary-navigation" aria-label="Navigazione principale">
             <ul>
                 <li><a href="#hero" id="nav-home">Home</a></li>
                 <li><a href="#project" id="nav-project">Progetto</a></li>
@@ -23,13 +28,15 @@
     </div>
 </header>
 
+<div class="landing-scroll" id="landing-scroll">
+<main id="main-content" tabindex="-1">
 <section id="hero" class="hero">
     <div class="hero-overlay"></div>
     <div class="container">
         <h1 id="hero-title">Un'avventura tra scienza e gioco</h1>
         <p id="hero-desc">Esplora un laboratorio di ricerca trasformato in un'esperienza interattiva:
            scopri il progetto giocando in prima persona.</p>
-        <button id="play-button">Gioca ora</button>
+        <button type="button" id="play-button">Gioca ora</button>
     </div>
 </section>
 
@@ -47,33 +54,36 @@
 
 <section id="gallery" class="galleria">
     <div class="container">
-        <h2 id="gallery-title">Scopri il gioco</h2>
+        <h2><a id="gallery-title" href="/play">Scopri il gioco</a></h2>
     </div>
-    <div class="carousel" id="carousel">
+    <div class="carousel" id="carousel" aria-labelledby="gallery-title" aria-roledescription="carosello">
         <button class="carousel-btn prev" id="carousel-prev" aria-label="Precedente">&#10094;</button>
         <div class="carousel-viewport">
             <div class="carousel-track" id="carousel-track">
-                <div class="carousel-slide">
-                    <img src="/assets/images/screenshots/screenshot_1.png" alt="Screenshot 1">
+                <div class="carousel-slide" role="group" aria-roledescription="slide">
+                    <img src="/assets/images/screenshots/screenshot_1.png" alt="Scena del videogioco Pot Tales nel laboratorio">
                 </div>
-                <div class="carousel-slide">
-                    <img src="/assets/images/screenshots/screenshot_2.png" alt="Screenshot 2">
+                <div class="carousel-slide" role="group" aria-roledescription="slide">
+                    <img src="/assets/images/screenshots/screenshot_2.png" alt="Esplorazione di un ambiente del videogioco Pot Tales">
                 </div>
-                <div class="carousel-slide">
-                    <img src="/assets/images/screenshots/screenshot_3.png" alt="Screenshot 3">
+                <div class="carousel-slide" role="group" aria-roledescription="slide">
+                    <img src="/assets/images/screenshots/screenshot_3.png" alt="Interazione scientifica nel videogioco Pot Tales">
                 </div>
-                <div class="carousel-slide">
-                    <img src="/assets/images/screenshots/screenshot_4.png" alt="Screenshot 4">
+                <div class="carousel-slide" role="group" aria-roledescription="slide">
+                    <img src="/assets/images/screenshots/screenshot_4.png" alt="Ambiente archeologico del videogioco Pot Tales">
                 </div>
-                <div class="carousel-slide">
-                    <img src="/assets/images/screenshots/screenshot_5.png" alt="Screenshot 5">
+                <div class="carousel-slide" role="group" aria-roledescription="slide">
+                    <img src="/assets/images/screenshots/screenshot_5.png" alt="Una sfida del videogioco Pot Tales">
                 </div>
             </div>
         </div>
         <button class="carousel-btn next" id="carousel-next" aria-label="Successivo">&#10095;</button>
     </div>
     <div class="container">
-        <div class="carousel-dots" id="carousel-dots"></div>
+        <div class="carousel-controls">
+            <div class="carousel-dots" id="carousel-dots" aria-label="Seleziona una schermata"></div>
+            <button type="button" class="carousel-toggle" id="carousel-toggle" aria-pressed="false">Pausa carosello</button>
+        </div>
     </div>
 </section>
 
@@ -91,12 +101,30 @@
         <p id="team-members"></p>
     </div>
 </section>
+</main>
 
-<footer>
+<footer id="landing-footer">
     <div class="container">
-        <p id="footer-text">&copy; 2026 AAAAAAAAAAAAA. Tutti i diritti riservati.</p>
+        <p class="legacy-footer-line" id="legacy-footer-text" aria-hidden="true">AAAAAAAAAAAAA.</p>
+        <p id="footer-text">&copy; 2026 Pot Tales. Tutti i diritti riservati.</p>
+        <div class="footer-row">
+            <nav class="footer-nav" id="footer-navigation" aria-label="Informazioni e accessibilità">
+                <a href="/privacy" id="footer-privacy">Privacy</a>
+                <a href="/accessibility" id="footer-accessibility">Accessibilità</a>
+                <a href="https://validator.w3.org/" id="footer-html-validator">Validatore HTML W3C</a>
+                <a href="https://jigsaw.w3.org/css-validator/" id="footer-css-validator">Validatore CSS W3C</a>
+            </nav>
+            <a class="wcag-badge" id="footer-wcag" href="https://www.w3.org/WAI/WCAG2AA-Conformance" aria-label="Pagine statiche conformi alle WCAG 2.2 livello AA">
+                <img src="/assets/images/ui/wcag2.2AA-blue.svg" alt="Conformità WCAG 2.2 livello AA">
+            </a>
+        </div>
     </div>
 </footer>
+</div>
+<button type="button" class="back-to-top" id="back-to-top" aria-label="Torna in su" title="Torna in su">
+    <img src="/assets/images/ui/back.png" alt="" aria-hidden="true">
+</button>
+</div>
 
 <script>
     const landingTranslations = {
@@ -105,6 +133,7 @@
             "nav-project": "Progetto",
             "nav-gallery": "Galleria",
             "nav-team": "Team",
+            "skip-link": "Vai al contenuto principale",
             "lang-label": "Lingua:",
             "hero-title": "Un'avventura tra scienza e gioco",
             "hero-desc": "Esplora un laboratorio di ricerca archeologica trasformato in un'esperienza interattiva.",
@@ -118,17 +147,29 @@
             "project-research": "Lo studio approfondito di questi residui, nonché degli oggetti in ceramica stessi, è stato condotto mediante analisi di laboratorio, tra cui analisi petrografica, mineralogica, chimica e spettroscopica, nonché microscopia elettronica e datazione. Ciò ha rivelato dettagli finora sconosciuti sulla vita quotidiana delle comunità antiche, permettendo agli studenti di scoprire storie affascinanti da ambienti domestici e oltre.",
             "project-challenge": "Comunicare efficacemente i risultati della ricerca archeologica non è mai facile; questo progetto si concentra sulla creazione di una narrativa esplorativa in cui i giocatori entrano virtualmente nelle 'profondità oscure' e devono trovare la loro strada per uscire dall'oscurità e scoprire i risultati della ricerca scientifica.",
             "project-solution": "La collaborazione tra studenti di archeologia e informatica, nonché professionisti del settore audiovisivo, ha portato alla creazione di un videogioco online 2D in cui i giocatori possono esplorare questi 'depositi neri' come se fosse una caverna oscura. Gli utenti possono quindi 'emergere dall'oscurità' trovando il percorso giusto, imparando e trovando la loro strada o perdersi nel buio.",
-            "team-members": "F. M. Valente • C.D. Baeza Vega • D. Favale • L. Mocchiutti • I. Malliota • I. Garcia Trivès • T.T. Kahveci • R. Buso • A. Cipriani • L. Soligo • I. Rossi • F. Marcon",
+            "team-members": "F. M. Valente • C.D. Baeza Vega • D. Favale • L. Mocchiutti • I. Malliota • I. Garcia Trivès • T.T. Kahveci • R. Buso • A. Cipriani • F. Marcon • I. Rossi • L. Soligo",
             "gallery-title": "Scopri il gioco",
             "team-title": "Il team",
             "team-intro": "Un piccolo gruppo di persone dietro questo progetto:",
-            "footer-text": "© 2026 AAAAAAAAAAAAA. Tutti i diritti riservati."
+            "legacy-footer-text": "AAAAAAAAAAAAA.",
+            "footer-text": "© 2026 Pot Tales. Tutti i diritti riservati.",
+            "footer-privacy": "Privacy",
+            "footer-accessibility": "Accessibilità",
+            "footer-html-validator": "Validatore HTML W3C",
+            "footer-css-validator": "Validatore CSS W3C",
+            "back-to-top-label": "Torna in su",
+            "carousel-pause": "Pausa carosello",
+            "carousel-resume": "Riprendi carosello",
+            "carousel-label": "Carosello di schermate del gioco",
+            "carousel-dots-label": "Seleziona una schermata",
+            "slide-label": "Schermata {current} di {total}"
         },
         en: {
             "nav-home": "Home",
             "nav-project": "Project",
             "nav-gallery": "Gallery",
             "nav-team": "Team",
+            "skip-link": "Skip to main content",
             "lang-label": "Language:",
             "hero-title": "An adventure between science and game",
             "hero-desc": "Explore a research lab turned into an interactive experience: discover the project by playing it!",
@@ -142,16 +183,28 @@
             "project-research": "In-depth study of these residues, as well as the ceramic objects themselves, was conducted through laboratory analysis, including petrographic, mineralogical, chemical and spectroscopic analyses, as well as electron microscopy and dating. This revealed hitherto unknown details about the daily lives of ancient communities, enabling students to uncover fascinating stories from domestic environments and possibly beyond.",
             "project-challenge": "Effectively communicating the results of archaeological research is never easy; this project focuses on creating an exploratory narrative in which players virtually enter the 'dark depths' and must find their way out of the darkness to discover the results of scientific research.",
             "project-solution": "The collaboration between archaeology and computer science students, as well as professionals in the audiovisual sector, has resulted in the creation of a 2D online video game in which players can explore these 'black deposits' as if they were a dark cave. Users can therefore 'emerge from the darkness' by finding the right path, learning and finding their way or getting lost in the dark.",
-            "team-members": "F. M. Valente • C.D. Baeza Vega • D. Favale • L. Mocchiutti • I. Malliota • I. Garcia Trivès • T.T. Kahveci • R. Buso • A. Cipriani • L. Soligo • I. Rossi • F. Marcon",
+            "team-members": "F. M. Valente • C.D. Baeza Vega • D. Favale • L. Mocchiutti • I. Malliota • I. Garcia Trivès • T.T. Kahveci • R. Buso • A. Cipriani • F. Marcon • I. Rossi • L. Soligo",
             "gallery-title": "Discover the game",
             "team-title": "The team",
             "team-intro": "A small bunch of people behind this project:",
-            "footer-text": "© 2026 AAAAAAAAAAAAA. All rights reserved."
+            "legacy-footer-text": "AAAAAAAAAAAAA.",
+            "footer-text": "© 2026 Pot Tales. All rights reserved.",
+            "footer-privacy": "Privacy",
+            "footer-accessibility": "Accessibility",
+            "footer-html-validator": "W3C HTML validator",
+            "footer-css-validator": "W3C CSS validator",
+            "back-to-top-label": "Back to top",
+            "carousel-pause": "Pause carousel",
+            "carousel-resume": "Resume carousel",
+            "carousel-label": "Game screenshot carousel",
+            "carousel-dots-label": "Select a screenshot",
+            "slide-label": "Screenshot {current} of {total}"
         }
     };
 
     function updateLandingLang(lang) {
         const dict = landingTranslations[lang] || landingTranslations.it;
+        document.documentElement.lang = lang;
         Object.keys(dict).forEach(id => {
             const el = document.getElementById(id);
             if (el) {
@@ -162,22 +215,58 @@
                 el.textContent = text;
             }
         });
+        document.getElementById('primary-navigation').setAttribute('aria-label', lang === 'en' ? 'Primary navigation' : 'Navigazione principale');
+        document.getElementById('footer-navigation').setAttribute('aria-label', lang === 'en' ? 'Information and accessibility' : 'Informazioni e accessibilità');
+        document.getElementById('footer-wcag').setAttribute('aria-label', lang === 'en' ? 'Static pages conform to WCAG 2.2 level AA' : 'Pagine statiche conformi alle WCAG 2.2 livello AA');
+        const backToTopLabel = dict['back-to-top-label'];
+        document.getElementById('back-to-top').setAttribute('aria-label', backToTopLabel);
+        document.getElementById('back-to-top').setAttribute('title', backToTopLabel);
+        carousel.setAttribute('aria-label', dict['carousel-label']);
+        carouselDots.setAttribute('aria-label', dict['carousel-dots-label']);
+        document.getElementById('carousel-prev').setAttribute('aria-label', lang === 'en' ? 'Previous screenshot' : 'Schermata precedente');
+        document.getElementById('carousel-next').setAttribute('aria-label', lang === 'en' ? 'Next screenshot' : 'Schermata successiva');
+        Array.from(carouselSlides).forEach((slide, index) => {
+            slide.setAttribute('aria-label', dict['slide-label'].replace('{current}', index + 1).replace('{total}', slideCount));
+        });
+        Array.from(carouselDots.children).forEach((dot, index) => {
+            dot.setAttribute('aria-label', dict['slide-label'].replace('{current}', index + 1).replace('{total}', slideCount));
+        });
+        updateAutoplayButton();
     }
 
     const landingLangSelect = document.getElementById("lang-select");
-    const initialLang = localStorage.getItem("lang") || "it";
-    landingLangSelect.value = initialLang;
-    updateLandingLang(initialLang);
-    localStorage.setItem("lang", initialLang); // garantisce che sia persistita anche se non toccata
-
-    landingLangSelect.addEventListener("change", () => {
-        localStorage.setItem("lang", landingLangSelect.value);
-        updateLandingLang(landingLangSelect.value);
-    });
-
     const goToPlay = () => window.location.href = '/play';
     document.getElementById('play-button').addEventListener('click', goToPlay);
-    document.getElementById('gallery-title').addEventListener('click', goToPlay);
+
+    const landingScroll = document.getElementById('landing-scroll');
+    const landingFooter = document.getElementById('landing-footer');
+    const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+    const scrollBehavior = () => reducedMotion.matches ? 'auto' : 'smooth';
+    document.querySelectorAll('#primary-navigation a[href^="#"]').forEach(link => {
+        link.addEventListener('click', event => {
+            const target = document.querySelector(link.getAttribute('href'));
+            if (!target) return;
+            event.preventDefault();
+            const top = target.getBoundingClientRect().top - landingScroll.getBoundingClientRect().top + landingScroll.scrollTop;
+            landingScroll.scrollTo({ top: Math.max(0, top), behavior: scrollBehavior() });
+            history.replaceState(null, '', link.getAttribute('href'));
+        });
+    });
+
+    const backToTop = document.getElementById('back-to-top');
+    backToTop.addEventListener('click', () => {
+        landingScroll.scrollTo({ top: 0, behavior: scrollBehavior() });
+    });
+
+    function updateBackToTop() {
+        backToTop.classList.toggle('is-visible', landingScroll.scrollTop > 320);
+        const footerOverlap = Math.max(0, window.innerHeight - landingFooter.getBoundingClientRect().top);
+        backToTop.style.bottom = `${24 + footerOverlap}px`;
+    }
+
+    landingScroll.addEventListener('scroll', updateBackToTop, { passive: true });
+    window.addEventListener('resize', updateBackToTop);
+    updateBackToTop();
 
     const carousel = document.getElementById('carousel');
     const carouselTrack = document.getElementById('carousel-track');
@@ -186,13 +275,14 @@
     const slideCount = carouselSlides.length;
     let currentSlide = 0;
     let autoplayTimer = null;
+    let autoplayPaused = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     let touchStartX = 0;
     let touchEndX = 0;
 
     for (let i = 0; i < slideCount; i++) {
         const dot = document.createElement('button');
         dot.classList.add('carousel-dot');
-        dot.setAttribute('aria-label', `Vai alla slide ${i + 1}`);
+        dot.type = 'button';
         dot.addEventListener('click', () => goToSlide(i));
         carouselDots.appendChild(dot);
     }
@@ -203,15 +293,27 @@
         carouselTrack.style.transform = `translateX(-${currentSlide * 100}%)`;
         for (let i = 0; i < dotElements.length; i++) {
             dotElements[i].classList.toggle('active', i === currentSlide);
+            dotElements[i].setAttribute('aria-current', i === currentSlide ? 'true' : 'false');
+            carouselSlides[i].setAttribute('aria-hidden', i === currentSlide ? 'false' : 'true');
         }
     }
 
     function startAutoplay() {
+        stopAutoplay();
+        if (autoplayPaused || document.hidden) return;
         autoplayTimer = setInterval(() => goToSlide(currentSlide + 1), 4000);
     }
 
     function stopAutoplay() {
         clearInterval(autoplayTimer);
+        autoplayTimer = null;
+    }
+
+    function updateAutoplayButton() {
+        const dict = landingTranslations[landingLangSelect.value] || landingTranslations.it;
+        const toggle = document.getElementById('carousel-toggle');
+        toggle.textContent = autoplayPaused ? dict['carousel-resume'] : dict['carousel-pause'];
+        toggle.setAttribute('aria-pressed', autoplayPaused ? 'true' : 'false');
     }
 
     function handleSwipe() {
@@ -228,6 +330,12 @@
 
     document.getElementById('carousel-prev').addEventListener('click', () => goToSlide(currentSlide - 1));
     document.getElementById('carousel-next').addEventListener('click', () => goToSlide(currentSlide + 1));
+    document.getElementById('carousel-toggle').addEventListener('click', () => {
+        autoplayPaused = !autoplayPaused;
+        if (autoplayPaused) stopAutoplay();
+        else startAutoplay();
+        updateAutoplayButton();
+    });
 
     carousel.addEventListener('touchstart', (e) => {
         touchStartX = e.changedTouches[0].screenX;
@@ -242,6 +350,19 @@
 
     carousel.addEventListener('mouseenter', stopAutoplay);
     carousel.addEventListener('mouseleave', startAutoplay);
+    carousel.addEventListener('focusin', stopAutoplay);
+    carousel.addEventListener('focusout', startAutoplay);
+    document.addEventListener('visibilitychange', () => document.hidden ? stopAutoplay() : startAutoplay());
+
+    const initialLang = localStorage.getItem("lang") || "it";
+    landingLangSelect.value = initialLang;
+    updateLandingLang(initialLang);
+    localStorage.setItem("lang", initialLang);
+
+    landingLangSelect.addEventListener("change", () => {
+        localStorage.setItem("lang", landingLangSelect.value);
+        updateLandingLang(landingLangSelect.value);
+    });
 
     goToSlide(0);
     startAutoplay();

@@ -52,7 +52,7 @@ func main() {
 
 	// Ritenzione dei documenti su Mongo, distinta dalla durata della sessione.
 	// Vedi helpers.EnsureIndexes.
-	retention := time.Duration(helpers.EnvInt("DATA_RETENTION_DAYS", 45)) * 24 * time.Hour
+	retention := time.Duration(helpers.EnvInt("DATA_RETENTION_DAYS", 30)) * 24 * time.Hour
 
 	slog.Info("APM Agent initialized", "service", serviceName)
 

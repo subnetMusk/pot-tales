@@ -67,7 +67,7 @@ func getEnrichedLogger(ctx context.Context) *slog.Logger {
 	}
 
 	// 2. User Context (Se presente, iniettato dal Middleware)
-	if userID, ok := ctx.Value(UserIDKey).(string); ok {
+	if userID, ok := ctx.Value(UserIDKey).(string); ok && HasAnalyticsConsent(ctx) {
 		logger = logger.With(slog.String("user.id", userID))
 	}
 

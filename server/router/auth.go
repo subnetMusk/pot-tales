@@ -198,6 +198,7 @@ func (a *authSvc) create(w http.ResponseWriter, r *http.Request) {
 	gameDoc.Data.TotalPlayTimeMs = 0
 	gameDoc.Meta.LastPing = now
 	gameDoc.Meta.Warnings = 0
+	gameDoc.Meta.AnalyticsConsent = reqPayload.ConsentGiven
 
 	ctx := r.Context()
 
@@ -218,7 +219,7 @@ func (a *authSvc) create(w http.ResponseWriter, r *http.Request) {
 	// autenticata (vedi SessionManager.refreshSessionAsync). Le sessioni create
 	// e mai utilizzate scadono cosi' in pochi minuti anziche' occupare spazio
 	// per l'intera durata nominale.
-	if err := a.rdb.Set(ctx, "sess:"+token, "1", a.initialTTL).Err(); err != nil {
+	if err := a.rdb.Set(ctx, "sess:"+token, helpers.SessionCacheValue(reqPayload.ConsentGiven), a.initialTTL).Err(); err != nil {
 		helpers.WriteJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to cache session"})
 		return
 	}
@@ -232,7 +233,7 @@ func (a *authSvc) create(w http.ResponseWriter, r *http.Request) {
 	// Il dispositivo compare come classe e non come stringa dichiarata: quella
 	// integrale distinguerebbe un visitatore dagli altri in un indice che la
 	// platea divulgativa può leggere.
-	helpers.LogGameplay(ctx, token, "sessione_iniziata", map[string]any{
+	helpers.LogGameplay(helpers.WithAnalyticsConsent(ctx, reqPayload.ConsentGiven), token, "sessione_iniziata", map[string]any{
 		"partita.dispositivo": helpers.ClasseDispositivo(reqPayload.Device),
 	})
 

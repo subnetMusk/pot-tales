@@ -1,47 +1,95 @@
-<section id="mobile-blocked-screen">
-  <h1 id="mobile-blocked-title">🖥️ Solo da desktop</h1>
-  <p id="mobile-blocked-desc">Questo gioco richiede tastiera e mouse: riprova da un computer desktop o laptop.</p>
-
-  <div id="lang-container">
-    <label for="lang-select" id="lang-label">Lingua:</label>
-    <select id="lang-select">
-      <option value="it">🇮🇹 Italiano</option>
-      <option value="en">🇬🇧 English</option>
-    </select>
-  </div>
-</section>
+<main class="legal-screen" aria-labelledby="mobile-blocked-title">
+  <section class="legal-card compact-card">
+    <header class="consent-header">
+      <div>
+        <p class="legal-kicker" id="mobile-blocked-kicker">Un piccolo intoppo</p>
+        <h1 id="mobile-blocked-title">Questa avventura vuole un PC</h1>
+        <p class="legal-subtitle" id="mobile-blocked-subtitle">Per ora servono tastiera e mouse.</p>
+      </div>
+      <div class="legal-language inline-language">
+        <label for="mobile-lang-select" id="mobile-lang-label">Lingua:</label>
+        <select id="mobile-lang-select">
+          <option value="it">🇮🇹 Italiano</option>
+          <option value="en">🇬🇧 English</option>
+        </select>
+      </div>
+    </header>
+    <div class="legal-copy" tabindex="0" role="region" aria-label="Compatibilità del gioco">
+      <p id="mobile-blocked-desc">Hai aperto Pot Tales da uno smartphone o tablet. Il gioco non è ancora ottimizzato per i comandi touch.</p>
+      <p id="mobile-blocked-redirect">Tra 15 secondi tornerai alla home.</p>
+    </div>
+    <div class="legal-actions mobile-actions">
+      <button type="button" id="mobile-back">Torna alla home</button>
+      <button type="button" id="mobile-cancel" class="button-quiet">Resta su questa pagina</button>
+    </div>
+  </section>
+</main>
 
 <script>
-  const mobileBlockedTranslations = {
-    it: {
-      title: "Solo da desktop",
-      desc: "Questo gioco richiede tastiera e mouse: riprova da un computer desktop o laptop.",
-      label: "Lingua:"
-    },
-    en: {
-      title: "Desktop only",
-      desc: "This game requires a keyboard and mouse: please try again from a desktop or laptop computer.",
-      label: "Language:"
-    }
-  };
+  (() => {
+    const translations = {
+      it: {
+        kicker: "Un piccolo intoppo",
+        title: "Questa avventura vuole un PC",
+        subtitle: "Per ora servono tastiera e mouse.",
+        desc: "Hai aperto Pot Tales da uno smartphone o tablet. Il gioco non è ancora ottimizzato per i comandi touch.",
+        redirect: seconds => `Tra ${seconds} secondi tornerai alla home.`,
+        cancelled: "Reindirizzamento automatico annullato. Puoi tornare alla home quando vuoi.",
+        back: "Torna alla home",
+        cancel: "Resta su questa pagina",
+        language: "Lingua:"
+      },
+      en: {
+        kicker: "A small obstacle",
+        title: "This adventure needs a PC",
+        subtitle: "For now, you will need a keyboard and mouse.",
+        desc: "You opened Pot Tales on a smartphone or tablet. The game is not yet optimised for touch controls.",
+        redirect: seconds => `You will return home in ${seconds} seconds.`,
+        cancelled: "Automatic redirect cancelled. You can return home whenever you want.",
+        back: "Back to home",
+        cancel: "Stay on this page",
+        language: "Language:"
+      }
+    };
 
-  function updateMobileBlockedLang(lang) {
-    document.getElementById("mobile-blocked-title").textContent = mobileBlockedTranslations[lang].title;
-    document.getElementById("mobile-blocked-desc").textContent = mobileBlockedTranslations[lang].desc;
-    document.getElementById("lang-label").textContent = mobileBlockedTranslations[lang].label;
-  }
+    const langSelect = document.getElementById("mobile-lang-select");
+    let seconds = 15;
+    let redirectCancelled = false;
+    const applyLanguage = lang => {
+      const t = translations[lang] || translations.it;
+      document.documentElement.lang = lang;
+      document.getElementById("mobile-blocked-kicker").textContent = t.kicker;
+      document.getElementById("mobile-blocked-title").textContent = t.title;
+      document.getElementById("mobile-blocked-subtitle").textContent = t.subtitle;
+      document.getElementById("mobile-blocked-desc").textContent = t.desc;
+      document.getElementById("mobile-blocked-redirect").textContent = redirectCancelled ? t.cancelled : t.redirect(seconds);
+      document.getElementById("mobile-back").textContent = t.back;
+      document.getElementById("mobile-cancel").textContent = t.cancel;
+      document.getElementById("mobile-lang-label").textContent = t.language;
+    };
 
-  const mobileBlockedLangSelect = document.getElementById("lang-select");
-  const savedLang = localStorage.getItem("lang");
-  if (savedLang && mobileBlockedTranslations[savedLang]) {
-    mobileBlockedLangSelect.value = savedLang;
-  }
+    langSelect.value = localStorage.getItem("lang") || "it";
+    applyLanguage(langSelect.value);
+    langSelect.addEventListener("change", () => {
+      localStorage.setItem("lang", langSelect.value);
+      applyLanguage(langSelect.value);
+    });
+    document.getElementById("mobile-back").addEventListener("click", () => window.returnToLanding());
 
-  mobileBlockedLangSelect.addEventListener("change", () => {
-    localStorage.setItem("lang", mobileBlockedLangSelect.value);
-    updateMobileBlockedLang(mobileBlockedLangSelect.value);
-  });
-
-  // Set initial language
-  updateMobileBlockedLang(mobileBlockedLangSelect.value);
+    const timer = window.setInterval(() => {
+      seconds -= 1;
+      applyLanguage(langSelect.value);
+      if (seconds <= 0) {
+        window.clearInterval(timer);
+        window.returnToLanding();
+      }
+    }, 1000);
+    document.getElementById("mobile-cancel").addEventListener("click", () => {
+      redirectCancelled = true;
+      window.clearInterval(timer);
+      applyLanguage(langSelect.value);
+      document.getElementById("mobile-cancel").hidden = true;
+      document.getElementById("mobile-back").focus();
+    });
+  })();
 </script>

@@ -133,7 +133,7 @@ func TestLogErrorMessaggioEOrigine(t *testing.T) {
 // Un identificativo presente nel contesto deve comparire nella riga: e' cio'
 // che consente di seguire una sessione attraverso servizi diversi.
 func TestLogArricchitoConIdentificativoDiSessione(t *testing.T) {
-	ctx := context.WithValue(context.Background(), UserIDKey, "sessione-123")
+	ctx := context.WithValue(WithAnalyticsConsent(context.Background(), true), UserIDKey, "sessione-123")
 	righe := catturaLog(t, func() {
 		LogSystem(ctx, "operazione", nil)
 	})
@@ -143,6 +143,16 @@ func TestLogArricchitoConIdentificativoDiSessione(t *testing.T) {
 	}
 	if righe[0]["user.id"] != "sessione-123" {
 		t.Errorf("user.id = %v, atteso sessione-123", righe[0]["user.id"])
+	}
+}
+
+func TestLogTecnicoSenzaConsensoNonEsponeIdentificativo(t *testing.T) {
+	ctx := context.WithValue(WithAnalyticsConsent(context.Background(), false), UserIDKey, "sessione-123")
+	righe := catturaLog(t, func() {
+		LogSystem(ctx, "operazione", nil)
+	})
+	if _, presente := righe[0]["user.id"]; presente {
+		t.Errorf("user.id presente senza consenso: %v", righe[0]["user.id"])
 	}
 }
 

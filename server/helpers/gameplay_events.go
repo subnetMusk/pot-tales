@@ -112,6 +112,10 @@ func ClasseDispositivo(dichiarato string) string {
 // I campi sono solo quelli che le dashboard interrogano. Ogni campo in più qui
 // è un campo che qualcuno potrà leggere senza che nessuno lo abbia deciso.
 func LogGameplay(ctx context.Context, sessionID, azione string, dettagli map[string]any) {
+	if !HasAnalyticsConsent(ctx) {
+		return
+	}
+
 	logger := gameplayLogger
 	if logger == nil {
 		// Stessa scelta difensiva del logger tecnico: una riga registrata prima

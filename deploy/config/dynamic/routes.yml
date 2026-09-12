@@ -43,24 +43,18 @@ http:
         - interruttore
       service: api
 
-    # Punto di ingresso comunicato ai visitatori. Nessun middleware che possa
-    # dipendere da altro: la politica sui contenuti non e' applicata perche' un
-    # suo irrigidimento futuro renderebbe muta proprio la pagina che deve
-    # parlare quando il resto tace.
-    #
-    # Il percorso e' provvisorio: se il codice QR deve puntare alla radice
-    # dell'hostname, basta alzarne la priorita' sopra quella dell'applicazione.
-    landing:
-      rule: "Host(`{{ env "APP_HOST" }}`) && PathPrefix(`/info`)"
+    # Compatibilita' per eventuali QR o link gia' distribuiti: la vecchia
+    # pagina separata non viene piu' servita, e /info torna alla home del
+    # frontend senza creare un secondo punto di ingresso.
+    info-legacy:
+      rule: "Host(`{{ env "APP_HOST" }}`) && (Path(`/info`) || PathPrefix(`/info/`))"
       entryPoints:
         - websecure
       priority: 120
       middlewares:
         - intestazioni-sicurezza
-        - landing-prefisso
-        - compressione
-        - limite-richieste
-      service: landing
+        - info-alla-radice
+      service: noop@internal
 
     telemetria:
       rule: "Host(`{{ env "APP_HOST" }}`) && PathPrefix(`/telemetria`)"
@@ -156,15 +150,6 @@ http:
           timeout: "3s"
         servers:
           - url: "http://server:3000"
-
-    landing:
-      loadBalancer:
-        healthCheck:
-          path: /nginx-health
-          interval: "15s"
-          timeout: "3s"
-        servers:
-          - url: "http://landing:80"
 
     export:
       loadBalancer:

@@ -37,7 +37,6 @@ CURL_INSECURE=${CURL_INSECURE:-0}
 EXPECTED_SERVICES="
 proxy
 crowdsec
-landing
 frontend
 export
 server
@@ -96,7 +95,7 @@ tmp_dir=$(mktemp -d "${TMPDIR:-/tmp}/stack-verify.XXXXXX")
 cleanup() {
   rm -f -- \
     "$tmp_dir/health.body" \
-    "$tmp_dir/landing.body" \
+    "$tmp_dir/home.body" \
     "$tmp_dir/kibana-anon.body" \
     "$tmp_dir/kibana-auth.body" \
     "$tmp_dir/telemetry.body" \
@@ -136,7 +135,7 @@ while IFS='|' read -r service_name replicas; do
   [ -n "$service_name" ] || continue
   actual_count=$((actual_count + 1))
 done <<< "$service_lines"
-assert_equal "numero servizi" 16 "$actual_count"
+assert_equal "numero servizi" 15 "$actual_count"
 
 while IFS= read -r short_name; do
   [ -n "$short_name" ] || continue
@@ -216,28 +215,15 @@ assert_contains "health MongoDB" '"mongodb":true' "$health_body"
 assert_contains "health Redis" '"redis":true' "$health_body"
 assert_contains "health server" '"server":true' "$health_body"
 
-curl_request "$tmp_dir/landing.body" 200 "$BASE_URL/info/"
+curl_request "$tmp_dir/home.body" 200 "$BASE_URL/"
 if grep -Eiq \
   "(src|href)[[:space:]]*=[[:space:]]*['\"]((https?:)?//)|url\\([[:space:]]*['\"]?(https?:)?//|@import[[:space:]]+['\"](https?:)?//" \
-  "$tmp_dir/landing.body"; then
-  fail "la landing contiene dipendenze esterne"
+  "$tmp_dir/home.body"; then
+  fail "la home contiene dipendenze esterne"
 fi
-ok "landing priva di riferimenti esterni"
+ok "home priva di riferimenti esterni"
 
-landing_networks=$(docker service inspect "${STACK_NAME}_landing" \
-  --format '{{len .Spec.TaskTemplate.Networks}}') ||
-  fail "lettura reti landing fallita"
-assert_equal "landing collegata a una sola rete" 1 "$landing_networks"
-for field in Env Mounts Secrets; do
-  value=$(docker service inspect "${STACK_NAME}_landing" \
-    --format "{{json .Spec.TaskTemplate.ContainerSpec.$field}}") ||
-    fail "lettura $field landing fallita"
-  case "$value" in
-    null|'[]') ;;
-    *) fail "landing con dipendenza Docker inattesa in $field: $value" ;;
-  esac
-done
-ok "landing senza env, mount o secret"
+curl_request "$tmp_dir/health.body" 301 "$BASE_URL/info/"
 
 curl_request "$tmp_dir/kibana-anon.body" 401 \
   "$BASE_URL/osservabilita/api/status"

@@ -3,6 +3,7 @@ import Player from "@/items/Main/Player";
 import PopupManager from "../items/UI/PopupManager";
 import { applyTranslations, launchSubScene, playSequence, reloadTranslations } from "../utils";
 import {APISession, CreateSessionRequest} from "../network/APISession";
+import {hasAnalyticsConsent} from "../privacy/consent";
 
 import OggettoInterattivo from "../items/Main/OggettoInterattivo";
 import { ambientDrift } from "../items/ParticleFx";
@@ -494,7 +495,7 @@ class Stage1 extends Phaser.Scene {
 					// bloccare il giocatore, semplicemente non potrà riprendere da qui in caso
 					// di reload finché la connessione non torna disponibile.
 					const requestData: CreateSessionRequest = {
-						consentGiven: true,
+						consentGiven: hasAnalyticsConsent(),
 						device: navigator.userAgent.substring(0, 1024)
 					};
 

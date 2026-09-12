@@ -1,53 +1,110 @@
-<section id="consent-screen">
-  <h1 id="consent-title">🍪 Consenso ai cookie</h1>
-  <p id="consent-desc">Per offrirti un'esperienza migliore, utilizziamo cookie tecnici e analitici.</p>
-  
-  <button id="accept-cookies">Accetto</button>
+<main class="legal-screen" aria-labelledby="consent-title">
+  <section class="legal-card consent-card">
+    <header class="consent-header">
+      <div>
+        <p class="legal-kicker" id="consent-kicker">Prima di cominciare</p>
+        <h1 id="consent-title">Privacy e dati di gioco</h1>
+        <p class="legal-subtitle" id="consent-subtitle">Scegli tu come vivere l’avventura.</p>
+      </div>
+      <div class="legal-language inline-language">
+        <label for="consent-lang-select" id="consent-lang-label">Lingua:</label>
+        <select id="consent-lang-select">
+          <option value="it">🇮🇹 Italiano</option>
+          <option value="en">🇬🇧 English</option>
+        </select>
+      </div>
+    </header>
 
-  <div id="lang-container">
-    <label for="lang-select" id="lang-label">Lingua:</label>
-    <select id="lang-select">
-      <option value="it">🇮🇹 Italiano</option>
-      <option value="en">🇬🇧 English</option>
-    </select>
-  </div>
-</section>
+    <div class="legal-copy consent-summary" id="consent-summary" tabindex="0" role="region" aria-label="Riepilogo privacy">
+      <p id="consent-essential"><strong>Necessari.</strong> Servono per avviare e salvare temporaneamente la partita, proteggere il servizio e ricordare la lingua. Puoi giocare normalmente.</p>
+      <p id="consent-analytics"><strong>Analitici facoltativi.</strong> Ci aiutano a capire, con identificativi pseudonimi, scene e traguardi raggiunti, durata, classe del dispositivo, errori e prestazioni. Non usiamo pubblicità né profilazione commerciale.</p>
+      <p id="consent-retention">I dati grezzi sono conservati per non più di 30 giorni e possono essere cancellati prima alla dismissione del server.</p>
+      <p id="consent-minors">Selezionando “Accetta tutti” dichiari di avere almeno 14 anni oppure che la scelta è stata compiuta o autorizzata da chi esercita la responsabilità genitoriale. Se hai meno di 14 anni puoi comunque giocare selezionando “Accetta necessari”.</p>
+      <nav class="legal-inline-nav" id="consent-info-links" aria-label="Informazioni">
+        <a class="legal-link" id="privacy-link" href="/privacy">Leggi l’informativa completa</a>
+        <a class="legal-link" id="accessibility-link" href="/accessibility">Accessibilità</a>
+      </nav>
+    </div>
+
+    <div class="legal-actions" aria-label="Scelte privacy">
+      <button type="button" id="return-landing" class="button-quiet">Torna indietro</button>
+      <div class="legal-action-cluster">
+        <button type="button" id="accept-necessary" class="button-secondary">Accetta necessari</button>
+        <button type="button" id="accept-all">Accetta tutti</button>
+      </div>
+    </div>
+
+  </section>
+</main>
 
 <script>
-  const translations = {
-    it: {
-      title: "🍪 Consenso ai cookie",
-      desc: "Per offrirti un'esperienza migliore, utilizziamo cookie tecnici e analitici.",
-      label: "Lingua:",
-      button: "Accetto"
-    },
-    en: {
-      title: "🍪 Cookie Consent",
-      desc: "To offer you a better experience, we use technical and analytics cookies.",
-      label: "Language:",
-      button: "Accept"
-    }
-  };
+  (() => {
+    const translations = {
+      it: {
+        kicker: "Prima di cominciare",
+        title: "Privacy e dati di gioco",
+        subtitle: "Scegli tu come vivere l’avventura.",
+        essential: "<strong>Necessari.</strong> Servono per avviare e salvare temporaneamente la partita, proteggere il servizio e ricordare la lingua. Puoi giocare normalmente.",
+        analytics: "<strong>Analitici facoltativi.</strong> Ci aiutano a capire, con identificativi pseudonimi, scene e traguardi raggiunti, durata, classe del dispositivo, errori e prestazioni. Non usiamo pubblicità né profilazione commerciale.",
+        retention: "I dati grezzi sono conservati per non più di 30 giorni e possono essere cancellati prima alla dismissione del server.",
+        minors: "Selezionando “Accetta tutti” dichiari di avere almeno 14 anni oppure che la scelta è stata compiuta o autorizzata da chi esercita la responsabilità genitoriale. Se hai meno di 14 anni puoi comunque giocare selezionando “Accetta necessari”.",
+        privacy: "Leggi l’informativa completa",
+        accessibility: "Accessibilità",
+        summary: "Riepilogo privacy",
+        information: "Informazioni",
+        all: "Accetta tutti",
+        necessary: "Accetta necessari",
+        back: "Torna indietro",
+        language: "Lingua:"
+      },
+      en: {
+        kicker: "Before you begin",
+        title: "Privacy and game data",
+        subtitle: "Choose how you want to experience the adventure.",
+        essential: "<strong>Necessary.</strong> These functions start and temporarily save the game, protect the service and remember your language. You can play normally.",
+        analytics: "<strong>Optional analytics.</strong> They help us understand, using pseudonymous identifiers, scenes and milestones reached, duration, device class, errors and performance. We use neither advertising nor commercial profiling.",
+        retention: "Raw data is kept for no longer than 30 days and may be deleted earlier when the server is decommissioned.",
+        minors: "By selecting “Accept all”, you declare that you are at least 14 years old, or that the choice was made or authorised by a person exercising parental responsibility. If you are under 14, you can still play by selecting “Accept necessary”.",
+        privacy: "Read the full privacy notice",
+        accessibility: "Accessibility",
+        summary: "Privacy summary",
+        information: "Information",
+        all: "Accept all",
+        necessary: "Accept necessary",
+        back: "Go back",
+        language: "Language:"
+      }
+    };
 
-  function updateConsentLang(lang) {
-    document.getElementById("consent-title").textContent = translations[lang].title;
-    document.getElementById("consent-desc").textContent = translations[lang].desc;
-    document.getElementById("lang-label").textContent = translations[lang].label;
-    document.getElementById("accept-cookies").textContent = translations[lang].button;
-  }
+    const langSelect = document.getElementById("consent-lang-select");
+    const applyLanguage = lang => {
+      const t = translations[lang] || translations.it;
+      document.documentElement.lang = lang;
+      document.getElementById("consent-kicker").textContent = t.kicker;
+      document.getElementById("consent-title").textContent = t.title;
+      document.getElementById("consent-subtitle").textContent = t.subtitle;
+      document.getElementById("consent-essential").innerHTML = t.essential;
+      document.getElementById("consent-analytics").innerHTML = t.analytics;
+      document.getElementById("consent-retention").textContent = t.retention;
+      document.getElementById("consent-minors").textContent = t.minors;
+      document.getElementById("privacy-link").textContent = t.privacy;
+      document.getElementById("accessibility-link").textContent = t.accessibility;
+      document.getElementById("consent-summary").setAttribute("aria-label", t.summary);
+      document.getElementById("consent-info-links").setAttribute("aria-label", t.information);
+      document.getElementById("accept-all").textContent = t.all;
+      document.getElementById("accept-necessary").textContent = t.necessary;
+      document.getElementById("return-landing").textContent = t.back;
+      document.getElementById("consent-lang-label").textContent = t.language;
+    };
 
-  const langSelect = document.getElementById("lang-select");
-  langSelect.addEventListener("change", () => {
-    updateConsentLang(langSelect.value);
-  });
-
-  // Set initial language
-  updateConsentLang(langSelect.value);
-
-  document.getElementById("accept-cookies")?.addEventListener("click", async () => {
-    const lang = langSelect.value;
-    localStorage.setItem("lang", lang); // Save language choice
-    localStorage.setItem("consentGiven", "true");
-    startGame();
-  });
+    langSelect.value = localStorage.getItem("lang") || "it";
+    applyLanguage(langSelect.value);
+    langSelect.addEventListener("change", () => {
+      localStorage.setItem("lang", langSelect.value);
+      applyLanguage(langSelect.value);
+    });
+    document.getElementById("accept-all").addEventListener("click", () => window.acceptAll(langSelect.value));
+    document.getElementById("accept-necessary").addEventListener("click", () => window.acceptNecessary(langSelect.value));
+    document.getElementById("return-landing").addEventListener("click", () => window.returnToLanding());
+  })();
 </script>

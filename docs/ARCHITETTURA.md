@@ -7,8 +7,7 @@ gestirlo in esercizio in [ESERCIZIO.md](ESERCIZIO.md).
 
 | Componente | Ruolo |
 |---|---|
-| Frontend | applicazione a canvas su Phaser, compilata con Vite e servita staticamente da nginx |
-| Landing page | contenuto statico separato, punto di ingresso comunicato via QR |
+| Frontend | landing page, consenso, informativa e applicazione Phaser, compilati con Vite e serviti da nginx |
 | Backend | servizio Go: ciclo di vita della sessione, stato di gioco lato server, ingestione degli eventi |
 | MongoDB | persistenza di sessioni e stato di gioco |
 | Redis | cache di sessione e contatori delle quote |
@@ -16,9 +15,10 @@ gestirlo in esercizio in [ESERCIZIO.md](ESERCIZIO.md).
 | Stack Elastic | log, metriche e telemetria applicativa |
 | Sandbox | gemello del frontend per prototipare, escluso dal monitoraggio |
 
-La landing page è un'immagine e un servizio a sé: condividere il contenitore con il
-gioco significherebbe condividerne i guasti, e quella pagina esiste proprio per parlare
-quando il resto tace. Non ha script, asset esterni né chiamate al backend.
+La landing page realizzata insieme al gioco è la home del frontend (`/`). Il gioco
+inizia su `/play`, dopo la scelta privacy, mentre l'informativa completa è su
+`/privacy`. Il vecchio percorso `/info` non serve più una pagina separata e reindirizza
+alla home per non lasciare inutilizzabili eventuali collegamenti già distribuiti.
 
 ## Reti
 

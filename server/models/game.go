@@ -28,6 +28,9 @@ type GameState struct {
 	Meta struct {
 		LastPing time.Time `bson:"last_ping"` // Fondamentale per calcolare Delta T
 		Warnings int       `bson:"warnings"`  // Contatore per logica di Soft-Ban (opzionale)
+		// Copia della scelta facoltativa, usata dal job che chiude le partite
+		// abbandonate quando non esiste più una richiesta HTTP da cui leggerla.
+		AnalyticsConsent bool `bson:"analytics_consent"`
 
 		// ClosedAt segna che la fine partita è già stata emessa verso
 		// l'osservabilità. Non appartiene al gioco: esiste perché la

@@ -29,6 +29,9 @@ type ContextKey string
 const (
 	// UserIDKey è la chiave usata per salvare il token/ID nel context
 	UserIDKey ContextKey = "userID"
+	// AnalyticsConsentKey rende disponibile la scelta facoltativa agli handler
+	// senza confonderla con la validità della sessione tecnica.
+	AnalyticsConsentKey ContextKey = "analyticsConsent"
 
 	// SessionTTL e' la durata piena predefinita della sessione, usata quando
 	// SESSION_TTL_MIN non e' impostata.
@@ -38,6 +41,11 @@ const (
 	// libreria le restituisce come durate di -2 e -1 nanosecondi.
 	ttlChiaveAssente = -2 * time.Nanosecond
 	ttlSenzaScadenza = -1 * time.Nanosecond
+)
+
+const (
+	sessionCacheAnalytics = "analytics"
+	sessionCacheNecessary = "necessary"
 )
 
 var (
@@ -88,7 +96,7 @@ func (sm *SessionManager) ValidateSession(ctx context.Context, token string) (st
 	// raddoppierebbe le scritture sulla base dati.
 	if residuo, err := sm.rdb.TTL(ctx, "sess:"+token).Result(); err == nil && residuo != ttlChiaveAssente {
 		if residuo != ttlSenzaScadenza && residuo < sm.ttl/2 {
-			go sm.refreshSessionAsync(token)
+			go sm.refreshSessionAsync(token, nil)
 		}
 		return token, nil
 	}
@@ -113,21 +121,28 @@ func (sm *SessionManager) ValidateSession(ctx context.Context, token string) (st
 
 	// 4. Sliding Window Refresh (Asincrono)
 	// Estendiamo la durata della sessione in background
-	go sm.refreshSessionAsync(token)
+	go sm.refreshSessionAsync(token, &doc.ConsentGiven)
 
 	return token, nil
 }
 
 // refreshSessionAsync estende il TTL su Redis e MongoDB.
 // È un metodo privato, gestito internamente dal Manager.
-func (sm *SessionManager) refreshSessionAsync(token string) {
+func (sm *SessionManager) refreshSessionAsync(token string, consent *bool) {
 	// Usiamo un contesto slegato dalla richiesta HTTP originale
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	// Redis: Refresh TTL (valore "1" come placeholder)
-	if err := sm.rdb.Set(ctx, "sess:"+token, "1", sm.ttl).Err(); err != nil {
-		log.Printf("[session] redis refresh failed for %s: %v", token, err)
+	// Redis: sul percorso rapido prolunga la chiave senza sovrascrivere la
+	// scelta. Sul percorso Mongo ricrea invece valore e TTL insieme.
+	var redisErr error
+	if consent == nil {
+		redisErr = sm.rdb.Expire(ctx, "sess:"+token, sm.ttl).Err()
+	} else {
+		redisErr = sm.rdb.Set(ctx, "sess:"+token, SessionCacheValue(*consent), sm.ttl).Err()
+	}
+	if redisErr != nil {
+		log.Printf("[session] redis refresh failed for %s: %v", token, redisErr)
 	}
 
 	// MongoDB: Estensione expires_at
@@ -140,6 +155,52 @@ func (sm *SessionManager) refreshSessionAsync(token string) {
 	if err != nil {
 		log.Printf("[session] mongo extend failed for %s: %v", token, err)
 	}
+}
+
+// SessionCacheValue codifica nella cache la sola distinzione necessaria al
+// logging. Non contiene dati identificativi aggiuntivi rispetto alla chiave.
+func SessionCacheValue(consent bool) string {
+	if consent {
+		return sessionCacheAnalytics
+	}
+	return sessionCacheNecessary
+}
+
+// AnalyticsConsent legge la scelta associata a una sessione. La cache è il
+// percorso ordinario; Mongo resta la fonte di verità e copre sessioni create
+// prima dell'introduzione del nuovo valore Redis.
+func (sm *SessionManager) AnalyticsConsent(ctx context.Context, token string) (bool, error) {
+	value, err := sm.rdb.Get(ctx, "sess:"+token).Result()
+	if err == nil {
+		switch value {
+		case sessionCacheAnalytics:
+			return true, nil
+		case sessionCacheNecessary:
+			return false, nil
+		}
+	} else if !errors.Is(err, redis.Nil) {
+		return false, err
+	}
+
+	var doc struct {
+		ConsentGiven bool `bson:"consent_given"`
+	}
+	if err := sm.mongoCol.FindOne(ctx, bson.M{"_id": token}).Decode(&doc); err != nil {
+		return false, err
+	}
+	return doc.ConsentGiven, nil
+}
+
+// WithAnalyticsConsent applica la scelta a un contesto di richiesta o job.
+func WithAnalyticsConsent(ctx context.Context, consent bool) context.Context {
+	return context.WithValue(ctx, AnalyticsConsentKey, consent)
+}
+
+// HasAnalyticsConsent è volutamente conservativa: un contesto che non porta
+// una scelta esplicita non può produrre eventi analitici.
+func HasAnalyticsConsent(ctx context.Context) bool {
+	consent, ok := ctx.Value(AnalyticsConsentKey).(bool)
+	return ok && consent
 }
 
 // --- Helper Stateless (Funzioni pure di utilità HTTP) ---

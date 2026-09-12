@@ -111,7 +111,7 @@ const (
 // devono coincidere fra le vie di chiusura, o i pannelli che li aggregano
 // vedrebbero insiemi diversi a seconda di come e' finita la partita.
 func emettiConclusione(ctx context.Context, stato *models.GameState, motivo string) {
-	LogGameplay(ctx, stato.ID, "sessione_conclusa", map[string]any{
+	LogGameplay(WithAnalyticsConsent(ctx, stato.Meta.AnalyticsConsent), stato.ID, "sessione_conclusa", map[string]any{
 		"partita.motivo":       motivo,
 		"partita.scena_finale": stato.Data.SceneID,
 		"partita.durata_ms":    stato.Data.TotalPlayTimeMs,
