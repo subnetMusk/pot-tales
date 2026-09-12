@@ -356,6 +356,11 @@ class Menu extends Phaser.Scene {
 
 			// resume_button hover/press feedback ora gestito da setupPixelButton()
 			this.resume_button.on('pointerup', () => {
+				// Stessa guardia di Play, condivisa: un doppio click avvierebbe la
+				// scena due volte, e Play dopo Continue azzererebbe la partita ripresa.
+				if (this.isStartingGame) return;
+				this.isStartingGame = true;
+				this.resume_button.disableInteractive();
 				fadeElements(this.uI, false, 1000, () => {
 					this.cameras.main.zoomTo(1.5, 1000);
 					this.cameras.main.fadeOut(1000, 0, 0, 0);
