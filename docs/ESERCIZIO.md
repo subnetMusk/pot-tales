@@ -161,6 +161,12 @@ Da completare prima che la macchina resti non presidiata.
 4. Dimensionare il grace period di `backup-nightly` sulla durata reale della copia, non
    sul jitter del timer.
 
+**Stato al 13 settembre 2026:** passi 1-3 eseguiti con `healthchecks-drill.sh` (8 check
+su 8, segnale e rientro con HTTP 200, notifiche ricevute su Telegram); le notifiche di
+`stack-liveness` risultano attive. La copia notturna dura pochi secondi: l'ora di
+tolleranza di `backup-nightly` basta. Resta da assegnare il canale email almeno a
+`stack-liveness`, `alert-relay` e `tls-pubblico`, per non dipendere dal solo Telegram.
+
 ---
 
 ## 6. Passaggio in produzione
@@ -180,8 +186,17 @@ Nell'ordine, senza saltare passaggi:
 | 5 | Solo a verifica superata: `HSTS_MAX_AGE=86400` | acceso | produzione |
 | 6 | Accendere `TLS_HOST` nella sorveglianza | acceso | produzione |
 
-**Stato al 12 settembre 2026:** certificato dell'autorità di produzione emesso e servito,
-HSTS spento (`HSTS_MAX_AGE=0`). I passi dal 4 in poi restano da eseguire.
+**Stato al 13 settembre 2026:** passi 1-4 completati. Certificato dell'autorità di
+produzione emesso e servito; la verifica esterna è superata da rete mobile e con SSL
+Labs (voto A, catena senza problemi, solo TLS 1.2 e 1.3).
+
+**Passo 5 non eseguito, per scelta.** L'esercizio dura due fine settimana di due giorni e
+la macchina viene dismessa a fine settembre: il guadagno di HSTS su una finestra così
+breve non giustifica il rischio di rendere il sito irraggiungibile per un errore
+all'ultimo momento. Il redirect da HTTP a HTTPS e il cookie di sessione `Secure` coprono
+già il caso principale. `HSTS_MAX_AGE` resta `0`.
+
+Il passo 6 si esegue comunque: il controllo del certificato non dipende da HSTS.
 
 **Il passo 2 non è facoltativo.** Il volume ACME sopravvive alla ridistribuzione: senza
 cancellarlo, il certificato di prova resta in cache e continua a essere servito mentre
