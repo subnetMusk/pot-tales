@@ -475,6 +475,36 @@ func TestCheckpointFinaleConcludeLaPartitaUnaVoltaSola(t *testing.T) {
 	}
 }
 
+// L'avvio produce, oltre al checkpoint, il conteggio anonimo registrato anche
+// senza consenso. Un retry non deve contare una seconda partita, e il conteggio
+// non deve portare l'identificativo che lo collegherebbe agli altri fatti.
+func TestCheckpointDiAvvioContaLaPartitaUnaVoltaSenzaIdentificativi(t *testing.T) {
+	b := nuovoBanco(t)
+	_, cookie := b.creaSessione(t)
+
+	fatti := catturaFatti(t, func() {
+		for range 2 {
+			codice, risposta := b.postGioco(t, cookie, "/game/checkpoint", `{"checkpoint_id":"game_started"}`)
+			if codice != http.StatusOK || risposta["status"] != "ok" {
+				t.Fatalf("checkpoint di avvio: codice = %d, risposta %v", codice, risposta)
+			}
+		}
+	})
+
+	if n := len(conAzione(fatti, "checkpoint_raggiunto")); n != 1 {
+		t.Errorf("fatti del checkpoint di avvio = %d, atteso 1", n)
+	}
+	avvii := conAzione(fatti, helpers.AzionePartitaAvviata)
+	if len(avvii) != 1 {
+		t.Fatalf("partite avviate = %d, attesa 1", len(avvii))
+	}
+	for campo := range avvii[0] {
+		if strings.HasPrefix(campo, "partita.") {
+			t.Errorf("campo %s presente nel conteggio anonimo: %v", campo, avvii[0])
+		}
+	}
+}
+
 // --- Azzeramento ------------------------------------------------------------
 
 // L'azzeramento cancella lo stato e lo dichiara con un'azione propria, distinta

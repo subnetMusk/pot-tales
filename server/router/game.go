@@ -179,6 +179,13 @@ func (g *gameSvc) handleCheckpoint(w http.ResponseWriter, r *http.Request) {
 		helpers.LogGameplay(r.Context(), sessionID, "checkpoint_raggiunto", map[string]any{
 			"partita.checkpoint": payload.CheckpointID,
 		})
+
+		// L'avvio si conta anche senza consenso, in forma anonima: e' il solo
+		// modo di misurare l'affluenza complessiva. La stessa idempotenza del
+		// checkpoint impedisce che un retry conti due partite.
+		if payload.CheckpointID == "game_started" {
+			helpers.LogPartitaAvviata(r.Context())
+		}
 	}
 
 	// Questo e' l'unico checkpoint che ha semantica di ciclo di vita: chiude la

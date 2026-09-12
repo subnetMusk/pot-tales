@@ -171,15 +171,23 @@ fatti nel tempo.
 | `checkpoint_raggiunto` | endpoint dei traguardi |
 | `partita_azzerata` | reset |
 | `sessione_conclusa` | chiusura differita, espulsione o completamento |
+| `partita_avviata` | primo checkpoint `game_started`, **anche senza consenso** |
+
+Tutti i fatti richiedono il consenso analitico tranne `partita_avviata`, il conteggio
+anonimo dell'affluenza. Può farne a meno perché porta soltanto azione e orario: nessun
+`partita.id`, che lo collegherebbe agli altri fatti della stessa partita, nessuna
+classe di dispositivo né altri dettagli. È emesso una sola volta per sessione, con la
+stessa idempotenza del checkpoint da cui nasce.
 
 Il click su **Play** crea la sessione prima di entrare in Stage 1 e registra subito il
 checkpoint `game_started`. Questo primo traguardo estende il TTL ridotto delle sessioni
 appena create e separa nelle dashboard l'avvio effettivo dal completamento di Stage 1
 (`stage1_complete`). **Resume** mantiene invece la sessione e lo stato esistenti.
 
-Il data stream contiene **fatti**, non una riga per partita. Un singolo click su **Play**
-produce esattamente due fatti iniziali: una `sessione_iniziata` e un
-`checkpoint_raggiunto` con checkpoint `game_started`. La progressione aggiunge poi un
+Il data stream contiene **fatti**, non una riga per partita. Con il consenso un singolo
+click su **Play** produce esattamente tre fatti iniziali: una `sessione_iniziata`, un
+`checkpoint_raggiunto` con checkpoint `game_started` e una `partita_avviata`; senza,
+soltanto la `partita_avviata`. La progressione aggiunge poi un
 fatto per ciascun checkpoint distinto, cambio scena e conclusione. I contatori
 “partite” filtrano gli eventi unici del ciclo di vita e crescono di una sola unità per
 partita; il conteggio grezzo dei documenti misura invece il volume degli eventi. Il

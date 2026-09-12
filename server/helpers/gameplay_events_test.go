@@ -2,6 +2,7 @@ package helpers
 
 import (
 	"context"
+	"encoding/json"
 	"io"
 	"os"
 	"strings"
@@ -107,6 +108,40 @@ func TestLogGameplaySenzaConsensoNonProduceEventi(t *testing.T) {
 	})
 	if grezzo != "" {
 		t.Fatalf("evento prodotto senza consenso: %s", grezzo)
+	}
+}
+
+// Il conteggio dell'avvio e' l'unico fatto registrato senza consenso, e puo'
+// esserlo solo finche' non porta nulla che distingua una partita dalle altre.
+func TestLogPartitaAvviataSenzaConsensoEAnonima(t *testing.T) {
+	const token = "token-di-sessione-riconoscibile"
+	ctx := context.WithValue(WithAnalyticsConsent(context.Background(), false), UserIDKey, token)
+
+	grezzo := catturaLogGrezzo(t, func() {
+		LogPartitaAvviata(ctx)
+	})
+
+	righe := strings.Split(strings.TrimSpace(grezzo), "\n")
+	if len(righe) != 1 || righe[0] == "" {
+		t.Fatalf("righe prodotte = %d, attesa 1: %q", len(righe), grezzo)
+	}
+	var riga map[string]any
+	if err := json.Unmarshal([]byte(righe[0]), &riga); err != nil {
+		t.Fatalf("riga non JSON: %v", err)
+	}
+	if riga["event.dataset"] != GameplayDataset {
+		t.Errorf("event.dataset = %v, atteso %s", riga["event.dataset"], GameplayDataset)
+	}
+	if riga["event.action"] != AzionePartitaAvviata {
+		t.Errorf("event.action = %v, attesa %s", riga["event.action"], AzionePartitaAvviata)
+	}
+	if strings.Contains(grezzo, token) {
+		t.Errorf("il token di sessione compare nel documento: %s", grezzo)
+	}
+	for campo := range riga {
+		if strings.HasPrefix(campo, "partita.") || campo == "user.id" {
+			t.Errorf("campo %s presente nel conteggio anonimo: %s", campo, grezzo)
+		}
 	}
 }
 

@@ -41,20 +41,24 @@ tecnici non aggregati quando un pannello non basta a spiegare un’anomalia.
 ### Evento
 
 - [Andamento dell’evento](https://pot-tales.it/osservabilita/s/evento/app/dashboards#/view/evento-andamento): sessioni e partite osservabili, completamenti, durata, dispositivi, avanzamento e ultimi eventi pseudonimizzati.
-- [Impatto dell’evento](https://pot-tales.it/osservabilita/s/evento/app/dashboards#/view/evento-impatto): sessioni create, partite iniziate e completate, partite con RUM e tempo medio di gioco.
+- [Impatto dell’evento](https://pot-tales.it/osservabilita/s/evento/app/dashboards#/view/evento-impatto): partite totali, sessioni create, partite iniziate e completate, partite con RUM e tempo medio di gioco.
 
 Il numero di documenti del data stream non coincide con il numero di partite:
 ogni documento è un fatto (creazione, checkpoint, cambio scena o conclusione).
-Un click su **Play** produce due fatti iniziali: una `sessione_iniziata` e un
-`checkpoint_raggiunto` per `game_started`. I riquadri “Sessioni create”, “Partite
-iniziate” e “Partite completate” filtrano invece il singolo evento di ciclo di vita
-corrispondente e devono crescere di una sola unità per partita.
+Con la telemetria facoltativa un click su **Play** produce tre fatti iniziali: una
+`sessione_iniziata`, un `checkpoint_raggiunto` per `game_started` e una
+`partita_avviata`. I riquadri “Partite totali”, “Sessioni create”, “Partite
+iniziate” e “Partite completate” filtrano invece il singolo evento corrispondente e
+devono crescere di una sola unità per partita. “Partite iniziate” ha la stessa
+definizione (`game_started`) nelle due dashboard.
 
 Lo Space evento offre anche **Discover** sui soli fatti di gioco, per consultare
 i documenti non aggregati. Non espone log tecnici, indirizzi, cookie o token di sessione.
-I dati di impatto esistono soltanto per le partite per cui il visitatore ha
-scelto la telemetria facoltativa; questo limite è intenzionale e va considerato
-quando si interpretano i totali.
+Solo “Partite totali” conta tutte le partite avviate, anche senza consenso: è un
+conteggio anonimo, senza identificativo di partita né dispositivo. Tutti gli altri dati
+esistono soltanto per le partite per cui il visitatore ha scelto la telemetria
+facoltativa; questo limite è intenzionale e va considerato quando si interpretano i
+totali.
 
 ### Credenziali
 

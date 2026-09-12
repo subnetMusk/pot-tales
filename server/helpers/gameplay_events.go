@@ -116,13 +116,6 @@ func LogGameplay(ctx context.Context, sessionID, azione string, dettagli map[str
 		return
 	}
 
-	logger := gameplayLogger
-	if logger == nil {
-		// Stessa scelta difensiva del logger tecnico: una riga registrata prima
-		// dell'inizializzazione non deve dereferenziare un puntatore nullo.
-		logger = slog.Default().With(slog.String("event.dataset", GameplayDataset))
-	}
-
 	attrs := make([]any, 0, len(dettagli)+3)
 	attrs = append(attrs,
 		slog.String("event.category", "gameplay"),
@@ -135,5 +128,32 @@ func LogGameplay(ctx context.Context, sessionID, azione string, dettagli map[str
 		attrs = append(attrs, slog.Any(k, v))
 	}
 
-	logger.InfoContext(ctx, azione, attrs...)
+	loggerDeiFatti().InfoContext(ctx, azione, attrs...)
+}
+
+// AzionePartitaAvviata e' l'unico fatto registrato anche senza consenso.
+const AzionePartitaAvviata = "partita_avviata"
+
+// LogPartitaAvviata registra che una partita e' cominciata, a prescindere dal
+// consenso analitico.
+//
+// Serve all'impatto dell'evento: senza, l'affluenza conterebbe soltanto chi ha
+// accettato gli analitici. Puo' prescindere dalla scelta perche' il documento
+// non porta nulla oltre all'azione: niente `partita.id`, che lo collegherebbe
+// agli altri fatti della stessa partita, niente classe di dispositivo ne' altri
+// dettagli. Dice soltanto che in quell'istante una partita e' iniziata.
+func LogPartitaAvviata(ctx context.Context) {
+	loggerDeiFatti().InfoContext(ctx, AzionePartitaAvviata,
+		slog.String("event.category", "gameplay"),
+		slog.String("event.action", AzionePartitaAvviata),
+	)
+}
+
+func loggerDeiFatti() *slog.Logger {
+	if gameplayLogger == nil {
+		// Stessa scelta difensiva del logger tecnico: una riga registrata prima
+		// dell'inizializzazione non deve dereferenziare un puntatore nullo.
+		return slog.Default().With(slog.String("event.dataset", GameplayDataset))
+	}
+	return gameplayLogger
 }
