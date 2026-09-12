@@ -50,6 +50,28 @@ else
 	echo "server-entrypoint: chiave delle sfide non leggibile in $POW_SECRET_FILE, la soglia sulla creazione di sessioni e' aggirabile" >&2
 fi
 
+# Credenziali di MongoDB. L'immagine del database abilita l'autenticazione
+# tramite MONGO_INITDB_ROOT_PASSWORD_FILE: il ping resta accessibile anche senza
+# login, quindi un backend privo di credenziali supera il controllo di salute ma
+# fallisce alla prima scrittura. La URI viene composta qui, nello stesso
+# processo del backend, senza pubblicare la password nella specifica Swarm.
+#
+# I secret prodotti da generate-secrets.sh contengono soltanto caratteri
+# alfanumerici, quindi possono essere inseriti nella userinfo della URI senza
+# codifica aggiuntiva. Una MONGO_URI esplicita continua ad avere precedenza per
+# ambienti che gestiscono le credenziali in altro modo.
+MONGO_PASSWORD_FILE=${MONGO_PASSWORD_FILE:-/run/secrets/mongo_root_password}
+
+if [ -z "${MONGO_URI:-}" ]; then
+	if [ ! -r "$MONGO_PASSWORD_FILE" ]; then
+		echo "server-entrypoint: password MongoDB non leggibile in $MONGO_PASSWORD_FILE" >&2
+		exit 1
+	fi
+
+	MONGO_URI="mongodb://${MONGO_ROOT_USERNAME:-root}:$(cat "$MONGO_PASSWORD_FILE")@${MONGO_ADDR:-db:27017}/${MONGO_DB_NAME:-game_db}?authSource=${MONGO_AUTH_SOURCE:-admin}"
+	export MONGO_URI
+fi
+
 # Credenziali di Redis. In produzione Redis non accetta connessioni senza utente
 # (vedi redis-entrypoint.sh): l'indirizzo con utente e password si costruisce qui
 # dal secret, cosi' la password resta nell'ambiente del solo processo e non

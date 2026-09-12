@@ -23,8 +23,10 @@ segnate come fatte; le altre sono descritte e non eseguite.
 | Dominio | `pot-tales.it` registrato alle 11:15 e attivo. Record A verso `195.201.247.58` e CAA per Let's Encrypt impostati il 12 settembre con TTL 5 minuti; nessun AAAA e `www` rimosso. Propagazione verificata sui quattro server autoritativi Aruba |
 | Storage Box | facoltativa e non ordinata: nessun passo ne dipende, sezioni 3.3 e 9.6 |
 | Prerequisiti dell'host | sezioni 5.1–5.8 e riavvio 5.10 completati l'11 settembre: utente `admin`, SSH a chiave, root disabilitato, kernel `6.8.0-139-generic`, fuso, sysctl, rete, firewall, Docker e journal verificati dopo il riavvio. Controllo di coerenza RAID concluso il 12 settembre con `mismatch_cnt=0`. Il 12 settembre le unità provvisorie di rete sono state sostituite con `nic-offload@enp0s31f6` e `docker-user-rules@enp0s31f6`: entrambe attive, TSO/GSO spenti, porta 80 raggiungibile e 8080 bloccata dall'esterno |
-| Repository | clonato manualmente sulla macchina in `/srv/progetti_innovativi`. Il 12 settembre il ramo `develop` è stato aggiornato manualmente, in fast-forward, a `8af699d2`, che corregge la configurazione statica di Traefik. Non esistono timer, webhook o mirror automatici. Le immagini applicate restano quelle pubblicate da `954513d0` e verificate per digest; le modifiche privacy, accessibilità e risorse del presente aggiornamento richiedono una successiva pubblicazione e un deploy manuale |
-| Deploy | primo deploy completato. Swarm attivo; setup completato; Fleet inizializzato e token generati; tutti i servizi persistenti hanno raggiunto `1/1`. La correzione Traefik `8af699d2` è stata applicata, il certificato di produzione già emesso è stato riutilizzato e `/health` risponde 200. `stack-deploy.service` resta disabilitata e inattiva, HSTS resta a zero e non è configurato alcun riavvio automatico |
+| Repository | clonato come `admin` in `/srv/progetti_innovativi`, ramo `develop`, e aggiornato soltanto con fast-forward manuali. La revisione installata al termine della sessione è `0671fe0b0ac02377aa6f326da30e77168eacce69`. Non esistono timer, webhook o mirror automatici. La correzione dell'autenticazione MongoDB è nel commit che aggiorna questo documento: è verificata localmente ma non ancora installata sulla macchina |
+| Deploy | Swarm attivo con 15 servizi: il job `pi_setup` è completato e tutti i 14 servizi persistenti sono a `1/1`. Fleet è inizializzato; l'`infra-agent` è stabile con il nuovo limite; home, consenso, privacy, accessibilità e correzione CSP sono online. Il certificato di produzione già emesso è stato sempre riutilizzato. `stack-deploy.service` resta disabilitata e inattiva, HSTS resta a zero e non è configurato alcun riavvio automatico |
+| Immagini applicate | server `sha256:926d7f79e4d077a32ebd81a8c5d1e3fe97ab617f7c546ae1bc10ce07d3c899eb`; frontend `sha256:5a77eb0ed58c40e13bf81c07bf77f4e7c297aa1598cb9b32816d04be0d99da17`; export/home `sha256:3964129a038dce22bd35e8a63ca4f5a849cdf8e910048f5dbca654ff1a43af20`. `pi_landing` è stato rimosso intenzionalmente: la home è servita dal frontend e `pi_export` conserva l'immagine statica per le esportazioni |
+| Collaudo applicativo | il percorso “Accetta tutti” ha individuato un blocco reale: `POST /auth/session` restituisce 500 perché il backend in produzione non riceve le credenziali del MongoDB autenticato. MongoDB e gli indici `logs-gioco.partita-*` sono quindi ancora vuoti. La correzione fail-closed e il test di persistenza autenticata sono pronti e verificati localmente (17/17), ma richiedono una nuova immagine server e un deploy manuale nella prossima sessione |
 
 **Vincolo storico, assolto al primo deploy.** Le unità di rete di `provisioning/` sono
 installate e attive, mentre `stack-deploy.service` resta deliberatamente disabilitata e
@@ -911,14 +913,29 @@ FRONTEND_IMAGE=ghcr.io/subnetmusk/progetti_innovativi/frontend@sha256:923bf8b00f
 LANDING_IMAGE=ghcr.io/subnetmusk/progetti_innovativi/landing@sha256:e7f0fcd5a855f8966905d5036d79127c5059e824901835f714ed3bb8c76d556a
 ```
 
+**Immagini applicate il 12 settembre.** Dopo il merge `aa77e8eb` sono stati aggiornati
+manualmente i tre digest; `0671fe0b` ha poi pubblicato e applicato una seconda immagine
+del solo frontend per la correzione CSP. Lo stato effettivo alla chiusura della sessione
+è:
+
+```
+SERVER_IMAGE=ghcr.io/subnetmusk/progetti_innovativi/server@sha256:926d7f79e4d077a32ebd81a8c5d1e3fe97ab617f7c546ae1bc10ce07d3c899eb
+FRONTEND_IMAGE=ghcr.io/subnetmusk/progetti_innovativi/frontend@sha256:5a77eb0ed58c40e13bf81c07bf77f4e7c297aa1598cb9b32816d04be0d99da17
+LANDING_IMAGE=ghcr.io/subnetmusk/progetti_innovativi/landing@sha256:3964129a038dce22bd35e8a63ca4f5a849cdf8e910048f5dbca654ff1a43af20
+```
+
+Il deploy `aa77e8eb` ha rimosso il servizio separato `pi_landing`: l'immagine indicata
+da `LANDING_IMAGE` alimenta ora `pi_export`, mentre `/` è la home del frontend. Il
+deploy di `0671fe0b` ha aggiornato soltanto `pi_frontend`; proxy, server,
+`infra-agent`, volume `pi_acme` e certificato sono rimasti invariati.
+
 Il repository è clonato come `admin` in `/srv/progetti_innovativi`, ramo `develop`.
-Il primo deploy è partito da `954513d0eb7f5e82356cd634a014b3e6074a885d`; il 12
-settembre un aggiornamento manuale lo ha portato in fast-forward a
-`8af699d26ebb61a318479445914cc533228ab20d`, poi applicato per correggere Traefik. Il
-remoto HTTPS viene aggiornato solo manualmente: non sono installati timer, webhook o
-processi di sincronizzazione. Le immagini restano ancorate ai digest pubblicati da
-`954513d0` finché una nuova pipeline non pubblica gli artefatti del presente
-aggiornamento e l'operatore non sostituisce manualmente i digest nell'ambiente.
+Il primo deploy è partito da `954513d0eb7f5e82356cd634a014b3e6074a885d`; i successivi
+fast-forward manuali hanno applicato `8af699d2` per Traefik, `aa77e8eb` per consenso,
+pagine statiche e risorse, e `0671fe0b0ac02377aa6f326da30e77168eacce69` per la CSP.
+Il remoto HTTPS viene aggiornato solo manualmente: non sono installati timer, webhook o
+processi di sincronizzazione. Anche i digest vengono sostituiti nell'ambiente soltanto
+dopo una pubblicazione riuscita e un controllo esplicito dell'operatore.
 
 I dieci segreti automatici sono stati generati sulla macchina e la seconda esecuzione
 idempotente li ha lasciati invariati. Gli elenchi delle dashboard sono completi:
@@ -987,14 +1004,21 @@ dimensionati sullo stesso layout (sezione 9.5).
 Da qui il percorso coincide con il piano principale, sezione 11, gruppo 8, e con
 `docs/ESERCIZIO.md`, sezioni 4 e 5.
 
-**Stato al 12 settembre.** I punti 1–4 sono completati. Del punto 5 sono verificati la
-convergenza dello stack, il setup Elastic, il bootstrap Fleet, tutti i servizi
-persistenti a `1/1`, il riuso del certificato e `/health` a 200. Il limite originario
-di 512 MiB dell'`infra-agent` ha prodotto OOM di cgroup; dopo il riavvio ha raggiunto
-`1/1`, ma la correzione stabile è il limite da 1 GiB della sezione 9.5, ancora da
-pubblicare e applicare. Restano i controlli distruttivi o operativi del punto 7, il load
-test, i ripristini, la prima copia, il riavvio non presidiato, HSTS e la verifica esterna
-finale. `stack-deploy.service` resta disabilitata e inattiva nel frattempo.
+**Stato al termine del 12 settembre.** I punti 1–4 sono completati. Lo stack è stato
+portato alla revisione `0671fe0b`: setup Elastic e bootstrap Fleet sono conclusi, tutti
+i servizi persistenti sono a `1/1`, `/health` risponde 200 e il certificato di produzione
+è stato riutilizzato senza una nuova emissione. Il limite originario di 512 MiB
+dell'`infra-agent` ha prodotto OOM di cgroup; il limite da 1 GiB della sezione 9.5 è
+stato poi pubblicato, applicato e osservato per cinque minuti con agente `HEALTHY`, uso
+di circa 512 MiB e nessun nuovo OOM.
+
+Il collaudo del punto 5 non è ancora chiuso: una partita con consenso analitico ha
+scoperto che il server non autenticava le scritture su MongoDB. La correzione è
+verificata localmente ma non ancora pubblicata né installata; fino ad allora non si
+possono validare eventi di gioco e dashboard con dati reali. Restano inoltre i controlli
+distruttivi o operativi del punto 7, il load test, i ripristini, la prima copia, il
+riavvio non presidiato, HSTS e la verifica esterna finale. `stack-deploy.service` resta
+disabilitata e inattiva nel frattempo.
 
 1. Repository in `/srv/progetti_innovativi` con la revisione verificata in 7.1,
    generazione dei segreti con `provisioning/bin/generate-secrets.sh`, che produce anche
@@ -1008,7 +1032,10 @@ finale. `stack-deploy.service` resta disabilitata e inattiva nel frattempo.
 3. Record DNS della sezione 6.1 e loro verifica da rete esterna.
 4. Installazione delle unità di `provisioning/` **solo ora**, con `ACME_CA_SERVER`
    già puntata alla directory di prova. Le unità di rete scritte a mano in 5.4 e 5.5 si
-   sostituiscono con i template del repository, **non ancora provati sulla macchina**:
+   sostituiscono con i template del repository. Sulla macchina la sostituzione è stata
+   completata e provata: entrambe le unità sono attive, TSO/GSO sono spenti, 80 e 443
+   sono ammessi e una pubblicazione di prova sulla 8080 è irraggiungibile dall'esterno.
+   La sequenza eseguita è stata:
    ```
    systemctl disable --now nic-offload.service docker-user-rules.service
    rm /etc/systemd/system/nic-offload.service /etc/systemd/system/docker-user-rules.service /usr/local/sbin/docker-user-rules.sh
@@ -1020,10 +1047,11 @@ finale. `stack-deploy.service` resta disabilitata e inattiva nel frattempo.
    Poi la prova della porta 8080 dalla postazione, come in 5.5, e le stesse letture dopo
    il riavvio del punto 11. Primo deploy con `systemctl start stack-deploy.service`:
    `start` vale solo per il primo avvio, per riapplicare si usa `restart`.
-5. **Verifica a stack acceso**, che il piano principale segnala come la categoria di
-   controllo che ha trovato più difetti e che a oggi non è stata eseguita sullo stack
-   unificato. Non è una formalità e non va compressa perché le fasi precedenti sono
-   andate lisce.
+5. **Verifica a stack acceso**, avviata ma non conclusa. Ha già controllato convergenza,
+   TLS, pagine pubbliche, bootstrap Fleet, risorse dell'`infra-agent` e blocco dei
+   dispositivi touch piccoli. Ha inoltre trovato il difetto di autenticazione MongoDB
+   descritto in 9.12; il percorso completo di una partita e i dati analitici vanno
+   ricontrollati dopo il deploy della correzione. Non è una formalità e non va compressa.
 6. Verifica che l'indirizzo di provenienza arrivi corretto al backend: le porte sono
    pubblicate in `mode: host` proprio per questo.
 7. Verifiche delle correzioni della sezione 9.9 possibili solo sulla macchina:
@@ -1073,6 +1101,73 @@ finale. `stack-deploy.service` resta disabilitata e inattiva nel frattempo.
     postazione e loro rilettura (sezione 9.6).
 11. Prova di riavvio della macchina: lo stack deve tornare su da solo, senza interventi.
 12. Passaggio a produzione e attivazione di HSTS secondo la sequenza in 6.2.
+
+### 7.3 Consuntivo operativo alla chiusura del 12 settembre
+
+Questo è il registro compatto delle operazioni effettivamente svolte, nell'ordine, e non
+una nuova procedura da rilanciare:
+
+1. accettazione dell'hardware, installazione di Ubuntu 24.04.5 LTS, aggiornamento al
+   kernel `6.8.0-139-generic`, creazione del RAID1 e del layout LVM definitivo;
+2. verifica dei mount `/`, `/var`, `/srv/docker`, `/srv/data/elastic`, `/srv/backup` e
+   `/srv/export`; RAID `[UU]`, controllo concluso con `sync_action=idle` e
+   `mismatch_cnt=0`;
+3. creazione dell'utente `admin`, accesso con le due chiavi `pottales-ops` e
+   `leonardosoligo21@gmail.com`, prova di `sudo` da entrambi i PC, disabilitazione delle
+   password SSH e dell'accesso root;
+4. impostazione di `Europe/Rome`, `vm.max_map_count=1048576`, journal persistente,
+   aggiornamenti automatici senza reboot e riavvio di prova;
+5. installazione di Docker e Compose con root dati `/srv/docker`, driver `overlay2` e
+   Swarm inizialmente inattivo; UFW a deny in ingresso e routed, porte 22/80/443 ammesse,
+   catena `DOCKER-USER` che espone soltanto 80/443; TSO e GSO disabilitati con unità
+   parametrizzate e prova esterna della porta 8080 bloccata;
+6. configurazione Aruba: A dell'apice verso `195.201.247.58`, CAA Let's Encrypt, TTL 5
+   minuti, nessun AAAA e nessun `www`; verifica coerente sui quattro nameserver
+   autoritativi;
+7. clone manuale del ramo `develop` in `/srv/progetti_innovativi`, autenticazione in
+   sola lettura a repository e GHCR, download delle immagini ancorate per digest;
+8. generazione idempotente dei dieci secret, creazione degli utenti dashboard
+   `esercizio` ed `evento`, preparazione di `/srv/data/elastic` come `1000:0` a modo
+   `2770` e compilazione dei file di ambiente root-only;
+9. preflight DNS, firewall, stack e indirizzo Swarm; primo deploy, inizializzazione dello
+   Swarm, setup Elastic e bootstrap Fleet; tutti i servizi persistenti a `1/1`;
+10. emissione riuscita al primo tentativo del certificato di produzione per il solo
+    `pot-tales.it`; correzione del metodo statico di Traefik, CA resa esplicita e
+    riapplicazione con riuso del medesimo `pi_acme` e della medesima impronta;
+11. diagnosi degli OOM dell'`infra-agent`, applicazione e persistenza di 1 CPU, 1 GiB di
+    limite e 256 MiB di riserva; agente osservato `HEALTHY`, circa 512 MiB e nessun nuovo
+    OOM;
+12. deploy di home, consenso, privacy, accessibilità, ritenzione a 30 giorni e nuovi
+    budget; rimozione di `pi_landing`, aggiornamento CSP del solo frontend e verifica che
+    proxy, server e volume ACME non cambiassero;
+13. prova reale del percorso “Accetta tutti”, diagnosi del 500 di `/auth/session`,
+    conferma delle collezioni e degli indici di gameplay vuoti, individuazione della
+    credenziale MongoDB mancante nell'entrypoint;
+14. correzione locale fail-closed dell'autenticazione MongoDB, diagnostica strutturata
+    degli errori e test runtime di persistenza autenticata: 17/17 riusciti sull'immagine
+    server ricostruita.
+
+Lavoro residuo, nell'ordine utile alla prossima sessione:
+
+1. leggere l'esito della pipeline avviata dal commit che contiene la correzione MongoDB,
+   acquisire il nuovo digest del server e applicarlo manualmente senza toccare proxy o
+   `pi_acme`;
+2. ripetere una partita con “Accetta tutti” e verificare sessione e stato in MongoDB,
+   fatti in `logs-gioco.partita-*`, assenza di identificativi per chi accetta soltanto i
+   necessari e ritenzione a 30 giorni;
+3. correggere l'errore di inizializzazione del RUM frontend e la classificazione/noise
+   dei dataset Filebeat;
+4. costruire, esportare e versionare le dashboard con dati reali: dashboard esercizio
+   per salute, risorse, API/APM e pipeline dei log; dashboard evento con soli dati di
+   gameplay aggregati e non riconducibili ai singoli visitatori;
+5. eseguire load test rappresentativi di alcune centinaia di utenti concorrenti e
+   tarare soglie, CPU, memoria, code e campionamento osservando rete e temperature;
+6. collaudare heartbeat e allarmi, snapshot, backup, esportazione, ripristino e prelievo
+   off-host; poi verificare il riavvio non presidiato;
+7. completare il collaudo esterno da entrambi i PC e sui layout mobili/touch; soltanto
+   dopo, valutare HSTS, abilitare `stack-deploy.service` e preparare il materiale QR;
+8. prima dell'apertura, eliminare soltanto i dati analitici di prova esplicitamente
+   individuati, dopo un'autorizzazione separata, senza toccare dati o volumi non inclusi.
 
 ## 8. Decisione: uno o due hostname
 
@@ -1325,13 +1420,12 @@ ricostruite, trivy a 0 HIGH e CRITICAL, `make runtime-check` 15 su 15.
 Il commit `1480e1e3` di `develop`, solo frontend, è integrato in locale con il merge
 `954513d0`, senza conflitti.
 
-### 9.11 Consenso, pagine statiche e taratura finale — pronto nel repository
+### 9.11 Consenso, pagine statiche e taratura finale — applicato il 12 settembre
 
-Il presente aggiornamento, sviluppato e verificato in locale il 12 settembre, non è
-ancora applicato alla macchina. L'applicazione in esercizio cambia soltanto dopo la
-pubblicazione delle nuove immagini, la sostituzione manuale dei digest in
-`/etc/stack-deploy.env` e una riapplicazione deliberata dello stack. Non va riavviato il
-proxy per il solo scopo di provare queste modifiche e non va cancellato `pi_acme`.
+L'aggiornamento è stato pubblicato da `aa77e8eb`, scaricato per digest e applicato con un
+deploy manuale. `0671fe0b` ha poi corretto la CSP del frontend con l'aggiornamento del
+solo servizio `pi_frontend`. In entrambe le operazioni `pi_acme` e il proxy sono rimasti
+invariati, e il certificato esistente è stato riutilizzato senza una nuova emissione.
 
 - `/` serve la home originaria del progetto; `/info` reindirizza a `/`. Prima del gioco,
   `/play` presenta una scelta fra tutti i cookie, soli necessari e ritorno alla home.
@@ -1354,13 +1448,50 @@ proxy per il solo scopo di provare queste modifiche e non va cancellato `pi_acme
   di APM e infra agent sono quelli della sezione 9.5. La landing separata non fa più
   parte dello stack: la home è servita dal frontend sul solo hostname `pot-tales.it`.
 
-Verifiche locali: formattazione, vet, build e test Go con race detector; lint shell,
+Verifiche locali e di produzione: formattazione, vet, build e test Go con race detector; lint shell,
 Dockerfile, Compose, stack, Traefik, Terraform e workflow; integrazione con MongoDB e
 Redis reali; copertura complessiva 88,8% contro il pavimento 85%; typecheck e build del
 frontend; scansione dei segreti senza rilievi; `npm audit --omit=dev` senza
 vulnerabilità di produzione. Restano due avvisi solo di sviluppo legati alla versione
 di Vite/esbuild: la correzione automatica richiede il salto maggiore a Vite 8 e non è
-stata inclusa senza un collaudo dedicato.
+stata inclusa senza un collaudo dedicato. Dall'esterno sono stati verificati home,
+informative, consenso, CSP e blocco dei dispositivi touch piccoli; il percorso di gioco
+si interrompe però alla creazione della sessione per il difetto distinto in 9.12.
+
+### 9.12 Autenticazione MongoDB del backend — corretta e verificata, non ancora applicata
+
+Il primo test reale selezionando “Accetta tutti” ha prodotto `POST /auth/session` a 500;
+i tentativi successivi sono diventati 503/401 e nessun documento è comparso nelle
+collezioni `sessions` e `game_states` o negli indici `logs-gioco.partita-*`. Il controllo
+`/health` restava verde perché il ping di MongoDB è ammesso anche senza autenticazione.
+
+La causa è in `deploy/config/server-entrypoint.sh`: MongoDB viene inizializzato con la
+password root da Docker secret, ma l'entrypoint del server costruiva soltanto le
+credenziali Redis e lasciava al backend il valore predefinito non autenticato
+`mongodb://db:27017`. La correzione:
+
+- legge `mongo_root_password` dal secret e costruisce `MONGO_URI` con `authSource=admin`
+  nello stesso processo del backend, senza esporre la password nella specifica Swarm;
+- mantiene la precedenza di una `MONGO_URI` esplicita e interrompe l'avvio se il secret
+  richiesto non è leggibile;
+- registra in forma strutturata lo stadio di un eventuale errore di persistenza MongoDB
+  o Redis, senza includere token o password;
+- estende `ci/runtime-check.sh` avviando MongoDB con autenticazione, usando il vero
+  entrypoint di produzione e verificando sia la risposta 201 sia il documento scritto.
+
+Dopo la ricostruzione locale dell'immagine server, `ci/runtime-check.sh` passa 17
+controlli su 17. Passano inoltre `lint-shell`, formattazione, vet, build e test Go con
+race detector, e la validazione dello stack/Traefik. La macchina resta sulla precedente
+immagine server `sha256:926d7f79...`: nella prossima sessione occorrono una pipeline
+verde, il nuovo digest e un deploy manuale del solo aggiornamento applicativo.
+
+Il collaudo ha registrato anche due rilievi indipendenti, ancora aperti:
+
+- il RUM frontend segnala `pt.init is undefined`; la sua inizializzazione va corretta e
+  verificata senza cambiare la semantica del consenso;
+- una query per `data_stream.dataset=deprecation.elasticsearch` restituisce normali log
+  di MongoDB, Docker e Filebeat. Non esiste evidenza di 96.000 avvisi di deprecazione:
+  va invece corretta la classificazione dei dataset e ridotto il rumore di raccolta.
 
 ## 10. Rischi specifici di questo percorso
 
@@ -1370,15 +1501,18 @@ stata inclusa senza un collaudo dedicato.
 | Usura e storia dei dischi | guasto durante l'esercizio | SMART, lettura completa e auto-test prima di installare, RAID1, verifica di coerenza, contatori alla vigilia | **misurato**: sezione 4.1 |
 | Temperatura dei dischi sotto carico | rallentamento di `nvme0n1` oltre 78 °C | letture per disco in sezione 4.3 e durante il load test | aperto |
 | Layout dei dischi sbagliato | la correzione richiede di ridurre filesystem in uso | layout definito e verificato prima dell'installazione | **eseguito e verificato**: sezioni 4.2 e 4.3 |
-| Revisione sul server priva di `de4e1073` | HSTS di un anno servito come letterale | verifica dei commit in 7.1 prima del primo deploy | **ridotto**: il remoto contiene `de4e1073` da `4a90a583`; resta la verifica sulla macchina |
-| Immagini da una revisione incompleta | fatti di partita assenti o frontend non aggiornato | digest da una revisione con entrambi i gruppi di commit | aperto |
+| Revisione sul server priva di `de4e1073` | HSTS di un anno servito come letterale | verifica dei commit in 7.1 prima del primo deploy | **rientrato**: revisione e configurazione effettiva verificate; HSTS resta intenzionalmente a zero |
+| Immagini da una revisione incompleta | fatti di partita assenti o frontend non aggiornato | digest da una revisione con entrambi i gruppi di commit | **rientrato per i gruppi precedenti**: produzione a `0671fe0b`; resta da pubblicare e applicare la correzione MongoDB della sezione 9.12 |
 | Gate di copertura sotto il pavimento | la pipeline di `develop` fallisce e `publish-images` non parte: nessun digest da mettere in `/etc/stack-deploy.env` | test per gli handler di gioco e per la chiusura differita, oppure decisione esplicita sul pavimento | **rientrato**: 89,7% da `0d958099`, sezione 9.9 |
 | Commit che rompono la build senza che nessuno se ne accorga | immagine non costruibile scoperta solo al passaggio su `develop` o al deploy, come il lockfile cancellato da `a464426d` | pipeline anche su `integrazione/infra` (`16fd492a`) | mitigato: resta da leggere l'esito di ogni push |
 | HSTS attivato prima di una catena verificata | blocco non aggirabile per i visitatori | sequenza in 6.2, non negoziabile | **rientrato per la prima emissione**: HSTS era a zero e la catena di produzione è attendibile; resta spento fino alla verifica completa |
 | Limite di frequenza dell'autorità raggiunto in collaudo | nessun certificato valido per giorni | directory di prova prima della prima emissione; poi conservazione dello stato ACME | **non materializzato**: una sola emissione di produzione, riuscita al primo tentativo; `pi_acme` da preservare |
 | Metodi statici di Traefik mescolati | gli argomenti con CA di prova, plugin e middleware vengono ignorati | un solo metodo, tutto via CLI; test su stack renderizzato e immagine reale | **corretto, pushato e applicato il 12 settembre** (`8af699d2`): plugin caricato, CA di produzione effettiva, certificato riutilizzato, health 200 |
-| `infra-agent` con limite da 512 MiB | riavvii ripetuti con exit 137 e buchi nelle metriche | limite 1 GiB, riserva 256 MiB e una CPU nella sezione 9.5 | **corretto nel repository, da pubblicare e applicare manualmente**; sul server il servizio ha comunque raggiunto `1/1` dopo gli OOM iniziali |
-| Telemetria avviata senza scelta | raccolta analitica non necessaria e informativa incompleta | consenso prima del gioco, RUM e gameplay disabilitati senza accettazione esplicita, ritenzione 30 giorni | **corretto nel repository, da pubblicare e applicare manualmente**; sezione 9.11 |
+| `infra-agent` con limite da 512 MiB | riavvii ripetuti con exit 137 e buchi nelle metriche | limite 1 GiB, riserva 256 MiB e una CPU nella sezione 9.5 | **corretto e applicato**: servizio stabile e `HEALTHY`, senza nuovi OOM nel periodo di osservazione |
+| Telemetria avviata senza scelta | raccolta analitica non necessaria e informativa incompleta | consenso prima del gioco, RUM e gameplay disabilitati senza accettazione esplicita, ritenzione 30 giorni | **corretto e applicato**; il flusso dati va ricontrollato dopo 9.12 |
+| Backend senza autenticazione MongoDB | `/health` verde ma creazione della sessione a 500 e nessun dato di gioco | URI costruita dal Docker secret, avvio fail-closed e test con Mongo autenticato | **corretto e verificato localmente, non ancora applicato**; sezione 9.12 |
+| RUM frontend non inizializzato | niente telemetria browser anche dopo consenso analitico | correggere l'integrazione APM e provarla con entrambe le scelte | aperto: `pt.init is undefined` nel browser |
+| Dataset Filebeat classificato in modo errato e rumoroso | dashboard e conteggi di deprecazione fuorvianti, crescita inutile degli indici | correggere i campi `data_stream.*`, filtrare il rumore e validare su campioni noti | aperto; non c'è evidenza di una tempesta reale di deprecazioni |
 | Controllo di vitalità che non interroga il backend | sorveglianza verde con applicazione ferma | sezione 9.9, punto 3 | **corretto** (`3e9509fc`), da verificare sulla macchina: sezione 7.2, punto 7 |
 | Blocco della scheda di rete sotto carico | perdita di connettività per secondi, ripetuta | TSO e GSO disattivati, sezione 5.4 e `nic-offload@.service` | aperto |
 | Nessuno snapshot del fornitore | perdita della macchina coperta solo fino all'ultimo prelievo | snapshot LVM locali, prelievo dell'archivio portabile e delle esportazioni dalla postazione; Storage Box facoltativa (sezione 9.6) | accettato: la finestra dipende dalla frequenza dei prelievi |
@@ -1399,24 +1533,26 @@ Le dipendenze reali, in ordine. Ogni passo richiede il precedente.
 6. ~~Prerequisiti dell'host e riavvio di prova~~ — sezione 5
 7. ~~Storage Box e chiave dedicata~~ — facoltative, fuori dal cammino critico (sezioni
    3.3 e 9.6)
-8. ~~Correzioni al repository (9.3, 9.9 e 9.10)~~ — la prima tornata pushata l'11
-   settembre (`4a90a583`), la seconda fino ad `aee6ac5c`. Restano la revisione
-   verificata sulla macchina e i digest delle immagini, che arrivano solo dal passaggio
-   su `develop` e devono contenere `811ad514` per il backend e `aee6ac5c` per il
-   frontend — sezione 7.1
+8. ~~Correzioni al repository (9.3, 9.9, 9.10 e 9.11)~~ — pubblicate e applicate fino a
+   `0671fe0b`; risorse, consenso e pagine statiche sono in produzione
 9. ~~Record DNS e verifica da rete esterna~~ — sezione 6.1
 10. ~~Primo deploy con HSTS spento~~ — la CA di produzione è stata usata per il difetto
     descritto in 6.2; emissione riuscita e volume `pi_acme` preservato
 11. ~~Integrare e applicare la correzione del metodo statico di Traefik~~ — `8af699d2`,
-    certificato riutilizzato e health 200. Restano verifica completa a stack acceso,
-    pubblicazione e deploy manuale della sezione 9.11, load test, taratura e ripristini
+    certificato riutilizzato e health 200
 12. ~~Passaggio a produzione e CA resa esplicita nell'ambiente~~ — già avvenuto senza
     cancellare lo stato ACME
-13. Verifica esterna finale della catena, da rete e da dispositivo terzi
-14. Attivazione di HSTS
-15. Prova di riavvio non presidiato
-16. Stampa del materiale con il codice QR — **dopo** il punto 13, non prima
+13. Pubblicare e applicare la correzione MongoDB della sezione 9.12; ripetere una partita
+    completa e confermare MongoDB, eventi di gameplay ed esclusione degli analytics con
+    i soli necessari
+14. Correggere RUM e classificazione Filebeat; costruire e versionare le due dashboard
+    sui dati reali
+15. Load test, taratura, prova degli allarmi e dei percorsi di backup/ripristino
+16. Verifica esterna finale della catena, da entrambi i PC e da dispositivi terzi
+17. Attivazione di HSTS
+18. Prova di riavvio non presidiato
+19. Stampa del materiale con il codice QR — **dopo** il punto 16, non prima
 
-Il punto 16 è quello che si tende a spostare fuori sequenza, perché ha tempi di fornitore
+Il punto 19 è quello che si tende a spostare fuori sequenza, perché ha tempi di fornitore
 esterni: stampare prima che la catena sia verificata significa rifare la stampa, o
 servire un nome che non corrisponde al certificato.

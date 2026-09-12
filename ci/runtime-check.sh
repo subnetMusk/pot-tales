@@ -24,6 +24,12 @@ REDIS_IMAGE=${REDIS_IMAGE:-redis:8.10.0-alpine@sha256:978f0e01593e65eed801f24029
 
 RETE=rc-net
 PREFISSO=rc
+MONGO_PASSWORD_TEST=RuntimeMongoPassword123
+SEGRETI_TEST=""
+MOUNT_ROOT=$(pwd)
+case "$(uname -s)" in
+  MINGW*|MSYS*) MOUNT_ROOT=$(pwd -W) ;;
+esac
 
 falliti=0
 eseguiti=0
@@ -34,6 +40,9 @@ pulisci() {
   docker rm -f "$PREFISSO-server" "$PREFISSO-db" "$PREFISSO-redis" \
                 "$PREFISSO-landing" "$PREFISSO-frontend" >/dev/null 2>&1
   docker network rm "$RETE" >/dev/null 2>&1
+  if [ -n "${SEGRETI_TEST:-}" ] && [ -d "$SEGRETI_TEST" ]; then
+    rm -rf -- "$SEGRETI_TEST"
+  fi
 }
 trap pulisci EXIT
 
@@ -72,20 +81,34 @@ attendi() {
 
 pulisci
 docker network create "$RETE" >/dev/null
+SEGRETI_TEST=$(mktemp -d ./.runtime-check-secrets.XXXXXX)
+printf '%s' "$MONGO_PASSWORD_TEST" > "$SEGRETI_TEST/mongo_root_password"
+chmod 0600 "$SEGRETI_TEST/mongo_root_password"
 
 # ============================================================================
 echo "== Backend =="
 # ============================================================================
 
-docker run -d --rm --name "$PREFISSO-db" --network "$RETE" "$MONGO_IMAGE" >/dev/null
+docker run -d --rm --name "$PREFISSO-db" --network "$RETE" \
+  -e MONGO_INITDB_ROOT_USERNAME=root \
+  -e MONGO_INITDB_ROOT_PASSWORD="$MONGO_PASSWORD_TEST" \
+  "$MONGO_IMAGE" >/dev/null
 docker run -d --rm --name "$PREFISSO-redis" --network "$RETE" "$REDIS_IMAGE" >/dev/null
 
 # Nessun montaggio: se l'immagine non contiene gli schemi non arriva ad
 # ascoltare, ed e' esattamente la regressione che questo controllo deve cogliere.
-docker run -d --rm --name "$PREFISSO-server" --network "$RETE" -p 18080:3000 \
-  -e MONGO_URI="mongodb://$PREFISSO-db:27017" \
+# L'entrypoint e il secret sono invece quelli di produzione: MongoDB richiede
+# autenticazione e una richiesta valida deve riuscire a scrivere. Un semplice
+# ping non basta, perche' Mongo lo accetta anche senza credenziali.
+MSYS_NO_PATHCONV=1 docker run -d --rm --name "$PREFISSO-server" --network "$RETE" -p 18080:3000 \
+  --entrypoint /bin/sh \
+  -v "$MOUNT_ROOT/deploy/config/server-entrypoint.sh:/prod-server-entrypoint.sh:ro" \
+  -v "$MOUNT_ROOT/${SEGRETI_TEST#./}/mongo_root_password:/run/secrets/mongo_root_password:ro" \
+  -e MONGO_ADDR="$PREFISSO-db:27017" \
+  -e MONGO_ROOT_USERNAME=root \
+  -e MONGO_DB_NAME=game_db \
   -e REDIS_URL="redis://$PREFISSO-redis:6379" \
-  "$SERVER_IMAGE" >/dev/null
+  "$SERVER_IMAGE" /prod-server-entrypoint.sh >/dev/null
 
 attendi "backend" curl -fsS -m 3 http://127.0.0.1:18080/health || { docker logs "$PREFISSO-server" 2>&1 | tail -20; exit 1; }
 
@@ -100,6 +123,14 @@ verifica "schema: corpo non conforme rifiutato" 400 \
 verifica "schema: corpo assente rifiutato" 400 \
   "$(curl -sS -m 5 -o /dev/null -w '%{http_code}' 2>/dev/null -X POST -H 'Content-Type: application/json' \
       http://127.0.0.1:18080/auth/session)"
+
+verifica "sessione: scrittura su Mongo autenticato" 201 \
+  "$(curl -sS -m 10 -o /dev/null -w '%{http_code}' 2>/dev/null -X POST -H 'Content-Type: application/json' \
+      -d '{"device":"runtime-check","consentGiven":false}' http://127.0.0.1:18080/auth/session)"
+
+verifica "sessione: documento persistito" 1 \
+  "$(docker exec "$PREFISSO-db" mongosh --quiet --username root --password "$MONGO_PASSWORD_TEST" \
+      --authenticationDatabase admin game_db --eval 'db.sessions.countDocuments({})' 2>/dev/null)"
 
 # Il tetto sul corpo e' applicato dal middleware di validazione: una richiesta
 # sovradimensionata deve essere respinta invece di essere letta per intero.

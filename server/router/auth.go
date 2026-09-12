@@ -204,12 +204,18 @@ func (a *authSvc) create(w http.ResponseWriter, r *http.Request) {
 
 	// 6. Persistenza (Mongo Session)
 	if _, err := a.sessionCol.InsertOne(ctx, sessDoc); err != nil {
+		helpers.LogError(ctx, "database", "session_create_failed", err, map[string]any{
+			"stage": "session_record",
+		})
 		helpers.WriteJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to create session record"})
 		return
 	}
 
 	// 7. Persistenza (Mongo GameState)
 	if _, err := a.gameCol.InsertOne(ctx, gameDoc); err != nil {
+		helpers.LogError(ctx, "database", "session_create_failed", err, map[string]any{
+			"stage": "game_state",
+		})
 		helpers.WriteJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to init game state"})
 		return
 	}
@@ -220,6 +226,9 @@ func (a *authSvc) create(w http.ResponseWriter, r *http.Request) {
 	// e mai utilizzate scadono cosi' in pochi minuti anziche' occupare spazio
 	// per l'intera durata nominale.
 	if err := a.rdb.Set(ctx, "sess:"+token, helpers.SessionCacheValue(reqPayload.ConsentGiven), a.initialTTL).Err(); err != nil {
+		helpers.LogError(ctx, "cache", "session_create_failed", err, map[string]any{
+			"stage": "redis_cache",
+		})
 		helpers.WriteJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to cache session"})
 		return
 	}
