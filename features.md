@@ -155,7 +155,7 @@ sudo journalctl -u stack-heartbeat.service -u alert-notifier.service --since tod
 sudo journalctl -u data-backup.service --since today
 ```
 
-La verifica end-to-end completa è `make stack-verify`, ma richiede una
-credenziale di platea passata nell’ambiente. Per non lasciarla nella cronologia
-si usa una shell temporanea o un prompt, e la si rimuove appena terminato il
-controllo.
+La verifica end-to-end completa è `sudo make stack-verify`. Se eseguita come
+root sulla macchina, legge la prima utenza tecnica dalla fonte root-only senza
+stampare la password. Altrove richiede `DASHBOARD_USER` e `DASHBOARD_PASSWORD`
+nell’ambiente; non vanno mai passate come argomenti o scritte nella cronologia.

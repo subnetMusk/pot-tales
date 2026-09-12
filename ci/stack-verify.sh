@@ -16,9 +16,11 @@ BASE_URL=${BASE_URL:-https://$APP_HOST}
 # che un presupposto sbagliato.
 #
 # La password non e' ricavabile dall'elenco htpasswd, che conserva la sola
-# impronta: va fornita dall'ambiente.
+# impronta. In produzione puo' essere letta dalla fonte Terraform root-only;
+# altrove va fornita dall'ambiente.
 DASHBOARD_USER=${DASHBOARD_USER:-}
 DASHBOARD_PASSWORD=${DASHBOARD_PASSWORD:-}
+DASHBOARD_USERS_TFVARS=${DASHBOARD_USERS_TFVARS:-secrets/dashboard_users.tfvars.json}
 
 # Credenziale amministrativa, per le sole verifiche sullo stato interno dello
 # stack che nessuna platea deve poter effettuare.
@@ -89,8 +91,22 @@ require_command curl
 require_command grep
 require_command mktemp
 
+# Sulla macchina in servizio la fonte root-only generata insieme agli htpasswd
+# evita di chiedere o stampare di nuovo la password. In CI e negli ambienti in
+# cui il file non e' leggibile resta valido il passaggio esplicito via ambiente.
+if { [ -z "$DASHBOARD_USER" ] || [ -z "$DASHBOARD_PASSWORD" ]; } &&
+   [ -r "$DASHBOARD_USERS_TFVARS" ]; then
+  require_command jq
+  DASHBOARD_USER=$(jq -r '.utenze_esercizio | keys | first // empty' \
+    "$DASHBOARD_USERS_TFVARS")
+  if [ -n "$DASHBOARD_USER" ]; then
+    DASHBOARD_PASSWORD=$(jq -r --arg user "$DASHBOARD_USER" \
+      '.utenze_esercizio[$user] // empty' "$DASHBOARD_USERS_TFVARS")
+  fi
+fi
+
 [ -n "$DASHBOARD_USER" ] && [ -n "$DASHBOARD_PASSWORD" ] ||
-  fail "DASHBOARD_USER e DASHBOARD_PASSWORD non impostate: sono le credenziali di una delle due platee"
+  fail "credenziali di esercizio assenti: impostare DASHBOARD_USER/DASHBOARD_PASSWORD o rendere leggibile DASHBOARD_USERS_TFVARS"
 
 tmp_dir=$(mktemp -d "${TMPDIR:-/tmp}/stack-verify.XXXXXX")
 cleanup() {
