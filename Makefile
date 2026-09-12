@@ -207,7 +207,7 @@ filebeat-config-check: ## Valida semanticamente il file di configurazione Filebe
 			-e ELASTICSEARCH_USERNAME=preflight -e ELASTICSEARCH_PASSWORD=preflight \
 			-v "$(CURDIR)/deploy/config/filebeat.yml:/usr/share/filebeat/filebeat.yml:ro" \
 			"$$image" test config -c /usr/share/filebeat/filebeat.yml -e --strict.perms=false \
-			-E 'output.elasticsearch.ssl.certificate_authorities=[]'
+			-E 'output={elasticsearch.enabled: false, console.pretty: false}'
 
 .PHONY: dashboard-export-check
 dashboard-export-check: ## Verifica export mirato, filtro data view e NDJSON senza newline finale

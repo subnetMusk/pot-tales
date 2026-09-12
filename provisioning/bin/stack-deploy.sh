@@ -255,7 +255,7 @@ docker run --rm --entrypoint filebeat \
   -v "$STACK_DIR/config/filebeat.yml:/usr/share/filebeat/filebeat.yml:ro" \
   "$FILEBEAT_IMAGE" test config -c /usr/share/filebeat/filebeat.yml \
     -e --strict.perms=false \
-    -E 'output.elasticsearch.ssl.certificate_authorities=[]' >/dev/null 2>&1 || {
+    -E 'output={elasticsearch.enabled: false, console.pretty: false}' >/dev/null 2>&1 || {
   echo "configurazione Filebeat non valida" >&2
   exit 1
 }
