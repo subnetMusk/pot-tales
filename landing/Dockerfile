@@ -3,7 +3,7 @@
 # Immagine separata da quella del gioco di proposito: deve restare
 # raggiungibile anche quando il gioco non parte, e condividere il contenitore
 # significherebbe condividerne anche i guasti.
-FROM nginx:1.30.4-alpine@sha256:dc5069ad14f19660b141b21236140b91656bf89bbc3e2417c70ae650cd66104c
+FROM nginx:1.31.5-alpine@sha256:72ba65eb42c10344912a84ff42408db7d34f2feb642204570ab8fc5ffd29f1d3
 
 # Pacchetti di sistema aggiornati a build time. Il digest della base resta
 # fissato, ma le correzioni di sicurezza delle librerie di sistema arrivano nei
