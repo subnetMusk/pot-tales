@@ -40,14 +40,15 @@ tecnici non aggregati quando un pannello non basta a spiegare un’anomalia.
 
 ### Evento
 
-- [Andamento dell’evento](https://pot-tales.it/osservabilita/s/evento/app/dashboards#/view/evento-andamento): sessioni e partite osservabili, completamenti, durata, dispositivi, avanzamento e ultimi eventi pseudonimizzati.
+- [Andamento dell’evento](https://pot-tales.it/osservabilita/s/evento/app/dashboards#/view/evento-andamento): partite iniziate (`game_started`), concluse e azzerate, durata media, andamento nel tempo, motivi di conclusione, scene finali, checkpoint raggiunti e classi di dispositivo.
 - [Impatto dell’evento](https://pot-tales.it/osservabilita/s/evento/app/dashboards#/view/evento-impatto): partite totali, sessioni create, partite iniziate e completate, partite con RUM e tempo medio di gioco.
 
 Il numero di documenti del data stream non coincide con il numero di partite:
 ogni documento è un fatto (creazione, checkpoint, cambio scena o conclusione).
 Con la telemetria facoltativa un click su **Play** produce tre fatti iniziali: una
 `sessione_iniziata`, un `checkpoint_raggiunto` per `game_started` e una
-`partita_avviata`. I riquadri “Partite totali”, “Sessioni create”, “Partite
+`partita_avviata`; se il browser aveva già una sessione, prima registra una
+`partita_azzerata` sulla partita precedente. I riquadri “Partite totali”, “Sessioni create”, “Partite
 iniziate” e “Partite completate” filtrano invece il singolo evento corrispondente e
 devono crescere di una sola unità per partita. “Partite iniziate” ha la stessa
 definizione (`game_started`) nelle due dashboard.
@@ -112,13 +113,13 @@ può avviare nuove esportazioni. Il nome esatto del file si legge dal manifesto.
 Il prelievo usa la stessa credenziale della dashboard di esercizio:
 
 ```bash
-read -rp 'Utente esercizio: ' EXPORT_USER
-read -rsp 'Password: ' EXPORT_PASSWORD; echo
-curl --fail --user "$EXPORT_USER:$EXPORT_PASSWORD" \
+curl --fail --user <utente-esercizio> \
   --output dati.ndjson.gz \
   'https://pot-tales.it/export/<marca-temporale>/elastic/<nome>.ndjson.gz'
-unset EXPORT_PASSWORD
 ```
+
+Con il solo nome utente `curl` chiede la password senza mostrarla e senza
+lasciarla nella cronologia della shell; funziona allo stesso modo in bash e zsh.
 
 La radice `/export` risponde intenzionalmente `404`, anche dopo
 l’autenticazione: l’assenza di directory listing evita di esporre struttura e
@@ -163,7 +164,7 @@ sudo bash -c '. /etc/stack-deploy.env; docker stack services "$STACK_NAME"; dock
 sudo systemctl status stack-heartbeat.timer alert-notifier.timer \
   backup-nightly.timer traefik-logrotate.timer
 sudo journalctl -u stack-heartbeat.service -u alert-notifier.service --since today
-sudo journalctl -u data-backup.service --since today
+sudo journalctl -u backup-nightly.service --since today
 ```
 
 La verifica end-to-end completa, sulla macchina di produzione che non richiede

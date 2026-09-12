@@ -179,15 +179,19 @@ anonimo dell'affluenza. Può farne a meno perché porta soltanto azione e orario
 classe di dispositivo né altri dettagli. È emesso una sola volta per sessione, con la
 stessa idempotenza del checkpoint da cui nasce.
 
-Il click su **Play** crea la sessione prima di entrare in Stage 1 e registra subito il
-checkpoint `game_started`. Questo primo traguardo estende il TTL ridotto delle sessioni
-appena create e separa nelle dashboard l'avvio effettivo dal completamento di Stage 1
-(`stage1_complete`). **Resume** mantiene invece la sessione e lo stato esistenti.
+Il click su **Play** apre sempre una nuova partita: se il browser ha già una sessione ne
+azzera lo stato (`partita_azzerata`), poi crea la sessione prima di entrare in Stage 1 e
+registra subito il checkpoint `game_started`. Questo primo traguardo estende il TTL
+ridotto delle sessioni appena create e separa nelle dashboard l'avvio effettivo dal
+completamento di Stage 1 (`stage1_complete`). **Continue** riprende invece la sessione e
+lo stato esistenti. Una guardia condivisa fra i due pulsanti ignora il doppio click e
+impedisce che Play azzeri una partita appena ripresa.
 
 Il data stream contiene **fatti**, non una riga per partita. Con il consenso un singolo
 click su **Play** produce esattamente tre fatti iniziali: una `sessione_iniziata`, un
 `checkpoint_raggiunto` con checkpoint `game_started` e una `partita_avviata`; senza,
-soltanto la `partita_avviata`. La progressione aggiunge poi un
+soltanto la `partita_avviata`. Se esisteva una sessione, li precede la
+`partita_azzerata` di quella precedente. La progressione aggiunge poi un
 fatto per ciascun checkpoint distinto, cambio scena e conclusione. I contatori
 “partite” filtrano gli eventi unici del ciclo di vita e crescono di una sola unità per
 partita; il conteggio grezzo dei documenti misura invece il volume degli eventi. Il
@@ -223,8 +227,8 @@ Le notifiche del servizio sono legate alla **transizione di stato**: un secondo 
 di guasto mentre la destinazione è già in guasto non produce nulla. Per questo le classi
 sono separate su check distinti, e ciascuna transita per conto proprio.
 
-Due battiti — servizio e relay degli allarmi — e sei relay, che non scendono mai da soli
-ma solo su un segnale esplicito.
+Due battiti — servizio e relay degli allarmi — cinque relay, che non scendono mai da soli
+ma solo su un segnale esplicito, e il check a calendario della copia notturna.
 
 ## Sicurezza di bordo
 

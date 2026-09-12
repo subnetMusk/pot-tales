@@ -8,11 +8,10 @@ i punti di mount dei dati persistenti. I dati runtime NON sono versionati (vedi
 
 | Percorso | Servizio | Contenuto |
 |---|---|---|
-| `traefik/traefik.yml` | Traefik | Config statica del reverse proxy (entrypoint, provider docker). Il routing e' via label nei compose. |
+| `traefik/traefik.yml` | Traefik | Config statica del reverse proxy (entrypoint, provider file). Il routing sta in `traefik/dynamic/`. |
 | `redis/redis.conf`, `redis/users.acl` | Redis | Config server e ACL (utenti `app` RW, `frontend` RO). |
 | `volumes/kibana/config/kibana.yml` | Kibana | Solo impostazioni non passate via env (server, apm, fleet). Connessione ES ed encryption key arrivano dal compose. |
 | `volumes/filebeat/filebeat.yml` | Filebeat | Raccolta log dei container Docker -> Elasticsearch. |
-| `env/` | — | Vuota. Le variabili sono centralizzate nell'unico `.env` in root. |
 
 ## Dati runtime (non versionati)
 

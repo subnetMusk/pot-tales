@@ -48,7 +48,8 @@ file Compose si regge su `depends_on`.
 
 Non include `fleet-server`, `apm-agent` e `infra-agent`: il loro avvio richiede
 enrollment token generati in Kibana, che questo stack non produce. Il loro
-comportamento sotto Swarm resta quindi non verificato.
+comportamento sotto Swarm non e' verificato in questo prototipo; lo e' nello
+stack di produzione (`deploy/stack.yml`).
 
 ## Vincoli dell'orchestratore
 

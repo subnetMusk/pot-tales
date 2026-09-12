@@ -583,7 +583,7 @@ docker info --format '{{.LoggingDriver}}'
 ls -la /srv/docker/containers/*/  | grep json.log
 
 # La raccolta funziona anche fuori dallo spegnimento
-sudo DIAGNOSTIC_DEST=/tmp/diag-test /usr/local/bin/diagnostic-bundle.sh
+sudo bash -c '. /etc/stack-deploy.env; export STACK_NAME; DIAGNOSTIC_DEST=/tmp/diag-test /usr/local/bin/diagnostic-bundle.sh'
 ls -la /tmp/diag-test/
 ```
 

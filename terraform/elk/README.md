@@ -1,7 +1,8 @@
 # ELK as-code (provider elasticstack)
 
-Configura lo stack Elastic GIA' AVVIATO (`docker-compose.monitoring.yml`) in
-modo ripetibile, invece che a mano da Kibana. L'host non e' provisionato da
+Configura lo stack Elastic GIA' AVVIATO in modo ripetibile, invece che a mano da
+Kibana: in sviluppo quello di `docker-compose.monitoring.yml`, in produzione
+quello Swarm, tramite `scripts/fleet-bootstrap.sh`. L'host non e' provisionato da
 Terraform: e' una macchina dedicata, preparata dagli script in `provisioning/`.
 Questo modulo agisce solo sull'API dello stack.
 
@@ -15,10 +16,12 @@ Questo modulo agisce solo sull'API dello stack.
   cancellazione dopo `log_retention` (30 giorni). La durata supera quella
   dell'esercizio di proposito: i dati devono arrivare interi all'esportazione
   finale.
-- Fleet: agent policy `apm-policy` (con integration APM: host, RUM, secret token)
-  e `infra-policy` (integration system + docker).
-- Enrollment token generati per policy, esposti come output: sostituiscono i
-  placeholder di `FLEET_ENROLLMENT_TOKEN_*` nel `.env`.
+- Fleet: agent policy `fleet-server-policy` (integration `fleet_server`),
+  `apm-policy` (con integration APM: host, RUM, secret token) e `infra-policy`
+  (integration system + docker).
+- Enrollment token generati per policy, esposti come output: in sviluppo
+  sostituiscono i placeholder di `FLEET_ENROLLMENT_TOKEN_*` nel `.env`, in
+  produzione `fleet-bootstrap.sh` li scrive sul volume `${STACK_NAME}_fleettokens`.
 - Space `esercizio` e `evento`, con i rispettivi ruoli in sola lettura, data
   view e utenze di consultazione (`spaces.tf`).
 - Reimportazione degli export delle dashboard versionati in
@@ -128,17 +131,15 @@ con una credenziale per platea, che si prova solo con entrambe configurate.
 
 ## Note e limiti
 
-- STARTER non ancora applicato a uno stack reale: alla prima esecuzione
-  verificare con `terraform plan` che gli schemi (in particolare l'input della
-  integration APM, che varia con la versione del package) combacino con la
-  versione del provider/stack. Allineare `apm_package_version` a `STACK_VERSION`.
+- A ogni aggiornamento dello stack verificare con `terraform plan` che gli
+  schemi (in particolare l'input della integration APM, che varia con la
+  versione del package) combacino con la versione del provider/stack. Allineare
+  `apm_package_version` a `STACK_VERSION`.
 - In dev Elasticsearch non pubblica la porta sull'host: per fare apply da fuori
   Docker, pubblica temporaneamente `9200` su `es01` o esegui Terraform in un
   container attaccato a `internal_net`.
 - Lo stato Terraform contiene in chiaro password, token ed enrollment token.
   Dove risiede, cosa comporta perderlo e come si ricostruisce: [../README.md](../README.md).
-- Il fleet-server usa ancora il token bootstrap del compose: la gestione
-  completa del fleet-server via Terraform e' uno step successivo.
 - **Stato del cluster: non osservabile con le integrazioni installate.** Le
   policy Fleet dichiarano `fleet_server`, `apm`, `system` e `docker`. Nessuna di
   queste indicizza la salute del cluster, quindi una regola su quel tema
@@ -159,9 +160,9 @@ con una credenziale per platea, che si prova solo con entrambe configurate.
   due eventi strutturati che il backend emette sul tema — quota per sessione
   superata e prova di lavoro richiesta — i cui nomi di campo vengono dal codice
   e non da un'ipotesi sull'ingestione. Gli allarmi di CrowdSec restano fuori:
-  arrivano come testo nei log dei container, e distinguerli richiede
-  l'instradamento per dataset che oggi non c'e'. Quando ci sara', e' la seconda
-  sorgente naturale della stessa classe.
+  arrivano come testo nei log dei container, e distinguerli richiede un
+  instradamento per dataset che oggi riguarda soltanto i fatti di partita.
+  Esteso a CrowdSec, sarebbe la seconda sorgente naturale della stessa classe.
 - Le soglie di `latency_threshold_ms`, `error_rate_threshold` e
   `security_events_threshold` sono segnaposto fino al load test: sono tarate per
   non allarmare su un servizio sano, non per cogliere un degrado reale. Quella

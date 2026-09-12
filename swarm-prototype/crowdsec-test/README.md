@@ -78,6 +78,7 @@ GitHub al momento della partenza, salvo che il plugin risulti gia' presente in
 
 ## Perimetro
 
-Nessuna collezione di rilevamento installata: la verifica riguarda il percorso
-fra decisione e applicazione del blocco, non la qualita' del rilevamento. La
-configurazione delle collezioni e le eventuali allowlist restano da definire.
+La prova del blocco e' stata condotta senza collezioni di rilevamento e riguarda
+il percorso fra decisione e applicazione; quella del rilevamento, descritta
+sopra, con `crowdsecurity/traefik` e `crowdsecurity/base-http-scenarios`. Le
+collezioni usate in produzione sono dichiarate in `deploy/stack.yml`.

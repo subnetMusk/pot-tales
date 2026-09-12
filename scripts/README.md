@@ -30,7 +30,7 @@ del progetto (es. `./scripts/dev-reinstall.sh`). Usano l'unico file `.env` in ro
 
 | Script | Cosa fa |
 |---|---|
-| `fleet-bootstrap.sh` | Inizializza Fleet, applica la configurazione Terraform e genera i file `.env.fleet.*` con gli enrollment token letti dagli agenti. |
+| `fleet-bootstrap.sh` | Inizializza Fleet, applica la configurazione Terraform e scrive gli enrollment token letti dagli agenti: in sviluppo nei file `.env.fleet.*`, in produzione sul volume `${STACK_NAME}_fleettokens`. |
 
 Gli agenti Elastic si registrano presentando un enrollment token, che esiste
 solo dopo che Kibana ha inizializzato Fleet e sono state create le policy: su
@@ -56,9 +56,11 @@ registrano e vengono riavviati, mentre il resto dello stack resta funzionante.
 
 ## Produzione
 
-Nessuno script di deploy disponibile. La procedura sara' definita insieme allo
-stack di produzione; una configurazione per Docker Swarm si trova in
-[swarm-prototype/](../swarm-prototype/).
+Il deploy di produzione e' `provisioning/bin/stack-deploy.sh`, eseguito da
+`stack-deploy.service`; in produzione `fleet-bootstrap.sh` e' eseguito da
+`fleet-bootstrap.service`. Procedura in
+[provisioning/README.md](../provisioning/README.md). Il banco di prova per
+Docker Swarm resta in [swarm-prototype/](../swarm-prototype/).
 
 ## Utility asset (Python)
 

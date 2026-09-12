@@ -126,19 +126,22 @@ punto 6.
 
 ### Verifica a stack acceso
 
-È la categoria di controllo che in questo progetto ha trovato più difetti, e finora non
-è mai stata eseguita per intero. Non va compressa perché le fasi precedenti sono andate
-lisce.
+È la categoria di controllo che in questo progetto ha trovato più difetti. Non va
+compressa perché le fasi precedenti sono andate lisce, e va rifatta dopo ogni modifica
+allo stack. Le voci segnate sono state verificate sulla macchina di produzione il
+12 settembre 2026.
 
-- Tutti i servizi in esecuzione, nessuno in riavvio ciclico
-- Le dashboard rispondono sul percorso dedicato, dietro autenticazione
+- Tutti i servizi in esecuzione, nessuno in riavvio ciclico — *verificato*
+- Le dashboard rispondono sul percorso dedicato, dietro autenticazione — *verificato*
 - **L'indirizzo di provenienza arriva corretto al backend.** Le porte sono pubblicate in
   `mode: host` proprio per questo: se arrivasse quello della rete interna, quote e
   rilevamento vedrebbero tutto il traffico come un unico host
 - **I fatti di partita atterrano sull'indice separato** e non nella destinazione
   predefinita di Filebeat. Se sbagliano indice, la vista divulgativa resta vuota e
-  l'unico modo di darle dei dati sarebbe darle anche i log di sistema
-- Un riavvio della macchina: lo stack deve tornare su da solo, senza interventi
+  l'unico modo di darle dei dati sarebbe darle anche i log di sistema — *verificato*
+- Un riavvio della macchina: lo stack deve tornare su da solo, senza interventi —
+  *verificato*: stack e bootstrap ripartiti da soli, certificato non riemesso,
+  pacchetto diagnostico prodotto allo spegnimento
 
 ---
 
@@ -176,6 +179,9 @@ Nell'ordine, senza saltare passaggi:
 | 4 | Verifica esterna della catena, da rete diversa e da telefono | spento | produzione |
 | 5 | Solo a verifica superata: `HSTS_MAX_AGE=86400` | acceso | produzione |
 | 6 | Accendere `TLS_HOST` nella sorveglianza | acceso | produzione |
+
+**Stato al 12 settembre 2026:** certificato dell'autorità di produzione emesso e servito,
+HSTS spento (`HSTS_MAX_AGE=0`). I passi dal 4 in poi restano da eseguire.
 
 **Il passo 2 non è facoltativo.** Il volume ACME sopravvive alla ridistribuzione: senza
 cancellarlo, il certificato di prova resta in cache e continua a essere servito mentre
@@ -300,7 +306,7 @@ e' dentro, quindi si guardano i log.
 Se serve una raccolta completa da portare via prima di toccare altro:
 
 ```bash
-sudo /usr/local/bin/diagnostic-bundle.sh    # scrive in /srv/diagnostics
+sudo bash -c '. /etc/stack-deploy.env; export STACK_NAME; /usr/local/bin/diagnostic-bundle.sh'    # scrive in /srv/diagnostics
 ```
 
 ---
@@ -518,9 +524,9 @@ Resta comunque **sempre il primo passo**: una ricreazione affrettata distrugge
 l'unica copia rimasta.
 
 ```bash
-make data-restore MODO=sicurezza
-make data-restore MODO=ripristino ARCHIVIO=/srv/backup/<archivio>
-make data-restore MODO=ricreazione
+sudo data-restore.sh --metti-in-sicurezza
+sudo data-restore.sh --ripristina /srv/backup/mongodump/<stamp>/mongo/game_db.archive.gz
+sudo data-restore.sh --ricrea
 ```
 
 Le cifre assolute crescono in modo diverso: la messa in sicurezza cresce con
@@ -563,8 +569,8 @@ file.
 
 - **Non rimuovere lo stack** per riparare un singolo servizio. `docker service
   update --force` riprogramma quello che serve senza fermare il resto.
-- **Non cancellare i volumi** insieme allo stack. `make stack-remove` li lascia
-  intatti di proposito; rimuoverli e' irreversibile e i dati di una finestra di
+- **Non cancellare i volumi** insieme allo stack. `sudo docker stack rm pi` li
+  lascia intatti di proposito; rimuoverli e' irreversibile e i dati di una finestra di
   esercizio non sono ricostruibili.
 - **Non ricreare a vuoto** prima di aver messo in sicurezza lo stato corrotto.
 - **Non abbassare i limiti di memoria** per far entrare un servizio in piu':

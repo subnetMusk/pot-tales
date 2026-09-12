@@ -1,9 +1,9 @@
 # Infrastruttura come codice
 
-L'host non e' provisionato da qui. Il servizio gira su una macchina virtuale di
-dipartimento fornita da terzi: sistema operativo, rete e accesso sono decisi da
-chi la fornisce, e non esiste un'API su cui Terraform possa agire. La
-preparazione della macchina e' descritta in [provisioning/](../provisioning/).
+L'host non e' provisionato da qui. Il servizio gira su un server dedicato:
+sistema operativo, rete e accesso sono preparati dagli script di
+[provisioning/](../provisioning/), e non esiste un'API su cui Terraform possa
+agire.
 
 Quello che resta a Terraform e' la configurazione dello stack Elastic, che gira
 su quella macchina ed espone un'API: sta in [elk/](elk/README.md).
