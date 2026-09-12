@@ -291,7 +291,9 @@ tf apply -input=false -auto-approve "${dashboard_var_args[@]}" >/dev/null
 for requisito in \
   esercizio:esercizio-salute-risorse \
   esercizio:esercizio-servizio-funnel \
-  evento:evento-andamento; do
+  esercizio:esercizio-latenza-errori \
+  evento:evento-andamento \
+  evento:evento-impatto; do
   spazio=${requisito%%:*}
   dashboard=${requisito##*:}
   codice=$(kbn -s -o /dev/null -w '%{http_code}' \

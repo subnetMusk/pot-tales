@@ -255,14 +255,17 @@ Le classi sono quindi separate, e ciascuna transita per conto suo.
 | `host-resources` | controlli locali | memoria, swap, disco, terminazioni per memoria |
 | `observability` | controlli locali e regole | cluster interrogabile, ingestione viva |
 | `security` | regole Kibana | attivita' anomala oltre soglia |
+| `alert-relay` | battito del notificatore | il recapito degli allarmi e' vivo |
+| `tls-pubblico` | controllo locale | catena e scadenza del certificato pubblico |
+| `backup-nightly` | copia notturna | il job pianificato termina con successo |
 
-I quattro relay hanno periodo di un anno: non scendono mai da soli, solo su un
-segnale esplicito. Il battito e' invece un dead man's switch a cinque minuti, ed
-e' l'unico che allarma sul silenzio.
+I cinque relay hanno periodo di un anno: non scendono mai da soli, solo su un
+segnale esplicito. `stack-liveness` e `alert-relay` sono dead man's switch;
+`backup-nightly` segue il proprio calendario.
 
 Gli endpoint si costruiscono da una chiave di progetto e dallo slug del check,
 `<base>/<chiave>/<slug>`, quindi la configurazione contiene un segreto solo
-invece di cinque URL da tenere allineate.
+invece di otto URL da tenere allineate.
 
 Il livello di gravita' sceglie l'endpoint. `info` usa il suffisso di
 registrazione, che conserva l'evento senza cambiare stato ne' notificare: e' il
@@ -438,7 +441,7 @@ sezione 9). Nulla dipende da uno spazio remoto: se in seguito se ne aggiungera'
 uno, la sincronizzazione sara' un passo in piu' dopo l'archivio, non un
 prerequisito.
 
-### I sei check da creare sul pannello
+### Gli otto check da creare sul pannello
 
 Nessun check viene creato da qui: l'accesso al pannello e' dell'operatore. Un
 ping verso uno slug inesistente riceve 404 e **non crea nulla**, quindi un check
@@ -451,12 +454,14 @@ mancante non e' un check verde, e' un segnale che non arriva da nessuna parte.
 | `observability` | 365 giorni | 1 ora | battito e regola sull'assenza di ingestione |
 | `app-degradation` | 365 giorni | 1 ora | regole su tasso di errori e latenza |
 | `security` | 365 giorni | 1 ora | regola sull'attivita' anomala dell'applicazione |
+| `alert-relay` | 10 minuti | 20 minuti | battito del notificatore |
+| `tls-pubblico` | 365 giorni | 1 ora | controllo della catena e della scadenza TLS |
 | `backup-nightly` | calendario | 1 ora | copia notturna, vedi sotto |
 
-I quattro relay hanno periodo di un anno perche' non devono scendere da soli:
+I cinque relay hanno periodo di un anno perche' non devono scendere da soli:
 li porta in guasto solo un segnale esplicito, e li riarma il documento di
-rientro. Solo il battito e la copia notturna hanno una cadenza attesa, ed e' su
-quella che il servizio esterno allarma per silenzio.
+rientro. I due battiti e la copia notturna hanno invece una cadenza attesa, ed
+e' su quella che il servizio esterno allarma per silenzio.
 
 ### Check `backup-nightly`
 

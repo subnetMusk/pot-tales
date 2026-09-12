@@ -1,63 +1,81 @@
-# Progetti Innovativi, piattaforma gioco HTML5
+<p align="center">
+  <img src="frontend/public/assets/images/ui/title.png" width="250" alt="Pot Tales">
+</p>
 
-Gioco HTML5 singleplayer (Phaser 3 + TypeScript/Vite) con backend Go, persistenza
-MongoDB/Redis e osservabilità Elastic (Elasticsearch, Kibana, APM, Fleet, Filebeat).
-In sviluppo gira su Docker Compose con Traefik come reverse proxy; in produzione gira
-su Docker Swarm a partire da `deploy/stack.yml`.
+<p align="center">
+  <a href="https://pot-tales.it/">Gioca a Pot Tales</a>
+  ·
+  <a href="features.md">Funzionalità e verifiche esterne</a>
+</p>
 
-Tutti i comandi del progetto passano dal Makefile. `make help` ne stampa l'elenco,
-generato dai target stessi, quindi non può divergere da ciò che esiste davvero.
+<p align="center">
+  <img src="https://healthchecks.io/badge/6e1f0796-8cd7-4beb-a3f5-5bd22fab18fd/zys6OZ9t-2.svg" alt="Stato dei controlli operativi di Pot Tales">
+</p>
 
-## Avvio rapido
+# Un’avventura tra scienza e gioco
+
+**Pot Tales** è un videogioco educativo online che trasforma la ricerca
+archeometrica sui residui conservati nelle ceramiche antiche in un’avventura
+interattiva 2D. Il giocatore esplora un laboratorio di ricerca archeologica,
+entra nelle “profondità oscure” dei depositi e ne riemerge seguendo gli indizi
+della scoperta scientifica.
+
+Il progetto nasce da un’iniziativa didattica multidisciplinare: studenti di
+archeologia e informatica, insieme a professionisti dell’audiovisivo, hanno
+cercato un linguaggio nuovo per raccontare risultati di ricerca complessi.
+
+## Il contesto della ricerca
+
+I depositi neri che si trovano all’interno dei contenitori in ceramica si
+comportano come capsule del tempo. Il loro studio può restituire informazioni
+preziose sulle attività quotidiane delle comunità antiche e sugli ambienti in
+cui vivevano.
+
+L’indagine combina analisi petrografiche, mineralogiche, chimiche e
+spettroscopiche con microscopia elettronica e datazione. Pot Tales rende
+esplorabili metodi e risultati senza ridurli a una lezione frontale: si impara
+muovendosi, osservando e risolvendo le sfide del gioco.
+
+## Dal problema alla soluzione
+
+Comunicare efficacemente la ricerca archeologica non è semplice. Per questo il
+progetto usa una narrazione esplorativa: il giocatore percorre metaforicamente
+i depositi come una caverna buia, trova il proprio cammino e scopre, passo dopo
+passo, ciò che le analisi di laboratorio hanno reso visibile.
+
+L’esperienza è accessibile dal browser desktop e non richiede installazione.
+L’interfaccia è disponibile in italiano e inglese; la raccolta analitica
+facoltativa viene attivata soltanto dopo una scelta esplicita del visitatore.
+
+## Il team
+
+F. M. Valente · C. D. Baeza Vega · D. Favale · L. Mocchiutti · I. Malliota ·
+I. Garcia Trivès · T. T. Kahveci · R. Buso · A. Cipriani · F. Marcon ·
+I. Rossi · L. Soligo
+
+## Dietro le quinte
+
+Il gioco usa Phaser 3 e TypeScript/Vite, con un backend Go e stato temporaneo
+su MongoDB e Redis. Lo stack di produzione gira su Docker Swarm dietro Traefik
+e integra osservabilità Elastic, telemetria RUM, controlli esterni, backup ed
+esportazione dei dati.
+
+Per provare il progetto in locale:
 
 ```bash
-cp .env.example .env      # compilare i valori
-make dev-up               # applicazione
-make monitoring-up        # facoltativo: stack Elastic
+cp .env.example .env
+make dev-up
 ```
 
-Il dettaglio, i vincoli sulle variabili e gli URL locali sono in
-[docs/SVILUPPO.md](docs/SVILUPPO.md).
+I riferimenti per chi sviluppa o gestisce il servizio sono volutamente
+separati dalla presentazione:
 
-## Dove sta cosa
+- [Funzionalità e verifiche esterne](features.md)
+- [Sviluppo locale](docs/SVILUPPO.md)
+- [Architettura](docs/ARCHITETTURA.md)
+- [Esercizio e recovery](docs/ESERCIZIO.md)
+- [Provisioning della macchina](provisioning/README.md)
+- [Osservabilità come codice](terraform/elk/README.md)
 
-| Documento | Quando si legge |
-|---|---|
-| [docs/SVILUPPO.md](docs/SVILUPPO.md) | per lavorare in locale: avvio, variabili, routing, verifica |
-| [docs/ARCHITETTURA.md](docs/ARCHITETTURA.md) | com'è fatto il sistema, le rotte HTTP, l'osservabilità e le fragilità note |
-| [docs/ESERCIZIO.md](docs/ESERCIZIO.md) | in produzione: procedure dei momenti pianificati e intervento a guasto avvenuto |
-
-Ogni directory che contiene qualcosa di non ovvio ha il proprio README accanto al
-codice, non qui: [`provisioning/`](provisioning/README.md) per l'host e i dati,
-[`terraform/`](terraform/README.md) e [`terraform/elk/`](terraform/elk/README.md) per
-l'osservabilità come codice, [`secrets/`](secrets/README.md) per i segreti,
-[`scripts/`](scripts/README.md) per gli script di automazione.
-
-## File dello stack
-
-| File | Ambiente | Comando |
-|---|---|---|
-| `docker-compose.dev.yml` | sviluppo, applicazione | `make dev-up` |
-| `docker-compose.monitoring.yml` | sviluppo, Elastic | `make monitoring-up` |
-| `docker-compose.security.yml` | sviluppo, overlay CrowdSec | `make security-up` |
-| `deploy/stack.yml` | produzione, Docker Swarm | `make stack-deploy` |
-
-## Requisiti
-
-- Docker 20.10+ con Compose v2. In produzione lo swarm serve, ma non va inizializzato
-  a mano: lo fa lo script di deploy se sul nodo non esiste.
-- Almeno 4 GB di RAM liberi se si avvia anche Elastic.
-- Go 1.26+ e Node 24+ servono solo per compilare fuori dai container. I target di
-  verifica girano in immagini ancorate per digest e non richiedono toolchain sull'host.
-
-## Verifica
-
-```bash
-make verify-fast   # formattazione, analisi statica, build, test, lint di compose e stack
-make verify        # aggiunge Terraform, workflow, test di integrazione, copertura, segreti
-make runtime-check # avvia gli artefatti costruiti e li interroga davvero
-```
-
-I test di integrazione girano su MongoDB e Redis veri e stanno dietro il tag di
-compilazione `integration`: senza, ogni esecuzione della suite dipenderebbe da due
-servizi esterni e un guasto di ambiente sarebbe indistinguibile da una regressione.
+`make help` elenca i comandi disponibili e rimane la fonte operativa più
+rapida per orientarsi nel repository.

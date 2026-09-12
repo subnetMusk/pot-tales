@@ -477,7 +477,7 @@ Il battito parte **solo se i controlli locali passano**. Un timer attivo e un
 battito assente non sono in contraddizione: significa che un controllo locale
 sta fallendo, e lo script allega l'elenco di quali.
 
-Le cinque classi di guasto sono separate perche' le notifiche dipendono dalla
+Le otto destinazioni sono separate perche' le notifiche dipendono dalla
 transizione di stato: su una destinazione unica, un secondo guasto che arriva
 mentre il primo e' ancora aperto non produrrebbe alcuna notifica.
 

@@ -31,6 +31,10 @@ tecnica e non distribuibile, e la vista divulgativa sull'andamento dell'evento,
 che si condivide con leggerezza. Sono due Space distinti, ognuno con un ruolo in
 sola lettura limitato a una data view.
 
+Entrambe le platee possono usare Discover entro il proprio confine di indice:
+quella tecnica per diagnosticare log, metriche e tracce; quella evento per
+consultare i soli fatti di gioco pseudonimizzati dietro gli aggregati.
+
 La separazione e' affidata al **ruolo**, non allo Space: nascondere
 funzionalita' a livello di Space rende l'interfaccia piu' leggibile, ma la
 documentazione Elastic dichiara che il controllo di visibilita' delle

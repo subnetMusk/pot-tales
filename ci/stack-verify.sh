@@ -483,7 +483,9 @@ assert_contains "componenti infra-agent sani" '"state": 2' "$infra_status"
 for requisito in \
   esercizio:esercizio-salute-risorse \
   esercizio:esercizio-servizio-funnel \
-  evento:evento-andamento; do
+  esercizio:esercizio-latenza-errori \
+  evento:evento-andamento \
+  evento:evento-impatto; do
   spazio=${requisito%%:*}
   dashboard=${requisito##*:}
   oggetto=$(kibana_interna \
@@ -496,17 +498,19 @@ done
 # L'export dello Space divulgativo e' anche il controllo piu' vicino al dato
 # che viene realmente condiviso. Non basta limitare gli indici: una
 # visualizzazione potrebbe aggregare e mostrare un identificativo sensibile.
-evento_export=$(kibana_interna -X POST \
-  -H 'Content-Type: application/json' \
-  -d '{"objects":[{"type":"dashboard","id":"evento-andamento"}],"includeReferencesDeep":true,"excludeExportDetails":true}' \
-  "$KIBANA_INTERNAL_URL/s/evento/api/saved_objects/_export") ||
-  fail "export di controllo della dashboard evento fallito"
-for vietato in partita.id ClientHost ClientAddr source.ip client.ip user_agent host.name container.name; do
-  case "$evento_export" in
-    *"$vietato"*) fail "dashboard evento espone o usa il campo vietato $vietato" ;;
-  esac
+for dashboard_evento in evento-andamento evento-impatto; do
+  evento_export=$(kibana_interna -X POST \
+    -H 'Content-Type: application/json' \
+    -d "{\"objects\":[{\"type\":\"dashboard\",\"id\":\"$dashboard_evento\"}],\"includeReferencesDeep\":true,\"excludeExportDetails\":true}" \
+    "$KIBANA_INTERNAL_URL/s/evento/api/saved_objects/_export") ||
+    fail "export di controllo della dashboard evento $dashboard_evento fallito"
+  for vietato in partita.id ClientHost ClientAddr source.ip client.ip user_agent host.name container.name; do
+    case "$evento_export" in
+      *"$vietato"*) fail "dashboard evento $dashboard_evento espone o usa il campo vietato $vietato" ;;
+    esac
+  done
+  ok "dashboard evento $dashboard_evento priva dei campi tecnici e identificativi vietati"
 done
-ok "dashboard evento priva dei campi tecnici e identificativi vietati"
 
 printf '\n== Elasticsearch ==\n'
 

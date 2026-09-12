@@ -175,11 +175,17 @@ resource "elasticstack_kibana_security_role" "evento" {
   kibana {
     spaces = [elasticstack_kibana_space.evento.space_id]
 
-    # Solo le dashboard. Senza Discover la platea divulgativa non compone
-    # interrogazioni proprie: vede cio' che e' stato preparato, che e' quanto
-    # serve e quanto e' stato verificato prima di essere condiviso.
+    # Le dashboard coprono gli indicatori aggregati; Discover rende
+    # consultabili anche i singoli fatti pseudonimizzati richiesti per la
+    # verifica dell'evento. Il confine resta quello sugli indici: questo ruolo
+    # non puo' nominare log tecnici, metriche o tracce APM.
     feature {
       name       = "dashboard"
+      privileges = ["read"]
+    }
+
+    feature {
+      name       = "discover"
       privileges = ["read"]
     }
   }

@@ -188,6 +188,8 @@ Ruoli in sola lettura distinti, definiti come codice via provider Terraform. Le 
 non sono generate da Terraform ma esportate in NDJSON e reimportate: una dashboard si
 disegna sui dati, e dichiararla prima di averli visti significa interrogare campi
 ipotetici. Il codice governa il ciclo di vita dell'export, non il suo contenuto.
+Discover resta entro lo stesso confine: nello Space evento rende consultabili i soli
+fatti pseudonimizzati di `gioco.partita`, senza concedere log tecnici, metriche o tracce.
 
 ### Sorveglianza esterna
 

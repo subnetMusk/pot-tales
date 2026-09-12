@@ -17,8 +17,9 @@ evento/<nome>.ndjson.versione
 **`esercizio/`** — vista tecnica: salute del servizio, risorse della macchina,
 contenimento e imbuto di partita. Non destinata alla distribuzione.
 
-**`evento/`** — vista divulgativa, destinata alla condivisione. Mostra solo
-aggregati dei fatti di partita.
+**`evento/`** — vista divulgativa, destinata alla condivisione. Le dashboard
+mostrano gli aggregati dei fatti di partita; Discover consente di consultare i
+singoli documenti pseudonimizzati dello stesso indice e nessun dato tecnico.
 
 Cio' che finisce in `evento/` viene condiviso: prima di esportare va verificato che i
 pannelli non mostrino indirizzi, identificativi di sessione o nomi di host. Il ruolo
