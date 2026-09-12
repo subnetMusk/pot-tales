@@ -37,7 +37,7 @@ if command -v docker >/dev/null 2>&1; then
   docker version > "$DEST/docker-version.txt" 2>&1
   docker info > "$DEST/docker-info.txt" 2>&1
   docker service ls > "$DEST/service-ls.txt" 2>&1
-  docker stack ps "${STACK_NAME:-app}" --no-trunc > "$DEST/stack-ps.txt" 2>&1
+  docker stack ps "${STACK_NAME:-pi}" --no-trunc > "$DEST/stack-ps.txt" 2>&1
   docker ps -a > "$DEST/containers.txt" 2>&1
   docker stats --no-stream > "$DEST/stats.txt" 2>&1
 

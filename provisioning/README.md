@@ -98,7 +98,7 @@ sudo install -m 0644 logrotate/traefik-access.conf /etc/logrotate.traefik.conf
 
 sudo systemctl restart systemd-journald
 sudo systemctl daemon-reload
-sudo systemctl enable diagnostic-bundle.service
+sudo systemctl enable --now diagnostic-bundle.service
 sudo systemctl enable stack-deploy.service fleet-bootstrap.service
 sudo systemctl enable --now stack-heartbeat.timer alert-notifier.timer \
      backup-nightly.timer traefik-logrotate.timer

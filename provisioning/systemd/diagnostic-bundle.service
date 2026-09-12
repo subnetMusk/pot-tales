@@ -16,6 +16,9 @@ RemainAfterExit=true
 ExecStart=/bin/true
 ExecStop=/usr/local/bin/diagnostic-bundle.sh
 TimeoutStopSec=90
+# Il nome dello stack sta nella configurazione del deploy: senza, la raccolta
+# fotograferebbe uno stack che non esiste.
+EnvironmentFile=-/etc/stack-deploy.env
 Environment=DIAGNOSTIC_DEST=/srv/diagnostics
 
 [Install]
