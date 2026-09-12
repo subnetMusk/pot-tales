@@ -566,6 +566,12 @@ Ne segue che la fonte primaria e' la scrittura continua, non la raccolta finale.
 Il pacchetto diagnostico aggiunge contesto aggregato quando c'e' il tempo di
 produrlo, e non sostituisce il journal.
 
+Allo spegnimento systemd concede 90 secondi alla raccolta. Ogni comando ha un
+tempo massimo (`DIAGNOSTIC_CMD_TIMEOUT`, 10 secondi) dentro un budget
+complessivo (`DIAGNOSTIC_BUDGET`, 70 secondi): un comando bloccato non consuma
+piu' tutto il margine, e `collector.err` annota quali comandi sono scaduti o
+sono stati saltati. Un pacchetto con quel file vuoto e' completo.
+
 ## Verifica
 
 ```bash
