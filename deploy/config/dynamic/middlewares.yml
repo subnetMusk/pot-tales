@@ -192,13 +192,15 @@ http:
         burst: 10
         period: 1s
 
-    # Frequenza dedicata: la consultazione e' fatta da poche persone, quindi
-    # una soglia bassa qui non danneggia nessuno e limita il valore di una
-    # credenziale che dovesse circolare.
+    # Frequenza dedicata: un avvio di Kibana scarica in parallelo alcune
+    # centinaia di bundle. Il burst deve quindi assorbire il bootstrap completo,
+    # mentre la media continua a frenare un client che insiste nel tempo. Una
+    # soglia da API (10/30) troncherebbe invece risorse legittime con 429 e
+    # lascerebbe l'interfaccia nella schermata "Elastic did not load properly".
     limite-dashboard:
       rateLimit:
-        average: 10
-        burst: 30
+        average: 100
+        burst: 1000
         period: 1s
 
     # Kibana serve la propria interfaccia e ha bisogno di una politica sui
