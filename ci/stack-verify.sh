@@ -96,12 +96,25 @@ require_command mktemp
 # cui il file non e' leggibile resta valido il passaggio esplicito via ambiente.
 if { [ -z "$DASHBOARD_USER" ] || [ -z "$DASHBOARD_PASSWORD" ]; } &&
    [ -r "$DASHBOARD_USERS_TFVARS" ]; then
-  require_command jq
-  DASHBOARD_USER=$(jq -r '.utenze_esercizio | keys | first // empty' \
-    "$DASHBOARD_USERS_TFVARS")
-  if [ -n "$DASHBOARD_USER" ]; then
-    DASHBOARD_PASSWORD=$(jq -r --arg user "$DASHBOARD_USER" \
-      '.utenze_esercizio[$user] // empty' "$DASHBOARD_USERS_TFVARS")
+  # Python e' gia' un requisito degli script di configurazione ed export della
+  # macchina. Evitiamo jq, che non fa parte dell'installazione minimale.
+  require_command python3
+  dashboard_credentials=$(python3 - "$DASHBOARD_USERS_TFVARS" <<'PY'
+import json
+import sys
+
+with open(sys.argv[1], encoding="utf-8") as stream:
+    users = json.load(stream).get("utenze_esercizio", {})
+
+if users:
+    username = sorted(users)[0]
+    print(username)
+    print(users[username])
+PY
+  ) || fail "lettura credenziali di esercizio fallita"
+  if [[ "$dashboard_credentials" == *$'\n'* ]]; then
+    DASHBOARD_USER=${dashboard_credentials%%$'\n'*}
+    DASHBOARD_PASSWORD=${dashboard_credentials#*$'\n'}
   fi
 fi
 
