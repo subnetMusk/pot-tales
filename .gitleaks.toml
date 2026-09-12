@@ -10,10 +10,36 @@ useDefault = true
 
 [allowlist]
 description = "Percorsi storici con valori dev (da ruotare in prod) e file SOPS cifrati"
+
+# Le credenziali passate per variabile non sono segreti: `-u "${UTENTE}:${PAROLA}"`
+# non contiene alcun valore, ma la regola vede due campi separati da due punti.
+#
+# Il confronto e' sulla riga e non sul valore estratto, perche' e' proprio dal
+# valore che non si distingue un riferimento da un letterale. L'eccezione e'
+# quindi sul contenuto e non sul percorso: un valore in chiaro negli stessi file
+# continua a essere segnalato.
+regexTarget = "line"
+regexes = [
+  '''-u\s+\\?"?\$\{?[A-Za-z_][A-Za-z0-9_]*''',
+]
+
 paths = [
   '''^\.env$''',
   '''^docker/env/\.env$''',
   '''^sandbox/\.env$''',
   '''^backups/''',
   '''^secrets/.*\.enc\.env$''',
+  # Artefatti rimasti solo nella cronologia: file di ambiente di sviluppo,
+  # script di diagnosi dell'era precedente e dati di volumi finiti per errore
+  # in un commit. Non esistono piu' nell'albero di lavoro, e le credenziali che
+  # contengono vengono ruotate prima della messa in servizio.
+  #
+  # L'albero di lavoro resta scansionato senza eccezioni: queste voci coprono
+  # il passato, non il presente.
+  '''^\.env\.bak$''',
+  '''^\.env\.hetzner$''',
+  '''^docker/volumes/''',
+  '''^scripts/(reset_fleet|setup_standalone_monitoring|diagnose-elastic)\.sh$''',
+  '''^(APM_CONFIGURATION|ELASTIC_STACK_GUIDE)\.md$''',
 ]
+

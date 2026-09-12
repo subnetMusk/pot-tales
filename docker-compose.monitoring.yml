@@ -36,7 +36,7 @@ networks:
 services:
   # Setup certificates volume for use by other services
   setup:
-    image: docker.elastic.co/elasticsearch/elasticsearch:${STACK_VERSION}
+    image: docker.elastic.co/elasticsearch/elasticsearch:${STACK_VERSION}@${ES_IMAGE_DIGEST}
     container_name: setup-certs
     env_file:
       - .env
@@ -123,7 +123,7 @@ services:
       setup:
         condition: service_started   # certs service, once that it has created the certs, can exit, so we wait for it to complete successfully, not just to be healthy beacuse it would always fail
     container_name: es01
-    image: docker.elastic.co/elasticsearch/elasticsearch:${STACK_VERSION}
+    image: docker.elastic.co/elasticsearch/elasticsearch:${STACK_VERSION}@${ES_IMAGE_DIGEST}
     env_file:
       - .env
     networks:
@@ -179,7 +179,7 @@ services:
       - internal_net                                            # so it can reach Elasticsearch and communicate securely with it using the certs
       - proxy_net                                               # so Traefik can route requests to the Kibana UI
       - kibana_net                                              # gives Kibana internet access for integrations
-    image: docker.elastic.co/kibana/kibana:${STACK_VERSION}
+    image: docker.elastic.co/kibana/kibana:${STACK_VERSION}@${KIBANA_IMAGE_DIGEST}
     labels:
       - co.elastic.logs/module=kibana
     container_name: kibana
@@ -235,8 +235,15 @@ services:
         condition: service_healthy
     env_file:
       - .env
+      # Token e identificativo di policy generati da scripts/fleet-bootstrap.sh.
+      # Letti come env_file e non interpolati, perche' non esistono prima che
+      # Fleet sia stato inizializzato. Dichiarati non obbligatori affinche' la
+      # validazione della configurazione non dipenda dalla loro presenza:
+      # senza, l'agente non si registra e viene riavviato finche' non compaiono.
+      - path: .env.fleet.server
+        required: false
     # We use an Elastic Agent image that will be run as the Fleet Server
-    image: docker.elastic.co/beats/elastic-agent:${STACK_VERSION}
+    image: docker.elastic.co/beats/elastic-agent:${STACK_VERSION}@${ELASTIC_AGENT_IMAGE_DIGEST}
     container_name: fleet-server
     volumes:
       - certs:/usr/share/elastic-agent/certs:ro
@@ -251,10 +258,8 @@ services:
       - KIBANA_HOST=http://kibana:5601      # URL of the Kibana instance to enroll with and get its configuration from
       - KIBANA_FLEET_USERNAME=elastic
       - KIBANA_FLEET_PASSWORD=${ELASTIC_PASSWORD}
-      - FLEET_ENROLLMENT_TOKEN=${FLEET_ENROLLMENT_TOKEN} # enrollment token that assure a secure enrollment
       # Configuring the Fleet Server
       - FLEET_SERVER_ENABLE=true            # here the agent actually runs as a Fleet Server
-      - FLEET_SERVER_POLICY_ID=fleet-server-policy # assign the Fleet Server policy created in kibana.yml to this agent
       - FLEET_SERVER_PORT=8220     # port where the Fleet Server will listen for connections from other agents
       - FLEET_URL=https://fleet-server:8220        # URL that the fleet server will advertise to other agents to connect to it
       - FLEET_SERVER_CERT=/usr/share/elastic-agent/certs/fleet-server/fleet-server.crt
@@ -287,7 +292,9 @@ services:
         condition: service_healthy
     env_file:
       - .env
-    image: docker.elastic.co/beats/elastic-agent:${STACK_VERSION}
+      - path: .env.fleet.apm
+        required: false
+    image: docker.elastic.co/beats/elastic-agent:${STACK_VERSION}@${ELASTIC_AGENT_IMAGE_DIGEST}
     container_name: apm-agent
     restart: unless-stopped
     networks:
@@ -301,7 +308,6 @@ services:
       - FLEET_ENROLL=1          # tell the agent to enroll with Fleet
       - FLEET_URL=https://fleet-server:8220
       - FLEET_CA=/usr/share/elastic-agent/certs/ca/ca.crt
-      - FLEET_ENROLLMENT_TOKEN=${FLEET_ENROLLMENT_TOKEN_APM} # enrollment token generated in Kibana UI
       - ELASTICSEARCH_CA=/usr/share/elastic-agent/certs/ca/ca.crt              # Elasticsearch URL,
       - ELASTIC_AGENT_TAGS=apm,internal
       # TLS settings for APM
@@ -328,7 +334,9 @@ services:
         condition: service_healthy
     env_file:
       - .env
-    image: docker.elastic.co/beats/elastic-agent:${STACK_VERSION}
+      - path: .env.fleet.infra
+        required: false
+    image: docker.elastic.co/beats/elastic-agent:${STACK_VERSION}@${ELASTIC_AGENT_IMAGE_DIGEST}
     container_name: infra-agent
     restart: unless-stopped
     networks:
@@ -348,7 +356,6 @@ services:
     environment:
       - FLEET_ENROLL=1            # activate the enroll mod
       - FLEET_URL=https://fleet-server:8220
-      - FLEET_ENROLLMENT_TOKEN=${FLEET_ENROLLMENT_TOKEN_INFRA}
       - ELASTICSEARCH_CA=/usr/share/elastic-agent/certs/ca/ca.crt
       - ELASTIC_AGENT_TAGS=infra,internal           # used fot filtering
 
@@ -357,7 +364,7 @@ services:
     depends_on:
       es01:
         condition: service_healthy
-    image: docker.elastic.co/beats/filebeat:${STACK_VERSION}
+    image: docker.elastic.co/beats/filebeat:${STACK_VERSION}@${FILEBEAT_IMAGE_DIGEST}
     container_name: filebeat
     user: root # Necessario per leggere /var/lib/docker e il socket
     restart: unless-stopped
@@ -371,4 +378,6 @@ services:
       - /var/lib/docker/containers:/var/lib/docker/containers:ro
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - ./docker/volumes/filebeat/filebeat.yml:/usr/share/filebeat/filebeat.yml:ro
-    command: filebeat -e -strict.perms=false
+    # Il flag richiede due trattini: nella forma con un solo trattino viene
+    # interpretato come cluster di shorthand e l'avvio fallisce.
+    command: filebeat -e --strict.perms=false

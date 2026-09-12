@@ -1,0 +1,4 @@
+# Limita il contesto di build ai soli file che l'immagine copia.
+Dockerfile
+.dockerignore
+*.md

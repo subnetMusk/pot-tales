@@ -1,6 +1,105 @@
 {
     "section1": {
-        "files": []
+        "files": [
+            {
+                "url": "assets/images/backgrounds/stage3.png",
+                "type": "image",
+                "key": "stage3"
+            },
+            {
+                "url": "assets/images/items/1-lipidi.png",
+                "type": "image",
+                "key": "lipidi"
+            },
+            {
+                "url": "assets/images/items/2-cellulosa.png",
+                "type": "image",
+                "key": "cellulosa"
+            },
+            {
+                "url": "assets/images/items/3-carbon.png",
+                "type": "image",
+                "key": "carbon"
+            },
+            {
+                "url": "assets/images/items/c14.png",
+                "type": "image",
+                "key": "c14"
+            },
+            {
+                "url": "assets/images/ui/SEM/fiber_a.jpg",
+                "type": "image",
+                "key": "sem_fiber_a"
+            },
+            {
+                "url": "assets/images/ui/SEM/fiber_b.jpg",
+                "type": "image",
+                "key": "sem_fiber_b"
+            },
+            {
+                "url": "assets/images/ui/SEM/fiber_c.jpg",
+                "type": "image",
+                "key": "sem_fiber_c"
+            },
+            {
+                "url": "assets/images/backgrounds/stage3-over0.png",
+                "type": "image",
+                "key": "stage3-over0"
+            },
+            {
+                "url": "assets/images/backgrounds/stage3-over1.png",
+                "type": "image",
+                "key": "stage3-over1"
+            },
+            {
+                "url": "assets/images/backgrounds/stage3-over2.png",
+                "type": "image",
+                "key": "stage3-over2"
+            },
+            {
+                "url": "assets/images/backgrounds/stage3-over3.png",
+                "type": "image",
+                "key": "stage3-over3"
+            },
+            {
+                "url": "assets/images/backgrounds/stage3-door.png",
+                "type": "image",
+                "key": "stage3-door"
+            },
+            {
+                "url": "assets/images/ui/c14_graph.png",
+                "type": "image",
+                "key": "stage3-c14graph"
+            },
+            {
+                "url": [
+                    "assets/music/stage3_theme.wav"
+                ],
+                "type": "audio",
+                "key": "stage3_theme"
+            },
+            {
+                "url": [
+                    "assets/sfx/quiz_correct.wav"
+                ],
+                "type": "audio",
+                "key": "quiz_correct"
+            },
+            {
+                "url": [
+                    "assets/sfx/quiz_incorrect.wav"
+                ],
+                "type": "audio",
+                "key": "quiz_incorrect"
+            },
+            {
+                "url": [
+                    "assets/sfx/c14_machine.wav"
+                ],
+                "type": "audio",
+                "key": "c14_machine"
+            }
+        ]
     },
     "meta": {
         "app": "Phaser Editor 2D - Asset Pack Editor",

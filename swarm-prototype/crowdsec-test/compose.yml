@@ -1,0 +1,56 @@
+# ==============================================================================
+# Ambiente di verifica dell'integrazione CrowdSec / Traefik
+# ==============================================================================
+# Composto da LAPI, Traefik con bouncer plugin e un backend di prova.
+#
+# Verifica tre aspetti:
+#   1. compatibilita' del plugin con la versione di Traefik in uso; il plugin
+#      viene interpretato all'avvio e un'incompatibilita' impedisce la partenza
+#      del proxy
+#   2. dipendenza dalla rete: il plugin viene scaricato all'avvio
+#   3. applicazione effettiva di una decisione di blocco
+# ==============================================================================
+
+services:
+
+  crowdsec:
+    image: crowdsecurity/crowdsec:v1.7.8
+    environment:
+      COLLECTIONS: "crowdsecurity/traefik crowdsecurity/base-http-scenarios"
+      # Chiave fissa, ambiente di prova non persistente.
+      BOUNCER_KEY_traefik: prova-bouncer-key
+      DISABLE_ONLINE_API: "true"
+    volumes:
+      - crowdsec-db:/var/lib/crowdsec/data
+      - crowdsec-config:/etc/crowdsec
+      - ../../docker/crowdsec/acquis.yaml:/etc/crowdsec/acquis.d/traefik.yaml:ro
+      - ../../docker/crowdsec/profiles.yaml:/etc/crowdsec/profiles.yaml:ro
+      - traefik-logs:/var/log/traefik:ro
+    networks:
+      - test
+
+  traefik:
+    image: traefik:v3.7.10@sha256:9c3b91d5fb7770853ca5c1124a23c34bf2d9b47ffaebeab2614cbaf410dcb2ac
+    depends_on:
+      - crowdsec
+    ports:
+      - "18080:80"
+    volumes:
+      - ./traefik.yml:/etc/traefik/traefik.yml:ro
+      - ./dynamic.yml:/etc/traefik/dynamic.yml:ro
+      - traefik-logs:/var/log/traefik
+    networks:
+      - test
+
+  whoami:
+    image: traefik/whoami:v1.11
+    networks:
+      - test
+
+networks:
+  test:
+
+volumes:
+  crowdsec-db:
+  crowdsec-config:
+  traefik-logs:

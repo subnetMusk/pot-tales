@@ -1,0 +1,362 @@
+# ==============================================================================
+# Stack Elastic per Docker Swarm
+# ==============================================================================
+# Verifica il comportamento di avvio dello stack Elastic sotto
+# `docker stack deploy`, che non supporta `depends_on`.
+#
+# Differenze rispetto a docker-compose.monitoring.yml, imposte
+# dall'orchestratore:
+#   - niente `depends_on`: i servizi partono in parallelo e vanno in
+#     crash-loop-fino-a-pronto finche' la loro dipendenza non c'e'
+#   - niente `container_name`: il nome del servizio e' gia' il nome DNS, ed e'
+#     quello per cui sono emessi i certificati
+#   - niente `env_file`: ignorato da stack deploy, sostituito da `configs`
+#     per i parametri e `secrets` per le credenziali
+#   - niente bind mount relativi: i file di configurazione diventano `configs`
+#   - `mem_limit` diventa `deploy.resources.limits`, affiancato da
+#     `reservations`
+#   - il servizio setup diventa `replicated-job`: completa ed esce
+#
+# Include il Fleet Server, il cui enrollment token non esiste prima che Fleet
+# sia stato inizializzato: viene scritto su un volume condiviso dal processo di
+# bootstrap, e l'agente riparte finche' non lo trova. E' la stessa forma con cui
+# es01 attende i certificati, e permette allo stack di convergere con un solo
+# deploy invece che con un avvio in due fasi.
+# ==============================================================================
+
+configs:
+  proto_setup_certs:
+    file: ./config/setup-certs.sh
+  proto_kibana_yml:
+    file: ./config/kibana.yml
+  proto_kibana_entrypoint:
+    file: ./config/kibana-entrypoint.sh
+  proto_filebeat_yml:
+    file: ./config/filebeat.yml
+  proto_filebeat_entrypoint:
+    file: ./config/filebeat-entrypoint.sh
+  proto_agent_entrypoint:
+    file: ./config/agent-entrypoint.sh
+
+# Generati da gate.sh. Swarm li trasmette ai nodi su mTLS, li cifra nel Raft
+# log e li monta in un filesystem in memoria sotto /run/secrets.
+secrets:
+  elastic_password:
+    file: ./secrets/elastic_password
+  kibana_system_password:
+    file: ./secrets/kibana_system_password
+  kibana_encryption_key:
+    file: ./secrets/kibana_encryption_key
+
+volumes:
+  certs:
+  esdata01:
+  kibanadata:
+  fleetserverdata:
+  # Popolato dal bootstrap con gli enrollment token. Gli agenti lo leggono in
+  # sola lettura e ripartono finche' non compare il file che li riguarda.
+  fleettokens:
+
+networks:
+  elastic:
+    driver: overlay
+    # Consente a contenitori esterni allo stack di collegarsi alla rete:
+    # serve al bootstrap, che deve raggiungere Elasticsearch e Kibana, e
+    # alla diagnostica durante un incidente.
+    attachable: true
+
+services:
+
+  # ---------------------------------------------------------------------------
+  # setup — genera i certificati e imposta la password di kibana_system.
+  # Modellato come `replicated-job`: il task completa, esce con codice 0 e non
+  # viene rischedulato.
+  # ---------------------------------------------------------------------------
+  setup:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.19.19@sha256:5dbf405a97e008f3024cf6f8f4a314d91b765d82954530893dcc13f8e87d21f4
+    user: "0"
+    command: ["bash", "/setup-certs.sh"]
+    environment:
+      # Ritardo opzionale, usato dai test di avvio. Vedi setup-certs.sh.
+      SETUP_DELAY: "${SETUP_DELAY:-}"
+    networks:
+      - elastic
+    volumes:
+      - certs:/usr/share/elasticsearch/config/certs
+    configs:
+      - source: proto_setup_certs
+        target: /setup-certs.sh
+        mode: 0555
+    secrets:
+      - source: elastic_password
+        target: elastic_password
+        uid: "0"
+        gid: "0"
+        mode: 0400
+      - source: kibana_system_password
+        target: kibana_system_password
+        uid: "0"
+        gid: "0"
+        mode: 0400
+    deploy:
+      mode: replicated-job
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+        max_attempts: 3
+      resources:
+        limits:
+          memory: 512M
+
+  # ---------------------------------------------------------------------------
+  # es01 — avviato in parallelo al setup. Finche' i certificati non esistono il
+  # processo esce in errore e Swarm rischedula il task; il riavvio ripetuto
+  # sostituisce la dipendenza esplicita.
+  # ---------------------------------------------------------------------------
+  es01:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.19.19@sha256:5dbf405a97e008f3024cf6f8f4a314d91b765d82954530893dcc13f8e87d21f4
+    hostname: es01
+    networks:
+      - elastic
+    volumes:
+      - certs:/usr/share/elasticsearch/config/certs
+      - esdata01:/usr/share/elasticsearch/data
+    # Swarm monta i secret con permessi 0444 e proprietario root se non
+    # diversamente specificato. Elasticsearch rifiuta un file indicato da una
+    # variabile _FILE con permessi diversi da 400 o 600, quindi uid, gid e mode
+    # vanno dichiarati esplicitamente. L'immagine gira come uid 1000.
+    secrets:
+      - source: elastic_password
+        target: elastic_password
+        uid: "1000"
+        gid: "0"
+        mode: 0400
+    environment:
+      node.name: es01
+      cluster.name: proto-cluster
+      discovery.type: single-node
+      # Elasticsearch supporta il suffisso _FILE e legge il valore dal secret
+      # senza che questo transiti dall'ambiente.
+      ELASTIC_PASSWORD_FILE: /run/secrets/elastic_password
+      bootstrap.memory_lock: "true"
+      ES_JAVA_OPTS: "-Xms1g -Xmx1g"
+      xpack.security.enabled: "true"
+      xpack.security.http.ssl.enabled: "true"
+      xpack.security.http.ssl.key: certs/es01/es01.key
+      xpack.security.http.ssl.certificate: certs/es01/es01.crt
+      xpack.security.http.ssl.certificate_authorities: certs/ca/ca.crt
+      xpack.security.transport.ssl.enabled: "true"
+      xpack.security.transport.ssl.verification_mode: certificate
+      xpack.security.transport.ssl.key: certs/es01/es01.key
+      xpack.security.transport.ssl.certificate: certs/es01/es01.crt
+      xpack.security.transport.ssl.certificate_authorities: certs/ca/ca.crt
+      xpack.license.self_generated.type: basic
+    # `docker stack deploy` traduce `ulimits` nella specifica del servizio,
+    # quindi il memory locking di Elasticsearch e' applicabile in swarm mode.
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - curl -s --cacert /usr/share/elasticsearch/config/certs/ca/ca.crt https://localhost:9200 | grep -q 'missing authentication credentials'
+      interval: 10s
+      timeout: 10s
+      retries: 60
+      start_period: 30s
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: any
+        delay: 10s
+      resources:
+        limits:
+          memory: 2G
+        reservations:
+          memory: 1G
+      update_config:
+        order: stop-first
+        failure_action: rollback
+        monitor: 60s
+        max_failure_ratio: 0
+
+  # ---------------------------------------------------------------------------
+  # kibana — dispone di retry verso Elasticsearch ma non si avvia se manca il
+  # certificato della CA, quindi viene rischedulato finche' il setup non lo crea.
+  # ---------------------------------------------------------------------------
+  kibana:
+    image: docker.elastic.co/kibana/kibana:8.19.19@sha256:cc1f9f8c09e2fe0869965ccbf4008a4af0b2691b370fe189dfb8e19f516215c7
+    hostname: kibana
+    networks:
+      - elastic
+    ports:
+      # `mode: host` esplicito: la sintassi breve userebbe `ingress`, il cui
+      # routing mesh applica SNAT e sostituisce l'indirizzo del client con
+      # quello della rete ingress.
+      - target: 5601
+        published: 5601
+        mode: host
+    volumes:
+      - certs:/usr/share/kibana/config/certs
+      - kibanadata:/usr/share/kibana/data
+    configs:
+      - source: proto_kibana_yml
+        target: /usr/share/kibana/config/kibana.yml
+        mode: 0444
+      - source: proto_kibana_entrypoint
+        target: /kibana-entrypoint.sh
+        mode: 0555
+    secrets:
+      - source: kibana_system_password
+        target: kibana_system_password
+        uid: "1000"
+        gid: "0"
+        mode: 0400
+      - source: kibana_encryption_key
+        target: kibana_encryption_key
+        uid: "1000"
+        gid: "0"
+        mode: 0400
+    command: ["/kibana-entrypoint.sh"]
+    environment:
+      SERVER_NAME: kibana
+      SERVER_HOST: "0.0.0.0"
+      ELASTICSEARCH_HOSTS: https://es01:9200
+      ELASTICSEARCH_USERNAME: kibana_system
+      ELASTICSEARCH_SSL_CERTIFICATEAUTHORITIES: /usr/share/kibana/config/certs/ca/ca.crt
+      SERVER_SSL_ENABLED: "false"
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - curl -s -o /dev/null -w '%{http_code}' http://localhost:5601/api/status | grep -q 200
+      interval: 10s
+      timeout: 10s
+      retries: 60
+      start_period: 60s
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: any
+        delay: 10s
+      resources:
+        limits:
+          memory: 1500M
+        reservations:
+          memory: 512M
+      update_config:
+        order: stop-first
+        failure_action: rollback
+        monitor: 60s
+        max_failure_ratio: 0
+
+  # ---------------------------------------------------------------------------
+  # filebeat — dispone di retry nativi e si riconnette autonomamente quando
+  # es01 diventa disponibile.
+  # ---------------------------------------------------------------------------
+  filebeat:
+    image: docker.elastic.co/beats/filebeat:8.19.19@sha256:537f0577a7ff7dc81cd3db33f9b0aecc9ea7bc9038f7e5217382030a8cee5c9c
+    hostname: filebeat
+    user: root
+    networks:
+      - elastic
+    volumes:
+      - certs:/usr/share/filebeat/certs:ro
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    configs:
+      - source: proto_filebeat_yml
+        target: /usr/share/filebeat/filebeat.yml
+        mode: 0444
+      - source: proto_filebeat_entrypoint
+        target: /filebeat-entrypoint.sh
+        mode: 0555
+    secrets:
+      - source: elastic_password
+        target: elastic_password
+        uid: "0"
+        gid: "0"
+        mode: 0400
+    command: ["/filebeat-entrypoint.sh"]
+    # Le variabili esportate dall'entrypoint esistono solo nel processo
+    # principale: l'healthcheck e' un processo separato e deve rileggere il
+    # secret autonomamente.
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - ELASTICSEARCH_USERNAME=elastic ELASTICSEARCH_PASSWORD=$$(cat /run/secrets/elastic_password) filebeat test output >/dev/null 2>&1
+      interval: 15s
+      timeout: 20s
+      retries: 20
+      start_period: 30s
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: any
+        delay: 10s
+      resources:
+        limits:
+          memory: 512M
+        reservations:
+          memory: 128M
+
+  # ---------------------------------------------------------------------------
+  # fleet-server — agente che espone il servizio di registrazione per gli altri.
+  # Attende l'enrollment token sul volume condiviso: senza, esce e viene
+  # rischedulato.
+  # ---------------------------------------------------------------------------
+  fleet-server:
+    image: docker.elastic.co/beats/elastic-agent:8.19.19@sha256:a08d3a06e6eb84374186c2d338e7c431a3e3356be6f824878b498baea34f0a6d
+    hostname: fleet-server
+    networks:
+      - elastic
+    volumes:
+      - certs:/usr/share/elastic-agent/certs:ro
+      - fleetserverdata:/usr/share/elastic-agent/data
+      - fleettokens:/fleet:ro
+    configs:
+      - source: proto_agent_entrypoint
+        target: /agent-entrypoint.sh
+        mode: 0555
+    secrets:
+      - source: elastic_password
+        target: elastic_password
+        uid: "1000"
+        gid: "0"
+        mode: 0400
+    entrypoint: ["/agent-entrypoint.sh"]
+    environment:
+      TOKEN_FILE: /fleet/server.token
+      ELASTIC_PASSWORD_FILE: /run/secrets/elastic_password
+      FLEET_ENROLL: "1"
+      FLEET_SERVER_ENABLE: "true"
+      # Identificativo deterministico, dichiarato in Terraform: senza,
+      # l'agente attende indefinitamente la policy predefinita.
+      FLEET_SERVER_POLICY_ID: fleet-server-policy
+      FLEET_SERVER_PORT: "8220"
+      FLEET_URL: https://fleet-server:8220
+      KIBANA_HOST: http://kibana:5601
+      KIBANA_FLEET_USERNAME: elastic
+      FLEET_SERVER_ELASTICSEARCH_HOST: https://es01:9200
+      FLEET_SERVER_ELASTICSEARCH_CA: /usr/share/elastic-agent/certs/ca/ca.crt
+      ELASTICSEARCH_CA: /usr/share/elastic-agent/certs/ca/ca.crt
+      FLEET_SERVER_CERT: /usr/share/elastic-agent/certs/fleet-server/fleet-server.crt
+      FLEET_SERVER_CERT_KEY: /usr/share/elastic-agent/certs/fleet-server/fleet-server.key
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - curl -sSf --cacert /usr/share/elastic-agent/certs/ca/ca.crt https://localhost:8220/api/status | grep -q HEALTHY
+      interval: 15s
+      timeout: 10s
+      retries: 40
+      start_period: 60s
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: any
+        delay: 15s
+      resources:
+        limits:
+          memory: 1G
+        reservations:
+          memory: 256M

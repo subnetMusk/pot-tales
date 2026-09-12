@@ -1,0 +1,25 @@
+[Unit]
+Description=Registrazione delle policy Fleet e generazione degli enrollment token
+Requires=stack-deploy.service
+After=stack-deploy.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=true
+EnvironmentFile=-/etc/stack-deploy.env
+WorkingDirectory=/srv/progetti_innovativi
+ExecStart=/srv/progetti_innovativi/scripts/fleet-bootstrap.sh
+
+# Il bootstrap richiede Kibana pronta, che dopo un avvio a freddo puo' volerci
+# qualche minuto. Riprovare finche' non riesce e' preferibile a un'attesa fissa:
+# l'attesa fissa e' sbagliata in entrambe le direzioni, troppo lunga quando
+# tutto e' caldo e troppo corta quando non lo e'.
+#
+# L'operazione e' idempotente, quindi un tentativo che riparte dopo un successo
+# parziale non duplica nulla.
+Restart=on-failure
+RestartSec=30s
+TimeoutStartSec=900
+
+[Install]
+WantedBy=multi-user.target

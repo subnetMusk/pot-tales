@@ -1,5 +1,5 @@
 # Traefik v3 - configurazione statica (sviluppo)
-# Routing dichiarativo nel file dinamico montato in /etc/traefik/dynamic.yml.
+# Routing dichiarativo nei file montati in /etc/traefik/dynamic/.
 # In prod: aggiungere l'entrypoint websecure (:443) e un certresolver ACME.
 
 api:
@@ -10,9 +10,11 @@ entryPoints:
   web:
     address: ":80"
 
+# Provider a directory: consente di aggiungere frammenti di configurazione
+# senza modificare quelli esistenti.
 providers:
   file:
-    filename: /etc/traefik/dynamic.yml
+    directory: /etc/traefik/dynamic
     watch: true
 
 # I servizi che parlano HTTPS internamente (APM con cert self-signed) vengono
@@ -22,4 +24,16 @@ serversTransport:
 
 log:
   level: INFO
-accessLog: {}
+
+# Access log su file in formato JSON: e' la sorgente che CrowdSec analizza per
+# rilevare scansioni e tentativi ripetuti. Gli header sono scartati per
+# impostazione predefinita, tranne User-Agent, su cui si basano alcuni scenari.
+accessLog:
+  filePath: /var/log/traefik/access.log
+  format: json
+  bufferingSize: 100
+  fields:
+    headers:
+      defaultMode: drop
+      names:
+        User-Agent: keep

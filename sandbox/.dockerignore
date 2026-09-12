@@ -1,0 +1,16 @@
+# Limita il contesto di build ai soli file necessari alla compilazione.
+
+node_modules/
+dist/
+
+Dockerfile
+.dockerignore
+.git/
+.gitignore
+*.md
+*.log
+
+.env
+.env.*
+*.pem
+*.key

@@ -1,4 +1,5 @@
 import * as Phaser from "phaser";
+import { soundManager } from "@/audio/SoundManager";
 
 class Boot extends Phaser.Scene {
 	constructor() {
@@ -10,8 +11,8 @@ class Boot extends Phaser.Scene {
 	}
 
 	async create() {
-		localStorage.setItem("playIntro", "false");
-		this.game.sound.volume = Number(localStorage.getItem("mainVolume") ?? "1");
+		if (!localStorage.getItem("playIntro")) localStorage.setItem("playIntro", "true");
+		soundManager.init(this.game);
 
 		const { default: Preload } = await import("./scenes/Preload");
 		this.scene.add("Preload", Preload, true);
@@ -35,5 +36,7 @@ const game = new Phaser.Game({
 	scene: [Boot],
 	pixelArt: true
 });
+
+(window as any).game = game; // TEMP: QA-only, for manual scene jumps in devtools
 
 game.scene.start("Boot");

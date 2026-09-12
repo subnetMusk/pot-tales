@@ -1,0 +1,9 @@
+User-agent: *
+Allow: /
+Disallow: /auth/
+Disallow: /game/
+Disallow: /log
+Disallow: /play
+Disallow: /telemetria/
+
+Sitemap: https://pot-tales.it/sitemap.xml

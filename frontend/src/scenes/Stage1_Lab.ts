@@ -1,7 +1,8 @@
 
 // You can write more code here
 import PopupManager from "../items/UI/PopupManager";
-import { applyTranslations } from "../utils";
+import { applyTranslations, launchSubScene } from "../utils";
+import { soundManager } from "../audio/SoundManager";
 
 /* START OF COMPILED CODE */
 
@@ -21,9 +22,11 @@ class Stage1_Lab extends Phaser.Scene {
 		this.add.image(640, 360, "lab_bg");
 
 		// player
-		const player = this.add.sprite(554, 344, "big_player_idle", 0);
-		player.scaleX = 2;
-		player.scaleY = 2;
+		const player = this.add.sprite(554, 344, "Ch_side", 0);
+		// Ch_side frames are 18x28, vs. the old 64x64 big_player_* sheet at scale 2 (128 world
+		// units tall) — scale up to keep the same on-screen size with the new character art.
+		player.scaleX = 4.571428571428571;
+		player.scaleY = 4.571428571428571;
 
 		this.player = player;
 
@@ -65,16 +68,39 @@ class Stage1_Lab extends Phaser.Scene {
 		// Position player facing right
 		this.player.setFlipX(true); // Face right while moving
 
-		// Create animations for the big player
+		// Create animations for the player (same keys/conventions as Player.ts, guarded so
+		// re-entering this scene or another scene already having created them doesn't error)
 		const anims = this.anims;
 
+		if (!anims.exists('idle_side')) {
+			anims.create({
+				key: 'idle_side',
+				frames: [{ key: 'Ch_side', frame: 0 }],
+				frameRate: 1,
+				repeat: -1
+			});
+		}
+
+		if (!anims.exists('idle_back')) {
+			anims.create({
+				key: 'idle_back',
+				frames: [{ key: 'Ch_back', frame: 0 }],
+				frameRate: 1,
+				repeat: -1
+			});
+		}
+
 		// Walk side animation
-		anims.create({
-			key: 'big_walk_side',
-			frames: anims.generateFrameNumbers('big_player_walk_side', { start: 0, end: -1 }),
-			frameRate: 15,
-			repeat: -1
-		});
+		if (!anims.exists('walk_side')) {
+			anims.create({
+				key: 'walk_side',
+				frames: anims.generateFrameNumbers('Ch_side', { start: 0, end: -1 }),
+				frameRate: 8,
+				repeat: -1
+			});
+		}
+
+		this.player.play('idle_side', true);
 
 		// Show dialogs after fade completes
 		this.cameras.main.once('camerafadeincomplete', () => {
@@ -82,12 +108,9 @@ class Stage1_Lab extends Phaser.Scene {
 			this.popupManager.showNextPopup();
 
 			this.popupManager.on("queueEmpty", () => {
-				this.popupManager.queuePopup(i18n.lab_entrance_2);
-				this.popupManager.queuePopup(i18n.lab_entrance_3);
-				this.popupManager.showNextPopup(200);
 
 				// Start walking animation and move to x=680
-				this.player.play('big_walk_side', true);
+				this.player.play('walk_side', true);
 				this.tweens.add({
 					targets: this.player,
 					x: 678,
@@ -95,8 +118,7 @@ class Stage1_Lab extends Phaser.Scene {
 					ease: 'Linear',
 					onComplete: () => {
 						// Stop at upward facing idle
-						this.player.stop();
-						this.player.setTexture('big_player_idle', 3);
+						this.player.play('idle_back', true);
 
 						// Run camera zoom and fade-out in parallel, both required before minigame
 						let cameraReady = false;
@@ -105,34 +127,19 @@ class Stage1_Lab extends Phaser.Scene {
 						const tryLaunchMinigame = () => {
 							if (cameraReady && fadeReady && !minigameLaunched) {
 								minigameLaunched = true;
-								this.scene.pause();
-								this.scene.launch("GraficoGame");
-								this.scene.bringToTop("GraficoGame");
 
-								const grafGame = this.scene.get("GraficoGame") as Phaser.Scene | undefined;
-								if (grafGame) {
-									grafGame.events.once("grafico-complete", () => {
-										this.scene.stop("GraficoGame");
-										this.scene.resume();
+								launchSubScene(this, "GraficoGame", { completionEvent: "grafico-complete", overlay: false }, () => {
+									this.scene.stop("GraficoGame");
+									this.scene.resume();
 
-										// Show returning dialog
-										const i18n = this.cache.json.get("stage1_lab_i18n");
-
-										this.popupManager.on("queueEmpty", () => {
-											// Fade to red when returning
-											this.cameras.main.fadeOut(1500, 255, 0, 0);
-											this.time.delayedCall(1500, () => {
-												this.events.emit("lab-complete");
-											});
-										});
+									// Fade to red when returning
+									this.cameras.main.fadeOut(1500, 255, 0, 0);
+									this.time.delayedCall(1500, () => {
+										this.events.emit("lab-complete");
 									});
-								}
+								});
 							}
 						};
-
-						this.sound.play("keyboard", {
-							volume: this.game.sound.volume * parseFloat(localStorage.getItem("sfxVolume") || "1")
-						})
 
 						this.tweens.add({
 							targets: this.cameras.main,

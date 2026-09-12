@@ -1,0 +1,21 @@
+[Unit]
+Description=Esecuzione periodica del battito verso il servizio di sorveglianza
+
+[Timer]
+# Cadenza del battito. Deve essere piu' breve del periodo configurato sul
+# servizio di sorveglianza, altrimenti il servizio segnala un ritardo che non
+# corrisponde a un guasto.
+OnBootSec=2min
+OnUnitActiveSec=5min
+
+# Senza sfasamento tutti i timer con la stessa cadenza partono nello stesso
+# istante; qui e' irrilevante per il carico, ma evita di allineare il battito
+# a picchi periodici che ne falserebbero l'esito.
+RandomizedDelaySec=20s
+
+# Recupera l'esecuzione persa se la macchina era spenta, cosi' il primo
+# battito dopo un riavvio non attende il ciclo successivo.
+Persistent=true
+
+[Install]
+WantedBy=timers.target

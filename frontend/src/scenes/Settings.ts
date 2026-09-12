@@ -1,9 +1,10 @@
 
 // You can write more code here
-import { applyTranslations } from "../utils";
+import { applyTranslations, setupPixelButton } from "../utils";
 import MenuBackground from "../items/UI/MenuBackground";
 import BackButton from "../items/UI/BackButton";
 import VolumeBar from "../items/UI/VolumeBar";
+import { soundManager } from "../audio/SoundManager";
 
 /* START OF COMPILED CODE */
 
@@ -28,6 +29,7 @@ class Settings extends Phaser.Scene {
 		this.add.existing(backButton);
 		backButton.scaleX = 1.5;
 		backButton.scaleY = 1.5;
+		this.backButton = backButton;
 
 		// sfxVolumeSlider
 		const sfxVolumeSlider = new VolumeBar(this, 640, 421);
@@ -106,10 +108,53 @@ class Settings extends Phaser.Scene {
 	private mainVolumeSlider!: VolumeBar;
 	private enButton!: Phaser.GameObjects.Rectangle;
 	private itButton!: Phaser.GameObjects.Rectangle;
+	private backButton!: BackButton;
 
 	/* START-USER-CODE */
 
 	// Write your code here
+
+	// Se valorizzato (impostazioni aperte dal gioco, non dal menu), il backButton torna
+	// alla scena di gioco invece che al Menu. Sopravvive a fadeThenRestart() (cambio lingua)
+	// perché scene.restart() senza argomenti non sovrascrive i dati di lancio della scena.
+	private returnSceneKey?: string;
+
+	init(data?: { returnSceneKey?: string }): void {
+		this.returnSceneKey = data?.returnSceneKey;
+	}
+
+	// "english"/"italian" non hanno un .name assegnato in editorCreate(), quindi il testo
+	// del bottone va cercato per posizione (coincide con quella del suo Rectangle).
+	private findButtonText(rect: Phaser.GameObjects.Rectangle): Phaser.GameObjects.Text | undefined {
+		return this.children.list.find((obj): obj is Phaser.GameObjects.Text =>
+			obj instanceof Phaser.GameObjects.Text && Math.abs(obj.x - rect.x) < 5 && Math.abs(obj.y - rect.y) < 5
+		) as Phaser.GameObjects.Text | undefined;
+	}
+
+	// Fade a nero prima del cambio lingua, invece di uno scatto immediato via scene.restart()
+	private fadeThenRestart(lang: string) {
+		const fadeRect = this.add.rectangle(
+			this.cameras.main.centerX,
+			this.cameras.main.centerY,
+			this.cameras.main.width,
+			this.cameras.main.height,
+			0x000000
+		);
+		fadeRect.setScrollFactor(0);
+		fadeRect.setDepth(1000);
+		fadeRect.setAlpha(0);
+
+		this.tweens.add({
+			targets: fadeRect,
+			alpha: 1,
+			duration: 300,
+			ease: "Linear",
+			onComplete: () => {
+				localStorage.setItem("lang", lang);
+				this.scene.restart();
+			}
+		});
+	}
 
 	preload() {
 		const lang = localStorage.getItem("lang") || "en";
@@ -121,64 +166,69 @@ class Settings extends Phaser.Scene {
 		const i18n = this.cache.json.get("settings_i18n");
     	applyTranslations(this, i18n);
 
+		// Stesso linguaggio visivo "8-bit" dei bottoni del Menu, ma con una tinta chiara
+		// (invece del navy scuro) dato che qui non c'è uno sfondo animato dietro al pannello.
+		const enText = this.findButtonText(this.enButton);
+		const itText = this.findButtonText(this.itButton);
+		enText?.setColor('#2a4d69');
+		itText?.setColor('#2a4d69');
+
+		// I due bottoni sono affiancati con solo 10px di distanza tra i Rectangle: senza
+		// inset il bordo+ombra del pannello li fa sembrare attaccati/sovrapposti.
+		const enPanel = setupPixelButton(this, this.enButton, { fillColor: 0xeaf2ff, hoverColor: 0xbfe0ff, text: enText, inset: 6 });
+		const itPanel = setupPixelButton(this, this.itButton, { fillColor: 0xeaf2ff, hoverColor: 0xbfe0ff, text: itText, inset: 6 });
+
 		switch(localStorage.getItem("lang") || "en"){
 			case "en":
-				this.enButton.isFilled = true;
-				this.enButton.setFillStyle(0x70bcff);
+				enPanel.setActive(true);
 				break;
 			case "it":
-				this.itButton.isFilled = true;
-				this.itButton.setFillStyle(0x70bcff);
+				itPanel.setActive(true);
 				break;
 		}
 
-		const mainVolumeValue = Number(localStorage.getItem("mainVolume") ?? this.game.sound.volume);
-		const musicVolumeValue = Number(localStorage.getItem("musicVolume") ?? 1);
-		const sfxVolumeValue = Number(localStorage.getItem("sfxVolume") ?? 1);
-
-		this.mainVolumeSlider.init(mainVolumeValue * 10, (value: number) => {
-			this.game.sound.volume = value / 10;
-			localStorage.setItem("mainVolume", (value / 10).toString());
+		this.mainVolumeSlider.init(soundManager.getMainVolume() * 10, (value: number) => {
+			soundManager.setMainVolume(value / 10);
 		});
 
-		this.musicVolumeSlider.init(musicVolumeValue * 10, (value: number) => {
-			localStorage.setItem("musicVolume", (value / 10).toString());
+		this.musicVolumeSlider.init(soundManager.getMusicVolume() * 10, (value: number) => {
+			soundManager.setMusicVolume(value / 10);
 		});
 
-		this.sfxVolumeSlider.init(sfxVolumeValue * 10, (value: number) => {
-			localStorage.setItem("sfxVolume", (value / 10).toString());
+		this.sfxVolumeSlider.init(soundManager.getSfxVolume() * 10, (value: number) => {
+			soundManager.setSfxVolume(value / 10);
 		});
 
 		this.enButton.setInteractive();
 		this.itButton.setInteractive();
 
-		this.enButton.on('pointerdown', () => { this.enButton.setStrokeStyle(4, 0x00aaff); });
-		this.itButton.on('pointerdown', () => { this.itButton.setStrokeStyle(4, 0x00aaff); });
-
-		this.enButton.on('pointerover', () => { this.enButton.setStrokeStyle(4, 0x70bcff); });
-		this.itButton.on('pointerover', () => { this.itButton.setStrokeStyle(4, 0x70bcff); });
-
-		this.enButton.on('pointerout', () => { this.enButton.setStrokeStyle(2, 0xf0f8ff); });
-		this.itButton.on('pointerout', () => { this.itButton.setStrokeStyle(2, 0xf0f8ff); });
-
+		// hover/press feedback ora gestito da setupPixelButton()
 
 		this.enButton.on("pointerup", () => {
 			if(localStorage.getItem("lang") !== "en") {
-				localStorage.setItem("lang", "en");
-				this.scene.restart();
+				this.fadeThenRestart("en");
 			}
 		});
 
 		this.itButton.on("pointerup", () => {
 			if(localStorage.getItem("lang") !== "it") {
-				localStorage.setItem("lang", "it");
-				this.scene.restart();
+				this.fadeThenRestart("it");
 			}
 		});
 
 		this.events.once("shutdown", () => {
         	this.cache.json.remove("settings_i18n");
     	});
+
+		// Aperti dal gioco: il back button riprende la scena di provenienza invece di
+		// andare al Menu (che la distruggerebbe insieme alla partita in corso).
+		if (this.returnSceneKey) {
+			this.backButton.off('pointerup');
+			this.backButton.on('pointerup', () => {
+				this.scene.resume(this.returnSceneKey!);
+				this.scene.stop();
+			});
+		}
 	}
 	/* END-USER-CODE */
 }

@@ -1,6 +1,8 @@
 import PopupManager from "../items/UI/PopupManager";
-import { applyTranslations } from "../utils";
+import { applyTranslations, playSequence } from "../utils";
 import VideoPlayer from "../items/UI/VideoPlayer";
+import { flashBurst, sparkBurst } from "../items/ParticleFx";
+import { soundManager } from "../audio/SoundManager";
 
 // You can write more code here
 
@@ -19,33 +21,58 @@ class GraficoGame extends Phaser.Scene {
 	editorCreate(): void {
 
 		// graficoEx
-		const graficoEx = this.add.image(640, 360, "grafico");
+		const graficoEx = this.add.image(640, 360, "grafico1");
 		graficoEx.alpha = 0;
 		this.graficoEx = graficoEx;
 
 		// completion text
-		this.completionText = this.add.text(750, 280, "", {});
+		this.completionText = this.add.text(750, 270, "", {});
 		this.completionText.setStyle({ "align": "center", "color": "#000000", "fontFamily": "PixelifySans-VariableFont_wght", "fontSize": "10px", "resolution": "5" });
 		this.completionText.setOrigin(0, 0.5);
 
 		// indicator
-		this.indicator = this.add.rectangle(532, 349.4, 2, 162.6, 13633030);
+		this.indicator = this.add.rectangle(517, 360.4, 2, 157, 13633030);
 
 		this.events.emit("scene-awake");
 	}
 
 	/* START-USER-CODE */
 
-	private popup!: PopupManager;
+	private popupManager!: PopupManager;
 	private graficoEx!: Phaser.GameObjects.Image;
 	private indicator!: Phaser.GameObjects.Rectangle;
 	private completionText!: Phaser.GameObjects.Text;
 
-	private picchi :{ x:number, found:boolean}[] = [
-		{ x: 575, found: false },
-		{ x: 701.5, found: false },
-		{ x: 740, found: false }
+	// Livelli in sequenza: stesso numero di picchi e stessa difficoltà per ognuno,
+	// solo il grafico (immagine + posizione dei picchi) cambia. Le x dei picchi per i
+	// livelli 2 e 3 sono placeholder, da tarare sulle immagini reali.
+	private levels: { imageKey: string, picchi: { x: number, found: boolean }[] }[] = [
+		{
+			imageKey: "grafico1",
+			picchi: [
+				{ x: 564, found: false },
+				{ x: 689, found: false },
+				{ x: 726, found: false }
+			]
+		},
+		{
+			imageKey: "grafico2",
+			picchi: [
+				{ x: 693, found: false },
+				{ x: 729, found: false },
+				{ x: 740, found: false }
+			]
+		},
+		{
+			imageKey: "grafico3",
+			picchi: [
+				{ x: 698, found: false },
+				{ x: 727, found: false }
+			]
+		}
 	];
+
+	private currentLevel: number = 0;
 
 	// Attributo che evita lo spam di picchi trovati
 	private lastPeakTime: number = 0;
@@ -53,6 +80,25 @@ class GraficoGame extends Phaser.Scene {
 	// Attributo che evita di mostrare più volte il messaggio di vittoria
 	private victoryShown: boolean = false;
 
+
+	// Flash brevemente il colore dell'indicatore (bianco per hit, rosso scuro per miss) prima di
+	// tornare al colore originale, come feedback visivo aggiuntivo oltre al burst di particelle.
+	private flashIndicator(tint: number) {
+		const originalColor = this.indicator.fillColor;
+		this.indicator.setFillStyle(tint);
+		this.time.delayedCall(120, () => this.indicator.setFillStyle(originalColor));
+	}
+
+	// Aggiorna il testo di completamento con un piccolo "pop" invece di un setText piatto
+	private setCompletionText(value: string) {
+		this.completionText.setText(value);
+		this.tweens.add({
+			targets: this.completionText,
+			scale: { from: 1.3, to: 1 },
+			duration: 150,
+			ease: "Back.easeOut"
+		});
+	}
 
 	// Write your code here
 
@@ -65,7 +111,7 @@ class GraficoGame extends Phaser.Scene {
 
 		this.editorCreate();
 
-		this.completionText.setText("0 / " + this.picchi.length);
+		this.completionText.setText("0 / " + this.levels[this.currentLevel].picchi.length);
 		// Start zoomed out so the scene is invisible
 		this.cameras.main.setZoom(0.695);
 
@@ -74,13 +120,14 @@ class GraficoGame extends Phaser.Scene {
 		applyTranslations(this, i18n);
 
 		// Video introduttivo
-		this.popup = new PopupManager(this);
-		this.popup.queuePopup(i18n.welcome_1, "hint");
-		this.popup.queuePopup(i18n.welcome_2);
-		this.popup.queuePopup(i18n.welcome_3_narrator, "dark");
-		this.popup.queuePopup(i18n.welcome_4);
-		this.popup.queuePopup(i18n.welcome_5_narrator, "dark");
-		this.popup.queuePopup(i18n.instructions, "hint");
+		this.popupManager = new PopupManager(this);
+
+		this.events.once("video-ended", () => {
+			soundManager.playMusic(this, "grafico_theme");
+		});
+		this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
+			soundManager.stopMusic("grafico_theme");
+		});
 
 		// Video come finestra sullo schermo del computer
 		const videoPlayer = new VideoPlayer(this, 0, 0);
@@ -88,6 +135,87 @@ class GraficoGame extends Phaser.Scene {
 
 		videoPlayer.loadVideo("IR.mp4", "fill");
 		videoPlayer.play();
+
+		const lunghezzaMax = 245; // Valore massimo del grafico
+		let picchiTrovati = 0;
+		let tween: Phaser.Tweens.Tween;
+
+		// Testi delle spiegazioni dei picchi, per livello (indice 0 = grafico1, 1 = grafico2, 2 = grafico3)
+		const peakTextKeys: string[][] = [
+			["peak_1", "peak_2", "peak_3"],
+			["peak_1_lvl2", "peak_2_lvl2", "peak_3_lvl2"],
+			["peak_1_lvl3", "peak_2_lvl3"]
+		];
+
+		const startX = this.indicator.x;
+		const endX = startX + lunghezzaMax;
+
+		// Avvia (o riavvia per il livello successivo) la scansione: resetta indicatore,
+		// testo di completamento e contatore, poi crea il tween che muove l'indicatore.
+		// Per i livelli successivi al primo esegue prima un crossfade verso il nuovo grafico.
+		const startLevel = (levelIndex: number) => {
+			this.currentLevel = levelIndex;
+			picchiTrovati = 0;
+			this.setCompletionText("0 / " + this.levels[levelIndex].picchi.length);
+
+			// L'indicatore sfuma alla posizione corrente, si riposiziona all'inizio, poi
+			// riappare con un fade-in, invece di scattare istantaneamente su startX. Solo per i
+			// passaggi di livello: al primo avvio (levelIndex 0) l'indicatore è già in startX con
+			// alpha 1, quindi il fade non farebbe che sfarfallare (alpha 0 mostra lo sfondo chiaro
+			// del grafico dietro di lui) senza alcun riposizionamento reale da animare.
+			if (levelIndex > 0) {
+				this.tweens.add({
+					targets: this.indicator,
+					alpha: 0,
+					duration: 300,
+					ease: 'Quad.easeInOut',
+					onComplete: () => {
+						this.indicator.x = startX;
+						this.tweens.add({
+							targets: this.indicator,
+							alpha: 1,
+							duration: 300,
+							ease: 'Quad.easeInOut'
+						});
+					}
+				});
+			}
+
+			const beginScanning = () => {
+				tween = this.tweens.add({
+					targets: this.indicator,
+					x: endX,
+					duration: 4000,
+					ease: 'linear',
+					yoyo: true,
+					loop: -1,
+				});
+			};
+
+			if (levelIndex === 0) {
+				this.graficoEx.setTexture(this.levels[levelIndex].imageKey);
+				beginScanning();
+				return;
+			}
+
+			this.tweens.add({
+				targets: this.graficoEx,
+				alpha: 0,
+				duration: 500,
+				ease: 'Quad.easeInOut',
+				onComplete: () => {
+					this.graficoEx.setTexture(this.levels[levelIndex].imageKey);
+					this.tweens.add({
+						targets: this.graficoEx,
+						alpha: 1,
+						duration: 500,
+						ease: 'Quad.easeInOut',
+						onComplete: beginScanning
+					});
+				}
+			});
+		};
+
 		this.events.on('video-ended', () => {
 			this.time.delayedCall(750, () => {
 				videoPlayer.destroy();
@@ -107,135 +235,116 @@ class GraficoGame extends Phaser.Scene {
 					duration: 1000,
 					ease: 'Quad.easeInOut',
 					onComplete: () => {
-						//Popup per spiegare il gioco 
-						this.popup.showNextPopup();
+						//Popup per spiegare il gioco
+						void playSequence(this.popupManager, [
+							{ message: i18n.welcome_1_tutorial, preset: "hint" },
+							i18n.welcome_2,
+							{ message: i18n.welcome_3_narrator, preset: "dark" },
+							i18n.welcome_4,
+							{ message: i18n.welcome_5_narrator, preset: "dark" },
+							{ message: i18n.instructions_tutorial, preset: "hint" }
+						]).then(() => {
+							startLevel(0);
+
+							this.input.keyboard?.on('keydown-SPACE', () => {
+								//ferma scansione e valuta posizione
+								if(this.time.now - this.lastPeakTime > 500 && !this.popupManager.isActive){
+									this.lastPeakTime = this.time.now;
+									tween.pause();
+
+									const picchi = this.levels[this.currentLevel].picchi;
+									const risposte = peakTextKeys[this.currentLevel].map(key => i18n[key]);
+
+									let foundPeak = false;
+									const lines: Array<string | { message: string; preset?: string }> = [];
+									for(let i = 0; i < picchi.length; i++){
+										console.log(`[GraficoGame] picco ${i} - x: ${picchi[i].x}, trovato: ${picchi[i].found}`);
+										if(this.indicator.x <= picchi[i].x+4 && this.indicator.x >= picchi[i].x-4	&&  picchi[i].found == false){
+											lines.push({ message: risposte[i], preset: "dark" });
+											if(this.currentLevel === 0 && i === 1) lines.push(i18n.peak_2_you);
+
+											picchiTrovati++;
+											tween.timeScale *= 1.2;
+
+											this.setCompletionText(picchiTrovati + " / " + picchi.length);
+											this.flashIndicator(0xffffff);
+
+											picchi[i].found = true;
+											soundManager.playSfx(this, "quiz_correct");
+											foundPeak = true;
+
+											break;
+										}
+									}
+
+									if(!foundPeak){
+										const i18n = this.cache.json.get("graficoGame_i18n");
+										lines.push({ message: i18n.miss, preset: "dark" });
+										soundManager.playSfx(this, "quiz_incorrect");
+
+										this.flashIndicator(0x8b0000);
+										this.cameras.main.shake(150, 0.004);
+									}
+
+									playSequence(this.popupManager, lines).then(() => {
+										const advanced = this.controllaPunteggio(picchiTrovati, tween, startLevel);
+										if(!advanced) tween.resume();
+									});
+								}
+							});
+						});
 					}
 				});
 			});
 		});
 
-		const risposte:{text : string}[] = [
-			{ text: i18n.peak_1 },
-			{ text: i18n.peak_2 },
-			{ text: i18n.peak_3 }
-		];
-
-
-		const lunghezzaMax = 253; // Valore massimo del grafico 
-		let picchiTrovati = 0;
-		let tween: Phaser.Tweens.Tween;
-
-		this.popup.on("queueEmpty", () => {
-			let startX = this.indicator.x;
-			let endX = startX + lunghezzaMax;
-
-			this.input.keyboard?.off('keydown-ENTER');
-
-			tween = this.tweens.add({
-				targets: this.indicator,
-				x: endX,
-				duration: 4000,
-				ease: 'linear',
-				yoyo: true,
-				loop: -1,
-				//deve accelerare e decelerare
-				onComplete: () => {
-					// console.log("Scansione completata!");
-				}
-			});
-
-			this.input.keyboard?.on('keydown-SPACE', () => {
-				//ferma scansione e valuta posizione
-				// console.log("SPAZIO premuto! Posizione rettangolo: " + this.indicator.x);
-
-				if(this.time.now - this.lastPeakTime > 500 && !this.popup.isActive){
-					this.sound.play("pluck", {
-							volume: this.game.sound.volume * parseFloat(localStorage.getItem("sfxVolume") || "1")
-					});
-
-					this.lastPeakTime = this.time.now;
-					tween.pause();
-
-					let foundPeak = false;
-					for(let i = 0; i < this.picchi.length; i++){
-						if(this.indicator.x <= this.picchi[i].x+4 && this.indicator.x >= this.picchi[i].x-4	&&  this.picchi[i].found == false){
-							this.popup.queuePopup(risposte[i].text, "minigame");
-							if(i === 1) this.popup.queuePopup(i18n.peak_2_you);
-							this.popup.showNextPopup();
-
-							picchiTrovati++;
-							tween.timeScale *= 1.2;
-
-							this.completionText.setText(picchiTrovati + " / " + this.picchi.length);
-
-							this.picchi[i].found = true;
-							foundPeak = true;
-
-							break;
-						}
-					}
-
-					if(!foundPeak){
-						const i18n = this.cache.json.get("graficoGame_i18n");
-						this.popup.queuePopup(i18n.miss, "minigame");
-
-					}
-
-					this.popup.showNextPopup();
-					this.popup.on("queueEmpty", () => {
-						this.controllaPunteggio(picchiTrovati,tween);
-						tween.resume();
-					});
-				}
-			});
-		});
-	
 		// console.log("GraficoGame scene created");
 
 	}
 
-	controllaPunteggio(picchiTrovati:number,tween:Phaser.Tweens.Tween){ 
-			if(picchiTrovati == this.picchi.length && !this.victoryShown){
-				this.sound.play("success", {
-						volume: this.game.sound.volume * parseFloat(localStorage.getItem("sfxVolume") || "1")
+	// Ritorna true quando il livello corrente è concluso (livello intermedio superato, oppure
+	// vittoria finale): in entrambi i casi non va ripreso il tween che il chiamante teneva in
+	// pausa, dato che startLevel ne crea uno nuovo (o il gioco è finito).
+	controllaPunteggio(picchiTrovati: number, tween: Phaser.Tweens.Tween, startLevel: (levelIndex: number) => void): boolean {
+		const picchi = this.levels[this.currentLevel].picchi;
+		if(picchiTrovati != picchi.length) return false;
+
+		const i18n = this.cache.json.get("graficoGame_i18n");
+		const isLastLevel = this.currentLevel === this.levels.length - 1;
+
+		if(!isLastLevel){
+			tween.stop();
+			playSequence(this.popupManager, [{ message: i18n.level_complete, preset: "dark" }]).then(() => {
+				startLevel(this.currentLevel + 1);
+			});
+			return true;
+		}
+
+		if(!this.victoryShown){
+			soundManager.playSfx(this, "success");
+
+			this.victoryShown = true;
+			tween.stop();
+
+			playSequence(this.popupManager, [{ message: i18n.victory, preset: "dark" }]).then(() => {
+				this.events.emit("grafico-complete");
+			});
+
+			// Fireworks effect (particle emitter nativo al posto di ~300 oggetti Text emoji),
+			// tramite gli helper condivisi in ParticleFx.ts (usati anche da Shooter/Stage1).
+			const fireworksCount = 50;
+			for (let f = 0; f < fireworksCount; f++) {
+				this.time.delayedCall(f * 100, () => {
+					const x = Phaser.Math.Between(425, 850);
+					const y = Phaser.Math.Between(200, 500);
+					flashBurst(this, x, y);
+					sparkBurst(this, x, y, { count: 6 });
 				});
-
-				this.victoryShown = true;
-				tween.stop();
-
-				const i18n = this.cache.json.get("graficoGame_i18n");
-				this.popup.queuePopup(i18n.victory, "dark");
-				this.popup.on("queueEmpty", () => {
-					this.events.emit("grafico-complete");
-				});
-				this.popup.showNextPopup();
-
-				// Fireworks effect 
-				const fireworksCount = 50;
-				for (let f = 0; f < fireworksCount; f++) {
-					this.time.delayedCall(f * 100, () => {
-						const x = Phaser.Math.Between(425, 850);
-						const y = Phaser.Math.Between(200, 500);
-
-						for (let i = 0; i < 6; i++) {
-							const particle = this.add.text(x, y, '✨', { fontSize: '24px' });
-							const angle = (i / 6) * Math.PI * 2;
-							const distance = 75;
-
-							this.tweens.add({
-								targets: particle,
-								x: x + Math.cos(angle) * distance,
-								y: y + Math.sin(angle) * distance,
-								alpha: 0,
-								duration: 2000,
-								ease: 'Quad.easeOut',
-								onComplete: () => particle.destroy()
-							});
-						}
-					});
-				}
 			}
 		}
+
+		return true;
+	}
 
 	/* END-USER-CODE */
 }

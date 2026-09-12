@@ -1,92 +1,74 @@
-// ===================================================
-// frontend/src/apm-rum-config.js
-// ===================================================
-// Elastic APM Real User Monitoring (RUM) configuration
-// for frontend JavaScript application.
-// =====================================================
+// Il pacchetto RUM viene caricato soltanto dopo "Accetta tutti". Un import
+// statico lo eseguirebbe prima della scelta anche se poi non inviasse eventi.
 
-import { init as initApm } from '@elastic/apm-rum'
+/** @type {any} */
+const noopTransaction = {
+  addLabels() {},
+  end() {},
+  mark() {}
+}
 
-const apmActive = import.meta.env.VITE_ELASTIC_APM_RUM_ACTIVE === 'true'
-
-const noopTransaction = { end() {} }
+/** @type {any} */
 const noopApm = {
   addLabels() {},
   captureError() {},
   getCurrentTransaction() { return undefined },
+  setCustomContext() {},
   setUserContext() {},
   startTransaction() { return noopTransaction }
 }
 
-// Initialize APM RUM agent with environment variables only when enabled.
-const apm = apmActive ? initApm({
-  // Service name for frontend application (from environment)
-  serviceName: import.meta.env.VITE_ELASTIC_APM_RUM_SERVICE_NAME || 'frontend-app',
-  
-  // APM Server URL for data ingestion (from environment)
-  serverUrl: import.meta.env.VITE_ELASTIC_APM_RUM_SERVER_URL || 'http://apm.localhost',
+/** @type {any} */
+let currentApm = noopApm
+let initialization
 
-  // Environment identifier (from environment)
-  environment: import.meta.env.VITE_ELASTIC_APM_ENVIRONMENT || 'development',
-  
-  // Service version (optional)
-  serviceVersion: '1.0.0',
-  
-  // Page load tracing configuration
-  pageLoadTraceId: true,
-  pageLoadSampled: true,
-  pageLoadSpanId: true,
-  
-  // Transaction sample rate (1.0 = 100%, 0.1 = 10%)
-  transactionSampleRate: 1.0,
-  
-  // Error logging configuration
-  disableInstrumentations: [],
-  
-  // Optional: Custom configuration
-  distributedTracingOrigins: ['http://localhost', 'http://server:3000'],
-  
-  // Debug mode for development
-  logLevel: import.meta.env.DEV ? 'debug' : 'warn'
-}) : noopApm
+function numberBetweenZeroAndOne(value, fallback) {
+  const parsed = Number.parseFloat(value)
+  return Number.isFinite(parsed) && parsed >= 0 && parsed <= 1 ? parsed : fallback
+}
+
+export async function enableApm() {
+  if (currentApm !== noopApm) return currentApm
+  if (initialization) return initialization
+
+  initialization = import('@elastic/apm-rum').then((rumModule) => {
+    const configuredActive = import.meta.env.VITE_ELASTIC_APM_RUM_ACTIVE
+    if (configuredActive === 'false') return noopApm
+
+    // La libreria espone `init` sia come named export sia come default export.
+    // Accettare entrambe le forme rende il bootstrap stabile anche quando il
+    // bundler normalizza in modo diverso il modulo CommonJS/ESM.
+    const init = rumModule.init || rumModule.default
+    if (typeof init !== 'function') {
+      throw new TypeError('Elastic APM RUM non espone una funzione init')
+    }
+
+    currentApm = init({
+      serviceName: import.meta.env.VITE_ELASTIC_APM_RUM_SERVICE_NAME || 'frontend-app',
+      serverUrl: import.meta.env.VITE_ELASTIC_APM_RUM_SERVER_URL || '/telemetria',
+      environment: import.meta.env.VITE_ELASTIC_APM_ENVIRONMENT || (import.meta.env.DEV ? 'development' : 'production'),
+      serviceVersion: '1.0.0',
+      transactionSampleRate: numberBetweenZeroAndOne(import.meta.env.VITE_ELASTIC_APM_RUM_SAMPLE_RATE, 0.2),
+      distributedTracingOrigins: [window.location.origin],
+      logLevel: import.meta.env.DEV ? 'debug' : 'warn'
+    })
+    return currentApm
+  }).catch(error => {
+    initialization = undefined
+    console.warn('[APM] inizializzazione non riuscita; il gioco continua senza telemetria.', error)
+    return noopApm
+  })
+
+  return initialization
+}
+
+// Proxy stabile: i moduli che lo importano vedono l'agente attivato in seguito.
+/** @type {any} */
+const apm = new Proxy(noopApm, {
+  get(_target, property) {
+    const value = currentApm[property]
+    return typeof value === 'function' ? value.bind(currentApm) : value
+  }
+})
 
 export default apm
-
-// ================================================================
-// SECRET TOKEN CONFIGURATION GUIDE
-// ================================================================
-//
-// 1. BACKEND (Go Server) APM Agent:
-//    - Uses: ELASTIC_APM_SECRET_TOKEN=apm-secret-token-123
-//    - For: Server-side traces, database queries, HTTP requests
-//
-// 2. FRONTEND (RUM) APM Agent:
-//    - No secret token is sent from the browser.
-//    - For: Browser-side traces, user interactions, page loads
-//
-// 3. Configuration in .env file:
-//    APM_SECRET_TOKEN=apm-secret-token-123               # Main APM token
-//    ELASTIC_APM_SECRET_TOKEN=${APM_SECRET_TOKEN}        # Backend uses this
-//    VITE_ELASTIC_APM_RUM_ACTIVE=true                    # Enables browser RUM
-//
-// 4. Docker Compose passes these to containers:
-//    - server container gets ELASTIC_APM_SECRET_TOKEN
-//    - frontend container gets VITE_ELASTIC_APM_RUM_*
-//
-// 5. APM Server accepts both tokens for different agent types
-// ================================================================
-
-// Example usage in your main application:
-// 
-// import apm from './apm-rum-config.js'
-// 
-// // Manual transaction tracking
-// const transaction = apm.startTransaction('page-load', 'page-load')
-// // ... your code
-// transaction.end()
-// 
-// // Manual error reporting
-// apm.captureError(new Error('Something went wrong'))
-// 
-// // Add custom labels
-// apm.addLabels({ userId: '123', feature: 'checkout' })

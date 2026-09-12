@@ -1,0 +1,42 @@
+# Esportazione dei dati strutturati, avviata dall'operatore.
+#
+# L'unita' non ha sezione [Install] e non ha timer associato: non parte da
+# sola, e non esiste alcun percorso che la attivi dall'esterno. Esporre un
+# endpoint HTTP che avvia un processo sulla macchina sarebbe la superficie piu'
+# pericolosa dell'intero sistema; servire gli archivi gia' prodotti e' compito
+# del bordo, e non richiede di generare nulla su richiesta.
+#
+#   systemctl start data-export.service
+#   journalctl -u data-export.service -f
+#
+# systemd rifiuta di avviare una seconda istanza di un'unita' gia' attiva,
+# quindi per questo percorso la non concorrenza e' garantita dal gestore. Lo
+# script mantiene comunque il proprio lock, che copre le invocazioni a mano.
+
+[Unit]
+Description=Esportazione dei dati strutturati verso archivi portabili
+After=docker.service
+Requires=docker.service
+
+[Service]
+Type=oneshot
+EnvironmentFile=-/etc/stack-data.env
+ExecStart=/usr/local/bin/data-export.sh
+
+# Priorita' ridotte per il processo che coordina l'esportazione.
+#
+# Questi limiti governano lo script, non il lavoro: lo scorrimento avviene
+# dentro contenitori, che appartengono al cgroup del demone Docker e non a
+# quello dell'unita'. Il freno effettivo e' altrove ed e' espresso dallo
+# script: quota di CPU e memoria sui contenitori, lettura sequenziale su
+# MongoDB, e soprattutto la cadenza dei lotti verso Elasticsearch, che e' la
+# sola leva che riduce il carico su chi legge davvero i segmenti.
+Nice=19
+IOSchedulingClass=idle
+CPUWeight=20
+IOWeight=10
+
+# Un dataset di dimensione imprevista non deve essere interrotto a meta': un
+# archivio troncato e' indistinguibile da uno completo finche' non lo si
+# rilegge.
+TimeoutStartSec=3h

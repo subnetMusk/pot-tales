@@ -1,0 +1,224 @@
+# Middleware di bordo.
+#
+# Nota sulle soglie: i valori numerici sono **provvisori**. Derivano dal load
+# test, che va eseguito sulla build definitiva a feature freeze. Fino ad allora
+# sono tarati per non danneggiare l'uso legittimo, non per contenere l'abuso:
+# il contenimento vero e' a livello applicativo, dove l'unita' e' la sessione.
+#
+# La ragione e' la stessa che ha portato a disattivare le decisioni locali di
+# CrowdSec. Dietro il NAT di una conferenza l'intera sala condivide un solo
+# indirizzo: qualunque limite per indirizzo tarato sul singolo utente colpisce
+# tutti i presenti, ed e' una negazione di servizio autoinflitta. I limiti qui
+# servono a fermare un flusso anomalo da una sorgente sola, non a governare il
+# comportamento del singolo giocatore.
+
+http:
+  middlewares:
+
+    # ---------------------------------------------------------------------
+    # Applicazione
+    # ---------------------------------------------------------------------
+
+    compressione:
+      compress:
+        # Sotto questa soglia la compressione costa piu' di quanto rende.
+        minResponseBodyBytes: 1024
+
+    # Intestazioni di sicurezza comuni a tutto cio' che serviamo. La politica
+    # sui contenuti non e' qui: vale solo per il router dell'applicazione,
+    # perche' Kibana ha bisogno della propria.
+    intestazioni-sicurezza:
+      headers:
+        # Parametrico: la durata si alza solo quando la catena del certificato
+        # e' stata verificata dall'esterno. Con la variabile non impostata il
+        # campo resta assente e HSTS non viene dichiarato, che e' il verso
+        # giusto in cui sbagliare.
+        stsSeconds: {{ env "HSTS_MAX_AGE" }}
+        stsIncludeSubdomains: {{ env "HSTS_INCLUDE_SUBDOMAINS" }}
+        # Non va mai attivato: l'inserimento nella lista di precaricamento e'
+        # compilato nei binari dei browser e la rimozione richiede mesi, quindi
+        # sopravvivrebbe alla dismissione della macchina.
+        stsPreload: false
+        contentTypeNosniff: true
+        frameDeny: true
+        referrerPolicy: strict-origin-when-cross-origin
+        permissionsPolicy: "camera=(), microphone=(), geolocation=(), payment=()"
+        customResponseHeaders:
+          # Non dichiarare il prodotto che sta rispondendo.
+          Server: ""
+          X-Powered-By: ""
+
+    # Politica sui contenuti, applicata al solo router dell'applicazione.
+    #
+    # Da restringere a feature freeze: finche' il gioco non e' concluso non si
+    # sa se la build finale richiede `unsafe-eval`, che alcune funzionalita' di
+    # Phaser possono imporre. Una politica scritta ora su ipotesi verrebbe
+    # allentata al primo errore in console, che e' il modo in cui le politiche
+    # sui contenuti smettono di proteggere.
+    politica-contenuti:
+      headers:
+        customResponseHeaders:
+          Content-Security-Policy: >-
+            default-src 'self';
+            img-src 'self' data: blob:;
+            media-src 'self' blob:;
+            style-src 'self' 'unsafe-inline';
+            script-src 'self';
+            connect-src 'self';
+            worker-src 'self' blob:;
+            object-src 'none';
+            base-uri 'self';
+            form-action 'self';
+            frame-ancestors 'none'
+
+    # Tetto sulla dimensione del corpo, indipendente da quello che il backend
+    # applica per conto suo. Fermare a monte una richiesta sovradimensionata
+    # evita di occupare una connessione applicativa per leggerla.
+    tetto-corpo:
+      buffering:
+        maxRequestBodyBytes: 1048576
+        memRequestBodyBytes: 262144
+        maxResponseBodyBytes: 0
+
+    # Richieste contemporanee per sorgente. Contiene chi apre connessioni senza
+    # chiuderle, che e' un modo di saturare senza superare alcun limite di
+    # frequenza.
+    richieste-in-volo:
+      inFlightReq:
+        amount: 100
+
+    # Frequenza per sorgente. Soglia alta di proposito: deve reggere una sala
+    # intera dietro un solo indirizzo.
+    limite-richieste:
+      rateLimit:
+        average: 50
+        burst: 100
+        period: 1s
+
+    # Interrompe l'inoltro verso un backend che sta fallendo, invece di
+    # continuare a mandargli richieste che peggiorano la situazione.
+    interruttore:
+      circuitBreaker:
+        expression: "NetworkErrorRatio() > 0.30 || ResponseCodeRatio(500, 600, 0, 600) > 0.30"
+
+    # La landing e' ora la home del frontend. Mantiene funzionanti i vecchi
+    # collegamenti senza conservare una pagina o un servizio separati.
+    info-alla-radice:
+      redirectRegex:
+        regex: "^https://{{ env "APP_HOST" }}/info(?:/.*)?$"
+        replacement: "https://{{ env "APP_HOST" }}/"
+        permanent: true
+
+    # ---------------------------------------------------------------------
+    # Telemetria
+    # ---------------------------------------------------------------------
+
+    # L'intake e' raggiunto su un percorso dedicato dell'hostname unico; il
+    # prefisso non appartiene all'API a valle e va rimosso.
+    telemetria-prefisso:
+      stripPrefix:
+        prefixes:
+          - "/telemetria"
+
+    # Limite proprio, separato da quello applicativo: la telemetria ha un
+    # profilo di traffico diverso dal gioco e non deve consumare il budget
+    # dell'altro ne' esserne consumata.
+    limite-telemetria:
+      rateLimit:
+        average: 20
+        burst: 50
+        period: 1s
+
+    # ---------------------------------------------------------------------
+    # Dashboard
+    # ---------------------------------------------------------------------
+
+    # Le credenziali del visitatore **sono** credenziali di Kibana.
+    #
+    # Traefik non rimuove l'intestazione di autorizzazione dopo averla
+    # verificata, quindi la stessa credenziale attraversa il proxy e autentica
+    # l'utente su Kibana, che applica il ruolo corrispondente. Ne segue che la
+    # separazione fra i due pubblici e' affidata al ruolo, come deve essere, e
+    # che non serve iniettare una seconda credenziale nella configurazione.
+    #
+    # L'elenco delle utenze e' un file distribuito come secret: revocare un
+    # destinatario significa togliere una riga, senza toccare gli altri, e
+    # l'access log registra quale utenza ha consultato.
+    dashboard-auth-esercizio:
+      basicAuth:
+        usersFile: /run/secrets/dashboard_users_esercizio
+        realm: "Osservabilita"
+
+    dashboard-auth-evento:
+      basicAuth:
+        usersFile: /run/secrets/dashboard_users_evento
+        realm: "Andamento evento"
+
+    # Risorse condivise fra i due Space: accetta entrambe le platee. Non e' un
+    # allentamento, perche' oltre il proxy Kibana continua ad autenticare e ad
+    # applicare il ruolo su ogni richiesta.
+    dashboard-auth-comune:
+      basicAuth:
+        usersFile: /run/secrets/dashboard_users
+        realm: "Osservabilita"
+
+    # ---------------------------------------------------------------------
+    # Prelievo degli archivi
+    # ---------------------------------------------------------------------
+
+    export-prefisso:
+      stripPrefix:
+        prefixes:
+          - "/export"
+
+    # Riusa l'elenco della platea tecnica invece di introdurne uno proprio. Gli
+    # archivi contengono gli stessi dati che quella platea gia' consulta nelle
+    # dashboard di esercizio, quindi un secondo elenco separerebbe due cose che
+    # hanno lo stesso pubblico, e aggiungerebbe un file htpasswd che l'operatore
+    # deve ricordarsi di creare: se restasse vuoto il deploy si rifiuterebbe di
+    # partire, e la causa sarebbe un percorso di prelievo che nessuno usa
+    # durante l'esercizio.
+    export-auth:
+      basicAuth:
+        usersFile: /run/secrets/dashboard_users_esercizio
+        realm: "Archivi"
+
+    # Il prelievo e' raro e trasferisce file grandi: la soglia serve a impedire
+    # che il percorso diventi un modo per occupare banda, non a regolare un uso
+    # legittimo che consiste in poche richieste.
+    limite-export:
+      rateLimit:
+        average: 2
+        burst: 10
+        period: 1s
+
+    # Frequenza dedicata: un avvio di Kibana scarica in parallelo alcune
+    # centinaia di bundle. Il burst deve quindi assorbire il bootstrap completo,
+    # mentre la media continua a frenare un client che insiste nel tempo. Una
+    # soglia da API (10/30) troncherebbe invece risorse legittime con 429 e
+    # lascerebbe l'interfaccia nella schermata "Elastic did not load properly".
+    limite-dashboard:
+      rateLimit:
+        average: 100
+        burst: 1000
+        period: 1s
+
+    # Kibana serve la propria interfaccia e ha bisogno di una politica sui
+    # contenuti diversa da quella dell'applicazione: dichiararne una qui
+    # romperebbe l'interfaccia. Restano le intestazioni che non interferiscono.
+    intestazioni-dashboard:
+      headers:
+        stsSeconds: {{ env "HSTS_MAX_AGE" }}
+        stsIncludeSubdomains: {{ env "HSTS_INCLUDE_SUBDOMAINS" }}
+        contentTypeNosniff: true
+        referrerPolicy: strict-origin-when-cross-origin
+
+  # -----------------------------------------------------------------------
+  # Trasporti verso i backend
+  # -----------------------------------------------------------------------
+  serversTransports:
+    # L'endpoint di telemetria presenta un certificato emesso dalla CA interna,
+    # che il proxy non ha motivo di conoscere. La verifica e' disattivata qui e
+    # solo qui: dichiararla globalmente la toglierebbe anche dove serve.
+    telemetria:
+      insecureSkipVerify: true

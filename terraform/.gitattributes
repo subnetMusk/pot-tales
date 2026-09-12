@@ -1,0 +1,8 @@
+# Lo script di export gira sull'host Linux che ospita lo stack: i terminatori
+# di riga devono restare LF anche su checkout Windows, altrimenti il CR finisce
+# nella riga dello shebang e l'interprete non viene trovato.
+*.sh text eol=lf
+
+# Gli export dei saved object si passano a Kibana cosi' come sono stati
+# prodotti. Qualunque normalizzazione altererebbe il contenuto degli oggetti.
+*.ndjson -text

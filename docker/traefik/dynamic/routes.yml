@@ -1,0 +1,104 @@
+http:
+  routers:
+    frontend:
+      rule: "Host(`localhost`)"
+      entryPoints:
+        - web
+      priority: 1
+      service: frontend
+
+    api:
+      rule: "Host(`localhost`) && (PathPrefix(`/auth`) || PathPrefix(`/game`) || PathPrefix(`/health`) || PathPrefix(`/log`))"
+      entryPoints:
+        - web
+      priority: 100
+      service: api
+
+    # Vite serve la sandbox con base /sandbox/: instradiamo il path senza strip.
+    sandbox:
+      rule: "Host(`localhost`) && PathPrefix(`/sandbox`)"
+      entryPoints:
+        - web
+      priority: 90
+      service: sandbox
+
+    # Alias host-based (richiede comunque il path /sandbox/ per via del base Vite)
+    sandbox-host:
+      rule: "Host(`sandbox.localhost`)"
+      entryPoints:
+        - web
+      service: sandbox
+
+    mongo-ui:
+      rule: "Host(`mongo-ui.localhost`)"
+      entryPoints:
+        - web
+      service: mongo-ui
+
+    redis-ui:
+      rule: "Host(`redis-ui.localhost`)"
+      entryPoints:
+        - web
+      service: redis-ui
+
+    kibana:
+      rule: "Host(`kibana.localhost`)"
+      entryPoints:
+        - web
+      service: kibana
+
+    apm:
+      rule: "Host(`apm.localhost`)"
+      entryPoints:
+        - web
+      service: apm
+
+  services:
+    frontend:
+      loadBalancer:
+        healthCheck:
+          path: /
+          interval: "15s"
+          timeout: "3s"
+        servers:
+          - url: "http://frontend:80"
+
+    api:
+      loadBalancer:
+        # Verifica applicativa: esclude dal bilanciamento un server che
+        # risponde in modo non valido pur avendo il processo attivo.
+        healthCheck:
+          path: /health
+          interval: "10s"
+          timeout: "3s"
+        servers:
+          - url: "http://server:3000"
+
+    sandbox:
+      loadBalancer:
+        servers:
+          - url: "http://sandbox:5173"
+
+    mongo-ui:
+      loadBalancer:
+        servers:
+          - url: "http://mongo-ui:8081"
+
+    redis-ui:
+      loadBalancer:
+        servers:
+          - url: "http://redis-ui:8081"
+
+    kibana:
+      loadBalancer:
+        healthCheck:
+          path: /api/status
+          interval: "30s"
+          timeout: "5s"
+        servers:
+          - url: "http://kibana:5601"
+
+    apm:
+      loadBalancer:
+        servers:
+          - url: "https://apm-agent:8200"

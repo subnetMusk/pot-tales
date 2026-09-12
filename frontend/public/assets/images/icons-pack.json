@@ -12,6 +12,11 @@
                 "key": "default"
             },
             {
+                "url": "assets/images/ui/continue-button.png",
+                "type": "image",
+                "key": "continue"
+            },
+            {
                 "url": "assets/images/ui/fullscreen.png",
                 "frameConfig": {
                     "frameWidth": 64,
@@ -30,9 +35,9 @@
                 "key": "gallery"
             },
             {
-                "url": "assets/images/ui/leaderboard-button.png",
+                "url": "assets/images/ui/health_icon.png",
                 "type": "image",
-                "key": "leaderboard"
+                "key": "health_icon"
             },
             {
                 "url": "assets/images/ui/play-button.png",
@@ -66,6 +71,11 @@
                 "key": "spacebar"
             },
             {
+                "url": "assets/images/ui/surprise_balloon.png",
+                "type": "image",
+                "key": "surprise_balloon"
+            },
+            {
                 "url": "assets/images/ui/title.png",
                 "type": "image",
                 "key": "title"
@@ -87,6 +97,48 @@
                 "url": "assets/images/ui/volume.png",
                 "type": "image",
                 "key": "volume"
+            },
+            {
+                "url": [
+                    "assets/music/menu_theme.wav"
+                ],
+                "type": "audio",
+                "key": "menu_theme"
+            },
+            {
+                "url": [
+                    "assets/sfx/ui_click.wav"
+                ],
+                "type": "audio",
+                "key": "ui_click"
+            },
+            {
+                "url": [
+                    "assets/sfx/ui_hover.wav"
+                ],
+                "type": "audio",
+                "key": "ui_hover"
+            },
+            {
+                "url": [
+                    "assets/sfx/type_blip.wav"
+                ],
+                "type": "audio",
+                "key": "type_blip"
+            },
+            {
+                "url": [
+                    "assets/sfx/vine_boom.wav"
+                ],
+                "type": "audio",
+                "key": "vine_boom"
+            },
+            {
+                "url": [
+                    "assets/sfx/cartoon_fall.wav"
+                ],
+                "type": "audio",
+                "key": "cartoon_fall"
             }
         ]
     },

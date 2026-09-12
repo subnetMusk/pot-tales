@@ -28,6 +28,17 @@ import (
 func New(m *mongo.Client, rdb *redis.Client, v *middleware.Validator, ttlMin string) *mux.Router {
 	r := mux.NewRouter()
 
+	// Superficie uniforme: qualunque richiesta che non corrisponda a una rotta
+	// dichiarata riceve la stessa risposta, indipendentemente dal motivo.
+	//
+	// Senza, un metodo non previsto su un percorso esistente riceve 405 e uno su
+	// un percorso inesistente riceve 404: la differenza rivela quali percorsi
+	// esistono. I middleware registrati con Use non intervengono, perche' vengono
+	// eseguiti solo sulle rotte che corrispondono, quindi il controllo della
+	// whitelist non viene raggiunto.
+	r.NotFoundHandler = http.HandlerFunc(rottaInesistente)
+	r.MethodNotAllowedHandler = http.HandlerFunc(rottaInesistente)
+
 	// 1. Global Middleware
 	// Applica il Validator (Whitelist + Schema + Auth Check) a TUTTE le richieste.
 	r.Use(v.Handler)
@@ -39,7 +50,7 @@ func New(m *mongo.Client, rdb *redis.Client, v *middleware.Validator, ttlMin str
 	// Auth Routes (/auth/session, /auth/validate)
 	registerAuth(r.PathPrefix("/auth").Subrouter(), m, rdb, ttlMin)
 
-	// Game Routes (/game/position, /game/timer)
+	// Game Routes (/game/position, /game/timer, /game/ping, /game/checkpoint, /game/reset)
 	registerGame(r.PathPrefix("/game").Subrouter(), m, rdb)
 
 	// 3. Log Ingestion (Frontend -> Backend -> Elastic)
@@ -48,6 +59,12 @@ func New(m *mongo.Client, rdb *redis.Client, v *middleware.Validator, ttlMin str
 	r.HandleFunc("/log", logIngestHandler).Methods(http.MethodPost)
 
 	return r
+}
+
+// rottaInesistente risponde nello stesso formato del controllo di whitelist del
+// middleware, cosi' che le due strade producano una risposta indistinguibile.
+func rottaInesistente(w http.ResponseWriter, r *http.Request) {
+	helpers.WriteJSON(w, http.StatusNotFound, map[string]string{"error": "route not found"})
 }
 
 // logIngestHandler riceve eventi dal frontend e li ristampa su stdout come log
@@ -72,6 +89,13 @@ func logIngestHandler(w http.ResponseWriter, r *http.Request) {
 	if payload.Details == nil {
 		payload.Details = make(map[string]any)
 	}
+	// Dataset tecnico, non quello dei fatti di partita.
+	//
+	// Categoria, azione e dettagli arrivano dal client e non sono verificabili:
+	// instradarli sull'indice che la platea divulgativa legge permetterebbe a
+	// chiunque parli con questo endpoint di scrivere righe nelle dashboard
+	// condivise. I fatti di partita li emette il backend, che li osserva invece
+	// di riceverli, e stanno in helpers.LogGameplay.
 	payload.Details["event.dataset"] = "frontend.app"
 
 	if payload.Level == "error" {

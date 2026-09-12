@@ -52,7 +52,8 @@ print_info() {
 backup_critical_configs() {
     print_header "Backup Configurazioni Critiche"
     
-    local backup_dir="backups/config-$(date +%Y%m%d_%H%M%S)"
+    local backup_dir
+    backup_dir="backups/config-$(date +%Y%m%d_%H%M%S)"
     mkdir -p "$backup_dir"
     
     # Backup Kibana

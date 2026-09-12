@@ -1,0 +1,32 @@
+# Disattiva la segmentazione in hardware (TSO e GSO) su un'interfaccia.
+#
+# Le schede Intel con driver e1000e, fra cui la I219-LM, sono soggette sotto
+# carico a blocchi della coda di trasmissione (`Detected Hardware Unit Hang`)
+# legati alla segmentazione in hardware: la scheda smette di trasmettere e il
+# driver la reimposta, con perdite di connettivita' di qualche secondo che si
+# ripetono. Con il traffico di questo servizio il costo di segmentare in
+# software e' trascurabile. Su schede con altri driver l'unita' non serve.
+#
+# Un'unita' e non un file `.link` o un'opzione di netplan: un file `.link` che
+# corrisponde alla scheda sostituisce quello predefinito, e con esso la politica
+# che assegna il nome all'interfaccia. Un nome che cambia romperebbe la
+# configurazione di rete.
+#
+# Parametrizzata sull'interfaccia, e legata al dispositivo: parte quando
+# l'interfaccia esiste, e se il nome e' sbagliato fallisce allo scadere
+# dell'attesa invece di restare silenziosa.
+#
+#   systemctl enable --now nic-offload@<interfaccia>.service
+
+[Unit]
+Description=Disattiva TSO e GSO sull'interfaccia %i
+BindsTo=sys-subsystem-net-devices-%i.device
+After=sys-subsystem-net-devices-%i.device
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/sbin/ethtool -K %i tso off gso off
+
+[Install]
+WantedBy=multi-user.target

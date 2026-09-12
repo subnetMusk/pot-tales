@@ -1,9 +1,18 @@
 ###############################################################################
-# Costruisce un binario statico per produzione e include Air per il dev hot-reload
+# Backend Go: binario statico per la produzione, con Air per la ricarica a caldo
+# nello stadio di sviluppo.
+#
+# Il contesto di build e' la radice del repository, non questa directory: oltre
+# al modulo Go l'immagine deve contenere gli schemi di validazione in `comms/`,
+# che vivono fuori da `server/` perche' sono un contratto condiviso. Montarli
+# dall'host renderebbe l'immagine non avviabile da sola, e in swarm mode un bind
+# mount relativo non si traduce in un percorso valido sul nodo che schedula il
+# task: sarebbe un blocco all'avvio, non un degrado.
 ###############################################################################
 
-# --- build stage: cross-compile e installazione di Air per hot-reload ----
-FROM --platform=$BUILDPLATFORM golang:1.22-alpine AS builder
+# --- stadio di compilazione: cross-compilazione e Air per la ricarica a caldo -
+# Immagini pinnate per digest.
+FROM --platform=$BUILDPLATFORM golang:1.26.6-alpine@sha256:3889b425f035be855a72fb4755265311293b6d414521f0a519d819df32222d83 AS builder
 ARG TARGETOS
 ARG TARGETARCH
 
@@ -15,10 +24,11 @@ ENV GOPRIVATE=github.com/subnetMusk/progetti_innovativi
 WORKDIR /src
 
 # Copia i file mod e installa le dipendenze in cache e Air nel GOPATH
-COPY go.mod go.sum ./
+COPY server/go.mod server/go.sum ./
+# Il module path canonico di air e' github.com/air-verse/air
 RUN --mount=type=cache,target=/go/pkg/mod \
     go mod download && \
-    go install github.com/cosmtrek/air@v1.52.0
+    go install github.com/air-verse/air@v1.67.4
 
 # Aggiunge la directory Go bin al PATH in modo che 'air' sia disponibile
 ENV PATH="/go/bin:${PATH}"
@@ -28,18 +38,30 @@ ENV PATH="/go/bin:${PATH}"
 # -x: mostra i comandi interni eseguiti da go build
 ENV GOFLAGS="-v -x"
 
-# Copia tutto il codice sorgente nell’immagine
-COPY . .
+# Copia il codice sorgente del backend
+COPY server/ ./
 
 # Compila il binario statico con cross-compilazione
 RUN CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH \
     go build -o /server .
 
-# --- runtime stage: immagine leggera per produzione ----------------------
-FROM --platform=$TARGETPLATFORM alpine:3.20
+# --- stadio di esecuzione: immagine leggera per la produzione ----------------
+FROM alpine:3.24@sha256:28bd5fe8b56d1bd048e5babf5b10710ebe0bae67db86916198a6eec434943f8b
+
+# Pacchetti di sistema aggiornati a build time. Il digest della base resta
+# fissato, ma le correzioni di sicurezza delle librerie di sistema arrivano nei
+# repository di Alpine prima che l'immagine di base venga ricostruita. Il
+# contenuto dipende quindi anche dai repository al momento della build: e' una
+# deroga deliberata alla regola di fissare tutto, e trivy ne verifica l'esito.
+RUN apk upgrade --no-cache
 
 # Copia il binario compilato dal builder
 COPY --from=builder /server /server
+
+# Schemi di validazione delle richieste. Il percorso corrisponde al valore
+# predefinito di SCHEMA_DIR_SERVER, cosi' l'immagine parte senza configurazione
+# aggiuntiva; la variabile resta impostabile per sovrascriverlo.
+COPY comms/ /src/comms/
 
 # Definisce la porta di ascolto e il comando di avvio
 ENV PORT=3000

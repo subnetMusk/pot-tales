@@ -1,56 +1,135 @@
-<html>
-    <head>
-        <link rel="stylesheet" href="style.css">
-        <meta charset ="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Proggetti Innovativi</title>
-    </head>
-    <body>
-        <header>
-            <div class="container">
-                <div class="logo">
-                    <h1><img src ="immagini/logo.png" alt="Logo"></h1>
-                </div>
-                <nav>
-                    <ul>
-                        <li><a href="#">Home</a></li>
-                        <li><a href="#">Progetti</a></li>
-                        <li><a href="#">Chi Siamo</a></li>
-                        <li><a href="#">Contatti</a></li>
-                    </ul>
-                </nav>
-            </div>
-        </header>
+<link rel="stylesheet" href="/static/pages/style.css">
 
-        <section class ="hero">
-            <div class="container">
+<div class="landing-shell" itemscope itemtype="https://schema.org/VideoGame">
+<meta itemprop="name" content="Pot Tales">
+<meta itemprop="url" content="https://pot-tales.it/">
+<meta itemprop="description" content="Videogioco educativo online sulla ricerca archeometrica e sui residui conservati nelle ceramiche antiche.">
+<meta itemprop="image" content="https://pot-tales.it/assets/images/screenshots/screenshot_1.webp">
+<meta itemprop="inLanguage" content="it">
+<meta itemprop="genre" content="Educational game">
+<a class="skip-link" href="#main-content" id="skip-link">Vai al contenuto principale</a>
 
-            </div>
-        </section>
-
-        <section class="descrizione_progetto"> 
-            <div class="container">
-
-            </div>
-        </section>
-
-        <section class ="gioco">
-            <div class="container">
-
-            </div>
-        </section>
-        <section class ="corollario">
-            <div class="container">
-
-            </div>
-        </section>
-
-    </body>
-    <footer>
-        <div class="container">
-            <p>&copy; 2024 Proggetti Innovativi. Tutti i diritti riservati.</p>
+<header id="landing-header">
+    <div class="container">
+        <div class="logo">
+            <a href="/" aria-label="Pot Tales — Home">
+                <img src="/assets/images/ui/title.png" width="250" height="50" alt="Pot Tales">
+            </a>
         </div>
+        <nav id="primary-navigation" aria-label="Navigazione principale">
+            <ul>
+                <li><a href="#hero" id="nav-home">Home</a></li>
+                <li><a href="#project" id="nav-project">Progetto</a></li>
+                <li><a href="#gallery" id="nav-gallery">Galleria</a></li>
+                <li><a href="#team" id="nav-team">Team</a></li>
+            </ul>
+        </nav>
+        <div id="lang-container">
+            <label for="lang-select" id="lang-label">Lingua:</label>
+            <select id="lang-select">
+                <option value="it">🇮🇹 Italiano</option>
+                <option value="en">🇬🇧 English</option>
+            </select>
+        </div>
+    </div>
+</header>
 
-    </footer>
+<div class="landing-scroll" id="landing-scroll">
+<main id="main-content" tabindex="-1">
+<section id="hero" class="hero">
+    <div class="hero-overlay"></div>
+    <div class="container">
+        <h1 id="hero-title">Un'avventura tra scienza e gioco</h1>
+        <p id="hero-desc">Esplora un laboratorio di ricerca trasformato in un'esperienza interattiva:
+           scopri il progetto giocando in prima persona.</p>
+        <button type="button" id="play-button">Gioca ora</button>
+    </div>
+</section>
 
-</html>
+<section id="project" class="descrizione_progetto fullscreen">
+    <div class="container">
+        <h2 id="project-title">Il progetto</h2>
+        <h3 id="subtitle-background"></h3>
+        <p id="project-background"></p>
+        <h3 id="subtitle-research"></h3>
+        <p id="project-research"></p>
+        <h3 id="subtitle-challenge"></h3>
+        <p id="project-challenge"></p>
+    </div>
+</section>
+
+<section id="gallery" class="galleria">
+    <div class="container">
+        <h2><a id="gallery-title" href="/play">Scopri il gioco</a></h2>
+    </div>
+    <div class="carousel" id="carousel" aria-labelledby="gallery-title" aria-roledescription="carosello">
+        <button class="carousel-btn prev" id="carousel-prev" aria-label="Precedente">&#10094;</button>
+        <div class="carousel-viewport">
+            <div class="carousel-track" id="carousel-track">
+                <div class="carousel-slide" role="group" aria-roledescription="slide">
+                    <img src="/assets/images/screenshots/screenshot_1.webp" width="1680" height="940" loading="eager" fetchpriority="high" decoding="async" alt="Scena del videogioco Pot Tales nel laboratorio">
+                </div>
+                <div class="carousel-slide" role="group" aria-roledescription="slide">
+                    <img src="/assets/images/screenshots/screenshot_2.webp" width="1680" height="940" loading="lazy" decoding="async" alt="Esplorazione di un ambiente del videogioco Pot Tales">
+                </div>
+                <div class="carousel-slide" role="group" aria-roledescription="slide">
+                    <img src="/assets/images/screenshots/screenshot_3.webp" width="1680" height="940" loading="lazy" decoding="async" alt="Interazione scientifica nel videogioco Pot Tales">
+                </div>
+                <div class="carousel-slide" role="group" aria-roledescription="slide">
+                    <img src="/assets/images/screenshots/screenshot_4.webp" width="1680" height="940" loading="lazy" decoding="async" alt="Ambiente archeologico del videogioco Pot Tales">
+                </div>
+                <div class="carousel-slide" role="group" aria-roledescription="slide">
+                    <img src="/assets/images/screenshots/screenshot_5.webp" width="1680" height="940" loading="lazy" decoding="async" alt="Una sfida del videogioco Pot Tales">
+                </div>
+            </div>
+        </div>
+        <button class="carousel-btn next" id="carousel-next" aria-label="Successivo">&#10095;</button>
+    </div>
+    <div class="container">
+        <div class="carousel-controls">
+            <div class="carousel-dots" id="carousel-dots" aria-label="Seleziona una schermata"></div>
+            <button type="button" class="carousel-toggle" id="carousel-toggle" aria-pressed="false">Pausa carosello</button>
+        </div>
+    </div>
+</section>
+
+<section id="solution" class="descrizione_progetto">
+    <div class="container">
+        <h3 id="subtitle-solution"></h3>
+        <p id="project-solution"></p>
+    </div>
+</section>
+
+<section id="team" class="corollario">
+    <div class="container">
+        <h2 id="team-title">Il team</h2>
+        <p id="team-intro">Un piccolo gruppo di sognatori dietro questo progetto:</p>
+        <p id="team-members"></p>
+    </div>
+</section>
+</main>
+
+<footer id="landing-footer">
+    <div class="container">
+        <p class="legacy-footer-line" id="legacy-footer-text" aria-hidden="true">AAAAAAAAAAAAA.</p>
+        <p id="footer-text">&copy; 2026 Pot Tales. Tutti i diritti riservati.</p>
+        <div class="footer-row">
+            <nav class="footer-nav" id="footer-navigation" aria-label="Informazioni e accessibilità">
+                <a href="/privacy" id="footer-privacy">Privacy</a>
+                <a href="/accessibility" id="footer-accessibility">Accessibilità</a>
+                <a href="https://validator.w3.org/" id="footer-html-validator">Validatore HTML W3C</a>
+                <a href="https://jigsaw.w3.org/css-validator/" id="footer-css-validator">Validatore CSS W3C</a>
+            </nav>
+            <a class="wcag-badge" id="footer-wcag" href="https://www.w3.org/WAI/WCAG2AA-Conformance" aria-label="Pagine statiche conformi alle WCAG 2.2 livello AA">
+                <img src="/assets/images/ui/wcag2.2AA-blue.svg" alt="Conformità WCAG 2.2 livello AA">
+            </a>
+        </div>
+    </div>
+</footer>
+</div>
+<button type="button" class="back-to-top" id="back-to-top" aria-label="Torna in su" title="Torna in su">
+    <img src="/assets/images/ui/back.png" width="64" height="64" alt="" aria-hidden="true">
+</button>
+</div>
+
+<script src="/static/pages/homePage.js"></script>

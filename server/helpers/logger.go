@@ -38,11 +38,23 @@ func InitLogger(name, environment string) {
 	)
 
 	slog.SetDefault(globalLogger)
+
+	// I fatti di partita hanno un logger proprio, con un dataset diverso: vedi
+	// gameplay_events.go per la ragione della separazione.
+	initGameplay(name, environment)
 }
 
 // Private helper per arricchire il logger con contesto e tracciamento
 func getEnrichedLogger(ctx context.Context) *slog.Logger {
 	logger := globalLogger
+
+	// Se l'inizializzazione non e' avvenuta, si ripiega sul logger predefinito.
+	// Senza, la prima riga registrata prima di InitLogger dereferenzia un
+	// puntatore nullo: dentro un handler HTTP il panico non produce un errore
+	// leggibile ma una connessione chiusa, che il client vede come rete caduta.
+	if logger == nil {
+		logger = slog.Default()
+	}
 
 	// 1. APM Tracing Correlation
 	tx := apm.TransactionFromContext(ctx)
@@ -55,7 +67,7 @@ func getEnrichedLogger(ctx context.Context) *slog.Logger {
 	}
 
 	// 2. User Context (Se presente, iniettato dal Middleware)
-	if userID, ok := ctx.Value(UserIDKey).(string); ok {
+	if userID, ok := ctx.Value(UserIDKey).(string); ok && HasAnalyticsConsent(ctx) {
 		logger = logger.With(slog.String("user.id", userID))
 	}
 

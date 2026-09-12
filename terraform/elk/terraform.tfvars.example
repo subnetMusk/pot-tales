@@ -1,9 +1,59 @@
-# Copia in terraform.tfvars e compila (NON committare terraform.tfvars).
+# Copia in terraform.tfvars e compila. terraform.tfvars non va versionato.
+
 elastic_password  = "VALORE_DI_ELASTIC_PASSWORD_NEL_TUO_ENV"
 filebeat_password = "GENERA_UNA_PASSWORD_DEDICATA"
 apm_secret_token  = "VALORE_DI_APM_SECRET_TOKEN_NEL_TUO_ENV"
 
-# In dev, per raggiungere es01 da fuori Docker, pubblica temporaneamente la
-# porta 9200 di es01 oppure esegui terraform da un container su internal_net.
+# Endpoint dei servizi. Per raggiungere es01 dall'esterno della rete Docker,
+# pubblicare la porta 9200 oppure eseguire terraform da un container collegato
+# alla stessa rete.
 # elasticsearch_endpoint = "https://localhost:9200"
 # kibana_endpoint        = "http://kibana.localhost"
+
+# URL con cui gli agenti RUM raggiungono il server APM.
+# apm_server_url = "http://apm.localhost"
+
+# Verifica del certificato TLS. Impostare a false con una CA valida.
+# insecure_tls = true
+
+# Alerting. Le regole scrivono su un indice; la consegna verso l'esterno e'
+# compito del processo di notifica che gira fuori dalla macchina.
+# alert_index          = "alerts-infra"
+# logs_index_pattern   = "logs-*"
+# error_rate_threshold = 25
+
+# ---------------------------------------------------------------------------
+# Utenze delle dashboard
+# ---------------------------------------------------------------------------
+# Devono corrispondere, nome per nome e password per password, alle righe dei
+# file htpasswd distribuiti come secret. Il bordo verifica la credenziale e non
+# rimuove l'intestazione di autorizzazione, quindi la stessa credenziale
+# autentica poi l'utente su Kibana:
+#
+#   utenze_esercizio -> secrets/dashboard_users_esercizio
+#   utenze_evento    -> secrets/dashboard_users_evento
+#   entrambe         -> secrets/dashboard_users  (unione delle due platee)
+#
+# Un nome presente da un lato solo produce una richiesta di credenziali che non
+# si chiude, oppure un accesso respinto dal bordo.
+
+# utenze_esercizio = {
+#   operatore = "GENERA_UNA_PASSWORD_DEDICATA"
+# }
+
+# utenze_evento = {
+#   divulgazione = "GENERA_UNA_PASSWORD_DEDICATA"
+# }
+
+# ---------------------------------------------------------------------------
+# Indici visibili a ciascuna platea
+# ---------------------------------------------------------------------------
+# I due elenchi non devono intersecarsi: con licenza basic la sicurezza a
+# livello di documento non e' disponibile, quindi il confine fra le platee e'
+# solo quello sull'indice.
+# indici_esercizio = ["filebeat-*", "logs-*", "metrics-*", "traces-apm*"]
+# indici_evento    = ["logs-frontend.app-*"]
+
+# Versione di Kibana, allineata a STACK_VERSION del .env. Valida gli export
+# delle dashboard prima di reimportarli.
+# kibana_version = "8.19.19"

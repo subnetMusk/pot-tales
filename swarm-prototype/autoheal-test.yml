@@ -1,0 +1,27 @@
+# Verifica della rischedulazione automatica dei task in stato unhealthy.
+#
+# In swarm mode un servizio che resta unhealthy viene terminato e rischedulato,
+# comportamento che il runtime Docker senza orchestratore non applica.
+#
+# Il processo del container resta attivo (`sleep`): una eventuale
+# rischedulazione e' quindi attribuibile alla valutazione dell'healthcheck da
+# parte dell'orchestratore e non alla terminazione del processo.
+
+services:
+  canary:
+    image: alpine:3.24@sha256:28bd5fe8b56d1bd048e5babf5b10710ebe0bae67db86916198a6eec434943f8b
+    command: ["sh", "-c", "touch /tmp/ok && sleep 3600"]
+    healthcheck:
+      test: ["CMD-SHELL", "[ -f /tmp/ok ]"]
+      interval: 5s
+      timeout: 3s
+      retries: 3
+      start_period: 5s
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: any
+        delay: 5s
+      resources:
+        limits:
+          memory: 64M

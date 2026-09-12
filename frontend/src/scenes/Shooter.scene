@@ -1,0 +1,87 @@
+{
+    "id": "7f7b5b5f-7d40-4c31-88b8-bb8f4f4ef5a9",
+    "sceneType": "SCENE",
+    "settings": {
+        "preloadPackFiles": [],
+        "createMethodName": "editorCreate",
+        "sceneKey": "Shooter",
+        "compilerOutputLanguage": "TYPE_SCRIPT",
+        "borderWidth": 1280,
+        "borderHeight": 720
+    },
+    "displayList": [
+        {
+            "type": "Text",
+            "id": "e1a5e2f2-589a-42a2-a8ae-4f20b6a4c2c5",
+            "label": "timerText",
+            "useGameObjectName": true,
+            "scope": "CLASS",
+            "x": 449,
+            "y": 230,
+            "fontFamily": "PixelifySans-VariableFont_wght",
+            "fontSize": "22px",
+            "color": "#f0f8ff",
+            "stroke": "#000000"
+        },
+        {
+            "type": "Text",
+            "id": "8d45d2d6-1b31-45d0-9e42-4d5b78b0f3de",
+            "label": "scoreText",
+            "useGameObjectName": true,
+            "scope": "CLASS",
+            "x": 449,
+            "y": 268,
+            "fontFamily": "PixelifySans-VariableFont_wght",
+            "fontSize": "15px",
+            "color": "#f0f8ff",
+            "stroke": "#000000"
+        },
+        {
+            "type": "Text",
+            "id": "7e5f09e9-fd36-4a50-bbb8-57a06d4db3e0",
+            "label": "resultText",
+            "useGameObjectName": true,
+            "scope": "CLASS",
+            "x": 640,
+            "y": 332,
+            "originX": 0.5,
+            "originY": 0.5,
+            "align": "center",
+            "fontFamily": "PixelifySans-VariableFont_wght",
+            "fontSize": "20px",
+            "color": "#f0f8ff",
+            "stroke": "#000000"
+        },
+        {
+            "type": "Rectangle",
+            "id": "06640dbc-881e-446e-a27a-1ea6e46db4cc",
+            "label": "time_bar",
+            "scope": "CLASS",
+            "x": 911,
+            "y": 492,
+            "originY": 1,
+            "isFilled": true,
+            "fillColor": "#55ffff",
+            "width": 12,
+            "height": 264
+        },
+        {
+            "type": "Image",
+            "id": "5b74e952-8432-4750-938b-582f5354eb6c",
+            "label": "shooter_screen",
+            "scope": "CLASS",
+            "texture": {
+                "key": "shooter_screen"
+            },
+            "x": 640,
+            "y": 360
+        }
+    ],
+    "plainObjects": [],
+    "meta": {
+        "app": "Phaser Editor - Scene Editor",
+        "url": "https://phaser.io/editor",
+        "contentType": "phasereditor2d.core.scene.SceneContentType",
+        "version": 5
+    }
+}

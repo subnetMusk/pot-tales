@@ -1,3 +1,6 @@
+import PixelPanel from "./PixelPanel";
+import { soundManager } from "../../audio/SoundManager";
+
 // Define popup preset configuration
 interface PopupPreset {
     bgColor: number;
@@ -26,6 +29,7 @@ interface PopupPreset {
     allowSkipTypewriter: boolean;
     speakerName: string;
     speakerNameColor: string;
+    voicePitch: number;
 }
 
 // Configurazioni predefinite dei popup
@@ -47,7 +51,7 @@ const POPUP_PRESETS: Record<string, PopupPreset> = {
         minWidth: 60,
         textWordWrapWidth: 200,
         animationDuration: 200,
-        animationEase: 'Power2.easeOut',
+        animationEase: 'Back.easeOut',
         closeAnimationDuration: 150,
         closeAnimationEase: 'Power2.easeIn',
         showButton: true,
@@ -56,7 +60,8 @@ const POPUP_PRESETS: Record<string, PopupPreset> = {
         typewriterDelay: 20,
         allowSkipTypewriter: true,
         speakerName: 'You',
-        speakerNameColor: '#000000'
+        speakerNameColor: '#000000',
+        voicePitch: 1
     },
     dark: { // preset per il narratore, presentato come una figura oscura
         bgColor: 0x000000,
@@ -75,7 +80,7 @@ const POPUP_PRESETS: Record<string, PopupPreset> = {
         minWidth: 60,
         textWordWrapWidth: 200,
         animationDuration: 100,
-        animationEase: 'Power2.easeOut',
+        animationEase: 'Back.easeOut',
         closeAnimationDuration: 100,
         closeAnimationEase: 'Power2.easeIn',
         showButton: true,
@@ -84,7 +89,8 @@ const POPUP_PRESETS: Record<string, PopupPreset> = {
         typewriterDelay: 40,
         allowSkipTypewriter: true,
         speakerName: '...',
-        speakerNameColor: '#ffffff'
+        speakerNameColor: '#ffffff',
+        voicePitch: 0.65
     },
     hint: { // preset per suggerimenti e istruzioni
         bgColor: 0x2c3e50,
@@ -103,7 +109,7 @@ const POPUP_PRESETS: Record<string, PopupPreset> = {
         minWidth: 70,
         textWordWrapWidth: 220,
         animationDuration: 300,
-        animationEase: 'Power2.easeOut',
+        animationEase: 'Back.easeOut',
         closeAnimationDuration: 200,
         closeAnimationEase: 'Power2.easeIn',
         showButton: true,
@@ -112,26 +118,27 @@ const POPUP_PRESETS: Record<string, PopupPreset> = {
         typewriterDelay: 0,
         allowSkipTypewriter: false,
         speakerName: 'Tutorial',
-        speakerNameColor: '#ffffff'
+        speakerNameColor: '#ffffff',
+        voicePitch: 1.35
     },
-    minigame: { // preset per i popup di risposta ai minigiochi 
-        bgColor: 0x16a085, // verde acqua
-        bgAlpha: 0.85,
-        borderColor: 0x27ae60, // verde scuro
-        borderAlpha: 0.7,
-        textFontSize: '8px',
+    shooterYou: { // variante ingrandita di 'default', per i dialoghi del tutorial dello Shooter
+        bgColor: 0x111111,
+        bgAlpha: 0.7,
+        borderColor: 0xffffff,
+        borderAlpha: 0.8,
+        textFontSize: '4.55px',
         textColor: '#ffffff',
-        buttonWidth: 40,
-        buttonHeight: 10,
-        buttonBgColor: 0x27ae60,
-        buttonBorderColor: 0x1e8449,
+        buttonWidth: 21,
+        buttonHeight: 5.25,
+        buttonBgColor: 0x4CAF50,
+        buttonBorderColor: 0x45a049,
         buttonTextColor: '#ffffff',
-        padding: 6,
-        buttonMargin: -2.5,
-        minWidth: 60,
-        textWordWrapWidth: 200,
+        padding: 3.5,
+        buttonMargin: -1.225,
+        minWidth: 35,
+        textWordWrapWidth: 119,
         animationDuration: 200,
-        animationEase: 'Power2.easeOut',
+        animationEase: 'Back.easeOut',
         closeAnimationDuration: 150,
         closeAnimationEase: 'Power2.easeIn',
         showButton: true,
@@ -139,15 +146,47 @@ const POPUP_PRESETS: Record<string, PopupPreset> = {
         typewriterEnabled: true,
         typewriterDelay: 20,
         allowSkipTypewriter: true,
-        speakerName: 'System',
-        speakerNameColor: '#ffffff'
+        speakerName: 'You',
+        speakerNameColor: '#000000',
+        voicePitch: 1
+    },
+    // Vedi la nota sopra shooterYou: stesso riscalamento di 0.35 (1.75/5) per compensare il
+    // BASE_ZOOM globale.
+    shooterNarrator: { // variante ingrandita di 'dark': lo stesso narratore anche dentro lo Shooter
+        bgColor: 0x000000,
+        bgAlpha: 0.8,
+        borderColor: 0x663399,
+        borderAlpha: 0.7,
+        textFontSize: '4.2px',
+        textColor: '#bdc3c7',
+        buttonWidth: 19.25,
+        buttonHeight: 4.9,
+        buttonBgColor: 0x663399,
+        buttonBorderColor: 0x5e3370,
+        buttonTextColor: '#ffffff',
+        padding: 4.2,
+        buttonMargin: -1.4,
+        minWidth: 38.5,
+        textWordWrapWidth: 126,
+        animationDuration: 300,
+        animationEase: 'Back.easeOut',
+        closeAnimationDuration: 200,
+        closeAnimationEase: 'Power2.easeIn',
+        showButton: true,
+        allowKeyClose: true,
+        typewriterEnabled: true,
+        typewriterDelay: 40,
+        allowSkipTypewriter: true,
+        speakerName: '...',
+        speakerNameColor: '#ffffff',
+        voicePitch: 0.65
     }
 };
 
 export default class PopupManager {
     protected scene: Phaser.Scene;
 
-    protected popupQueue: string[] = [];
+    protected popupQueue: { message: string; preset: string }[] = [];
     protected currentPopup: Phaser.GameObjects.Container | null = null;
     protected isPopupActive: boolean = false;
 
@@ -161,20 +200,50 @@ export default class PopupManager {
     protected typewriterTimer: Phaser.Time.TimerEvent | null = null;
     protected isTextComplete: boolean = false;
 
-    constructor(scene: Phaser.Scene) {
+    // 'bottom' (default) keeps the original bottom-center placement used by Stage1/GraficoGame;
+    // 'center' is used by Shooter, whose arcade-screen layout has no room at the bottom for popups.
+    protected anchor: 'bottom' | 'center';
+
+    // Zoom della camera al primo popup effettivamente mostrato: da lì in poi i popup vengono
+    // ridimensionati per apparire sempre a questa stessa dimensione sullo schermo, anche se lo
+    // zoom della camera cambia in seguito (es. lo zoom-out del finale di Stage2). Non viene
+    // catturato nel costruttore perché alcune scene (GraficoGame, Stage1_Lab) lo costruiscono
+    // prima che lo zoom/fade introduttivo si assesti sul valore "di riposo".
+    // Tutte le dimensioni sono tarate su zoom 5 (il valore storico); PopupManager compensa
+    // i diversi zoom delle scene diverse scalando il container di BASE_ZOOM / camera.zoom.
+    protected readonly BASE_ZOOM = 5;
+
+    constructor(scene: Phaser.Scene, options?: { anchor?: 'bottom' | 'center' }) {
         this.scene = scene;
+        this.anchor = options?.anchor ?? 'bottom';
         // Configura il tasto Invio
         this.enterKey = this.scene.input.keyboard?.addKey(Phaser.Input.Keyboard.KeyCodes.ENTER);
 
         //creo uno strato per i popup
         this.layer = this.scene.add.layer();
         this.layer.setDepth(1000); // Sopra tutto
-        
+
+    }
+
+    // Cancella il timer dell'effetto typewriter, se attivo
+    protected clearTypewriterTimer() {
+        if (this.typewriterTimer) {
+            this.scene.time.removeEvent(this.typewriterTimer);
+            this.typewriterTimer = null;
+        }
+    }
+
+    // Cancella il timer di auto-chiusura, se attivo
+    protected clearAutoCloseTimer() {
+        if (this.autoCloseTimer) {
+            this.scene.time.removeEvent(this.autoCloseTimer);
+            this.autoCloseTimer = null;
+        }
     }
 
     // Aggiunge un popup alla coda
     public queuePopup(message: string, preset: string = 'default') {
-        this.popupQueue.push(JSON.stringify({ message, preset }));
+        this.popupQueue.push({ message, preset });
     }
 
     // Mostra il prossimo popup della coda
@@ -189,7 +258,7 @@ export default class PopupManager {
         // Prendi il primo messaggio dalla coda
         const popupData = this.popupQueue.shift();
         if (popupData) {
-            const { message, preset } = JSON.parse(popupData);
+            const { message, preset } = popupData;
             this.isPopupActive = true;
             this.currentPopup = this.createInteractivePopup(message, preset, autoCloseDelay);
             
@@ -201,10 +270,7 @@ export default class PopupManager {
     // Chiamata quando un popup viene chiuso
     protected onPopupClosed() {
         // Pulisci i timer
-        if (this.typewriterTimer) {
-            this.scene.time.removeEvent(this.typewriterTimer);
-            this.typewriterTimer = null;
-        }
+        this.clearTypewriterTimer();
 
         this.isPopupActive = false;
         this.currentPopup = null;
@@ -362,8 +428,21 @@ export default class PopupManager {
         let segmentIndex = 0;
         let charIndex = 0;
         let completedText = '';
+        const tickMs = 10;
+        let waitMs = 0;
 
         const processNextChar = () => {
+            // Evita crash se il popup/testo è già stato distrutto
+            if (!textObject.active || !textObject.scene) {
+                timer.remove();
+                return;
+            }
+
+            if (waitMs > 0) {
+                waitMs -= tickMs;
+                return;
+            }
+
             if (segmentIndex >= textSegments.length) {
                 timer.remove();
                 onComplete();
@@ -376,7 +455,7 @@ export default class PopupManager {
             if (segment.pauseDuration) {
                 segmentIndex++;
                 charIndex = 0;
-                timer.delay = segment.pauseDuration;
+                waitMs = segment.pauseDuration;
                 return;
             }
             
@@ -384,9 +463,10 @@ export default class PopupManager {
             if (segment.instant) {
                 completedText += segment.isBold ? segment.text.toUpperCase() : segment.text;
                 textObject.setText(completedText);
+                if (segment.isBold) soundManager.playSfx(this.scene, "vine_boom");
                 segmentIndex++;
                 charIndex = 0;
-                timer.delay = preset.typewriterDelay;
+                waitMs = preset.typewriterDelay;
                 return;
             }
 
@@ -397,18 +477,21 @@ export default class PopupManager {
                 
                 textObject.setText(completedText + styledChar);
                 completedText += styledChar;
+                // Throttled to every other non-space character - a per-char blip at a ~10-40ms
+                // tick would otherwise machine-gun the same short sample.
+                if (currentChar !== ' ' && charIndex % 2 === 0) soundManager.playSfx(this.scene, "type_blip", { rate: preset.voicePitch });
                 charIndex++;
-                
-                timer.delay = Math.max(10, preset.typewriterDelay * segment.speedMultiplier);
+
+                waitMs = Math.max(10, preset.typewriterDelay * segment.speedMultiplier);
             } else {
                 segmentIndex++;
                 charIndex = 0;
-                timer.delay = preset.typewriterDelay;
+                waitMs = preset.typewriterDelay;
             }
         };
 
         const timer = this.scene.time.addEvent({
-            delay: preset.typewriterDelay,
+            delay: tickMs,
             callback: processNextChar,
             loop: true
         });
@@ -419,6 +502,9 @@ export default class PopupManager {
     // Crea il popup interattivo
     protected createInteractivePopup(message: string, presetName: string = "default", autoCloseDelay: number | 'infinite' = 'infinite'): Phaser.GameObjects.Container {
         const preset = POPUP_PRESETS[presetName] || POPUP_PRESETS.default;
+
+        const zoom = this.scene.cameras.main.zoom;
+        const zoomCompensation = this.BASE_ZOOM / zoom;
 
         // Container per il popup
         const popup = this.scene.add.container(this.scene.scale.width / 2, this.scene.scale.height / 2);
@@ -445,6 +531,8 @@ export default class PopupManager {
         });
         text.setOrigin(0, 0.5);
         
+        text.texture.setFilter(Phaser.Textures.FilterMode.LINEAR);
+
         // Calcola le dimensioni del contenitore basate sul testo
         const textWidth = text.width;
         const textHeight = text.height;
@@ -459,11 +547,15 @@ export default class PopupManager {
         const buttonY = textHeight / 2 + padding + buttonMargin + buttonHeight / 2;
         
         const bg = this.scene.add.graphics();
-        bg.fillStyle(preset.bgColor, preset.bgAlpha);
-        bg.fillRect(-containerWidth/2, -containerHeight/2, containerWidth, containerHeight);
-        bg.lineStyle(1, preset.borderColor, preset.borderAlpha);
-        bg.strokeRect(-containerWidth/2, -containerHeight/2, containerWidth, containerHeight);
         bg.setScrollFactor(0, 0);
+        new PixelPanel(bg, -containerWidth/2, -containerHeight/2, containerWidth, containerHeight, {
+            fillColor: preset.bgColor,
+            fillAlpha: preset.bgAlpha,
+            borderColor: preset.borderColor,
+            borderAlpha: preset.borderAlpha,
+            borderThickness: 1,
+            shadowOffset: 2,
+        });
         
         // Create speaker name box in top-left corner
         const speakerBoxPadding = 2;
@@ -474,15 +566,17 @@ export default class PopupManager {
             resolution: 5,
             align: 'center'
         });
+        speakerText.texture.setFilter(Phaser.Textures.FilterMode.LINEAR);
         const speakerBoxWidth = speakerText.width + speakerBoxPadding * 2;
         const speakerBoxHeight = speakerText.height + speakerBoxPadding * 2;
         
         const speakerBox = this.scene.add.graphics();
-        speakerBox.fillStyle(preset.borderColor, 1);
-        speakerBox.fillRect(-containerWidth/2 + 2, -containerHeight/2 - speakerBoxHeight, speakerBoxWidth, speakerBoxHeight);
-        speakerBox.lineStyle(1, preset.borderColor, preset.borderAlpha);
-        speakerBox.strokeRect(-containerWidth/2 + 2, -containerHeight/2 - speakerBoxHeight, speakerBoxWidth, speakerBoxHeight);
         speakerBox.setScrollFactor(0, 0);
+        new PixelPanel(speakerBox, -containerWidth/2 + 2, -containerHeight/2 - speakerBoxHeight, speakerBoxWidth, speakerBoxHeight, {
+            fillColor: preset.borderColor,
+            borderThickness: 1,
+            shadowOffset: 1,
+        });
         
         speakerText.setPosition(-containerWidth/2 + speakerBoxPadding + 2, -containerHeight/2 - speakerBoxHeight + speakerBoxPadding);
         speakerText.setOrigin(0, 0);
@@ -497,14 +591,20 @@ export default class PopupManager {
         // Crea il pulsante OK solo se showButton è true nel preset
         let okButton: Phaser.GameObjects.Graphics | null = null;
         let okText: Phaser.GameObjects.Text | null = null;
+        let okPanel: PixelPanel | null = null;
 
         if (preset.showButton) {
             okButton = this.scene.add.graphics();
-            okButton.fillStyle(preset.buttonBgColor, 1);
-            okButton.fillRect(-buttonWidth/2, buttonY - buttonHeight/2, buttonWidth, buttonHeight);
-            okButton.lineStyle(1, preset.buttonBorderColor, 1);
-            okButton.strokeRect(-buttonWidth/2, buttonY - buttonHeight/2, buttonWidth, buttonHeight);
-            okButton.setInteractive(new Phaser.Geom.Rectangle(-buttonWidth/2, buttonY - buttonHeight/2, buttonWidth, buttonHeight), Phaser.Geom.Rectangle.Contains);
+            // Il graphics viene posizionato sul centro del bottone (invece che sull'origine del popup)
+            // così scale/tween di hover-press ruotano attorno al centro visivo del bottone, non del popup.
+            okButton.setPosition(0, buttonY);
+            okPanel = new PixelPanel(okButton, -buttonWidth/2, -buttonHeight/2, buttonWidth, buttonHeight, {
+                fillColor: preset.buttonBgColor,
+                borderColor: preset.buttonBorderColor,
+                borderThickness: 1,
+                shadowOffset: 2,
+            });
+            okButton.setInteractive(new Phaser.Geom.Rectangle(-buttonWidth/2 - 3, -buttonHeight/2 - 3, buttonWidth + 6, buttonHeight + 6), Phaser.Geom.Rectangle.Contains);
             okButton.setScrollFactor(0, 0);
             
             okText = this.scene.add.text(0, buttonY, 'OK', {
@@ -517,6 +617,7 @@ export default class PopupManager {
             });
             okText.setOrigin(0.5);
             okText.setScrollFactor(0, 0);
+            okText.texture.setFilter(Phaser.Textures.FilterMode.LINEAR);
         }
         
         // Aggiungi tutto al container
@@ -524,17 +625,26 @@ export default class PopupManager {
         if (okButton) items.push(okButton);
         if (okText) items.push(okText);
         popup.add(items);
-        popup.setScale(0.8);
+        popup.setScale(0.8 * zoomCompensation);
         popup.setAlpha(0);
         
-        // Posiziona il popup al basso al centro dello schermo
-        popup.setPosition(this.scene.scale.width / 2, (this.scene.scale.height * (1 + 1 / (2 * this.scene.cameras.main.zoom)) - containerHeight - buttonHeight - buttonMargin) * 0.5);
+        // Posiziona il popup al basso al centro dello schermo (o al centro, per le scene con anchor 'center').
+        // scale.width/2 e scale.height/2 sono il punto fisso della camera (invariante rispetto allo zoom, dato
+        // scrollX/scrollY = 0), quindi per l'anchor 'center' bastano senza alcuna compensazione dello zoom. Per
+        // l'anchor 'bottom' invece containerHeight/buttonHeight/buttonMargin sono misure "locali" (le stesse unità
+        // che popup.setScale(zoomCompensation) sopra riporta a dimensione costante a schermo): senza moltiplicarle
+        // per zoomCompensation qui, la posizione a schermo del popup dipenderebbe linearmente dallo zoom della
+        // scena invece di restare fissa (visibile solo a zoom != BASE_ZOOM, es. Stage3 a zoom 10).
+        const targetY = this.anchor === 'center'
+            ? this.scene.scale.height / 2
+            : (this.scene.scale.height * (1 + 1 / (2 * zoom)) - (containerHeight + buttonHeight + buttonMargin) * zoomCompensation) * 0.5;
+        popup.setPosition(this.scene.scale.width / 2, targetY);
         
         // Animazione
         this.scene.tweens.add({
             targets: popup,
             alpha: 1,
-            scale: 1,
+            scale: zoomCompensation,
             duration: preset.animationDuration,
             ease: preset.animationEase
         });
@@ -546,6 +656,10 @@ export default class PopupManager {
         if (preset.typewriterEnabled) {
             text.setText(''); // Inizia con testo vuoto
             this.scene.time.delayedCall(preset.animationDuration, () => {
+                if (!popup.active || this.currentPopup !== popup || !text.active) {
+                    return;
+                }
+
                 this.typewriterTimer = this.typewriterEffect(text, message, preset, () => {
                     this.isTextComplete = true;
                     this.typewriterTimer = null;
@@ -566,15 +680,21 @@ export default class PopupManager {
         }
         
         // Funzione per chiudere il popup (condivisa tra click e tasto Invio)
+        let isClosing = false;
         const closePopup = () => {
+            if (isClosing || !popup.active) {
+                return;
+            }
+
             // Se il typewriter è attivo e skip è permesso, completa il testo invece di chiudere
             if (!this.isTextComplete && preset.allowSkipTypewriter && this.typewriterTimer) {
-                this.scene.time.removeEvent(this.typewriterTimer);
-                this.typewriterTimer = null;
+                this.clearTypewriterTimer();
                 // Apply bold to the full message
                 const segments = this.parseTextEffects(message);
                 const fullStyledText = segments.map(seg => seg.isBold ? seg.text.toUpperCase() : seg.text).join('');
-                text.setText(fullStyledText);
+                if (text.active) {
+                    text.setText(fullStyledText);
+                }
                 this.isTextComplete = true;
 
                 // Avvia auto-close dopo aver completato il testo
@@ -584,20 +704,18 @@ export default class PopupManager {
                 return; // Non chiudere, solo completa il testo
             }
 
+            isClosing = true;
+
             // Cancella i timer se esistono
             if (this.autoCloseTimer) {
-                this.scene.time.removeEvent(this.autoCloseTimer);
-                this.autoCloseTimer = null;
+                this.clearAutoCloseTimer();
 
                 if (this.popupQueue.length == 0) {
                     this.popupDuration = 'infinite'; // resetto la durata del popup alla fine della coda
                 }
             }
 
-            if (this.typewriterTimer) {
-                this.scene.time.removeEvent(this.typewriterTimer);
-                this.typewriterTimer = null;
-            }
+            this.clearTypewriterTimer();
 
             this.scene.tweens.add({
                 targets: popup,
@@ -608,13 +726,27 @@ export default class PopupManager {
                 onComplete: () => {
                     popup.destroy();
                     this.onPopupClosed();
+                    isClosing = false;
                 }
             });
         };
 
-        // Gestione click del pulsante OK
-        if (okButton) {
-            okButton.on('pointerdown', closePopup);
+        // Gestione feedback hover/press e click del pulsante OK
+        if (okButton && okPanel) {
+            const panel = okPanel;
+            const scaleTargets: Phaser.GameObjects.GameObject[] = okText ? [okButton, okText] : [okButton];
+            const tweenOkScale = (scale: number) => {
+                this.scene.tweens.add({ targets: scaleTargets, scale, duration: 90, ease: 'Sine.easeOut' });
+            };
+
+            okButton.on('pointerover', () => { panel.redraw('hover'); tweenOkScale(1.08); });
+            okButton.on('pointerout', () => { panel.redraw('idle'); tweenOkScale(1); });
+            okButton.on('pointerdown', () => { panel.redraw('press'); tweenOkScale(0.92); });
+            okButton.on('pointerup', () => {
+                panel.redraw('hover');
+                tweenOkScale(1.08);
+                closePopup();
+            });
         }
 
         // Gestione tasto Invio
@@ -631,6 +763,8 @@ export default class PopupManager {
         const originalDestroy = popup.destroy.bind(popup);
         popup.destroy = () => {
             this.enterKey?.off('down', onEnterDown);
+            this.clearAutoCloseTimer();
+            this.clearTypewriterTimer();
             originalDestroy();
         };
 
@@ -644,6 +778,9 @@ export default class PopupManager {
 
     // Metodo per pulire tutto quando necessario
     public destroy() {
+        this.clearAutoCloseTimer();
+        this.clearTypewriterTimer();
+
         if (this.currentPopup) {
             this.currentPopup.destroy();
             this.currentPopup = null;

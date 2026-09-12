@@ -2,7 +2,7 @@
     "section1": {
         "files": [
             {
-                "url": "assets/images/backgrounds/bg-stage2.png",
+                "url": "assets/images/backgrounds/stage2.png",
                 "type": "image",
                 "key": "bg-stage2"
             },
@@ -18,6 +18,191 @@
                 },
                 "type": "spritesheet",
                 "key": "card"
+            },
+            {
+                "url": "assets/images/items/electron.png",
+                "frameConfig": {
+                    "frameWidth": 6,
+                    "frameHeight": 10,
+                    "startFrame": 0,
+                    "endFrame": -1,
+                    "spacing": 0,
+                    "margin": 0
+                },
+                "type": "spritesheet",
+                "key": "electron"
+            },
+            {
+                "url": "assets/images/items/electron_gun.png",
+                "frameConfig": {
+                    "frameWidth": 32,
+                    "frameHeight": 32,
+                    "startFrame": 0,
+                    "endFrame": -1,
+                    "spacing": 0,
+                    "margin": 0
+                },
+                "type": "spritesheet",
+                "key": "electron_gun"
+            },
+            {
+                "url": "assets/images/backgrounds/Shooter/5063_4.png",
+                "type": "image",
+                "key": "lvl1_bg"
+            },
+            {
+                "url": "assets/images/backgrounds/Shooter/5063_4_flip.png",
+                "type": "image",
+                "key": "lvl1_bg_flip"
+            },
+            {
+                "url": "assets/images/backgrounds/Shooter/5063_5.png",
+                "type": "image",
+                "key": "lvl2_bg"
+            },
+            {
+                "url": "assets/images/backgrounds/Shooter/5063_5_flip.png",
+                "type": "image",
+                "key": "lvl2_bg_flip"
+            },
+            {
+                "url": "assets/images/backgrounds/Shooter/5063_6.png",
+                "type": "image",
+                "key": "lvl3_bg"
+            },
+            {
+                "url": "assets/images/backgrounds/Shooter/5063_6_flip.png",
+                "type": "image",
+                "key": "lvl3_bg_flip"
+            },
+            {
+                "url": "assets/images/items/minerals.png",
+                "frameConfig": {
+                    "frameWidth": 18,
+                    "frameHeight": 18,
+                    "startFrame": 0,
+                    "endFrame": -1,
+                    "spacing": 0,
+                    "margin": 0
+                },
+                "type": "spritesheet",
+                "key": "minerals"
+            },
+            {
+                "url": "assets/images/items/SEM-Probe.png",
+                "frameConfig": {
+                    "frameWidth": 32,
+                    "frameHeight": 40,
+                    "startFrame": 0,
+                    "endFrame": -1,
+                    "spacing": 0,
+                    "margin": 0
+                },
+                "type": "spritesheet",
+                "key": "SEM-Probe"
+            },
+            {
+                "url": "assets/images/ui/shooter_screen.png",
+                "type": "image",
+                "key": "shooter_screen"
+            },
+            {
+                "url": "assets/images/items/specchi.png",
+                "frameConfig": {
+                    "frameWidth": 31,
+                    "frameHeight": 31,
+                    "startFrame": 0,
+                    "endFrame": -1,
+                    "spacing": 0,
+                    "margin": 0
+                },
+                "type": "spritesheet",
+                "key": "specchi"
+            },
+            {
+                "url": "assets/images/backgrounds/stage2-crater.png",
+                "type": "image",
+                "key": "stage2-crater"
+            },
+            {
+                "url": "assets/images/backgrounds/EDS.png",
+                "type": "image",
+                "key": "stage2-eds"
+            },
+            {
+                "url": "assets/images/backgrounds/XRD.png",
+                "type": "image",
+                "key": "stage2-xrd"
+            },
+            {
+                "url": [
+                    "assets/music/stage2_theme.wav"
+                ],
+                "type": "audio",
+                "key": "stage2_theme"
+            },
+            {
+                "url": [
+                    "assets/music/shooter_theme.wav"
+                ],
+                "type": "audio",
+                "key": "shooter_theme"
+            },
+            {
+                "url": [
+                    "assets/sfx/gun_shoot.wav"
+                ],
+                "type": "audio",
+                "key": "gun_shoot"
+            },
+            {
+                "url": [
+                    "assets/sfx/target_hit.wav"
+                ],
+                "type": "audio",
+                "key": "target_hit"
+            },
+            {
+                "url": [
+                    "assets/sfx/life_lost.wav"
+                ],
+                "type": "audio",
+                "key": "life_lost"
+            },
+            {
+                "url": [
+                    "assets/sfx/round_fail.wav"
+                ],
+                "type": "audio",
+                "key": "round_fail"
+            },
+            {
+                "url": [
+                    "assets/sfx/laser_charge.wav"
+                ],
+                "type": "audio",
+                "key": "laser_charge"
+            },
+            {
+                "url": [
+                    "assets/sfx/crystal_chime.wav"
+                ],
+                "type": "audio",
+                "key": "crystal_chime"
+            },
+            {
+                "url": [
+                    "assets/sfx/crater_explosion.wav"
+                ],
+                "type": "audio",
+                "key": "crater_explosion"
+            },
+            {
+                "url": [
+                    "assets/sfx/laser_saw.wav"
+                ],
+                "type": "audio",
+                "key": "laser_saw"
             }
         ]
     },

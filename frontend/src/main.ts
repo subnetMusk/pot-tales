@@ -1,90 +1,152 @@
-// ===================================================
-// frontend/src/main.ts
-// ===================================================
-// Main entry point with APM RUM monitoring
-// ===================================================
-
-// Initialize APM RUM monitoring FIRST
-import apm from './apm-rum-config.js'
-
-// Expose APM agent globally for debugging and console access
-if (typeof window !== 'undefined') {
-  (window as any).apm = apm;
-  (window as any).elasticApm = apm;
-}
-
-// Log APM initialization with proper type handling
-const env = (import.meta as any).env || {};
-console.log('🔍 APM RUM Agent initialized:', {
-  serviceName: env.VITE_ELASTIC_APM_RUM_SERVICE_NAME || 'frontend-app',
-  serverUrl: env.VITE_ELASTIC_APM_RUM_SERVER_URL || 'http://apm.localhost',
-  environment: env.VITE_ELASTIC_APM_ENVIRONMENT || 'development',
-  apmAgent: !!apm,
-  globallyExposed: !!((window as any).apm && (window as any).elasticApm)
-})
+import apm, { enableApm } from "./apm-rum-config.js";
+import {
+    clearPrivacyChoice,
+    discardLegacyConsent,
+    getPrivacyChoice,
+    hasAnalyticsConsent,
+    setPrivacyChoice,
+    type PrivacyChoice,
+} from "./privacy/consent";
 
 const wrapper = document.getElementById("wrapper");
 
-if (!wrapper) {
-  throw new Error("Elemento #wrapper non trovato nel DOM.");
+if (!wrapper) throw new Error("Elemento #wrapper non trovato nel DOM.");
+
+(window as any).apm = apm;
+// Non assegnare il proxy no-op a `window.elasticApm`: il pacchetto Elastic usa
+// proprio quel nome per riconoscere un agente gia' inizializzato. Farlo prima
+// dell'import dinamico gli faceva invocare `init` sul proxy e produceva
+// "init is undefined". La libreria pubblichera' qui l'agente reale soltanto
+// dopo il consenso analitico.
+discardLegacyConsent();
+
+async function injectAndExecute(path: string): Promise<void> {
+    try {
+        const res = await fetch(path, {
+            credentials: "include",
+            cache: "no-store",
+        });
+        if (!res.ok) throw new Error(`Errore ${res.status} caricando ${path}`);
+
+        wrapper!.innerHTML = await res.text();
+        const scripts = Array.from(wrapper!.querySelectorAll("script"));
+        for (const oldScript of scripts) {
+            if (!oldScript.src) {
+                throw new Error(`Script inline non ammesso dalla CSP in ${path}`);
+            }
+
+            const newScript = document.createElement("script");
+            for (const attr of oldScript.attributes) newScript.setAttribute(attr.name, attr.value);
+            newScript.src = oldScript.src;
+            oldScript.remove();
+
+            await new Promise<void>((resolve, reject) => {
+                newScript.addEventListener("load", () => {
+                    newScript.remove();
+                    resolve();
+                }, { once: true });
+                newScript.addEventListener("error", () => {
+                    newScript.remove();
+                    reject(new Error(`Errore caricando lo script ${newScript.src}`));
+                }, { once: true });
+                document.body.appendChild(newScript);
+            });
+        }
+    } catch (err) {
+        console.error("Errore in injectAndExecute:", err);
+        wrapper!.innerHTML = '<main class="legal-screen"><section class="legal-card"><h1>Qualcosa non ha funzionato</h1><div class="legal-copy"><p>Non siamo riusciti a caricare questa schermata. Riprova tra poco.</p></div></section></main>';
+    }
 }
 
-// Funzione per iniettare HTML e eseguire gli script al suo interno
-async function injectAndExecute(path: string): Promise<void> {
-  try {
-    const res = await fetch(path, { credentials: "include" });
+// Telefono/tablet: user agent noto oppure puntatore primario grossolano, touch
+// e schermo compatto. Un laptop touch con mouse rimane quindi utilizzabile.
+function isTouchOnlyPortableDevice(): boolean {
+    const mobileUserAgent = /Android|iPhone|iPad|iPod|Windows Phone|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    const touchPortable = navigator.maxTouchPoints > 0
+        && window.matchMedia("(pointer: coarse)").matches
+        && Math.min(window.screen.width, window.screen.height) < 1024;
+    return mobileUserAgent || touchPortable;
+}
 
-    if (!res.ok) {
-      throw new Error(`Errore ${res.status} caricando ${path}`);
+async function showPrivacy(): Promise<void> {
+    document.title = "Privacy | Pot Tales";
+    await injectAndExecute("/static/pages/privacy.html");
+}
+
+async function showAccessibility(): Promise<void> {
+    document.title = "Accessibility | Pot Tales";
+    await injectAndExecute("/static/pages/accessibility.html");
+}
+
+async function enterGame(): Promise<void> {
+    document.title = "Play | Pot Tales";
+    if (isTouchOnlyPortableDevice()) {
+        await showMobileBlocked();
+        return;
     }
 
-    const injectHtml = await res.text();
-    wrapper!.innerHTML = injectHtml;
-
-    // Trova tutti i tag script e li esegue (iniettare HTML non esegue automaticamente il codice)
-    const scripts = wrapper!.querySelectorAll('script');
-    scripts.forEach(oldScript => {
-      const newScript = document.createElement('script');
-
-      for (const attr of oldScript.attributes) {
-        newScript.setAttribute(attr.name, attr.value);
-      }
-
-      if (oldScript.src) newScript.src = oldScript.src;
-      else newScript.textContent = oldScript.textContent;
-
-      document.body.appendChild(newScript);
-    });
-
-  } catch (err) {
-    console.error("Errore in injectAndExecute:", err);
-    wrapper!.innerHTML = `<p>Errore caricando contenuto: ${path}</p>`;
-  }
-}
-
-// Funzione per validare la sessione
-function checkConsent(): boolean {
-    return localStorage.getItem("consentGiven") == "true";
-}
-
-// Flusso principale all'avvio
-(async () => {
-    const cons = checkConsent();
-
-    if (cons) {
-        startGame();
-    } else {
+    const choice = getPrivacyChoice();
+    if (!choice) {
         await injectAndExecute("/static/pages/consent.html");
+        return;
+    }
+
+    if (choice === "all") await enableApm();
+    await startGame();
+}
+
+async function choosePrivacy(choice: PrivacyChoice, lang?: string): Promise<void> {
+    if (lang === "it" || lang === "en") localStorage.setItem("lang", lang);
+    setPrivacyChoice(choice);
+    if (choice === "all") await enableApm();
+    await startGame();
+}
+
+async function showMobileBlocked(): Promise<void> {
+    document.title = "Desktop only | Pot Tales";
+    await injectAndExecute("/static/pages/desktopOnly.html");
+}
+
+async function startGame(): Promise<void> {
+    await injectAndExecute("/static/pages/game.html");
+    void import("./loader.js");
+}
+
+function returnToLanding(): void {
+    clearPrivacyChoice();
+    window.location.assign("/");
+}
+
+function changePrivacyChoice(): void {
+    clearPrivacyChoice();
+    window.location.assign("/play");
+}
+
+(window as any).injectAndExecute = injectAndExecute;
+(window as any).showPrivacy = showPrivacy;
+(window as any).showAccessibility = showAccessibility;
+(window as any).enterGame = enterGame;
+(window as any).showMobileBlocked = showMobileBlocked;
+(window as any).startGame = startGame;
+(window as any).acceptAll = (lang?: string) => choosePrivacy("all", lang);
+(window as any).acceptNecessary = (lang?: string) => choosePrivacy("necessary", lang);
+(window as any).returnToLanding = returnToLanding;
+(window as any).changePrivacyChoice = changePrivacyChoice;
+(window as any).hasAnalyticsConsent = hasAnalyticsConsent;
+
+(async () => {
+    if (window.location.pathname === "/info" || window.location.pathname.startsWith("/info/")) {
+        window.location.replace("/");
+    }
+    else if (window.location.pathname.startsWith("/privacy")) await showPrivacy();
+    else if (window.location.pathname.startsWith("/accessibility") || window.location.pathname.startsWith("/accessibilita")) await showAccessibility();
+    else if (window.location.pathname.startsWith("/play")) await enterGame();
+    else {
+        // La home e' prerenderizzata in index.html durante la build perche' il
+        // contenuto sia disponibile a crawler e browser anche prima del JS.
+        // Il fallback mantiene funzionante un index non trasformato.
+        if (!wrapper.querySelector(".landing-shell")) {
+            await injectAndExecute("/static/pages/homePage.html");
+        }
     }
 })();
-
-async function startGame() {
-    await injectAndExecute('static/pages/game.html');
-    import('./loader.js').then(() => {});
-}
-
-// Esporta le funzione per poterle usare in altri moduli 
-// serve per evitare errori dati dalla rinominazione di file e funzioni
-// Global exports for browser access
-(window as any).injectAndExecute = injectAndExecute;
-(window as any).startGame = startGame;

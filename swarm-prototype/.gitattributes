@@ -1,0 +1,4 @@
+# Gli script vengono eseguiti in container Linux: i terminatori di riga devono
+# restare LF anche su checkout Windows.
+*.sh text eol=lf
+*.yml text eol=lf

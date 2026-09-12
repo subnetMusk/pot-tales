@@ -1,5 +1,5 @@
-# 1. Immagine base: Node.js su Alpine
-FROM node:18-alpine
+# 1. Immagine base: Node.js su Alpine, pinnata per digest. Node 24 e' LTS.
+FROM node:24-alpine@sha256:f70403e87646dc51b45295f4b8b70cdad0b63d2297c4c9899119b03f7af7a6b3
 
 # 2. Directory di lavoro
 WORKDIR /app

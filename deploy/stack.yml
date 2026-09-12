@@ -1,0 +1,1149 @@
+# ==============================================================================
+# Stack di produzione — Docker Swarm
+# ==============================================================================
+# Insieme unico: applicazione, persistenza, bordo, osservabilita' e sicurezza
+# perimetrale. Un solo `docker stack deploy` porta in servizio tutto.
+#
+# Vincoli imposti dall'orchestratore, gia' verificati sul prototipo:
+#
+#   - niente `depends_on`: i servizi partono in parallelo. Chi ha una dipendenza
+#     non ancora pronta esce con codice diverso da zero e viene rischedulato,
+#     stampando cosa gli manca. L'attesa e' diagnosticabile invece che muta
+#   - niente `container_name`: il nome del servizio e' gia' il nome DNS, ed e'
+#     quello per cui sono emessi i certificati
+#   - niente `env_file`: ignorato da `stack deploy`. I parametri diventano
+#     `configs`, le credenziali `secrets`
+#   - niente bind mount relativi: non si traducono in un percorso valido sul
+#     nodo che schedula il task
+#   - `mem_limit` diventa `deploy.resources.limits`, affiancato da `reservations`
+#
+# Le immagini dell'applicazione arrivano dal registry riferite per digest. Il
+# tag e' mutabile, il digest no: SERVER_IMAGE e FRONTEND_IMAGE vanno valorizzate
+# con la forma `nome@sha256:...` prodotta dalla pipeline.
+# ==============================================================================
+
+# ------------------------------------------------------------------------------
+# Configurazioni, con il nome che porta la revisione del contenuto.
+#
+# Verificato sul demone: un config di Swarm e' immutabile. Modificare il file
+# mantenendo lo stesso nome non aggiorna nulla — il demone risponde
+# `only updates to Labels are allowed`, il deploy esce con codice 1 e i
+# contenitori continuano a montare il contenuto vecchio. Il guasto e' quindi
+# rumoroso sul comando ma silenzioso sullo stato: chi non legge l'uscita crede
+# di aver applicato una modifica che non e' mai arrivata.
+#
+# Il nome esplicito porta l'impronta del file, calcolata da `stack-deploy.sh`:
+# a contenuto uguale il nome non cambia e non succede nulla, a contenuto diverso
+# nasce un config nuovo e i servizi che lo montano vengono aggiornati.
+#
+# Il nome esplicito **non** viene preceduto dal nome dello stack, che Docker
+# aggiunge solo ai nomi impliciti: il prefisso e' quindi dichiarato qui, e serve
+# anche alla rimozione dei config orfani, che `--prune` non esegue.
+# ------------------------------------------------------------------------------
+configs:
+  prod_routes_yml:
+    name: ${STACK_NAME}_prod_routes_yml_${CFG_REV_PROD_ROUTES_YML}
+    file: ./config/dynamic/routes.yml
+  prod_middlewares_yml:
+    name: ${STACK_NAME}_prod_middlewares_yml_${CFG_REV_PROD_MIDDLEWARES_YML}
+    file: ./config/dynamic/middlewares.yml
+  prod_tls_yml:
+    name: ${STACK_NAME}_prod_tls_yml_${CFG_REV_PROD_TLS_YML}
+    file: ./config/dynamic/tls.yml
+  prod_crowdsec_middleware:
+    name: ${STACK_NAME}_prod_crowdsec_middleware_${CFG_REV_PROD_CROWDSEC_MIDDLEWARE}
+    file: ./config/dynamic/crowdsec.yml
+  prod_crowdsec_acquis:
+    name: ${STACK_NAME}_prod_crowdsec_acquis_${CFG_REV_PROD_CROWDSEC_ACQUIS}
+    file: ../docker/crowdsec/acquis.yaml
+  prod_crowdsec_profiles:
+    name: ${STACK_NAME}_prod_crowdsec_profiles_${CFG_REV_PROD_CROWDSEC_PROFILES}
+    file: ../docker/crowdsec/profiles.yaml
+  prod_redis_conf:
+    name: ${STACK_NAME}_prod_redis_conf_${CFG_REV_PROD_REDIS_CONF}
+    file: ../docker/redis/redis.conf
+  prod_redis_entrypoint:
+    name: ${STACK_NAME}_prod_redis_entrypoint_${CFG_REV_PROD_REDIS_ENTRYPOINT}
+    file: ./config/redis-entrypoint.sh
+  prod_setup_certs:
+    name: ${STACK_NAME}_prod_setup_certs_${CFG_REV_PROD_SETUP_CERTS}
+    file: ./config/setup-certs.sh
+  prod_kibana_yml:
+    name: ${STACK_NAME}_prod_kibana_yml_${CFG_REV_PROD_KIBANA_YML}
+    file: ./config/kibana.yml
+  prod_kibana_entrypoint:
+    name: ${STACK_NAME}_prod_kibana_entrypoint_${CFG_REV_PROD_KIBANA_ENTRYPOINT}
+    file: ./config/kibana-entrypoint.sh
+  prod_filebeat_yml:
+    name: ${STACK_NAME}_prod_filebeat_yml_${CFG_REV_PROD_FILEBEAT_YML}
+    file: ./config/filebeat.yml
+  prod_filebeat_entrypoint:
+    name: ${STACK_NAME}_prod_filebeat_entrypoint_${CFG_REV_PROD_FILEBEAT_ENTRYPOINT}
+    file: ./config/filebeat-entrypoint.sh
+  prod_agent_entrypoint:
+    name: ${STACK_NAME}_prod_agent_entrypoint_${CFG_REV_PROD_AGENT_ENTRYPOINT}
+    file: ./config/agent-entrypoint.sh
+  prod_export_nginx:
+    name: ${STACK_NAME}_prod_export_nginx_${CFG_REV_PROD_EXPORT_NGINX}
+    file: ./config/export-nginx.conf
+  prod_server_entrypoint:
+    name: ${STACK_NAME}_prod_server_entrypoint_${CFG_REV_PROD_SERVER_ENTRYPOINT}
+    file: ./config/server-entrypoint.sh
+
+# Swarm trasmette i secret ai nodi su mTLS, li cifra nel Raft log e li monta in
+# un filesystem in memoria sotto /run/secrets. Non compaiono mai nell'ambiente
+# ne' nella specifica del servizio.
+#
+# Come i config, i secret sono immutabili: un file cambiato con lo stesso nome
+# fa fallire il deploy con `only updates to Labels are allowed`. Il nome porta
+# quindi l'impronta del contenuto, calcolata da `stack-deploy.sh`: aggiungere
+# un'utenza alle dashboard o cambiare una password produce un secret nuovo e
+# aggiorna i soli servizi che lo montano.
+secrets:
+  elastic_password:
+    name: ${STACK_NAME}_elastic_password_${SEC_REV_ELASTIC_PASSWORD}
+    file: ../secrets/elastic_password
+  kibana_system_password:
+    name: ${STACK_NAME}_kibana_system_password_${SEC_REV_KIBANA_SYSTEM_PASSWORD}
+    file: ../secrets/kibana_system_password
+  kibana_encryption_key:
+    name: ${STACK_NAME}_kibana_encryption_key_${SEC_REV_KIBANA_ENCRYPTION_KEY}
+    file: ../secrets/kibana_encryption_key
+  mongo_root_password:
+    name: ${STACK_NAME}_mongo_root_password_${SEC_REV_MONGO_ROOT_PASSWORD}
+    file: ../secrets/mongo_root_password
+  redis_password:
+    name: ${STACK_NAME}_redis_password_${SEC_REV_REDIS_PASSWORD}
+    file: ../secrets/redis_password
+  crowdsec_bouncer_key:
+    name: ${STACK_NAME}_crowdsec_bouncer_key_${SEC_REV_CROWDSEC_BOUNCER_KEY}
+    file: ../secrets/crowdsec_bouncer_key
+  # Lo stesso valore che la policy Fleet impone al server APM: i due lati devono
+  # combaciare o l'intake rifiuta ogni invio del backend.
+  apm_secret_token:
+    name: ${STACK_NAME}_apm_secret_token_${SEC_REV_APM_SECRET_TOKEN}
+    file: ../secrets/apm_secret_token
+  # Sale degli identificativi di partita, esportato dall'entrypoint al solo
+  # processo del backend: fisso per l'intero esercizio, cosi' una partita a
+  # cavallo di un riavvio viene contata una volta sola.
+  gameplay_id_salt:
+    name: ${STACK_NAME}_gameplay_id_salt_${SEC_REV_GAMEPLAY_ID_SALT}
+    file: ../secrets/gameplay_id_salt
+  # Chiave con cui il backend firma le sfide a prova di lavoro, esportata
+  # dall'entrypoint: con il predefinito del codice, pubblico, chiunque potrebbe
+  # firmarsi una sfida a difficolta' zero.
+  pow_secret:
+    name: ${STACK_NAME}_pow_secret_${SEC_REV_POW_SECRET}
+    file: ../secrets/pow_secret
+  # Password di filebeat_writer: la legge Filebeat per scrivere e
+  # fleet-bootstrap.sh per creare l'utenza con Terraform.
+  filebeat_writer_password:
+    name: ${STACK_NAME}_filebeat_writer_password_${SEC_REV_FILEBEAT_WRITER_PASSWORD}
+    file: ../secrets/filebeat_writer_password
+  # Elenchi di utenze in formato htpasswd. Le credenziali che accettano sono le
+  # stesse con cui Kibana autentica: l'intestazione di autorizzazione non viene
+  # rimossa dal proxy, quindi attraversa e vale anche a valle.
+  dashboard_users:
+    name: ${STACK_NAME}_dashboard_users_${SEC_REV_DASHBOARD_USERS}
+    file: ../secrets/dashboard_users
+  dashboard_users_esercizio:
+    name: ${STACK_NAME}_dashboard_users_esercizio_${SEC_REV_DASHBOARD_USERS_ESERCIZIO}
+    file: ../secrets/dashboard_users_esercizio
+  dashboard_users_evento:
+    name: ${STACK_NAME}_dashboard_users_evento_${SEC_REV_DASHBOARD_USERS_EVENTO}
+    file: ../secrets/dashboard_users_evento
+
+volumes:
+  certs:
+  # Indici su un filesystem dedicato, non sotto la directory dati del demone:
+  # il loro riempimento non deve raggiungere MongoDB, che vive li'. Il bind
+  # richiede che la sorgente esista e appartenga all'utente dell'immagine
+  # (uid 1000, gid 0), e `stack-deploy.sh` lo verifica prima del deploy.
+  #
+  # Le opzioni valgono alla creazione del volume: un volume con lo stesso nome
+  # gia' esistente resta com'e', e va rimosso perche' queste abbiano effetto.
+  esdata01:
+    driver: local
+    driver_opts:
+      type: none
+      device: ${ES_DATA_DIR:-/srv/data/elastic}
+      o: bind
+  kibanadata:
+  fleetserverdata:
+  apmagentdata:
+  infraagentdata:
+  # Registry degli input di Filebeat. Senza persistenza ogni aggiornamento del
+  # task riparte dall'inizio dei log Docker e dell'access log, duplicando lo
+  # storico e caricando Elasticsearch proprio durante un deploy.
+  filebeatdata:
+  # Popolato dal bootstrap con gli enrollment token. Gli agenti lo leggono in
+  # sola lettura e ripartono finche' non compare il file che li riguarda.
+  fleettokens:
+  mongodata:
+  redisdata:
+  traefik_logs:
+  # Certificato e chiave emessi automaticamente: perderli significa
+  # richiederli di nuovo, e l'autorita' applica un limite di frequenza.
+  acme:
+  crowdsec_data:
+  crowdsec_config:
+
+networks:
+  # Bordo: raggiungibile dal proxy, che e' l'unico a pubblicare porte.
+  edge:
+    driver: overlay
+
+  # Persistenza: `internal` impedisce ai contenitori che vi appartengono di
+  # raggiungere l'esterno. Base dati e cache non hanno alcun motivo di uscire.
+  data:
+    driver: overlay
+    internal: true
+
+  # Accesso mediato al socket Docker. Rete a se' stante: chi vi appartiene puo'
+  # interrogare il demone attraverso il filtro, e nessun altro.
+  socket:
+    driver: overlay
+    internal: true
+
+  # Osservabilita'. `attachable` consente al bootstrap di Fleet e alla
+  # diagnostica durante un incidente di collegarsi dall'esterno dello stack.
+  elastic:
+    driver: overlay
+    attachable: true
+
+# Tetti di CPU
+# ------------------------------------------------------------
+# I servizi di osservabilita' e di sicurezza portano un tetto di CPU, il proxy
+# e il backend no. E' voluto: quando Elasticsearch fonde segmenti o CrowdSec
+# analizza gli access log, cio' che deve restare reattivo e' il percorso che
+# serve le richieste, e lasciarlo senza soffitto significa che prende tutto
+# cio' che gli altri non stanno usando.
+#
+# Un tetto non e' una riserva. Le reservations governano il piazzamento dei
+# task, non la priorita' a runtime: su un nodo solo non garantirebbero nulla
+# durante l'esecuzione, e in piu' sottrarrebbero capacita' schedulabile, al
+# punto che una somma troppo alta lascerebbe i task in attesa senza partire.
+#
+# La somma dei tetti supera di proposito le CPU disponibili: sono soffitti e
+# non quote assegnate, e questi servizi non vanno sotto carico tutti insieme.
+# I valori sono tarati su otto CPU logiche e vanno rivisti se la macchina
+# cambia.
+#
+# Tetti di memoria
+# ------------------------------------------------------------
+# Tarati su 64 GB. La somma dei tetti e' di circa 24 GB: il resto resta al
+# sistema e alla cache dei file, e il margine assorbe un servizio che cresce
+# senza che il kernel debba scegliere chi terminare. I tetti restano comunque
+# tutti dichiarati: servono a decidere chi cede per primo, non a stare nella
+# memoria. La quota maggiore va a Elasticsearch, che oltre l'heap la usa come
+# cache dei segmenti; MongoDB ha 4 GB, con la cache di WiredTiger fissata di
+# conseguenza.
+services:
+
+  # ===========================================================================
+  # Bordo
+  # ===========================================================================
+
+  proxy:
+    image: traefik:v3.7.10@sha256:9c3b91d5fb7770853ca5c1124a23c34bf2d9b47ffaebeab2614cbaf410dcb2ac
+    command:
+      # La configurazione di avvio di Traefik deve usare un solo metodo. File,
+      # argomenti ed environment sono mutuamente esclusivi: con `--configfile`
+      # Traefik ignorava gli altri argomenti, inclusi CA di prova, plugin e
+      # middleware CrowdSec. Tutta la configurazione statica e' quindi qui;
+      # soltanto routing, middleware e TLS dinamico restano nei file montati.
+      - --api.dashboard=false
+      - --api.insecure=false
+      - --entrypoints.web.address=:80
+      - --entrypoints.web.http.redirections.entrypoint.to=websecure
+      - --entrypoints.web.http.redirections.entrypoint.scheme=https
+      - --entrypoints.web.http.redirections.entrypoint.permanent=true
+      - --entrypoints.websecure.address=:443
+      - --entrypoints.websecure.http.tls=true
+      - --entrypoints.websecure.http.tls.certresolver=principale
+      - --entrypoints.websecure.http.middlewares=crowdsec@file
+      - --entrypoints.ping.address=:8082
+      - --ping=true
+      - --ping.entrypoint=ping
+      - --certificatesresolvers.principale.acme.storage=/acme/acme.json
+      - --certificatesresolvers.principale.acme.httpchallenge=true
+      - --certificatesresolvers.principale.acme.httpchallenge.entrypoint=web
+      - --providers.file.directory=/etc/traefik/dynamic
+      - --providers.file.watch=true
+      - --log.level=INFO
+      - --accesslog=true
+      - --accesslog.filepath=/var/log/traefik/access.log
+      - --accesslog.format=json
+      - --accesslog.bufferingsize=100
+      - --accesslog.fields.headers.defaultmode=drop
+      - --accesslog.fields.headers.names.User-Agent=keep
+      # Il bouncer e' sorgente interpretato scaricato all'avvio: dichiararlo
+      # qui rende esplicito che l'avvio del proxy dipende da quel download.
+      - --experimental.plugins.crowdsec.modulename=github.com/maxlerebourg/crowdsec-bouncer-traefik-plugin
+      - --experimental.plugins.crowdsec.version=v1.7.1
+      # Recapito e directory ACME arrivano dal file dell'host mediante
+      # l'interpolazione dello stack, prima dell'avvio del processo.
+      - --certificatesresolvers.principale.acme.email=${ACME_EMAIL}
+      # Directory dell'autorita'. Il collaudo va condotto contro quella di
+      # prova: l'autorita' di produzione limita i certificati duplicati per
+      # settimana, e pochi tentativi con configurazione sbagliata lasciano il
+      # dominio senza certificato valido per giorni. Il valore predefinito e' la
+      # produzione, perche' e' quello giusto in esercizio; il collaudo lo
+      # sovrascrive deliberatamente.
+      - --certificatesresolvers.principale.acme.caserver=${ACME_CA_SERVER:-https://acme-v02.api.letsencrypt.org/directory}
+    environment:
+      APP_HOST: "${APP_HOST:-localhost}"
+      # Durata dichiarata di HSTS, letta dai file dinamici che Traefik
+      # interpreta come template.
+      #
+      # Il valore predefinito e' zero, cioe' HSTS assente, e la direzione del
+      # default e' deliberata: un'intestazione che manca e' hardening non
+      # applicato, un'intestazione presente con un certificato rotto e' un
+      # blocco che il visitatore non puo' aggirare e che dura quanto la durata
+      # dichiarata. Fra i due errori possibili, la configurazione incompleta
+      # deve produrre il primo.
+      #
+      # Si alza solo a catena verificata da rete esterna. Su un esercizio di
+      # poche settimane un anno non porta alcun beneficio: alla prima emissione
+      # andata storta il blocco sopravvive alla macchina che lo ha causato.
+      HSTS_MAX_AGE: "${HSTS_MAX_AGE:-0}"
+      HSTS_INCLUDE_SUBDOMAINS: "${HSTS_INCLUDE_SUBDOMAINS:-false}"
+      # In produzione il default rifiuta handshake privi di un certificato per
+      # il nome richiesto. Le verifiche locali possono disabilitarlo per usare
+      # il certificato predefinito di Traefik prima di un'emissione ACME.
+      TRAEFIK_SNI_STRICT: "${TRAEFIK_SNI_STRICT:-true}"
+    ports:
+      # `mode: host` esplicito: la sintassi breve userebbe `ingress`, il cui
+      # routing mesh applica SNAT e sostituisce l'indirizzo del client con
+      # quello della rete ingress. Senza questo, ogni richiesta risulterebbe
+      # provenire dallo stesso indirizzo e l'analisi di sicurezza sarebbe cieca.
+      - target: 80
+        published: 80
+        mode: host
+      - target: 443
+        published: 443
+        mode: host
+    networks:
+      - edge
+    volumes:
+      - traefik_logs:/var/log/traefik
+      - acme:/acme
+    configs:
+      - source: prod_routes_yml
+        target: /etc/traefik/dynamic/routes.yml
+        mode: 0444
+      - source: prod_middlewares_yml
+        target: /etc/traefik/dynamic/middlewares.yml
+        mode: 0444
+      - source: prod_tls_yml
+        target: /etc/traefik/dynamic/tls.yml
+        mode: 0444
+      - source: prod_crowdsec_middleware
+        target: /etc/traefik/dynamic/crowdsec.yml
+        mode: 0444
+    secrets:
+      - source: crowdsec_bouncer_key
+        target: crowdsec_bouncer_key
+        mode: 0444
+      - source: dashboard_users
+        target: dashboard_users
+        mode: 0444
+      - source: dashboard_users_esercizio
+        target: dashboard_users_esercizio
+        mode: 0444
+      - source: dashboard_users_evento
+        target: dashboard_users_evento
+        mode: 0444
+    healthcheck:
+      # Il sottocomando usa lo stesso metodo CLI del processo principale. Gli
+      # bastano l'entrypoint interno e l'abilitazione del ping; non legge file
+      # statici separati che potrebbero divergere dalla configurazione servita.
+      test:
+        - CMD
+        - traefik
+        - healthcheck
+        - --entrypoints.ping.address=:8082
+        - --ping=true
+        - --ping.entrypoint=ping
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: any
+        delay: 10s
+      resources:
+        limits:
+          memory: 512M
+        reservations:
+          memory: 128M
+      update_config:
+        order: stop-first
+        failure_action: rollback
+        monitor: 30s
+        max_failure_ratio: 0
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  crowdsec:
+    image: crowdsecurity/crowdsec:v1.7.8@sha256:2f527c9bb8b367120eb08b82890aa912ce96bfa1ada93dda0721700e4b4e0dde
+    environment:
+      COLLECTIONS: "crowdsecurity/traefik crowdsecurity/http-cve crowdsecurity/base-http-scenarios"
+      DISABLE_ONLINE_API: "${CROWDSEC_DISABLE_ONLINE_API:-false}"
+    networks:
+      - edge
+    volumes:
+      - crowdsec_data:/var/lib/crowdsec/data
+      - crowdsec_config:/etc/crowdsec
+      # Sola lettura: il motore analizza, non scrive.
+      - traefik_logs:/var/log/traefik:ro
+    configs:
+      - source: prod_crowdsec_acquis
+        target: /etc/crowdsec/acquis.d/traefik.yaml
+        mode: 0444
+      - source: prod_crowdsec_profiles
+        target: /etc/crowdsec/profiles.yaml
+        mode: 0444
+    secrets:
+      # Il motore registra all'avvio come chiave di bouncer ogni file di
+      # /run/secrets il cui nome inizia per `bouncer_key`, con il nome che segue
+      # il primo trattino basso: qui `key_traefik`. Con un nome diverso il file
+      # viene ignorato, la LAPI rifiuta la chiave e Traefik non riceve alcuna
+      # decisione. Verificato sull'immagine v1.7.8.
+      - source: crowdsec_bouncer_key
+        target: bouncer_key_traefik
+        mode: 0444
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: any
+        delay: 10s
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 512M
+        reservations:
+          memory: 128M
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # ===========================================================================
+  # Applicazione
+  # ===========================================================================
+
+  # Consegna degli archivi prodotti dall'esportazione. Servizio separato e non
+  # una rotta del frontend: e' l'unico percorso pubblicato che tocca il
+  # filesystem dell'host, e tenerlo distinto significa che il suo montaggio non
+  # e' raggiungibile da nulla che serva il gioco.
+  #
+  # Usa l'immagine della landing: nginx con i pacchetti di sistema aggiornati a
+  # build time, ancorata per digest e analizzata da trivy come le altre. Il
+  # contenuto arriva dal montaggio, e la configurazione montata sostituisce
+  # quella della landing: un'immagine propria non aggiungerebbe nulla.
+  export:
+    image: ${LANDING_IMAGE}
+    networks:
+      - edge
+    configs:
+      - source: prod_export_nginx
+        target: /etc/nginx/conf.d/default.conf
+        mode: 0444
+    # Unico montaggio del filesystem dell'host in tutto lo stack, in sola
+    # lettura. La sorgente e' la stessa destinazione predefinita di
+    # `data-export.sh`: se una delle due cambia, il servizio serve una directory
+    # vuota senza segnalare nulla.
+    volumes:
+      - type: bind
+        source: ${EXPORT_DEST:-/srv/export}
+        target: /srv/export
+        read_only: true
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1/nginx-health || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: any
+        delay: 10s
+      resources:
+        limits:
+          memory: 64M
+        reservations:
+          memory: 16M
+      update_config:
+        order: start-first
+        failure_action: rollback
+        monitor: 30s
+        max_failure_ratio: 0
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  frontend:
+    image: ${FRONTEND_IMAGE}
+    networks:
+      - edge
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1/nginx-health || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: any
+        delay: 10s
+      resources:
+        limits:
+          memory: 256M
+        reservations:
+          memory: 64M
+      update_config:
+        order: start-first
+        failure_action: rollback
+        monitor: 30s
+        max_failure_ratio: 0
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  server:
+    image: ${SERVER_IMAGE}
+    networks:
+      - edge
+      - data
+      - elastic
+    environment:
+      PORT: "3000"
+      GO_ENV: production
+      ELASTIC_APM_ENVIRONMENT: production
+      ELASTIC_APM_SERVICE_NAME: "${ELASTIC_APM_SERVICE_NAME:-go-backend}"
+      # L'intake APM e' servito da `apm-agent`, non dal Fleet Server, e ascolta
+      # in TLS con un certificato della CA interna: il valore precedente
+      # indirizzava un servizio che su quella porta non ascolta, in chiaro. Il
+      # risultato era un backend che dichiarava "APM monitoring" senza che una
+      # sola traccia arrivasse.
+      ELASTIC_APM_SERVER_URL: "${ELASTIC_APM_SERVER_URL:-https://apm-agent:8200}"
+      # Verifica sulla CA interna invece che disattivata: il certificato dichiara
+      # `apm-agent` fra i propri nomi, quindi la catena si valida per intero.
+      ELASTIC_APM_SERVER_CA_CERT_FILE: /certs/ca/ca.crt
+      MONGO_DB_NAME: "${MONGO_DB_NAME:-game_db}"
+      SESSION_TTL_MIN: "${SESSION_TTL_MIN:-30}"
+      SESSION_QUOTA_WINDOW_MIN: "${SESSION_QUOTA_WINDOW_MIN:-10}"
+      DATA_RETENTION_DAYS: "${DATA_RETENTION_DAYS:-30}"
+      # Chiusura differita delle partite abbandonate: e' cio' che rende
+      # osservabili durata e punto di uscita, che nessuna richiesta puo'
+      # riportare perche' chi abbandona non ne invia piu'.
+      SESSION_IDLE_CLOSE_MIN: "${SESSION_IDLE_CLOSE_MIN:-5}"
+      SESSION_SWEEP_SEC: "${SESSION_SWEEP_SEC:-60}"
+      # Il proxy e' l'unico peer legittimo: fuori da questi intervalli gli
+      # header di inoltro vengono ignorati invece che creduti.
+      TRUSTED_PROXY_CIDRS: "${TRUSTED_PROXY_CIDRS:-10.0.0.0/8}"
+      # Gli schemi di validazione sono dentro l'immagine: nessun montaggio.
+    volumes:
+      - certs:/certs:ro
+    configs:
+      - source: prod_server_entrypoint
+        target: /server-entrypoint.sh
+        mode: 0555
+    entrypoint: ["/server-entrypoint.sh"]
+    secrets:
+      - source: mongo_root_password
+        target: mongo_root_password
+        mode: 0444
+      - source: redis_password
+        target: redis_password
+        mode: 0444
+      - source: apm_secret_token
+        target: apm_secret_token
+        mode: 0444
+      - source: gameplay_id_salt
+        target: gameplay_id_salt
+        mode: 0444
+      - source: pow_secret
+        target: pow_secret
+        mode: 0444
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O - http://localhost:3000/health | grep -q '\"server\":true'"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 20s
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: any
+        delay: 10s
+      resources:
+        limits:
+          memory: 512M
+        reservations:
+          memory: 128M
+      update_config:
+        order: start-first
+        failure_action: rollback
+        monitor: 30s
+        max_failure_ratio: 0
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # ===========================================================================
+  # Persistenza
+  # ===========================================================================
+
+  db:
+    image: mongo:8.2.12@sha256:e0ce8c35124d4a9f9785532d1f268f39e9728ffa1cb38f46fa482436424c4bd3
+    # Cache di WiredTiger dimensionata sul limite del contenitore e non sulla
+    # memoria dell'host. Il valore e' la formula predefinita di MongoDB, il 50%
+    # di (memoria - 1 GB), applicata al limite di 4G dichiarato sotto: va
+    # ricalcolato se il limite cambia. Misurato su mongo 8.2.12: con un limite
+    # in cgroup v2 il processo ricava gia' lo stesso valore, senza limite lo
+    # dimensiona sull'intera memoria dell'host. L'opzione lo rende indipendente
+    # da quel rilevamento.
+    #
+    # `mongod` resta il primo argomento: l'entrypoint dell'immagine lo riconosce
+    # ed esegue l'inizializzazione dell'utente amministrativo.
+    command: ["mongod", "--wiredTigerCacheSizeGB", "1.5"]
+    networks:
+      - data
+    volumes:
+      - mongodata:/data/db
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: "${MONGO_ROOT_USERNAME:-root}"
+      # L'immagine supporta il suffisso _FILE e legge il valore dal secret
+      # senza che questo transiti dall'ambiente.
+      MONGO_INITDB_ROOT_PASSWORD_FILE: /run/secrets/mongo_root_password
+    secrets:
+      - source: mongo_root_password
+        target: mongo_root_password
+        mode: 0444
+    healthcheck:
+      test: ["CMD-SHELL", "mongosh --quiet --eval 'db.adminCommand({ping:1}).ok' | grep -q 1"]
+      interval: 15s
+      timeout: 10s
+      retries: 10
+      start_period: 30s
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: any
+        delay: 10s
+      resources:
+        limits:
+          cpus: "2.0"
+          memory: 4G
+        reservations:
+          memory: 1G
+      update_config:
+        # La base dati non tollera due istanze sullo stesso volume: il nuovo
+        # task parte solo dopo che il precedente ha rilasciato il lock.
+        order: stop-first
+        failure_action: rollback
+        monitor: 60s
+        max_failure_ratio: 0
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  redis:
+    image: redis:8.10.0-alpine@sha256:978f0e01593e65eed801f2402944efcd936d43b5027e4908a7897baf88ed6241
+    # Le utenze si costruiscono all'avvio dal secret: l'elenco versionato in
+    # docker/redis/users.acl porta password note ed e' solo per lo sviluppo.
+    # Con l'utente predefinito disattivato, senza credenziali Redis non
+    # accetta nessuno.
+    entrypoint: ["/redis-entrypoint.sh"]
+    networks:
+      - data
+    volumes:
+      - redisdata:/data
+    configs:
+      - source: prod_redis_conf
+        target: /usr/local/etc/redis/redis.conf
+        mode: 0444
+      - source: prod_redis_entrypoint
+        target: /redis-entrypoint.sh
+        mode: 0555
+    secrets:
+      - source: redis_password
+        target: redis_password
+        mode: 0444
+    healthcheck:
+      test: ["CMD-SHELL", "REDISCLI_AUTH=\"$$(cat /run/secrets/redis_password)\" redis-cli --user app ping | grep -q PONG"]
+      interval: 15s
+      timeout: 5s
+      retries: 6
+      start_period: 15s
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: any
+        delay: 10s
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 512M
+        reservations:
+          memory: 128M
+      update_config:
+        order: stop-first
+        failure_action: rollback
+        monitor: 30s
+        max_failure_ratio: 0
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # Espone una porzione dell'API del demone Docker in sola lettura. Montare il
+  # socket direttamente equivale a concedere il controllo della macchina: chi lo
+  # raggiunge puo' avviare un contenitore privilegiato con il filesystem
+  # dell'host montato. Il filtro riduce la superficie ai soli endpoint che i
+  # consumatori usano davvero.
+  socket-proxy:
+    image: tecnativa/docker-socket-proxy:0.3.0@sha256:9e4b9e7517a6b660f2cc903a19b257b1852d5b3344794e3ea334ff00ae677ac2
+    networks:
+      - socket
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    environment:
+      # Tutto cio' che non e' dichiarato resta negato. In particolare POST, che
+      # e' cio' che trasforma la lettura in controllo.
+      POST: "0"
+      CONTAINERS: "1"
+      INFO: "1"
+      EVENTS: "1"
+      PING: "1"
+      VERSION: "1"
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: any
+        delay: 10s
+      resources:
+        limits:
+          memory: 64M
+        reservations:
+          memory: 16M
+    # Le richieste di metadata di Filebeat passano da qui. Loggarle su stdout
+    # farebbe rileggere a Filebeat il log della propria interrogazione e
+    # creerebbe un ciclo di traffico privo di valore operativo.
+    logging:
+      driver: "none"
+
+  # ===========================================================================
+  # Osservabilita'
+  # ===========================================================================
+
+  # Genera i certificati e imposta la password di kibana_system. Modellato come
+  # `replicated-job`: il task completa, esce con codice 0 e non viene
+  # rischedulato.
+  setup:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.19.19@sha256:5dbf405a97e008f3024cf6f8f4a314d91b765d82954530893dcc13f8e87d21f4
+    user: "0"
+    command: ["bash", "/setup-certs.sh"]
+    networks:
+      - elastic
+    volumes:
+      - certs:/usr/share/elasticsearch/config/certs
+    configs:
+      - source: prod_setup_certs
+        target: /setup-certs.sh
+        mode: 0555
+    secrets:
+      - source: elastic_password
+        target: elastic_password
+        uid: "0"
+        gid: "0"
+        mode: 0400
+      - source: kibana_system_password
+        target: kibana_system_password
+        uid: "0"
+        gid: "0"
+        mode: 0400
+    deploy:
+      mode: replicated-job
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+        max_attempts: 3
+      resources:
+        limits:
+          memory: 512M
+
+  es01:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.19.19@sha256:5dbf405a97e008f3024cf6f8f4a314d91b765d82954530893dcc13f8e87d21f4
+    hostname: es01
+    networks:
+      - elastic
+    volumes:
+      - certs:/usr/share/elasticsearch/config/certs
+      - esdata01:/usr/share/elasticsearch/data
+    # Swarm monta i secret con permessi 0444 e proprietario root se non
+    # diversamente specificato. Elasticsearch rifiuta un file indicato da una
+    # variabile _FILE con permessi diversi da 400 o 600, quindi uid, gid e mode
+    # vanno dichiarati esplicitamente. L'immagine gira come uid 1000.
+    secrets:
+      - source: elastic_password
+        target: elastic_password
+        uid: "1000"
+        gid: "0"
+        mode: 0400
+    environment:
+      node.name: es01
+      cluster.name: "${ES_CLUSTER_NAME:-progetti-innovativi}"
+      discovery.type: single-node
+      ELASTIC_PASSWORD_FILE: /run/secrets/elastic_password
+      bootstrap.memory_lock: "true"
+      # Heap di 4 GB, un terzo del tetto: il resto resta alla cache dei file,
+      # dove Lucene trova i segmenti senza rileggerli dal disco. Un heap piu'
+      # grande allungherebbe le pause di raccolta senza servire a un nodo con
+      # pochi indici.
+      ES_JAVA_OPTS: "${ES_JAVA_OPTS:--Xms4g -Xmx4g}"
+      xpack.security.enabled: "true"
+      xpack.security.http.ssl.enabled: "true"
+      xpack.security.http.ssl.key: certs/es01/es01.key
+      xpack.security.http.ssl.certificate: certs/es01/es01.crt
+      xpack.security.http.ssl.certificate_authorities: certs/ca/ca.crt
+      xpack.security.transport.ssl.enabled: "true"
+      xpack.security.transport.ssl.verification_mode: certificate
+      xpack.security.transport.ssl.key: certs/es01/es01.key
+      xpack.security.transport.ssl.certificate: certs/es01/es01.crt
+      xpack.security.transport.ssl.certificate_authorities: certs/ca/ca.crt
+      xpack.license.self_generated.type: basic
+    # `docker stack deploy` traduce `ulimits` nella specifica del servizio,
+    # quindi il memory locking di Elasticsearch e' applicabile in swarm mode.
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - curl -s --cacert /usr/share/elasticsearch/config/certs/ca/ca.crt https://localhost:9200 | grep -q 'missing authentication credentials'
+      interval: 10s
+      timeout: 10s
+      retries: 60
+      start_period: 30s
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: any
+        delay: 10s
+      resources:
+        limits:
+          cpus: "3.0"
+          memory: 12G
+        reservations:
+          memory: 4G
+      update_config:
+        order: stop-first
+        failure_action: rollback
+        monitor: 60s
+        max_failure_ratio: 0
+
+  kibana:
+    image: docker.elastic.co/kibana/kibana:8.19.19@sha256:cc1f9f8c09e2fe0869965ccbf4008a4af0b2691b370fe189dfb8e19f516215c7
+    hostname: kibana
+    networks:
+      - elastic
+      - edge
+    # Nessuna porta pubblicata: si raggiunge attraverso il proxy, che e' l'unico
+    # punto in cui le difese di bordo sono applicate.
+    volumes:
+      - certs:/usr/share/kibana/config/certs
+      - kibanadata:/usr/share/kibana/data
+    configs:
+      - source: prod_kibana_yml
+        target: /usr/share/kibana/config/kibana.yml
+        mode: 0444
+      - source: prod_kibana_entrypoint
+        target: /kibana-entrypoint.sh
+        mode: 0555
+    secrets:
+      - source: kibana_system_password
+        target: kibana_system_password
+        uid: "1000"
+        gid: "0"
+        mode: 0400
+      - source: kibana_encryption_key
+        target: kibana_encryption_key
+        uid: "1000"
+        gid: "0"
+        mode: 0400
+    command: ["/kibana-entrypoint.sh"]
+    environment:
+      SERVER_NAME: kibana
+      SERVER_HOST: "0.0.0.0"
+      ELASTICSEARCH_HOSTS: https://es01:9200
+      ELASTICSEARCH_USERNAME: kibana_system
+      ELASTICSEARCH_SSL_CERTIFICATEAUTHORITIES: /usr/share/kibana/config/certs/ca/ca.crt
+      SERVER_SSL_ENABLED: "false"
+      # Servizio su sottopercorso dell'hostname unico. Senza `rewriteBasePath`
+      # gli URL che Kibana genera punterebbero fuori dal percorso; con esso
+      # Kibana si aspetta di ricevere il prefisso, quindi il proxy non lo
+      # rimuove.
+      SERVER_BASEPATH: /osservabilita
+      SERVER_REWRITEBASEPATH: "true"
+      SERVER_PUBLICBASEURL: "https://${APP_HOST:-localhost}/osservabilita"
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - curl -s -o /dev/null -w '%{http_code}' http://localhost:5601/osservabilita/api/status | grep -q 200
+      interval: 10s
+      timeout: 10s
+      retries: 60
+      start_period: 60s
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: any
+        delay: 10s
+      resources:
+        limits:
+          cpus: "1.5"
+          memory: 2G
+        reservations:
+          memory: 1G
+      update_config:
+        order: stop-first
+        failure_action: rollback
+        monitor: 60s
+        max_failure_ratio: 0
+
+  filebeat:
+    image: docker.elastic.co/beats/filebeat:8.19.19@sha256:537f0577a7ff7dc81cd3db33f9b0aecc9ea7bc9038f7e5217382030a8cee5c9c
+    hostname: filebeat
+    user: root
+    networks:
+      - elastic
+      - socket
+    volumes:
+      - certs:/usr/share/filebeat/certs:ro
+      - filebeatdata:/usr/share/filebeat/data
+      - traefik_logs:/var/log/traefik:ro
+      # I file di log dei container restano un montaggio: sono la sorgente da
+      # leggere, e nessuna API li espone. L'arricchimento con i metadati passa
+      # invece dal proxy.
+      #
+      # La sorgente e' la directory dati del demone, che `daemon.json` sposta
+      # su `/srv/docker`: montare il percorso predefinito lascerebbe Filebeat
+      # su una directory vuota, senza alcun errore. `stack-deploy.sh` ricava il
+      # valore dal demone stesso, quindi le due configurazioni non possono
+      # divergere. La destinazione resta quella attesa da `filebeat.yml`.
+      - ${DOCKER_ROOT_DIR:-/srv/docker}/containers:/var/lib/docker/containers:ro
+    configs:
+      - source: prod_filebeat_yml
+        target: /usr/share/filebeat/filebeat.yml
+        mode: 0444
+      - source: prod_filebeat_entrypoint
+        target: /filebeat-entrypoint.sh
+        mode: 0555
+    secrets:
+      - source: filebeat_writer_password
+        target: filebeat_writer_password
+        uid: "0"
+        gid: "0"
+        mode: 0400
+    command: ["/filebeat-entrypoint.sh"]
+    # La keystore creata dall'entrypoint e' disponibile anche al processo di
+    # healthcheck, quindi nessuna credenziale deve essere reiniettata qui.
+    healthcheck:
+      test:
+        - CMD-SHELL
+        # `-e` evita che ogni healthcheck apra e ruoti un file di log interno.
+        - filebeat test output -e --strict.perms=false >/dev/null 2>&1
+      interval: 15s
+      timeout: 20s
+      retries: 20
+      start_period: 30s
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: any
+        delay: 10s
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 512M
+        reservations:
+          memory: 128M
+
+  fleet-server:
+    image: docker.elastic.co/beats/elastic-agent:8.19.19@sha256:a08d3a06e6eb84374186c2d338e7c431a3e3356be6f824878b498baea34f0a6d
+    hostname: fleet-server
+    networks:
+      - elastic
+    volumes:
+      - certs:/usr/share/elastic-agent/certs:ro
+      - fleetserverdata:/usr/share/elastic-agent/data
+      - fleettokens:/fleet:ro
+    configs:
+      - source: prod_agent_entrypoint
+        target: /agent-entrypoint.sh
+        mode: 0555
+    secrets:
+      - source: elastic_password
+        target: elastic_password
+        uid: "1000"
+        gid: "0"
+        mode: 0400
+    entrypoint: ["/agent-entrypoint.sh"]
+    environment:
+      TOKEN_FILE: /fleet/server.token
+      ELASTIC_PASSWORD_FILE: /run/secrets/elastic_password
+      FLEET_ENROLL: "1"
+      FLEET_SERVER_ENABLE: "true"
+      # Identificativo deterministico, dichiarato in Terraform: senza,
+      # l'agente attende indefinitamente la policy predefinita.
+      FLEET_SERVER_POLICY_ID: fleet-server-policy
+      FLEET_SERVER_PORT: "8220"
+      FLEET_URL: https://fleet-server:8220
+      KIBANA_HOST: http://kibana:5601/osservabilita
+      KIBANA_FLEET_USERNAME: elastic
+      FLEET_SERVER_ELASTICSEARCH_HOST: https://es01:9200
+      FLEET_SERVER_ELASTICSEARCH_CA: /usr/share/elastic-agent/certs/ca/ca.crt
+      ELASTICSEARCH_CA: /usr/share/elastic-agent/certs/ca/ca.crt
+      FLEET_SERVER_CERT: /usr/share/elastic-agent/certs/fleet-server/fleet-server.crt
+      FLEET_SERVER_CERT_KEY: /usr/share/elastic-agent/certs/fleet-server/fleet-server.key
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - curl -sSf --cacert /usr/share/elastic-agent/certs/ca/ca.crt https://localhost:8220/api/status | grep -q HEALTHY
+      interval: 15s
+      timeout: 10s
+      retries: 40
+      start_period: 60s
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: any
+        delay: 15s
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 1G
+        reservations:
+          memory: 256M
+
+  # Endpoint di telemetria applicativa e RUM. Vive su una policy propria, quindi
+  # su un agente distinto dal fleet-server: e' il servizio che il proxy raggiunge
+  # sul percorso dedicato.
+  apm-agent:
+    image: docker.elastic.co/beats/elastic-agent:8.19.19@sha256:a08d3a06e6eb84374186c2d338e7c431a3e3356be6f824878b498baea34f0a6d
+    hostname: apm-agent
+    networks:
+      - elastic
+      - edge
+    volumes:
+      - certs:/usr/share/elastic-agent/certs:ro
+      - apmagentdata:/usr/share/elastic-agent/data
+      - fleettokens:/fleet:ro
+    configs:
+      - source: prod_agent_entrypoint
+        target: /agent-entrypoint.sh
+        mode: 0555
+    secrets:
+      - source: elastic_password
+        target: elastic_password
+        uid: "1000"
+        gid: "0"
+        mode: 0400
+    entrypoint: ["/agent-entrypoint.sh"]
+    environment:
+      TOKEN_FILE: /fleet/apm.token
+      ELASTIC_PASSWORD_FILE: /run/secrets/elastic_password
+      FLEET_ENROLL: "1"
+      FLEET_URL: https://fleet-server:8220
+      FLEET_CA: /usr/share/elastic-agent/certs/ca/ca.crt
+      ELASTICSEARCH_CA: /usr/share/elastic-agent/certs/ca/ca.crt
+      ELASTIC_AGENT_TAGS: apm,internal
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - curl -sSf --cacert /usr/share/elastic-agent/certs/ca/ca.crt https://localhost:8200/ >/dev/null
+      interval: 15s
+      timeout: 10s
+      retries: 40
+      start_period: 60s
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: any
+        delay: 15s
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 2G
+        reservations:
+          memory: 256M
+
+  # Metriche dell'host e dei container. Monta il filesystem di sistema in sola
+  # lettura sotto /hostfs, che e' il percorso che le integrazioni si aspettano.
+  infra-agent:
+    image: docker.elastic.co/beats/elastic-agent:8.19.19@sha256:a08d3a06e6eb84374186c2d338e7c431a3e3356be6f824878b498baea34f0a6d
+    hostname: infra-agent
+    user: root
+    networks:
+      - elastic
+      - socket
+    volumes:
+      - certs:/usr/share/elastic-agent/certs:ro
+      - infraagentdata:/usr/share/elastic-agent/data
+      - fleettokens:/fleet:ro
+      # Le metriche Docker passano dal socket-proxy. L'indirizzo TCP e'
+      # distribuito dalla policy Fleet definita in Terraform.
+      - /sys/fs/cgroup:/hostfs/sys/fs/cgroup:ro
+      - /proc:/hostfs/proc:ro
+      - /:/hostfs:ro
+    configs:
+      - source: prod_agent_entrypoint
+        target: /agent-entrypoint.sh
+        mode: 0555
+    secrets:
+      - source: elastic_password
+        target: elastic_password
+        uid: "0"
+        gid: "0"
+        mode: 0400
+    entrypoint: ["/agent-entrypoint.sh"]
+    environment:
+      TOKEN_FILE: /fleet/infra.token
+      ELASTIC_PASSWORD_FILE: /run/secrets/elastic_password
+      FLEET_ENROLL: "1"
+      FLEET_URL: https://fleet-server:8220
+      FLEET_CA: /usr/share/elastic-agent/certs/ca/ca.crt
+      ELASTICSEARCH_CA: /usr/share/elastic-agent/certs/ca/ca.crt
+      ELASTIC_AGENT_TAGS: infra,internal
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: any
+        delay: 15s
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 1G
+        reservations:
+          memory: 256M

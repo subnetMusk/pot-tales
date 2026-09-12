@@ -1,98 +1,81 @@
-# Progetti Innovativi — Piattaforma Gioco HTML5
+<p align="center">
+  <img src="frontend/public/assets/images/ui/title.png" width="250" alt="Pot Tales">
+</p>
 
-Gioco HTML5 singleplayer (Phaser 3 + TypeScript/Vite) con backend Go, persistenza
-MongoDB/Redis e stack di osservabilità Elastic (Elasticsearch, Kibana, APM, Filebeat),
-il tutto orchestrato con Docker Compose e Traefik come reverse proxy.
+<p align="center">
+  <a href="https://pot-tales.it/">Gioca a Pot Tales</a>
+  ·
+  <a href="features.md">Funzionalità e verifiche esterne</a>
+</p>
 
-## Architettura
+<p align="center">
+  <img src="https://healthchecks.io/badge/6e1f0796-8cd7-4beb-a3f5-5bd22fab18fd/zys6OZ9t-2.svg" alt="Stato dei controlli operativi di Pot Tales">
+</p>
 
-| Componente | Tecnologia | Ruolo |
-|---|---|---|
-| Frontend | Phaser 3, TypeScript, Vite | Gioco singleplayer, build statica servita da NGINX |
-| Sandbox | Vite dev server | Ambiente di prototipazione meccaniche (solo dev) |
-| Backend | Go (Gorilla Mux) | API sessioni, stato di gioco, ingest log; validazione via JSON Schema |
-| Database | MongoDB | Profili, sessioni, stato di gioco |
-| Cache | Redis (con ACL) | Sessioni e stato temporaneo |
-| Proxy | Traefik v3 | Routing dichiarativo via file provider |
-| Monitoring | Elasticsearch, Kibana, APM, Filebeat, Fleet | Log, metriche, tracing |
+# Un’avventura tra scienza e gioco
 
-Lo stack è diviso in due Compose: `docker-compose.dev.yml` (applicazione) e
-`docker-compose.monitoring.yml` (Elastic). Vedi [MONITORING_SETUP.md](MONITORING_SETUP.md).
+**Pot Tales** è un videogioco educativo online che trasforma la ricerca
+archeometrica sui residui conservati nelle ceramiche antiche in un’avventura
+interattiva 2D. Il giocatore esplora un laboratorio di ricerca archeologica,
+entra nelle “profondità oscure” dei depositi e ne riemerge seguendo gli indizi
+della scoperta scientifica.
 
-> Nota: `docker-compose.prod.yml` è attualmente obsoleto (risale all'era Node).
-> Va riallineato prima di un deploy reale — vedi l'avviso in testa al file.
+Il progetto nasce da un’iniziativa didattica multidisciplinare: studenti di
+archeologia e informatica, insieme a professionisti dell’audiovisivo, hanno
+cercato un linguaggio nuovo per raccontare risultati di ricerca complessi.
 
-## Requisiti
+## Il contesto della ricerca
 
-- Docker 20.10+ e Docker Compose 2.0+
-- Node.js 18+ (per build/locali; il toolchain Vite 5 non gira su Node < 18)
-- Almeno 4 GB di RAM per Elasticsearch
+I depositi neri che si trovano all’interno dei contenitori in ceramica si
+comportano come capsule del tempo. Il loro studio può restituire informazioni
+preziose sulle attività quotidiane delle comunità antiche e sugli ambienti in
+cui vivevano.
 
-## Avvio sviluppo
+L’indagine combina analisi petrografiche, mineralogiche, chimiche e
+spettroscopiche con microscopia elettronica e datazione. Pot Tales rende
+esplorabili metodi e risultati senza ridurli a una lezione frontale: si impara
+muovendosi, osservando e risolvendo le sfide del gioco.
+
+## Dal problema alla soluzione
+
+Comunicare efficacemente la ricerca archeologica non è semplice. Per questo il
+progetto usa una narrazione esplorativa: il giocatore percorre metaforicamente
+i depositi come una caverna buia, trova il proprio cammino e scopre, passo dopo
+passo, ciò che le analisi di laboratorio hanno reso visibile.
+
+L’esperienza è accessibile dal browser desktop e non richiede installazione.
+L’interfaccia è disponibile in italiano e inglese; la raccolta analitica
+facoltativa viene attivata soltanto dopo una scelta esplicita del visitatore.
+
+## Il team
+
+F. M. Valente · C. D. Baeza Vega · D. Favale · L. Mocchiutti · I. Malliota ·
+I. Garcia Trivès · T. T. Kahveci · R. Buso · A. Cipriani · F. Marcon ·
+I. Rossi · L. Soligo
+
+## Dietro le quinte
+
+Il gioco usa Phaser 3 e TypeScript/Vite, con un backend Go e stato temporaneo
+su MongoDB e Redis. Lo stack di produzione gira su Docker Swarm dietro Traefik
+e integra osservabilità Elastic, telemetria RUM, controlli esterni, backup ed
+esportazione dei dati.
+
+Per provare il progetto in locale:
 
 ```bash
-# 1. Applicazione (crea anche le reti condivise)
-docker compose -f docker-compose.dev.yml up -d
-
-# 2. (opzionale) Monitoring Elastic
-./scripts/start-monitoring.sh
+cp .env.example .env
+make dev-up
 ```
 
-Reinstallazione completa delle dipendenze e rebuild: `./scripts/dev-reinstall.sh`.
+I riferimenti per chi sviluppa o gestisce il servizio sono volutamente
+separati dalla presentazione:
 
-## Accesso ai servizi
+- [Funzionalità e verifiche esterne](features.md)
+- [Sviluppo locale](docs/SVILUPPO.md)
+- [Architettura](docs/ARCHITETTURA.md)
+- [Esercizio e recovery](docs/ESERCIZIO.md)
+- [Provisioning della macchina](provisioning/README.md)
+- [Osservabilità come codice](terraform/elk/README.md)
 
-| Servizio | URL |
-|---|---|
-| Frontend gioco | http://localhost |
-| Dashboard Traefik (dev) | http://localhost:8080 |
-| Kibana | http://kibana.localhost |
-| APM | http://apm.localhost |
-| Mongo Express | http://mongo-ui.localhost |
-| Redis Commander | http://redis-ui.localhost |
-| Sandbox (dev) | http://localhost/sandbox/ |
-
-Setup completo e valori di sviluppo in [SETUP.md](SETUP.md); dettaglio variabili
-in [ENV_GUIDE.md](ENV_GUIDE.md).
-
-## Produzione
-
-`docker-compose.prod.yml` e `./scripts/prod-rebuild.sh` esistono ma vanno
-riallineati allo stack attuale (backend Go + Traefik) prima dell'uso.
-Per la pulizia pre-deploy dei dati di sviluppo: `./scripts/cleanup.sh --production`
-(con backup automatico). Dettagli in [scripts/README.md](scripts/README.md).
-
-## Backend: API
-
-Le rotte sono dichiarate in una whitelist con validazione JSON Schema
-(`server/middleware/validator.go`, schemi in `comms/server/public/`):
-
-| Metodo | Rotta | Auth | Descrizione |
-|---|---|---|---|
-| POST | `/auth/session` | no | Crea sessione (cookie `session_token`) |
-| GET | `/auth/validate` | sì | Verifica sessione |
-| GET | `/game/position` | sì | Stato posizione/scena |
-| GET | `/game/timer` | sì | Tempo di gioco |
-| GET | `/health` | no | Stato server/Mongo/Redis |
-| POST | `/log` | no | Ingest eventi dal frontend -> Elastic |
-
-L'autenticazione usa session token (cookie + cache Redis/Mongo), non JWT
-(`JWT_SECRET` in `.env` è un residuo non usato).
-
-## Logging e analytics
-
-- Backend: log strutturati JSON (ECS-like) su stdout, vedi `server/helpers/logger.go`.
-- Frontend: eventi inviati a `POST /log` e ristampati dal backend come dataset
-  `frontend.app`.
-- Filebeat raccoglie i log dei container e li invia a Elasticsearch (indici `filebeat-*`);
-  Kibana e APM per dashboard e tracing.
-
-## Documentazione
-
-- [GAME_ARCHITECTURE.md](GAME_ARCHITECTURE.md) — architettura e pattern del gioco
-- [MONITORING_SETUP.md](MONITORING_SETUP.md) — stack Elastic, gestione e fragilità note
-- [ENV_GUIDE.md](ENV_GUIDE.md) — variabili d'ambiente
-- [scripts/README.md](scripts/README.md) — script di automazione
-
-> I PDF in `docs/` sono export datati delle versioni precedenti di questi documenti
-> e possono risultare disallineati.
+`make help` elenca i comandi disponibili e rimane la fonte operativa più
+rapida per orientarsi nel repository.

@@ -1,0 +1,11 @@
+[Unit]
+Description=Recapito degli allarmi depositati dalle regole di Kibana
+After=docker.service
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+EnvironmentFile=-/etc/stack-surveillance.env
+ExecStart=/usr/local/bin/alert-notifier.sh
+TimeoutStartSec=120
+StateDirectory=stack-surveillance

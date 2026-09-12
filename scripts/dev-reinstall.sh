@@ -17,6 +17,12 @@ set -euo pipefail
 _ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$_ROOT"
 
+# Ensure local environment file exists for docker compose.
+if [ ! -f "$_ROOT/.env" ] && [ -f "$_ROOT/.env.example" ]; then
+    cp "$_ROOT/.env.example" "$_ROOT/.env"
+    echo "   ℹ️  Creato .env da .env.example"
+fi
+
 # Configura GOPRIVATE per moduli privati
 export GOPRIVATE=github.com/subnetMusk/progetti_innovativi/server
 

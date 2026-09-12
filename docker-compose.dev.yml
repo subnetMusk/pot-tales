@@ -26,7 +26,7 @@ services:
 
   # Traefik – reverse proxy con routing dichiarativo via file provider
   proxy:
-    image: traefik:v3.1
+    image: traefik:v3.7.10@sha256:9c3b91d5fb7770853ca5c1124a23c34bf2d9b47ffaebeab2614cbaf410dcb2ac
     container_name: traefik
     restart: unless-stopped
     command:
@@ -39,17 +39,26 @@ services:
       - frontend_net
     volumes:
       - ./docker/traefik/traefik.yml:/etc/traefik/traefik.yml:ro
-      - ./docker/traefik/dynamic.yml:/etc/traefik/dynamic.yml:ro
+      - ./docker/traefik/dynamic:/etc/traefik/dynamic:ro
+      - traefik_logs:/var/log/traefik
     depends_on:
       - server
       - sandbox
       - frontend
+    mem_limit: 512m
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
 
   # Go backend API service
   server:
     build:
-      context: ./server
-      dockerfile: Dockerfile
+      # Il contesto e' la radice: l'immagine include anche gli schemi in
+      # `comms/`, che stanno fuori da `server/`.
+      context: .
+      dockerfile: server/Dockerfile
       target: builder
     container_name: server
     networks:
@@ -73,10 +82,16 @@ services:
     depends_on:
       - db
       - redis
+    mem_limit: 512m
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
 
   # Redis in-memory database with ACL
   redis:
-    image: redis:alpine
+    image: redis:8.10.0-alpine@sha256:978f0e01593e65eed801f2402944efcd936d43b5027e4908a7897baf88ed6241
     container_name: redis
     env_file:
       - .env
@@ -88,10 +103,16 @@ services:
       - "6379"
     networks:
       - internal_net
+    mem_limit: 512m
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
 
   # MongoDB database with init scripts and log bind
   db:
-    image: mongo:latest
+    image: mongo:8.2.12@sha256:e0ce8c35124d4a9f9785532d1f268f39e9728ffa1cb38f46fa482436424c4bd3
     container_name: db
     env_file:
       - .env
@@ -103,10 +124,16 @@ services:
       - ./docker/volumes/mongodb:/data/db:delegated
       - ./docker/init-db:/docker-entrypoint-initdb.d:ro
       - ./docker/volumes/logs/mongodb:/var/log/mongodb
+    mem_limit: 2g
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
 
   # MongoDB Web UI (mongo-express)
   mongo-ui:
-    image: mongo-express:latest
+    image: mongo-express:1.0.2@sha256:1b23d7976f0210dbec74045c209e52fbb26d29b2e873d6c6fa3d3f0ae32c2a64
     container_name: mongo-ui
     restart: unless-stopped
     environment:
@@ -119,10 +146,17 @@ services:
       - db
     expose:
       - "8081"
+    mem_limit: 256m
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
 
   # Redis Web UI (redis-commander)
   redis-ui:
-    image: rediscommander/redis-commander:latest
+    # L'immagine upstream pubblica solo il tag `latest`, pinnato per digest.
+    image: rediscommander/redis-commander:latest@sha256:19cd0c49f418779fa2822a0496c5e6516d0c792effc39ed20089e6268477e40a
     container_name: redis-ui
     platform: linux/amd64
     restart: unless-stopped
@@ -135,6 +169,12 @@ services:
       - redis
     expose:
       - "8081"
+    mem_limit: 256m
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
 
   # Vite sandbox frontend dev server
   sandbox:
@@ -157,6 +197,12 @@ services:
     command: npm run dev -- --host 0.0.0.0
     depends_on:
       - server
+    mem_limit: 1g
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
 
   # Production frontend build (served statically by NGINX)
   frontend:
@@ -176,6 +222,12 @@ services:
       - "80"
     depends_on:
       - server
+    mem_limit: 512m
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
 
 
 ############################
@@ -183,3 +235,4 @@ services:
 ############################
 volumes:
   esdata: {}              # Persistent data for Elasticsearch
+  traefik_logs: {}        # Access log, sorgente per l'analisi di sicurezza

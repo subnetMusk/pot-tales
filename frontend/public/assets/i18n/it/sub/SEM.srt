@@ -1,0 +1,31 @@
+1
+00:00:02,000 --> 00:00:07,500
+A differenza dei microscopi ottici, il Microscopio Elettronico a Scansione usa un fascio focalizzato di elettroni invece della luce,
+
+2
+00:00:08,000 --> 00:00:12,000
+permettendo di risolvere dettagli molto più piccoli della lunghezza d'onda della luce visibile.
+
+3
+00:00:13,000 --> 00:00:18,500
+Il fascio di elettroni viene fatto scorrere sulla superficie del campione punto per punto, in un pattern a raster,
+
+4
+00:00:19,000 --> 00:00:24,000
+mentre lenti elettromagnetiche lo focalizzano e lo dirigono con precisione nanometrica.
+
+5
+00:00:25,000 --> 00:00:30,500
+Quando gli elettroni colpiscono il campione, strappano dalla sua superficie elettroni secondari a bassa energia,
+
+6
+00:00:31,000 --> 00:00:35,500
+ed è proprio questi elettroni secondari che un rilevatore raccoglie per costruire l'immagine.
+
+7
+00:00:36,500 --> 00:00:41,000
+Il risultato è una mappa estremamente dettagliata e dall'aspetto tridimensionale della topografia del campione,
+
+8
+00:00:41,500 --> 00:00:51,300
+che rivela strutture invisibili a qualsiasi microscopio basato sulla luce.

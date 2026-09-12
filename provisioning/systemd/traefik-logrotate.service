@@ -1,0 +1,18 @@
+[Unit]
+Description=Rotazione dell'access log di Traefik
+# Il file vive su un volume Docker: senza il demone, il percorso non esiste
+# ancora e la rotazione non avrebbe nulla su cui lavorare.
+After=docker.service
+
+[Service]
+Type=oneshot
+
+# Stato separato da quello del logrotate di sistema, che non conosce questa
+# configurazione e non deve conoscerla: due contatori sullo stesso file
+# ruoterebbero a turno, dimezzando la finestra conservata.
+StateDirectory=traefik-logrotate
+ExecStart=/usr/sbin/logrotate --state /var/lib/traefik-logrotate/stato /etc/logrotate.traefik.conf
+
+# Un fallimento non e' urgente: il file cresce ancora per un'ora e il tentativo
+# successivo lo trova sopra la soglia, quindi ruota comunque.
+TimeoutStartSec=120

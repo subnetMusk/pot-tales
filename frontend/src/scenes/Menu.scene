@@ -37,55 +37,12 @@
         },
         {
             "type": "Rectangle",
-            "id": "212906bf-af42-4fd1-bca2-572ce7f12351",
-            "label": "Leaderboard_button",
-            "displayName": "Leader button",
-            "scope": "CLASS",
-            "x": 640,
-            "y": 534,
-            "strokeColor": "#f0f8ff",
-            "lineWidth": 2,
-            "isStroked": true,
-            "width": 400,
-            "height": 75
-        },
-        {
-            "type": "Text",
-            "id": "740b6b0c-8a36-4dc3-9451-5be9043034c2",
-            "label": "Leaderboard",
-            "useGameObjectName": true,
-            "x": 640,
-            "y": 534,
-            "originX": 0.5,
-            "originY": 0.5,
-            "text": "Leaderboard",
-            "align": "center",
-            "fontFamily": "PixelifySans-VariableFont_wght",
-            "fontSize": "30px",
-            "color": "#f0f8ff",
-            "stroke": "#000000"
-        },
-        {
-            "type": "Image",
-            "id": "bc85f77b-dc3d-4dae-9f9d-b66d0324f959",
-            "label": "leaderboard_icon",
-            "displayName": "Leaderboard Icon",
-            "texture": {
-                "key": "leaderboard"
-            },
-            "x": 478,
-            "y": 532,
-            "scaleX": 2,
-            "scaleY": 2
-        },
-        {
-            "type": "Rectangle",
             "id": "e077216e-4bdd-4ed4-bab7-6374c06c558f",
             "label": "Gallery_button",
             "displayName": "Gallery Button",
             "scope": "CLASS",
             "x": 640,
-            "y": 448,
+            "y": 520,
             "strokeColor": "#f0f8ff",
             "lineWidth": 2,
             "isStroked": true,
@@ -98,7 +55,7 @@
             "label": "Gallery",
             "useGameObjectName": true,
             "x": 640,
-            "y": 448,
+            "y": 520,
             "originX": 0.5,
             "originY": 0.5,
             "text": "Gallery",
@@ -117,7 +74,7 @@
                 "key": "gallery"
             },
             "x": 478,
-            "y": 447,
+            "y": 520,
             "scaleX": 2,
             "scaleY": 2
         },
@@ -128,7 +85,7 @@
             "displayName": "Continue Button",
             "scope": "CLASS",
             "x": 640,
-            "y": 362,
+            "y": 420,
             "strokeColor": "#f0f8ff",
             "lineWidth": 2,
             "isStroked": true,
@@ -142,7 +99,7 @@
             "displayName": "Continue",
             "useGameObjectName": true,
             "x": 640,
-            "y": 362,
+            "y": 420,
             "originX": 0.5,
             "originY": 0.5,
             "text": "Continue",
@@ -158,11 +115,10 @@
             "label": "resume_icon",
             "displayName": "Continue Icon",
             "texture": {
-                "key": "play",
-                "frame": 0
+                "key": "continue"
             },
             "x": 478,
-            "y": 362,
+            "y": 420,
             "scaleX": 2,
             "scaleY": 2
         },
@@ -173,7 +129,7 @@
             "displayName": "Play Button",
             "scope": "CLASS",
             "x": 640,
-            "y": 276,
+            "y": 320,
             "strokeColor": "#f0f8ff",
             "lineWidth": 2,
             "isStroked": true,
@@ -186,7 +142,7 @@
             "label": "Play",
             "useGameObjectName": true,
             "x": 640,
-            "y": 276,
+            "y": 320,
             "originX": 0.5,
             "originY": 0.5,
             "text": "Play",
@@ -206,7 +162,7 @@
                 "frame": 0
             },
             "x": 478,
-            "y": 277,
+            "y": 320,
             "scaleX": 2,
             "scaleY": 2
         },
@@ -233,7 +189,9 @@
                 "key": "title"
             },
             "x": 640,
-            "y": 150
+            "y": 150,
+            "scaleX": 2,
+            "scaleY": 2
         },
         {
             "type": "Text",
@@ -242,7 +200,7 @@
             "useGameObjectName": true,
             "scope": "CLASS",
             "x": 316,
-            "y": 622,
+            "y": 680,
             "originX": 0.5,
             "originY": 0.5,
             "text": "Demo 0.1",
@@ -272,9 +230,6 @@
                 "c0363a2e-c739-419e-91b2-36bac29f920e",
                 "e077216e-4bdd-4ed4-bab7-6374c06c558f",
                 "8708ef72-5d1c-459d-b92b-f6b0d081107a",
-                "bc85f77b-dc3d-4dae-9f9d-b66d0324f959",
-                "740b6b0c-8a36-4dc3-9451-5be9043034c2",
-                "212906bf-af42-4fd1-bca2-572ce7f12351",
                 "cd866935-4696-4d3d-aae6-65725956c783",
                 "86cf0036-7675-43db-80cd-eecc46829223",
                 "7e922fde-8435-4281-8e00-a21a90551bee",
@@ -290,15 +245,6 @@
                 "86cf0036-7675-43db-80cd-eecc46829223",
                 "7e922fde-8435-4281-8e00-a21a90551bee",
                 "c66bc216-dfc8-4532-80d6-7619a808dde4"
-            ]
-        },
-        {
-            "id": "9dff0c81-8bbf-4987-b7d9-72a8e99c4a3d",
-            "label": "leaderboard_button_items",
-            "objectIds": [
-                "bc85f77b-dc3d-4dae-9f9d-b66d0324f959",
-                "740b6b0c-8a36-4dc3-9451-5be9043034c2",
-                "212906bf-af42-4fd1-bca2-572ce7f12351"
             ]
         }
     ]

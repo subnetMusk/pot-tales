@@ -1,0 +1,25 @@
+# Raccolta diagnostica allo spegnimento ordinato.
+#
+# L'unita' non fa nulla all'avvio: RemainAfterExit la mantiene attiva perche'
+# ExecStop venga eseguito allo spegnimento. `After=docker.service` fa si' che
+# venga fermata prima di Docker, quindi la raccolta trova ancora i servizi in
+# esecuzione.
+
+[Unit]
+Description=Raccolta dello stato diagnostico allo spegnimento
+After=docker.service
+Requires=docker.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=true
+ExecStart=/bin/true
+ExecStop=/usr/local/bin/diagnostic-bundle.sh
+TimeoutStopSec=90
+# Il nome dello stack sta nella configurazione del deploy: senza, la raccolta
+# fotograferebbe uno stack che non esiste.
+EnvironmentFile=-/etc/stack-deploy.env
+Environment=DIAGNOSTIC_DEST=/srv/diagnostics
+
+[Install]
+WantedBy=multi-user.target

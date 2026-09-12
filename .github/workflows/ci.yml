@@ -1,3 +1,17 @@
+# Pipeline di integrazione continua.
+#
+# I lavori invocano gli stessi target di `make` che si usano in locale. Non e'
+# una preferenza di stile: se la pipeline riscrivesse i comandi in YAML,
+# locale e pipeline potrebbero divergere senza che nulla lo segnali, e il comando
+# che riproduce un fallimento andrebbe ricostruito a mano ogni volta.
+#
+# Le action sono ancorate al commit e non al tag. Un tag e' mutabile: nel marzo
+# 2026 l'action di uno strumento di analisi ha avuto settantacinque dei suoi
+# settantasei tag riscritti, con esfiltrazione di segreti da ogni pipeline che
+# eseguiva una scansione. Lo strumento aggiunto per la sicurezza e' stato il
+# vettore. Per la stessa ragione gli analizzatori girano come immagini ancorate
+# per digest, invocate dai target, invece che come action di terze parti.
+
 name: CI
 
 on:
@@ -6,81 +20,204 @@ on:
   pull_request:
     branches: [main, develop]
 
-permissions:
-  contents: read
+# Nessun permesso predefinito: ogni lavoro dichiara solo cio' che gli serve.
+#
+# Il repository e' privato: senza `contents: read` il token del lavoro non vede
+# il repository, e il checkout fallisce con "Repository not found" prima di
+# eseguire qualunque verifica. Ogni lavoro che fa il checkout lo dichiara.
+permissions: {}
+
+# Una esecuzione per riferimento: quelle superate vengono annullate invece di
+# competere per i runner.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
+
   backend:
     name: Backend Go
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: server
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-go@v5
-        with:
-          go-version: "1.22"
-          cache-dependency-path: server/go.sum
-      - run: go vet ./...
-      - run: go build ./...
-      - run: go test ./...
-
-  frontend:
-    name: Frontend / Sandbox build
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: "18"
-      - name: Build frontend
-        working-directory: frontend
-        run: |
-          npm ci
-          npm run build
-      - name: Install sandbox deps
-        working-directory: sandbox
-        run: npm ci
-
-  compose-lint:
-    name: Docker Compose validation
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - name: Create .env from template
-        run: cp .env.example .env
-      - name: Validate compose files
-        run: |
-          docker compose -f docker-compose.dev.yml config -q
-          docker compose -f docker-compose.monitoring.yml config -q
-
-  dockerfiles:
-    name: Hadolint Dockerfiles
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        dockerfile:
-          - server/Dockerfile
-          - frontend/Dockerfile
-          - sandbox/Dockerfile
-    steps:
-      - uses: actions/checkout@v4
-      - uses: hadolint/hadolint-action@v3.1.0
-        with:
-          dockerfile: ${{ matrix.dockerfile }}
-          failure-threshold: error
-
-  secrets-scan:
-    name: Gitleaks secret scan
-    runs-on: ubuntu-latest
     permissions:
       contents: read
-      pull-requests: read # gitleaks-action lista i commit della PR via API
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
+          # Il token del checkout resterebbe nella configurazione git del
+          # runner, a disposizione di qualunque passo successivo.
+          persist-credentials: false
+      - run: make go-fmt
+      - run: make go-vet
+      - run: make go-build
+      - run: make go-test
+      # I test di integrazione avviano MongoDB e Redis: gli handler dipendono da
+      # tipi concreti e non sono sostituibili con doppi, quindi l'unico modo di
+      # esercitarli e' farli girare contro basi dati vere.
+      - run: make go-test-integration
+      # La copertura si misura sulla stessa esecuzione: contarla senza i test di
+      # integrazione descriverebbe meta' del codice.
+      - name: Copertura
+        run: make go-cover-full
+
+  frontend:
+    name: Frontend
+    permissions:
+      contents: read
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      # La compilazione non verifica i tipi: senza questo passo un errore di
+      # tipo arriva in produzione insieme a un artefatto che si e' costruito
+      # senza protestare.
+      - run: make frontend-typecheck
+      - run: make frontend-build
+      - run: make frontend-csp-check
+
+  statica:
+    name: Analisi statica
+    permissions:
+      contents: read
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - run: make lint-workflows
+      - run: make lint-shell
+      - run: make lint-docker
+      - run: make lint-compose
+      - run: make lint-stack
+      - run: make filebeat-config-check
+      - run: make dashboard-export-check
+      - run: make dashboard-users-check
+      - run: make lint-terraform
+      - run: make terraform-validate
+
+  sicurezza:
+    name: Analisi di sicurezza
+    permissions:
+      contents: read
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          # La ricerca di credenziali attraversa la cronologia, non solo
+          # l'albero di lavoro.
           fetch-depth: 0
-      - uses: gitleaks/gitleaks-action@v2
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          persist-credentials: false
+      - run: make scan-secrets
+      - run: make scan-deps-go
+
+  runtime:
+    name: Verifica a runtime
+    permissions:
+      contents: read
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - name: Costruisce gli artefatti
+        run: make images
+      # Avvia davvero i servizi e li interroga. E' la categoria di controllo che
+      # in questo progetto ha trovato piu' difetti, tutti passati indenni dalla
+      # validazione statica perche' esistono solo all'esecuzione.
+      - name: Avvia e interroga
+        run: make runtime-check
+      # I drill usano servizi e volumi effimeri sul runner. Restano qui, e non
+      # sulla postazione operativa con poco disco: verificano che il dump
+      # notturno non finisca fra gli export manuali e cronometrano tutte e tre
+      # le strade di recovery senza toccare i dati di produzione.
+      - name: Backup e recovery
+        run: |
+          make backup-drill
+          make restore-drill
+      - name: Vulnerabilita' note nelle immagini
+        run: make scan-images
+
+  # Pubblicazione su GitHub Container Registry. Non viene eseguita sulle pull
+  # request: il token associato a una PR da fork non ha permessi di scrittura
+  # sui package.
+  #
+  # Dipende dalla verifica a runtime: non si pubblica un'immagine che non e'
+  # stata vista partire.
+  #
+  # Solo dai push su main e develop, non dalle pull request: le immagini in
+  # registro vengono dalle revisioni promosse.
+  publish-images:
+    name: Build e push immagini su GHCR
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop')
+    needs: [backend, frontend, statica, runtime]
+    permissions:
+      contents: read
+      packages: write
+    strategy:
+      matrix:
+        include:
+          # Il backend si costruisce dalla radice: l'immagine deve includere
+          # anche gli schemi in `comms/`, esterni a `server/`.
+          - name: server
+            context: .
+            file: ./server/Dockerfile
+          - name: frontend
+            context: ./frontend
+            file: ./frontend/Dockerfile
+          - name: landing
+            context: ./landing
+            file: ./landing/Dockerfile
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+
+      - uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3
+
+      - name: Login su GHCR
+        uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Calcola tag e label
+        id: meta
+        uses: docker/metadata-action@c299e40c65443455700f0fdfc63efafe5b349051 # v5
+        with:
+          images: ghcr.io/${{ github.repository }}/${{ matrix.name }}
+          tags: |
+            type=ref,event=branch
+            type=sha,format=long
+            type=raw,value=latest,enable={{is_default_branch}}
+
+      - name: Build e push
+        id: build
+        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6
+        with:
+          context: ${{ matrix.context }}
+          file: ${{ matrix.file }}
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      # Il digest e' l'identificatore immutabile dell'immagine pubblicata, ed e'
+      # il valore da riportare in /etc/stack-deploy.env sulla macchina.
+      - name: Riporta il digest nel summary
+        run: |
+          {
+            echo "### ${{ matrix.name }}"
+            echo ""
+            echo '```'
+            echo "ghcr.io/${{ github.repository }}/${{ matrix.name }}@${{ steps.build.outputs.digest }}"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"

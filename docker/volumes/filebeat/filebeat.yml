@@ -12,6 +12,52 @@ filebeat.inputs:
           process_array: false
           max_depth: 1
 
+  # Access log di Traefik.
+  #
+  # Il file su disco conserva l'indirizzo completo, perche' e' la sorgente che
+  # CrowdSec analizza per emettere decisioni. L'anonimizzazione avviene qui,
+  # prima della spedizione, cosi' che negli indici finisca solo la forma
+  # troncata. Le due esigenze convivono perche' agiscono su percorsi distinti:
+  # il file resta locale e a rotazione breve, l'indice e' la copia conservata.
+  - type: filestream
+    id: traefik-access
+    paths:
+      - /var/log/traefik/access.log
+    parsers:
+      - ndjson:
+          target: ""
+          overwrite_keys: true
+          add_error_key: true
+    processors:
+      - add_fields:
+          target: event
+          fields:
+            dataset: traefik.access
+      # Azzera l'ultimo ottetto degli indirizzi IPv4.
+      - replace:
+          fields:
+            - field: "ClientHost"
+              pattern: '\.[0-9]{1,3}$'
+              replacement: ".0"
+            - field: "ClientAddr"
+              pattern: '\.[0-9]{1,3}:'
+              replacement: ".0:"
+          ignore_missing: true
+          fail_on_error: false
+      # Conserva il prefisso /48 degli indirizzi IPv6.
+      - replace:
+          fields:
+            - field: "ClientHost"
+              pattern: '^([0-9a-fA-F]{1,4}:[0-9a-fA-F]{1,4}:[0-9a-fA-F]{1,4}):.*$'
+              replacement: "$1::"
+          ignore_missing: true
+          fail_on_error: false
+      - drop_fields:
+          fields:
+            - "request_Authorization"
+            - "request_Cookie"
+          ignore_missing: true
+
 output.elasticsearch:
   hosts: ["https://es01:9200"]
   username: "${ELASTICSEARCH_USERNAME}"

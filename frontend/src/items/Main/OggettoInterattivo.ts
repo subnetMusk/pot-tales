@@ -12,11 +12,10 @@ class OggettoInterattivo extends Phaser.GameObjects.Sprite {
         /* END-USER-CTR-CODE */
 	}
 
-	public id_ogg: number = 0;
-	public categoria: string = "";
-	public number: number = 1;
 	public interagisci!: () => void;
     public set : boolean = true;
+
+    public interactionRadius : number = 32;
 
 	/* START-USER-CODE */
 
@@ -24,20 +23,8 @@ class OggettoInterattivo extends Phaser.GameObjects.Sprite {
         this.setTexture(img);
     }
 
-    public getId(): number {
-        return this.id_ogg;
-    }
-
-    public getCategoria(): string {
-        return this.categoria;
-    }
-
-    public getNumero(): number {
-        return this.number;
-    }   
-
     public setVisible(value: boolean): this {
-        this.setVisible(value);
+        super.setVisible(value);
         return this;
     }
 

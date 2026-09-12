@@ -1,0 +1,26 @@
+# Contesto di build del backend.
+#
+# Il contesto e' la radice del repository e non `server/`, perche' l'immagine
+# deve contenere anche gli schemi di validazione in `comms/`: sono un contratto
+# condiviso e non appartengono al modulo Go, ma senza di essi il processo non
+# arriva ad ascoltare.
+#
+# Un contesto alla radice includerebbe anche `client/`, `frontend/` e
+# `sandbox/`, che da soli superano il gigabyte e mezzo. Si parte quindi da tutto
+# escluso e si riammettono i soli percorsi che il Dockerfile copia.
+*
+
+!server
+!comms
+
+# Riesclusioni dentro i percorsi riammessi: artefatti di compilazione, file di
+# lavoro dello strumento di ricarica a caldo e qualunque cosa somigli a una
+# credenziale, che non deve poter entrare in un livello dell'immagine.
+server/tmp
+server/server
+server/.dockerignore
+**/*.log
+**/.env
+**/.env.*
+**/*.pem
+**/*.key

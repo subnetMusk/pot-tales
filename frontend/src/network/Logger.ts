@@ -1,4 +1,5 @@
 import apm from '../apm-rum-config.js';
+import { hasAnalyticsConsent } from '../privacy/consent';
 
 /**
  * Tassonomia unificata per i log.
@@ -42,6 +43,8 @@ class LoggerService {
       console.info(`[Business] ${category}:${action}`, details);
     }
 
+    if (!hasAnalyticsConsent()) return;
+
     // 2. Elastic APM (Span corrente o Transaction)
     // Aggiungiamo un evento "mark" alla timeline APM
     const currentTx = apm.getCurrentTransaction();
@@ -72,10 +75,18 @@ class LoggerService {
   public error(category: LogCategory, action: string, error: Error, details: LogDetails = {}) {
     console.error(`[Error] ${category}:${action}`, error);
 
+    if (!hasAnalyticsConsent()) return;
+
     // 1. Elastic APM Error Capture
+    //
+    // L'agente RUM accetta come opzione soltanto `labels`, che sono indicizzate
+    // e devono restare valori scalari: i dettagli, che hanno forma libera,
+    // vanno nel contesto personalizzato. La versione precedente passava
+    // `custom` e `tags`, che appartengono all'agente Node e non a questo: erano
+    // ignorati, e gli errori arrivavano ad APM senza alcun dettaglio.
+    apm.setCustomContext({ ...details, category, action });
     apm.captureError(error, {
-      custom: { ...details, category, action },
-      tags: { category, action }
+      labels: { category, action }
     });
 
     // 2. Backend Ingestion
@@ -90,6 +101,7 @@ class LoggerService {
    * Imposta l'utente corrente per la correlazione dei log.
    */
   public setUser(userId: string, username?: string, email?: string) {
+    if (!hasAnalyticsConsent()) return;
     apm.setUserContext({
       id: userId,
       username: username,
@@ -98,6 +110,7 @@ class LoggerService {
   }
 
   private sendToBackend(level: string, category: string, action: string, details: any) {
+    if (!hasAnalyticsConsent()) return;
     // Non blocchiamo l'esecuzione per il logging (fire and forget)
     fetch(this.apiUrl, {
       method: 'POST',

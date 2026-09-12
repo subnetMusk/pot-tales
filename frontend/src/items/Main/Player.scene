@@ -23,8 +23,8 @@
                     "label": "player",
                     "scope": "CLASS",
                     "texture": {
-                        "key": "player_idle",
-                        "frame": 1
+                        "key": "Ch_front",
+                        "frame": 0
                     },
                     "ArcadeComponent.active": true,
                     "body.width": 32,
@@ -128,11 +128,22 @@
                     "texture": {
                         "key": "darkMask"
                     },
-                    "alpha": 0.5,
-                    "alphaTopLeft": 0.5,
-                    "alphaTopRight": 0.5,
-                    "alphaBottomLeft": 0.5,
-                    "alphaBottomRight": 0.5
+                    "alpha": 0.75,
+                    "alphaTopLeft": 0.75,
+                    "alphaTopRight": 0.75,
+                    "alphaBottomLeft": 0.75,
+                    "alphaBottomRight": 0.75
+                },
+                {
+                    "type": "Image",
+                    "id": "c9d59730-164d-430c-b9e1-dd909f5e68c9",
+                    "label": "playerUi",
+                    "scope": "CLASS",
+                    "texture": {
+                        "key": "player_ui"
+                    },
+                    "x": -64,
+                    "y": -54
                 }
             ]
         }

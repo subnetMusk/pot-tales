@@ -110,7 +110,7 @@ function testRUMInBrowser() {
 async function checkRUMTraces() {
   console.log('\n🔍 Verifica trace RUM in Elasticsearch...');
   
-  exec('docker exec elasticsearch curl -s -u "elastic:m6OHmMuiqNrV1i25Jz3Z" "http://localhost:9200/traces-apm*/_search?q=service.name:frontend-app&size=5" 2>/dev/null', 
+  exec('docker exec elasticsearch curl -s -u \"elastic:$ELASTIC_PASSWORD\" "http://localhost:9200/traces-apm*/_search?q=service.name:frontend-app&size=5" 2>/dev/null', 
     (error, stdout, stderr) => {
       if (error) {
         console.log('❌ Errore controllo Elasticsearch:', error.message);

@@ -1,6 +1,7 @@
 // You can write more code here
 import { applyTranslations } from "../../utils";
 import { fadeElements } from "../../utils";
+import { soundManager } from "../../audio/SoundManager";
 /* START OF COMPILED CODE */
 
 class VideoPlayer extends Phaser.GameObjects.Container {
@@ -310,7 +311,7 @@ class VideoPlayer extends Phaser.GameObjects.Container {
                 this.scene.events.emit('video-ended', this.video?.texture.key);
             } else if(this.video.isPlaying()) {
                 this.skipFillOverlay.clear();
-                this.skipFillOverlay.fillStyle(0xbdbdbd, 0.5);
+                this.skipFillOverlay.fillStyle(0xff0000, 0.5);
                 this.skipFillOverlay.fillRect(
                     this.skipIcon.x - this.skipIcon.displayWidth / 2,
                     this.skipIcon.y - this.skipIcon.displayHeight / 2,
@@ -365,11 +366,19 @@ class VideoPlayer extends Phaser.GameObjects.Container {
         else this.play();
     };
 
+    // Keeps an already-loaded video's volume in sync with Main Volume - Phaser.GameObjects.Video
+    // sits outside the Sound Manager, so it doesn't get this for free like this.sound.* does.
+    private mainVolumeChangeHandler = (volume: number) => {
+        this.video?.setVolume(volume);
+    };
+
     private registerHandlers() {
         this.scene.input.on('pointermove', this.pointerMoveHandler);
         this.scene.events.on('update', this.updateHandler);
 
         this.playButton.setInteractive().on('pointerup', this.playButtonHandler);
+
+        soundManager.onMainVolumeChange(this.mainVolumeChangeHandler);
 
         if (this.scene.input.keyboard) {
             this.scene.input.keyboard.on('keydown-SPACE', this.handleSkipHoldStart);
@@ -388,6 +397,8 @@ class VideoPlayer extends Phaser.GameObjects.Container {
     private unregisterHandlers() {
 
         this.playButton.off('pointerup', this.playButtonHandler);
+
+        soundManager.offMainVolumeChange(this.mainVolumeChangeHandler);
 
         this.skip.off('pointerdown', this.handleSkipHoldStart);
         this.skip.off('pointerup', this.handleSkipHoldEnd);

@@ -1,0 +1,35 @@
+# Parametri TLS.
+#
+# Il pubblico arriva anche da telefoni datati: la soglia minima e' TLS 1.2 e
+# non 1.3, perche' escludere un visitatore dal gioco per rigore crittografico
+# non protegge nulla in un applicativo senza autenticazione ne' dati sensibili.
+#
+# Le suite dichiarate valgono solo per TLS 1.2: in TLS 1.3 la scelta e' fissata
+# dal protocollo e questa lista viene ignorata.
+
+tls:
+  options:
+    default:
+      minVersion: VersionTLS12
+      cipherSuites:
+        - TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256
+        - TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256
+        - TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384
+        - TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384
+        - TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305
+        - TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305
+      curvePreferences:
+        - X25519
+        - CurveP256
+      # Una richiesta senza indicazione del nome server non corrisponde ad
+      # alcun certificato: rifiutarla evita di servire il certificato
+      # predefinito a chi sta sondando l'indirizzo IP.
+      sniStrict: {{ env "TRAEFIK_SNI_STRICT" }}
+
+# Se il dipartimento fornisce un certificato proprio, si dichiara qui e si
+# toglie `certResolver` dall'entrypoint nella configurazione statica.
+#
+# tls:
+#   certificates:
+#     - certFile: /certs/fullchain.pem
+#       keyFile: /certs/privkey.pem
