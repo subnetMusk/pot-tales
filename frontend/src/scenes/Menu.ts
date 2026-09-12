@@ -140,6 +140,7 @@ class Menu extends Phaser.Scene {
 	private apiSession!: APISession;
 	private resumeData?: { sceneId: string; x?: number; y?: number; checkpoints?: string[] };
 	private hasExistingSession = false;
+	private isStartingGame = false;
 
 	// L'icona di ogni bottone (play_icon, gallery_icon, ...) non è esposta come campo di
 	// classe da editorCreate() e non ha un .name assegnato, quindi va cercata dentro a
@@ -170,6 +171,7 @@ class Menu extends Phaser.Scene {
 		// stato di validazione di una precedente apertura del menu.
 		this.hasExistingSession = false;
 		this.resumeData = undefined;
+		this.isStartingGame = false;
 
 		// Sostituisce il bordo piatto dei bottoni con un pannello "8-bit" (bordo spesso +
 		// ombra + highlight, stesso linguaggio visivo del box-shadow stack di style.css).
@@ -290,7 +292,10 @@ class Menu extends Phaser.Scene {
 		this.fullscreen_icon.on('pointerdown', () => {this.fullscreen_icon.setTint(0xbdbdbd); tweenIconScale(this.fullscreen_icon, fullscreenBaseScale, 0.9);});
 
 		this.play_button.on('pointerup', () => {
-			// Evita che due pointerup ravvicinati creino due sessioni distinte.
+			// Difesa esplicita dal reingresso oltre a disableInteractive: protegge
+			// anche da callback gia' accodati nello stesso evento Phaser.
+			if (this.isStartingGame) return;
+			this.isStartingGame = true;
 			this.play_button.disableInteractive();
 			fadeElements(this.uI, false, 1000, () => {
 				this.cameras.main.zoomTo(1.5, 1000);

@@ -45,9 +45,10 @@ tecnici non aggregati quando un pannello non basta a spiegare un’anomalia.
 
 Il numero di documenti del data stream non coincide con il numero di partite:
 ogni documento è un fatto (creazione, checkpoint, cambio scena o conclusione).
-Una partita completa senza rotazioni aggiuntive produce 16 fatti; i riquadri
-“Sessioni create”, “Partite iniziate” e “Partite completate” filtrano invece il
-singolo evento di ciclo di vita corrispondente e crescono di una unità.
+Un click su **Play** produce due fatti iniziali: una `sessione_iniziata` e un
+`checkpoint_raggiunto` per `game_started`. I riquadri “Sessioni create”, “Partite
+iniziate” e “Partite completate” filtrano invece il singolo evento di ciclo di vita
+corrispondente e devono crescere di una sola unità per partita.
 
 Lo Space evento offre anche **Discover** sui soli fatti di gioco, per consultare
 i documenti non aggregati. Non espone log tecnici, indirizzi, cookie o token di sessione.

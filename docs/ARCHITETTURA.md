@@ -177,10 +177,12 @@ checkpoint `game_started`. Questo primo traguardo estende il TTL ridotto delle s
 appena create e separa nelle dashboard l'avvio effettivo dal completamento di Stage 1
 (`stage1_complete`). **Resume** mantiene invece la sessione e lo stato esistenti.
 
-Il data stream contiene **fatti**, non una riga per partita: un percorso completo senza
-rotazioni aggiuntive delle torrette produce 16 documenti fra creazione, checkpoint,
-cambi scena e conclusione. I contatori “partite” filtrano gli eventi unici del ciclo di
-vita; il conteggio grezzo dei documenti misura invece il volume degli eventi. Il
+Il data stream contiene **fatti**, non una riga per partita. Un singolo click su **Play**
+produce esattamente due fatti iniziali: una `sessione_iniziata` e un
+`checkpoint_raggiunto` con checkpoint `game_started`. La progressione aggiunge poi un
+fatto per ciascun checkpoint distinto, cambio scena e conclusione. I contatori
+“partite” filtrano gli eventi unici del ciclo di vita e crescono di una sola unità per
+partita; il conteggio grezzo dei documenti misura invece il volume degli eventi. Il
 checkpoint finale `stage3_complete` chiude immediatamente la partita con motivo
 `completata`, così la spazzata non la riclassifica come abbandono per inattività.
 

@@ -41,14 +41,21 @@ export function showElements(elements: Array<Phaser.GameObjects.GameObject>, sho
 }
 
 export function fadeElements(SceneObject: Array<Phaser.GameObjects.GameObject>, show: boolean, duration: number = 1000, onComplete?: () => void, targetAlpha: number = 1) {
-	SceneObject.forEach(obj => {
-		obj.scene.tweens.add({
-			targets: obj,
-			alpha: show ? targetAlpha : 0,
-			duration: duration,
-			ease: 'Quad.easeInOut',
-			onComplete: onComplete
-		});
+	if (SceneObject.length === 0) {
+		onComplete?.();
+		return;
+	}
+
+	// Un solo tween puo' avere piu' target e chiama onComplete una volta sola.
+	// Registrare lo stesso callback su un tween per elemento lo moltiplicava per
+	// la dimensione dell'array: nel menu, 16 elementi producevano 16 creazioni
+	// di sessione per un solo click su Play.
+	SceneObject[0].scene.tweens.add({
+		targets: SceneObject,
+		alpha: show ? targetAlpha : 0,
+		duration: duration,
+		ease: 'Quad.easeInOut',
+		onComplete
 	});
 }
 
