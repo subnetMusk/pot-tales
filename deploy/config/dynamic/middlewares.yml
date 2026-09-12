@@ -149,10 +149,16 @@ http:
         usersFile: /run/secrets/dashboard_users_esercizio
         realm: "Osservabilita"
 
+    # Stesso realm delle risorse comuni, di proposito. Il browser associa le
+    # credenziali al realm: con un nome diverso, dopo la pagina dello Space
+    # richiederebbe la password a ogni risorsa condivisa di Kibana, e sui
+    # dispositivi senza credenziali salvate le richieste parallele finiscono in
+    # 401 e l'interfaccia non si carica. Il realm e' solo un'etichetta: chi entra
+    # lo decide l'elenco di utenze, diverso per ogni middleware.
     dashboard-auth-evento:
       basicAuth:
         usersFile: /run/secrets/dashboard_users_evento
-        realm: "Andamento evento"
+        realm: "Osservabilita"
 
     # Risorse condivise fra i due Space: accetta entrambe le platee. Non e' un
     # allentamento, perche' oltre il proxy Kibana continua ad autenticare e ad
