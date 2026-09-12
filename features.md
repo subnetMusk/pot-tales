@@ -139,7 +139,7 @@ interruzione, è disponibile sulla macchina:
 
 ```bash
 cd /srv/progetti_innovativi
-sudo FORCE=1 make healthchecks-drill
+sudo FORCE=1 ./provisioning/bin/healthchecks-drill.sh
 ```
 
 ## Diagnostica dalla macchina
@@ -148,14 +148,21 @@ Questi comandi sono in sola lettura e non costruiscono immagini:
 
 ```bash
 cd /srv/progetti_innovativi
-sudo make stack-status
+sudo bash -c '. /etc/stack-deploy.env; docker stack services "$STACK_NAME"; docker stack ps "$STACK_NAME" --no-trunc --filter desired-state=running'
 sudo systemctl status stack-heartbeat.timer alert-notifier.timer \
   backup-nightly.timer traefik-logrotate.timer
 sudo journalctl -u stack-heartbeat.service -u alert-notifier.service --since today
 sudo journalctl -u data-backup.service --since today
 ```
 
-La verifica end-to-end completa è `sudo make stack-verify`. Se eseguita come
-root sulla macchina, legge la prima utenza tecnica dalla fonte root-only senza
+La verifica end-to-end completa, sulla macchina di produzione che non richiede
+`make`, è:
+
+```bash
+cd /srv/progetti_innovativi
+sudo bash -c '. /etc/stack-deploy.env; export APP_HOST STACK_NAME; ./ci/stack-verify.sh'
+```
+
+Eseguita come root, legge la prima utenza tecnica dalla fonte root-only senza
 stampare la password. Altrove richiede `DASHBOARD_USER` e `DASHBOARD_PASSWORD`
 nell’ambiente; non vanno mai passate come argomenti o scritte nella cronologia.

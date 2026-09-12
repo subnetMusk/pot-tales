@@ -280,7 +280,7 @@ manutenzione.
 Prima di qualsiasi ipotesi, questi tre controlli in quest'ordine.
 
 ```bash
-make stack-status      # servizi, repliche, task non in esecuzione
+sudo bash -c '. /etc/stack-deploy.env; docker stack services "$STACK_NAME"; docker stack ps "$STACK_NAME" --no-trunc --filter desired-state=running'
 h=$(sudo sed -n 's/^APP_HOST=//p' /etc/stack-deploy.env)
 curl -sk -o /dev/null -w '%{http_code}\n' --resolve "$h:443:127.0.0.1" "https://$h/health"
 journalctl -u stack-deploy.service -u fleet-bootstrap.service -n 50 --no-pager
@@ -291,7 +291,7 @@ stessa: con `sniStrict` attivo un handshake per `localhost` viene rifiutato, e
 l'entrypoint in chiaro reindirizza ogni richiesta. `-k` perche' qui interessa che il
 backend risponda, non il certificato, che ha un controllo proprio.
 
-`make stack-status` distingue subito le due situazioni che richiedono risposte
+Lo stato dei servizi distingue subito le due situazioni che richiedono risposte
 opposte: **repliche a zero** significa che l'orchestratore non riesce a piazzare
 o avviare un task, e la causa e' nella sua motivazione di rifiuto; **repliche a
 uno ma servizio che non risponde** significa che il processo gira e il problema
@@ -311,7 +311,7 @@ sudo /usr/local/bin/diagnostic-bundle.sh    # scrive in /srv/diagnostics
 
 ```bash
 docker stack ls
-make stack-status
+sudo bash -c '. /etc/stack-deploy.env; docker stack services "$STACK_NAME"; docker stack ps "$STACK_NAME" --no-trunc --filter desired-state=running'
 ```
 
 Se lo stack non c'e', riapplicalo. E' idempotente e non tocca i volumi:
@@ -379,7 +379,7 @@ interrogabile, l'ingestione e' viva, la data view corrisponde a indici che
 esistono davvero.
 
 ```bash
-make stack-verify        # controlli end-to-end, si ferma al primo che cede
+sudo bash -c '. /etc/stack-deploy.env; export APP_HOST STACK_NAME; ./ci/stack-verify.sh'
 ```
 
 **Gli agenti non risultano registrati.** Il bootstrap e' idempotente e si puo'
