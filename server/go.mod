@@ -9,7 +9,7 @@ go 1.26
 
 require (
 	// UUID generator for session tokens
-	github.com/google/uuid v1.5.0
+	github.com/google/uuid v1.6.0
 	// HTTP router
 	github.com/gorilla/mux v1.8.0
 
