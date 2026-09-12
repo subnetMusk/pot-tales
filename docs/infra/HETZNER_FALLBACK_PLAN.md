@@ -23,7 +23,7 @@ segnate come fatte; le altre sono descritte e non eseguite.
 | Dominio | `pot-tales.it` registrato alle 11:15 e attivo. Record A verso `195.201.247.58` e CAA per Let's Encrypt impostati il 12 settembre con TTL 5 minuti; nessun AAAA e `www` rimosso. Propagazione verificata sui quattro server autoritativi Aruba |
 | Storage Box | facoltativa e non ordinata: nessun passo ne dipende, sezioni 3.3 e 9.6 |
 | Prerequisiti dell'host | sezioni 5.1–5.8 e riavvio 5.10 completati l'11 settembre: utente `admin`, SSH a chiave, root disabilitato, kernel `6.8.0-139-generic`, fuso, sysctl, rete, firewall, Docker e journal verificati dopo il riavvio. Controllo di coerenza RAID concluso il 12 settembre con `mismatch_cnt=0`. Il 12 settembre le unità provvisorie di rete sono state sostituite con `nic-offload@enp0s31f6` e `docker-user-rules@enp0s31f6`: entrambe attive, TSO/GSO spenti, porta 80 raggiungibile e 8080 bloccata dall'esterno |
-| Repository | clonato come `admin` in `/srv/progetti_innovativi`, ramo `develop`, e aggiornato soltanto con fast-forward manuali. La revisione installata è `ae713473e6e7b316d37ed37a3e4742677555faed`. Non esistono timer, webhook o mirror automatici |
+| Repository | clonato come `admin` in `/srv/progetti_innovativi`, ramo `develop`, e aggiornato soltanto con fast-forward manuali. L'ultima revisione con modifiche operative verificata è `a5f7b21458a2ba2218f6ce0e4e0701fac01fa202`; gli script in `/usr/local/bin` sono allineati a quella revisione. Non esistono webhook o mirror automatici |
 | Deploy | Swarm attivo con 15 servizi: il job `pi_setup` è completato e tutti i 14 servizi persistenti sono a `1/1`. Fleet e Filebeat sono stabili; il registry di Filebeat è persistente e l'access log anonimizzato di Traefik arriva in Elasticsearch. Home prerenderizzata, consenso, privacy, accessibilità, SEO e compressione sono online. Il certificato di produzione già emesso è stato riutilizzato: file ACME, seriale e fingerprint sono rimasti identici e il task del proxy non è ripartito. `stack-deploy.service` resta disabilitata e inattiva, HSTS resta a zero e non è configurato alcun riavvio automatico |
 | Immagini applicate | server `sha256:9f0f8cb3b5f776bcafacc5c9ac011052b2f4acda46c593bb3c78b59dba61dc98`; frontend `sha256:104a9a278885647b259d9fbbcece6f8c94fd8d7ad4b0fe0b6635645aed158f84`; export/home invariata a `sha256:3964129a038dce22bd35e8a63ca4f5a849cdf8e910048f5dbca654ff1a43af20`. `pi_landing` è stato rimosso intenzionalmente: la home è servita dal frontend e `pi_export` conserva l'immagine statica per le esportazioni |
 | Collaudo applicativo | `/health` è verde; `POST /auth/session` restituisce 201 e persiste in MongoDB autenticato. Dopo “Accetta tutti” il browser non registra più `pt.init is undefined` né altri errori e i documenti RUM di `frontend-app` arrivano in `traces-apm.rum-default`. Home, WebP, gzip, `robots.txt`, `sitemap.xml` e metadati SEO sono verificati dall'esterno. Filebeat non scarta più eventi e le dashboard `esercizio` ed `evento` sono create e versionate. Restano il percorso completo di partita con entrambe le scelte, il controllo visivo delle dashboard e i collaudi operativi finali |
@@ -1160,7 +1160,10 @@ una nuova procedura da rilanciare:
     ACME invariato;
 16. diagnosi e correzione di Filebeat, registry persistente, access log anonimizzato,
     eliminazione del ciclo prodotto dal socket proxy, dashboard tecniche e divulgative
-    create e versionate, e preflight/controlli di setup e recupero aggiornati.
+    create e versionate, e preflight/controlli di setup e recupero aggiornati;
+17. ricostruzione fail-closed della fonte Terraform delle utenze dashboard, creazione
+    degli utenti Elasticsearch `esercizio` ed `evento` e prova incrociata degli accessi:
+    ogni ruolo legge la propria dashboard e riceve 401 su quella dell'altro Space.
 
 Lavoro residuo, nell'ordine utile alla prossima sessione:
 
@@ -1168,7 +1171,8 @@ Lavoro residuo, nell'ordine utile alla prossima sessione:
    fatti in `logs-gioco.partita-*`, assenza di identificativi per chi accetta soltanto i
    necessari e ritenzione a 30 giorni;
 2. osservare RUM e sessioni su un campione reale e aprire entrambe le dashboard in un
-   browser, verificando resa, intervallo temporale, filtri e stato vuoto;
+   browser, verificando resa, intervallo temporale, filtri e stato vuoto; autenticazione
+   e separazione dei ruoli sono già state verificate via API;
 3. eseguire load test rappresentativi di alcune centinaia di utenti concorrenti e
    tarare soglie, CPU, memoria, code e campionamento osservando rete e temperature;
 4. collaudare heartbeat e allarmi, snapshot, backup, esportazione, ripristino e prelievo
@@ -1567,6 +1571,39 @@ ferma il backend durante le modifiche e, prima di riaprire il servizio, verifica
 indici TTL di `sessions` e `game_states`; `stack-verify.sh` controlla mount, scarti,
 access log e privacy della dashboard evento.
 
+### 9.15 Utenze dashboard e audit di completamento — 12 settembre
+
+Gli htpasswd contenevano già `esercizio` ed `evento`, ma le due utenze mancavano in
+Elasticsearch perché le mappe Terraform non erano persistite. Lo script
+`configure-dashboard-users.py` ora verifica interattivamente le password senza eco,
+mantiene coerenti i tre htpasswd e scrive atomicamente
+`secrets/dashboard_users.tfvars.json` come `root:root` a modo `0400`. Deploy e bootstrap
+falliscono prima di modificare lo stack se questa fonte manca. Dopo la sua creazione,
+`fleet-bootstrap.service` ha creato le utenze; la prova incrociata ha restituito 200
+sulla dashboard autorizzata e 401 sullo Space opposto per entrambi i ruoli.
+
+La revisione `a5f7b214` è installata sul server e la pipeline CI `34698548012` è verde
+in tutti i lavori. `stack-verify.sh` ha completato 71 controlli in produzione: servizi,
+sessioni, telemetria, Fleet, Filebeat, dashboard, privacy, data stream e stato di
+Elasticsearch. Gli script versionati sono stati copiati in `/usr/local/bin` e verificati
+byte per byte; unità systemd e configurazione logrotate erano già allineate. Non è stato
+riavviato alcun servizio durante questo riallineamento.
+
+Lo stato ACME è stato preservato: `pi_proxy` usa ancora la stessa task e
+`acme.json` conserva SHA-256
+`640813251be79eaea9dcc014cbe35a8e92f15b8619aea9a8b8b31305b1d84559`. Il certificato
+Let's Encrypt è valido fino al 10 dicembre 2026 e HSTS resta a zero.
+
+L'audit non dichiara ancora concluso il setup operativo. Mancano
+`/etc/stack-surveillance.env` e i sei check esterni descritti nella sezione 9.6; per
+questo `stack-heartbeat.timer` e `alert-notifier.timer` restano disabilitati. Anche
+`backup-nightly.timer` e `traefik-logrotate.timer` restano disabilitati fino ai relativi
+collaudi controllati. `/etc/stack-data.env` è completo, ma non esiste ancora la prima
+copia in `/srv/backup`. Restano inoltre partita reale nelle due modalità di consenso,
+controllo visivo delle dashboard con dati rappresentativi, load test, prove di
+backup/export/ripristino e prelievo off-host, verifica esterna multi-dispositivo e
+riavvio non presidiato. HSTS e avvio automatico dello stack vengono dopo questi punti.
+
 ## 10. Rischi specifici di questo percorso
 
 | Rischio | Effetto | Mitigazione | Stato |
@@ -1576,7 +1613,7 @@ access log e privacy della dashboard evento.
 | Temperatura dei dischi sotto carico | rallentamento di `nvme0n1` oltre 78 °C | letture per disco in sezione 4.3 e durante il load test | aperto |
 | Layout dei dischi sbagliato | la correzione richiede di ridurre filesystem in uso | layout definito e verificato prima dell'installazione | **eseguito e verificato**: sezioni 4.2 e 4.3 |
 | Revisione sul server priva di `de4e1073` | HSTS di un anno servito come letterale | verifica dei commit in 7.1 prima del primo deploy | **rientrato**: revisione e configurazione effettiva verificate; HSTS resta intenzionalmente a zero |
-| Immagini da una revisione incompleta | fatti di partita assenti o frontend non aggiornato | digest da una revisione con entrambi i gruppi di commit | **rientrato**: produzione a `ae713473`, pipeline e digest verificati |
+| Immagini da una revisione incompleta | fatti di partita assenti o frontend non aggiornato | digest da una revisione con entrambi i gruppi di commit | **rientrato**: immagini applicative a `e5c6792d`, repository operativo a `a5f7b214`; pipeline e digest verificati |
 | Gate di copertura sotto il pavimento | la pipeline di `develop` fallisce e `publish-images` non parte: nessun digest da mettere in `/etc/stack-deploy.env` | test per gli handler di gioco e per la chiusura differita, oppure decisione esplicita sul pavimento | **rientrato**: 89,7% da `0d958099`, sezione 9.9 |
 | Commit che rompono la build senza che nessuno se ne accorga | immagine non costruibile scoperta solo al passaggio su `develop` o al deploy, come il lockfile cancellato da `a464426d` | pipeline anche su `integrazione/infra` (`16fd492a`) | mitigato: resta da leggere l'esito di ogni push |
 | HSTS attivato prima di una catena verificata | blocco non aggirabile per i visitatori | sequenza in 6.2, non negoziabile | **rientrato per la prima emissione**: HSTS era a zero e la catena di produzione è attendibile; resta spento fino alla verifica completa |
