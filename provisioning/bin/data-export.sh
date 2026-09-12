@@ -55,7 +55,8 @@ LOCK_DIR=${LOCK_DIR:-/var/lock/data-export.lock}
 PYTHON_IMAGE=${PYTHON_IMAGE:-python:3.13-alpine@sha256:399babc8b49529dabfd9c922f2b5eea81d611e4512e3ed250d75bd2e7683f4b0}
 BIN_DIR=${BIN_DIR:-$(cd "$(dirname "$0")" && pwd)}
 
-ES_NET=${ES_NET:-pi_elastic}
+STACK_NAME=${STACK_NAME:-pi}
+ES_NET=${ES_NET:-${STACK_NAME}_elastic}
 ES_URL=${ES_URL:-https://es01:9200}
 ES_USER=${ES_USER:-elastic}
 ES_PASSWORD_FILE=${ES_PASSWORD_FILE:-}
@@ -70,7 +71,7 @@ ES_INDICI=${ES_INDICI:-filebeat-*,logs-*,metrics-*,traces-*,alerts-*}
 # persistenza e' dichiarata internal e non attachable, quindi un contenitore
 # esterno allo stack non puo' collegarvisi. L'exec usa inoltre il mongodump
 # della stessa immagine del server, che e' la versione giusta per definizione.
-MONGO_CONTAINER=${MONGO_CONTAINER:-pi_db}
+MONGO_CONTAINER=${MONGO_CONTAINER:-${STACK_NAME}_db}
 MONGO_DB=${MONGO_DB:-game_db}
 MONGO_USER=${MONGO_USER:-root}
 # Percorso interno al contenitore di MongoDB: la password non transita
