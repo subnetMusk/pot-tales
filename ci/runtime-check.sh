@@ -201,15 +201,14 @@ if docker image inspect "$FRONTEND_IMAGE" >/dev/null 2>&1; then
     echo "  saltato: nessun artefatto con impronta nel documento servito"
   fi
 
-  # La compressione ha una soglia minima: sotto, costa piu' di quanto rende. Il
-  # bersaglio giusto e' quindi l'artefatto, non il documento di ingresso, che
-  # pesa poche centinaia di byte e non deve essere compresso.
+  # La compressione ha una soglia minima: l'artefatto con impronta e la home
+  # semantica prerenderizzata la superano entrambi e devono essere compressi.
   if [ -n "$artefatto" ]; then
     contiene "compressione attiva sull'artefatto" "gzip" \
       "$(curl -sS -m 5 -D- -o /dev/null -H 'Accept-Encoding: gzip' "http://127.0.0.1:18082$artefatto" 2>/dev/null | tr -d '\r')"
   fi
 
-  verifica "documento sotto soglia non compresso" 0 \
+  verifica "documento prerenderizzato compresso" 1 \
     "$(curl -sS -m 5 -D- -o /dev/null -H 'Accept-Encoding: gzip' http://127.0.0.1:18082/ 2>/dev/null | grep -ci 'content-encoding')"
 else
   echo "  saltato: immagine $FRONTEND_IMAGE non presente"
