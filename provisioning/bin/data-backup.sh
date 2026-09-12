@@ -168,7 +168,16 @@ if [ "$SOLO" = "tutto" ] || [ "$SOLO" = "dump" ]; then
   # Lo stesso percorso dell'esportazione, con destinazione e ritenzione
   # proprie: mongodump ha una implementazione sola, e il lock condiviso
   # impedisce che una copia notturna e un export manuale si sovrappongano.
-  if EXPORT_DEST="$BACKUP_DEST/mongodump" EXPORT_KEEP="$DUMP_KEEP" \
+  # Non lasciare che data-export.sh rilegga /etc/stack-data.env: quel file
+  # contiene EXPORT_DEST per l'esportazione manuale e sovrascriverebbe la
+  # destinazione notturna passata qui. Gli altri valori necessari a MongoDB
+  # vengono inoltrati esplicitamente dopo essere stati letti sopra.
+  if CONF=/dev/null \
+     EXPORT_DEST="$BACKUP_DEST/mongodump" EXPORT_KEEP="$DUMP_KEEP" \
+     MONGO_CONTAINER="${MONGO_CONTAINER:-pi_db}" \
+     MONGO_DB="${MONGO_DB:-game_db}" \
+     MONGO_USER="${MONGO_USER:-root}" \
+     MONGO_PASSWORD_FILE="${MONGO_PASSWORD_FILE:-/run/secrets/mongo_root_password}" \
      "$BIN_DIR/data-export.sh" --solo-mongo; then
     riepilogo="$riepilogo dump=ok"
   else

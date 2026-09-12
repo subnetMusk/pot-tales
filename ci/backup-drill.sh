@@ -92,7 +92,7 @@ avvia_ricevitore
 
 CHIAVE=$(head -c 16 /dev/urandom | od -An -tx1 | tr -d ' \n')
 comune=(
-  CONF=/dev/null
+  CONF="$LAVORO/stack-data.env"
   CONF_SORVEGLIANZA=/dev/null
   BIN_DIR="$RADICE/provisioning/bin"
   MONGO_CONTAINER="$MONGO"
@@ -106,6 +106,11 @@ comune=(
   HC_PING_KEY="$CHIAVE"
 )
 
+# Riproduce la configurazione di produzione, dove EXPORT_DEST appartiene alle
+# esportazioni manuali. data-backup deve ignorarlo quando richiama
+# data-export per il dump notturno e usare BACKUP_DEST/mongodump.
+printf 'EXPORT_DEST=%s\n' "$LAVORO/esportazione-generica" > "$LAVORO/stack-data.env"
+
 # --- 1. Archivio portabile con recapito riuscito ----------------------------
 
 echo
@@ -118,6 +123,8 @@ T_DUMP=$(( $(date +%s%3N) - inizio ))
 
 ARCHIVIO=$(find "$LAVORO/backup-notturno" -name 'game_db.archive.gz' | sort -r | head -1)
 [ -s "$ARCHIVIO" ] || fallisci "archivio portabile non prodotto"
+[ ! -e "$LAVORO/esportazione-generica" ] \
+  || fallisci "il dump notturno ha usato EXPORT_DEST invece di BACKUP_DEST"
 
 # L'archivio si rilegge davvero: viene reinserito in una base dati separata,
 # cosi' la verifica non tocca i dati di partenza.
