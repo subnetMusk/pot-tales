@@ -223,7 +223,7 @@ fi
 
 # ------------------------------------------------------------- 3. configurazione
 log "applico la configurazione Terraform in $TF_DIR"
-tf() {
+tf() (
   # MSYS_NO_PATHCONV: su Git Bash per Windows un argomento che inizia con "/"
   # viene riscritto come percorso Windows, e i percorsi interni al contenitore
   # diventerebbero invalidi. Sui sistemi Linux la variabile non ha effetto.
@@ -236,14 +236,21 @@ tf() {
   # superando il basicAuth del bordo. Le password devono coincidere con quelle
   # negli elenchi htpasswd, perche' Traefik non rimuove l'intestazione di
   # autorizzazione e la stessa credenziale autentica su Kibana.
-  local ambiente=()
-  local nome
+  local ambiente_file nome
+  umask 077
+  ambiente_file=$(mktemp "${TMPDIR:-/tmp}/fleet-bootstrap-tf-env.XXXXXX")
+  trap 'rm -f -- "$ambiente_file"' EXIT
+
+  # `docker run -e NOME=valore` rende il valore visibile nella process list
+  # dell'host. L'env-file root-only lascia negli argomenti soltanto il percorso
+  # temporaneo e viene cancellato anche quando Terraform fallisce.
+  printf 'TF_VAR_elastic_password=%s\n' "$ELASTIC_PASSWORD" > "$ambiente_file"
   for nome in TF_VAR_elasticsearch_endpoint TF_VAR_kibana_endpoint \
               TF_VAR_filebeat_password TF_VAR_apm_secret_token \
               TF_VAR_insecure_tls \
               TF_VAR_utenze_esercizio TF_VAR_utenze_evento; do
     if [ -n "${!nome:-}" ]; then
-      ambiente+=(-e "$nome=${!nome}")
+      printf '%s=%s\n' "$nome" "${!nome}" >> "$ambiente_file"
     fi
   done
 
@@ -251,10 +258,9 @@ tf() {
     -v "$(pwd)/$TF_DIR:/tf" -w /tf \
     -v "$TF_STATE_DIR:/stato" \
     "${dashboard_mount[@]}" \
-    -e "TF_VAR_elastic_password=$ELASTIC_PASSWORD" \
-    "${ambiente[@]}" \
+    --env-file "$ambiente_file" \
     "$TF_IMAGE" "$@"
-}
+)
 
 if [ ! -d "$TF_STATE_DIR" ]; then
   log "creo la directory di stato $TF_STATE_DIR"
