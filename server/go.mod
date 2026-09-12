@@ -11,7 +11,7 @@ require (
 	// UUID generator for session tokens
 	github.com/google/uuid v1.5.0
 	// HTTP router
-	github.com/gorilla/mux v1.8.0
+	github.com/gorilla/mux v1.8.1
 
 	// Redis client (context-aware, v9 API)
 	github.com/redis/go-redis/v9 v9.17.0
