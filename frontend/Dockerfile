@@ -1,6 +1,6 @@
 # Stage 1: build dell’app con Vite
 # Immagini pinnate per digest. Node 24 e' la linea LTS attiva.
-FROM node:24-alpine@sha256:f70403e87646dc51b45295f4b8b70cdad0b63d2297c4c9899119b03f7af7a6b3 AS builder
+FROM node:26-alpine@sha256:ef24c5053d50fdc3e4e56eb4e7ddb7861874ab0fdc797046ba897581deb8e868 AS builder
 WORKDIR /app
 
 # Copia manifest delle dipendenze e config di Vite/TS per caching layer
