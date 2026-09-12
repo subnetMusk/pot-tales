@@ -9,7 +9,7 @@
           "type": "keyword"
         },
         "checkpoint_n": {
-          "type": "integer"
+          "type": "long"
         },
         "dispositivo": {
           "type": "keyword"

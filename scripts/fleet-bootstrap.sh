@@ -318,7 +318,8 @@ fi
 mapping_result=$(MSYS_NO_PATHCONV=1 docker exec -i "$es_container" bash -c '
   set -euo pipefail
   auth_file=$(mktemp /tmp/fleet-bootstrap-netrc.XXXXXX)
-  cleanup_auth() { rm -f -- "$auth_file"; }
+  response_file=$(mktemp /tmp/fleet-bootstrap-mapping.XXXXXX)
+  cleanup_auth() { rm -f -- "$auth_file" "$response_file"; }
   trap cleanup_auth EXIT
   umask 077
   {
@@ -333,10 +334,14 @@ mapping_result=$(MSYS_NO_PATHCONV=1 docker exec -i "$es_container" bash -c '
     https://localhost:9200/_data_stream/logs-gioco.partita-default)
   case "$stream_status" in
     200)
-      curl --silent --show-error --fail --netrc-file "$auth_file" \
+      if ! curl --silent --show-error --fail-with-body \
+        --output "$response_file" --netrc-file "$auth_file" \
         --cacert /usr/share/elasticsearch/config/certs/ca/ca.crt \
         -X PUT -H "Content-Type: application/json" --data-binary @- \
-        https://localhost:9200/logs-gioco.partita-default/_mapping >/dev/null
+        https://localhost:9200/logs-gioco.partita-default/_mapping; then
+        cat "$response_file" >&2
+        exit 1
+      fi
       printf updated
       ;;
     404)
