@@ -172,6 +172,10 @@ volumes:
   fleetserverdata:
   apmagentdata:
   infraagentdata:
+  # Registry degli input di Filebeat. Senza persistenza ogni aggiornamento del
+  # task riparte dall'inizio dei log Docker e dell'access log, duplicando lo
+  # storico e caricando Elasticsearch proprio durante un deploy.
+  filebeatdata:
   # Popolato dal bootstrap con gli enrollment token. Gli agenti lo leggono in
   # sola lettura e ripartono finche' non compare il file che li riguarda.
   fleettokens:
@@ -742,11 +746,11 @@ services:
           memory: 64M
         reservations:
           memory: 16M
+    # Le richieste di metadata di Filebeat passano da qui. Loggarle su stdout
+    # farebbe rileggere a Filebeat il log della propria interrogazione e
+    # creerebbe un ciclo di traffico privo di valore operativo.
     logging:
-      driver: json-file
-      options:
-        max-size: "10m"
-        max-file: "3"
+      driver: "none"
 
   # ===========================================================================
   # Osservabilita'
@@ -937,6 +941,8 @@ services:
       - socket
     volumes:
       - certs:/usr/share/filebeat/certs:ro
+      - filebeatdata:/usr/share/filebeat/data
+      - traefik_logs:/var/log/traefik:ro
       # I file di log dei container restano un montaggio: sono la sorgente da
       # leggere, e nessuna API li espone. L'arricchimento con i metadati passa
       # invece dal proxy.
@@ -966,7 +972,8 @@ services:
     healthcheck:
       test:
         - CMD-SHELL
-        - filebeat test output --strict.perms=false >/dev/null 2>&1
+        # `-e` evita che ogni healthcheck apra e ruoti un file di log interno.
+        - filebeat test output -e --strict.perms=false >/dev/null 2>&1
       interval: 15s
       timeout: 20s
       retries: 20

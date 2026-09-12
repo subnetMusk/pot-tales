@@ -13,12 +13,59 @@ filebeat.inputs:
           # Attraverso il filtro, non sul socket. Montare il socket in un
           # contenitore equivale a concedergli il controllo della macchina.
           host: "tcp://socket-proxy:2375"
+      # Filebeat non deve reingerire i propri warning. Oltre al rumore, un
+      # errore di indicizzazione genererebbe un nuovo log da indicizzare e
+      # alimenterebbe da solo il problema che stiamo cercando di osservare.
+      - drop_event:
+          when:
+            regexp:
+              container.name: '^/?[^.]+_filebeat\.'
+      # I log tecnici restano interrogabili senza espandere alla radice il JSON
+      # arbitrario prodotto da ogni immagine. Campi omonimi con tipi diversi
+      # sono una causa comune di mapping conflict e di eventi scartati.
+      - add_fields:
+          target: event
+          fields:
+            dataset: container.log
+      # Solo il backend emette il contratto JSON/ECS controllato dal progetto.
+      # `expand_keys` trasforma chiavi come `event.dataset` e `partita.id` nei
+      # rispettivi oggetti, prima del routing verso il data stream di partita.
       - decode_json_fields:
+          when:
+            regexp:
+              container.name: '^/?[^.]+_server\.'
           fields: ["message"]
           target: ""
           overwrite_keys: true
+          expand_keys: true
+          add_error_key: true
           process_array: false
           max_depth: 1
+
+  # Access log del bordo. Il file locale completo resta la sorgente di
+  # CrowdSec; la copia spedita a Elasticsearch non conserva indirizzi o
+  # credenziali HTTP, che non servono alle dashboard.
+  - type: filestream
+    id: traefik-access
+    paths:
+      - /var/log/traefik/access.log
+    parsers:
+      - ndjson:
+          target: ""
+          overwrite_keys: true
+          add_error_key: true
+    processors:
+      - add_fields:
+          target: event
+          fields:
+            dataset: traefik.access
+      - drop_fields:
+          fields:
+            - "ClientHost"
+            - "ClientAddr"
+            - "request_Authorization"
+            - "request_Cookie"
+          ignore_missing: true
 
 output.elasticsearch:
   hosts: ["https://es01:9200"]
@@ -51,3 +98,13 @@ setup.template.settings:
 
 logging.json: true
 logging.metrics.enabled: false
+# Gli eventi rifiutati contengono il documento e il motivo preciso. Tenerli in
+# un file separato rende diagnosticabile uno scarto senza alzare il livello di
+# log generale e senza stampare dati applicativi su stdout.
+logging.event_data:
+  to_files: true
+  files:
+    path: /usr/share/filebeat/logs/event-data
+    name: filebeat-events-data
+    keepfiles: 4
+    permissions: 0600

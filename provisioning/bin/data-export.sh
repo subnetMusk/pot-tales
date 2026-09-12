@@ -61,7 +61,10 @@ ES_USER=${ES_USER:-elastic}
 ES_PASSWORD_FILE=${ES_PASSWORD_FILE:-}
 ES_PASSWORD=${ES_PASSWORD:-}
 ES_CA=${ES_CA:-}
-ES_INDICI=${ES_INDICI:-logs-*,metrics-*,traces-*,alerts-*}
+# `filebeat-*` contiene i log tecnici e gli access log del bordo raccolti dal
+# Beat standalone. Escluderlo produrrebbe un export dichiarato completo ma
+# privo della sorgente usata dalle dashboard di esercizio.
+ES_INDICI=${ES_INDICI:-filebeat-*,logs-*,metrics-*,traces-*,alerts-*}
 
 # Il contenitore di MongoDB si raggiunge per exec e non per rete: la rete di
 # persistenza e' dichiarata internal e non attachable, quindi un contenitore

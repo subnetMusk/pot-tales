@@ -15,10 +15,10 @@ evento/<nome>.ndjson.versione
 ## I due Space
 
 **`esercizio/`** — vista tecnica: salute del servizio, risorse della macchina,
-contenimento. Non destinata alla distribuzione. Contiene `salute-risorse`, che copre
-host e container; mancano i pannelli applicativi e l'imbuto di partita.
+contenimento e imbuto di partita. Non destinata alla distribuzione.
 
-**`evento/`** — vista divulgativa, destinata alla condivisione. Ancora priva di export.
+**`evento/`** — vista divulgativa, destinata alla condivisione. Mostra solo
+aggregati dei fatti di partita.
 
 Cio' che finisce in `evento/` viene condiviso: prima di esportare va verificato che i
 pannelli non mostrino indirizzi, identificativi di sessione o nomi di host. Il ruolo
@@ -39,11 +39,12 @@ contenuto.
 # 1. Comporre la dashboard su Kibana, nello Space di destinazione.
 
 # 2. Esportarla. La versione di Kibana e' letta dall'istanza, non passata a mano.
-KIBANA_PASSWORD=... make dashboards-export SPAZIO=esercizio NOME=salute-servizio
+KIBANA_PASSWORD=... make dashboards-export SPAZIO=esercizio \
+  NOME=servizio-funnel ID=esercizio-servizio-funnel
 
 # 3. Versionare i due file prodotti.
-git add terraform/elk/dashboards/esercizio/salute-servizio.ndjson \
-        terraform/elk/dashboards/esercizio/salute-servizio.ndjson.versione
+git add terraform/elk/dashboards/esercizio/servizio-funnel.ndjson \
+        terraform/elk/dashboards/esercizio/servizio-funnel.ndjson.versione
 
 # 4. Reimportare, qui o su un'istanza ricostruita.
 make dashboards-import
@@ -79,9 +80,12 @@ campi siano presenti su ogni riga prima di salvarlo. Ne segue che l'ordine delle
 righe puo' variare fra due export della stessa dashboard, e la differenza
 apparire piu' ampia di quanto sia: e' il prezzo di non riscrivere il file.
 
-## Data view
+## Esportazione mirata e data view
+
+L'ID obbligatorio seleziona una sola dashboard e le sue dipendenze: due export
+non si sovrascrivono a vicenda e non contengono copie degli oggetti di altre
+dashboard nello stesso Space.
 
 Le data view sono dichiarate in `spaces.tf` e non arrivano dagli export. Se un
-export ne contiene una con lo stesso identificativo, l'importazione la
-sovrascrive e la differenza compare al `plan` successivo: in quel caso va tolta
-dall'export, non dal codice.
+export profondo le include fra le dipendenze, `export.sh` ne elimina le sole
+righe conservando byte per byte gli altri oggetti e i campi di migrazione.

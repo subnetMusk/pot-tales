@@ -32,6 +32,7 @@ APM_TOKEN_FILE=${APM_TOKEN_FILE:-secrets/apm_secret_token}
 KIBANA_INTERNAL_URL=${KIBANA_INTERNAL_URL:-http://kibana:5601/osservabilita}
 CURL_IMAGE=${CURL_IMAGE:-curlimages/curl:8.11.1@sha256:c1fe1679c34d9784c1b0d1e5f62ac0a79fca01fb6377cdd33e90473c6f9f9a69}
 STABILITY_SECONDS=${STABILITY_SECONDS:-30}
+FILEBEAT_ERROR_WINDOW=${FILEBEAT_ERROR_WINDOW:-5m}
 CURL_INSECURE=${CURL_INSECURE:-0}
 
 EXPECTED_SERVICES="
@@ -385,6 +386,24 @@ infra_container=$(get_service_container infra-agent) ||
 es_container=$(get_service_container es01) ||
   fail "container Elasticsearch attivo non univoco"
 
+filebeat_mounts=$(docker service inspect "${STACK_NAME}_filebeat" \
+  --format '{{range .Spec.TaskTemplate.ContainerSpec.Mounts}}{{println .Target}}{{end}}') ||
+  fail "lettura mount Filebeat fallita"
+assert_contains "Filebeat: registry persistente" "/usr/share/filebeat/data" "$filebeat_mounts"
+assert_contains "Filebeat: access log Traefik montato" "/var/log/traefik" "$filebeat_mounts"
+
+socket_log_driver=$(docker service inspect "${STACK_NAME}_socket-proxy" \
+  --format '{{.Spec.TaskTemplate.LogDriver.Name}}') ||
+  fail "lettura logging socket-proxy fallita"
+assert_equal "socket-proxy senza ciclo di log" "none" "$socket_log_driver"
+
+filebeat_recent=$(docker logs --since "$FILEBEAT_ERROR_WINDOW" "$filebeat_container" 2>&1) ||
+  fail "lettura log recenti di Filebeat fallita"
+case "$filebeat_recent" in
+  *'Failed to index '*'events'*) fail "Filebeat ha scartato eventi negli ultimi $FILEBEAT_ERROR_WINDOW" ;;
+  *) ok "Filebeat senza eventi scartati negli ultimi $FILEBEAT_ERROR_WINDOW" ;;
+esac
+
 kibana_keys=$(MSYS_NO_PATHCONV=1 docker exec "$kibana_container" \
   /usr/share/kibana/bin/kibana-keystore list) ||
   fail "lettura keystore Kibana fallita"
@@ -454,6 +473,34 @@ infra_status=$(MSYS_NO_PATHCONV=1 docker exec "$infra_container" \
   elastic-agent status --output json) || fail "infra-agent degradato"
 assert_contains "componenti infra-agent sani" '"state": 2' "$infra_status"
 
+for requisito in \
+  esercizio:esercizio-salute-risorse \
+  esercizio:esercizio-servizio-funnel \
+  evento:evento-andamento; do
+  spazio=${requisito%%:*}
+  dashboard=${requisito##*:}
+  oggetto=$(kibana_interna \
+    "$KIBANA_INTERNAL_URL/s/$spazio/api/saved_objects/dashboard/$dashboard") ||
+    fail "dashboard $spazio/$dashboard assente"
+  assert_contains "dashboard $spazio/$dashboard leggibile" \
+    "\"id\":\"$dashboard\"" "$oggetto"
+done
+
+# L'export dello Space divulgativo e' anche il controllo piu' vicino al dato
+# che viene realmente condiviso. Non basta limitare gli indici: una
+# visualizzazione potrebbe aggregare e mostrare un identificativo sensibile.
+evento_export=$(kibana_interna -X POST \
+  -H 'Content-Type: application/json' \
+  -d '{"objects":[{"type":"dashboard","id":"evento-andamento"}],"includeReferencesDeep":true,"excludeExportDetails":true}' \
+  "$KIBANA_INTERNAL_URL/s/evento/api/saved_objects/_export") ||
+  fail "export di controllo della dashboard evento fallito"
+for vietato in partita.id ClientHost ClientAddr source.ip client.ip user_agent host.name container.name; do
+  case "$evento_export" in
+    *"$vietato"*) fail "dashboard evento espone o usa il campo vietato $vietato" ;;
+  esac
+done
+ok "dashboard evento priva dei campi tecnici e identificativi vietati"
+
 printf '\n== Elasticsearch ==\n'
 
 es_query() {
@@ -485,5 +532,28 @@ filebeat_template=$(es_query '/_index_template/filebeat-*') ||
   fail "query template Filebeat fallita"
 assert_contains "template Filebeat con repliche a zero" \
   '"number_of_replicas":"0"' "$filebeat_template"
+
+gameplay_stream=$(es_query '/_data_stream/logs-gioco.partita-default') ||
+  fail "data stream dei fatti di partita assente"
+assert_contains "data stream dei fatti di partita disponibile" \
+  '"name":"logs-gioco.partita-default"' "$gameplay_stream"
+
+access_count_body=$(es_query \
+  '/filebeat-%2A/_count?q=event.dataset%3Atraefik.access') ||
+  fail "conteggio degli access log fallito"
+access_count=$(printf '%s' "$access_count_body" |
+  sed -n 's/.*"count":\([0-9][0-9]*\).*/\1/p')
+case "$access_count" in
+  ''|*[!0-9]*) fail "conteggio degli access log non interpretabile" ;;
+esac
+[ "$access_count" -gt 0 ] || fail "nessun access log Traefik indicizzato"
+ok "access log Traefik indicizzato ($access_count documenti)"
+
+access_sensitive_body=$(es_query \
+  '/filebeat-%2A/_count?q=event.dataset%3Atraefik.access%20AND%20(_exists_%3AClientHost%20OR%20_exists_%3AClientAddr%20OR%20_exists_%3Arequest_Authorization%20OR%20_exists_%3Arequest_Cookie)') ||
+  fail "controllo dei campi sensibili negli access log fallito"
+access_sensitive_count=$(printf '%s' "$access_sensitive_body" |
+  sed -n 's/.*"count":\([0-9][0-9]*\).*/\1/p')
+assert_equal "access log senza indirizzi o credenziali HTTP" "0" "$access_sensitive_count"
 
 printf '\nPASS: %s controlli completati sullo stack %s\n' "$checks" "$STACK_NAME"

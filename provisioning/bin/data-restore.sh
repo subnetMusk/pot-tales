@@ -45,6 +45,8 @@ MONGO_DB=${MONGO_DB:-game_db}
 MONGO_USER=${MONGO_USER:-root}
 MONGO_PASSWORD_FILE=${MONGO_PASSWORD_FILE:-/run/secrets/mongo_root_password}
 MONGO_IMAGE=${MONGO_IMAGE:-mongo:8.2.12@sha256:e0ce8c35124d4a9f9785532d1f268f39e9728ffa1cb38f46fa482436424c4bd3}
+BACKEND_SERVICE=${BACKEND_SERVICE:-${STACK_NAME:-pi}_server}
+BACKEND_WAIT=${BACKEND_WAIT:-180}
 
 SAFEGUARD_DEST=${SAFEGUARD_DEST:-/srv/backup/sicurezza}
 FORCE=${FORCE:-0}
@@ -86,6 +88,74 @@ contenitore_mongo() {
   local elenco
   elenco=$(docker ps -q --filter "name=$MONGO_CONTAINER" --filter "status=running")
   printf '%s' "${elenco%%$'\n'*}"
+}
+
+# In produzione il ripristino non deve correre mentre il backend continua a
+# scrivere nello stesso database. Se il servizio Swarm esiste viene fermato e
+# riportato al numero di repliche precedente soltanto dopo un esito positivo.
+repliche_backend=""
+ferma_backend() {
+  docker service inspect "$BACKEND_SERVICE" >/dev/null 2>&1 || return 0
+  repliche_backend=$(docker service inspect "$BACKEND_SERVICE" \
+    --format '{{.Spec.Mode.Replicated.Replicas}}')
+  case "$repliche_backend" in
+    ''|*[!0-9]*) echo "repliche di $BACKEND_SERVICE non determinabili" >&2; exit 1 ;;
+  esac
+  echo "arresto temporaneo di $BACKEND_SERVICE ($repliche_backend repliche)"
+  docker service scale "$BACKEND_SERVICE=0" >/dev/null || exit 1
+  deadline=$(( $(date +%s) + BACKEND_WAIT ))
+  while [ "$(docker service ls --filter "name=$BACKEND_SERVICE" --format '{{.Replicas}}')" != "0/0" ]; do
+    [ "$(date +%s)" -lt "$deadline" ] || {
+      echo "$BACKEND_SERVICE non si e' arrestato entro ${BACKEND_WAIT}s" >&2
+      exit 1
+    }
+    sleep 2
+  done
+}
+
+riavvia_backend() {
+  [ -n "$repliche_backend" ] || return 0
+  echo "ripristino di $BACKEND_SERVICE a $repliche_backend repliche"
+  docker service scale "$BACKEND_SERVICE=$repliche_backend" >/dev/null || return 1
+  deadline=$(( $(date +%s) + BACKEND_WAIT ))
+  attese="$repliche_backend/$repliche_backend"
+  while [ "$(docker service ls --filter "name=$BACKEND_SERVICE" --format '{{.Replicas}}')" != "$attese" ]; do
+    [ "$(date +%s)" -lt "$deadline" ] || {
+      echo "$BACKEND_SERVICE non e' tornato a $attese entro ${BACKEND_WAIT}s" >&2
+      return 1
+    }
+    sleep 2
+  done
+}
+
+verifica_indici_ttl() {
+  [ -n "$repliche_backend" ] || return 0
+  [ "$repliche_backend" -gt 0 ] || return 0
+
+  contenitore=$(contenitore_mongo)
+  [ -n "$contenitore" ] || {
+    echo "MongoDB non disponibile dopo il riavvio di $BACKEND_SERVICE" >&2
+    return 1
+  }
+
+  ttl=$(docker exec \
+    -e ARCH_DB="$MONGO_DB" \
+    -e ARCH_USER="$MONGO_USER" \
+    -e ARCH_PF="$MONGO_PASSWORD_FILE" \
+    "$contenitore" sh -c "
+      set -e
+      $PREAMBOLO_AUTH
+      # shellcheck disable=SC2086
+      exec mongosh --quiet \$auth --eval \
+        \"d=db.getSiblingDB('\$ARCH_DB'); print(['sessions','game_states'].map(c => d[c].getIndexes().filter(i => i.expireAfterSeconds !== undefined && i.key.created_at === 1).length).join(' '))\"
+    ") || return 1
+
+  ttl=$(printf '%s' "$ttl" | tr -d '\r\n')
+  [ "$ttl" = "1 1" ] || {
+    echo "indici TTL non ripristinati su sessions e game_states (conteggi: ${ttl:-assenti})" >&2
+    return 1
+  }
+  echo "indici TTL verificati su sessions e game_states"
 }
 
 # Le credenziali si compongono dentro il contenitore leggendo il secret che vi
@@ -144,6 +214,7 @@ case "$MODO" in
     [ -n "$contenitore" ] || { echo "nessun contenitore in esecuzione corrisponde a $MONGO_CONTAINER" >&2; exit 1; }
 
     conferma "Ripristinare $MONGO_DB da $ARCHIVIO? Le collezioni presenti nell'archivio vengono sostituite."
+    ferma_backend
 
     # L'archivio entra dallo stdin del processo remoto: nessuna copia
     # intermedia dentro il contenitore, che potrebbe non avere lo spazio.
@@ -164,16 +235,16 @@ case "$MODO" in
   # --- 3. Ricreazione a vuoto ----------------------------------------------
   #
   # Non tocca il volume: rimuove il contenuto logico, che e' l'operazione piu'
-  # rapida e non richiede di fermare il servizio. Gli indici, TTL compreso,
-  # vengono creati dal backend all'avvio, quindi il servizio applicativo va
-  # riavviato dopo: senza indice di ritenzione i documenti non scadrebbero
-  # piu' e nulla lo segnalerebbe.
+  # rapida. Il backend viene fermato prima della modifica e riavviato dopo,
+  # perche' ricrei gli indici, TTL compreso. Senza indice di ritenzione i
+  # documenti non scadrebbero piu' e nulla lo segnalerebbe.
 
   ricreazione)
     contenitore=$(contenitore_mongo)
     [ -n "$contenitore" ] || { echo "nessun contenitore in esecuzione corrisponde a $MONGO_CONTAINER" >&2; exit 1; }
 
     conferma "Svuotare $MONGO_DB? I dati non messi in sicurezza vengono persi."
+    ferma_backend
 
     docker exec \
       -e ARCH_DB="$MONGO_DB" \
@@ -189,15 +260,26 @@ case "$MODO" in
     ;;
 esac
 
+if [ "$MODO" = "ripristino" ] || [ "$MODO" = "ricreazione" ]; then
+  if [ "$uscita" -eq 0 ]; then
+    if ! riavvia_backend || ! verifica_indici_ttl; then
+      echo "dati modificati ma ritorno in servizio non completato o non verificato" >&2
+      uscita=1
+    fi
+  elif [ -n "$repliche_backend" ]; then
+    echo "$BACKEND_SERVICE resta fermo: il recupero e' fallito e il database puo' essere parziale" >&2
+  fi
+fi
+
 durata=$(( $(ora_ms) - inizio ))
 
 echo
 printf 'strada: %s\ndurata: %d ms\nesito:  %d\n' "$MODO" "$durata" "$uscita"
 [ "${byte:-}" ] && printf 'volume: %s byte\n' "$byte"
 
-if [ "$MODO" = "ricreazione" ] && [ "$uscita" -eq 0 ]; then
+if [ "$MODO" = "ricreazione" ] && [ "$uscita" -eq 0 ] && [ -z "$repliche_backend" ]; then
   echo
-  echo "Riavviare il backend perche' ricrei gli indici, incluso quello di ritenzione:"
+  echo "Nessun servizio Swarm trovato. Riavviare il backend perche' ricrei gli indici, incluso quello di ritenzione:"
   echo "  docker service update --force ${STACK_NAME:-pi}_server"
 fi
 

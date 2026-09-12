@@ -131,7 +131,7 @@ security-up: ## Avvia lo stack di sviluppo con l'overlay di sicurezza CrowdSec
 verify: verify-fast lint-terraform terraform-validate lint-workflows go-test-integration go-cover-full scan-secrets ## Batteria completa di verifiche locali
 
 .PHONY: verify-fast
-verify-fast: go-fmt go-vet go-build go-test lint-shell lint-docker lint-compose lint-stack ## Verifiche rapide, senza copertura
+verify-fast: go-fmt go-vet go-build go-test lint-shell lint-docker lint-compose lint-stack filebeat-config-check dashboard-export-check ## Verifiche rapide, senza copertura
 
 .PHONY: go-fmt
 go-fmt: ## Verifica la formattazione del codice Go
@@ -198,6 +198,20 @@ lint-compose: ## Valida i file compose
 lint-stack: ## Valida lo stack Swarm di produzione
 	@$(MAKE) --no-print-directory stack-config >/dev/null && echo "stack valido: $(STACK_FILE)"
 	@bash ci/traefik-static-config.sh
+
+.PHONY: filebeat-config-check
+filebeat-config-check: ## Valida semanticamente il file di configurazione Filebeat
+	@image=$$(awk '$$0 == "  filebeat:" { dentro = 1; next } dentro && /^    image:/ { print $$2; exit }' $(STACK_FILE)); \
+		test -n "$$image" || { echo "immagine Filebeat non trovata in $(STACK_FILE)" >&2; exit 1; }; \
+		$(DOCKER) run --rm --entrypoint filebeat \
+			-e ELASTICSEARCH_USERNAME=preflight -e ELASTICSEARCH_PASSWORD=preflight \
+			-v "$(CURDIR)/deploy/config/filebeat.yml:/usr/share/filebeat/filebeat.yml:ro" \
+			"$$image" test config -c /usr/share/filebeat/filebeat.yml -e --strict.perms=false \
+			-E 'output.elasticsearch.ssl.certificate_authorities=[]'
+
+.PHONY: dashboard-export-check
+dashboard-export-check: ## Verifica export mirato, filtro data view e NDJSON senza newline finale
+	bash ci/dashboard-export-check.sh
 
 .PHONY: lint-terraform
 lint-terraform: ## Verifica la formattazione delle definizioni Terraform
@@ -383,7 +397,8 @@ fleet-bootstrap: ## Registra le policy Fleet e genera gli enrollment token
 dashboards-export: ## Esporta i saved object di uno Space (SPAZIO=esercizio|evento NOME=nome)
 	@test -n "$(SPAZIO)" || { echo "manca SPAZIO (esercizio|evento)"; exit 1; }
 	@test -n "$(NOME)" || { echo "manca NOME"; exit 1; }
-	./terraform/elk/dashboards/export.sh $(SPAZIO) $(NOME)
+	@test -n "$(ID)" || { echo "manca ID della dashboard"; exit 1; }
+	./terraform/elk/dashboards/export.sh $(SPAZIO) $(NOME) $(ID)
 
 # Terraform gira nel container ancorato per digest, come il resto delle
 # verifiche: nessuna dipendenza da un binario installato sull'host.

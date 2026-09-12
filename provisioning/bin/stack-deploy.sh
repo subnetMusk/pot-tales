@@ -231,6 +231,35 @@ mkdir -p "$EXPORT_DEST" || {
   exit 1
 }
 
+# Preflight prima della prima mutazione. La risoluzione completa intercetta
+# riferimenti a volumi/config/secret inesistenti e variabili non esportate.
+docker stack config -c stack.yml >/dev/null || {
+  echo "configurazione dello stack non valida" >&2
+  exit 1
+}
+
+# La sintassi interna di Filebeat non e' parte dello schema Compose. Validarla
+# con la stessa immagine ancorata dello stack evita che un config formalmente
+# YAML ma semanticamente errato sostituisca il task sano.
+FILEBEAT_IMAGE=$(awk '
+  $0 == "  filebeat:" { dentro = 1; next }
+  dentro && /^    image:/ { print $2; exit }
+' stack.yml)
+[ -n "$FILEBEAT_IMAGE" ] || {
+  echo "immagine Filebeat non ricavabile da stack.yml" >&2
+  exit 1
+}
+docker run --rm --entrypoint filebeat \
+  -e ELASTICSEARCH_USERNAME=preflight \
+  -e ELASTICSEARCH_PASSWORD=preflight \
+  -v "$STACK_DIR/config/filebeat.yml:/usr/share/filebeat/filebeat.yml:ro" \
+  "$FILEBEAT_IMAGE" test config -c /usr/share/filebeat/filebeat.yml \
+    -e --strict.perms=false \
+    -E 'output.elasticsearch.ssl.certificate_authorities=[]' >/dev/null 2>&1 || {
+  echo "configurazione Filebeat non valida" >&2
+  exit 1
+}
+
 echo "deploy dello stack $STACK_NAME da $STACK_DIR"
 docker stack deploy \
   --detach=true \

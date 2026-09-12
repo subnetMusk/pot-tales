@@ -24,9 +24,9 @@ segnate come fatte; le altre sono descritte e non eseguite.
 | Storage Box | facoltativa e non ordinata: nessun passo ne dipende, sezioni 3.3 e 9.6 |
 | Prerequisiti dell'host | sezioni 5.1–5.8 e riavvio 5.10 completati l'11 settembre: utente `admin`, SSH a chiave, root disabilitato, kernel `6.8.0-139-generic`, fuso, sysctl, rete, firewall, Docker e journal verificati dopo il riavvio. Controllo di coerenza RAID concluso il 12 settembre con `mismatch_cnt=0`. Il 12 settembre le unità provvisorie di rete sono state sostituite con `nic-offload@enp0s31f6` e `docker-user-rules@enp0s31f6`: entrambe attive, TSO/GSO spenti, porta 80 raggiungibile e 8080 bloccata dall'esterno |
 | Repository | clonato come `admin` in `/srv/progetti_innovativi`, ramo `develop`, e aggiornato soltanto con fast-forward manuali. La revisione installata è `ae713473e6e7b316d37ed37a3e4742677555faed`. Non esistono timer, webhook o mirror automatici |
-| Deploy | Swarm attivo con 15 servizi: il job `pi_setup` è completato e tutti i 14 servizi persistenti sono a `1/1`. Fleet è inizializzato; l'`infra-agent` è stabile; home prerenderizzata, consenso, privacy, accessibilità, SEO e compressione sono online. Il certificato di produzione già emesso è stato riutilizzato: file ACME, seriale e fingerprint sono rimasti identici e il task del proxy non è ripartito. `stack-deploy.service` resta disabilitata e inattiva, HSTS resta a zero e non è configurato alcun riavvio automatico |
+| Deploy | Swarm attivo con 15 servizi: il job `pi_setup` è completato e tutti i 14 servizi persistenti sono a `1/1`. Fleet e Filebeat sono stabili; il registry di Filebeat è persistente e l'access log anonimizzato di Traefik arriva in Elasticsearch. Home prerenderizzata, consenso, privacy, accessibilità, SEO e compressione sono online. Il certificato di produzione già emesso è stato riutilizzato: file ACME, seriale e fingerprint sono rimasti identici e il task del proxy non è ripartito. `stack-deploy.service` resta disabilitata e inattiva, HSTS resta a zero e non è configurato alcun riavvio automatico |
 | Immagini applicate | server `sha256:9f0f8cb3b5f776bcafacc5c9ac011052b2f4acda46c593bb3c78b59dba61dc98`; frontend `sha256:104a9a278885647b259d9fbbcece6f8c94fd8d7ad4b0fe0b6635645aed158f84`; export/home invariata a `sha256:3964129a038dce22bd35e8a63ca4f5a849cdf8e910048f5dbca654ff1a43af20`. `pi_landing` è stato rimosso intenzionalmente: la home è servita dal frontend e `pi_export` conserva l'immagine statica per le esportazioni |
-| Collaudo applicativo | `/health` è verde; `POST /auth/session` restituisce 201 e persiste in MongoDB autenticato. Dopo “Accetta tutti” il browser non registra più `pt.init is undefined` né altri errori e i documenti RUM di `frontend-app` arrivano in `traces-apm.rum-default`. Home, WebP, gzip, `robots.txt`, `sitemap.xml` e metadati SEO sono verificati dall'esterno. Resta aperta la classificazione e il rumore di Filebeat, che continua a scartare parte dei log tecnici |
+| Collaudo applicativo | `/health` è verde; `POST /auth/session` restituisce 201 e persiste in MongoDB autenticato. Dopo “Accetta tutti” il browser non registra più `pt.init is undefined` né altri errori e i documenti RUM di `frontend-app` arrivano in `traces-apm.rum-default`. Home, WebP, gzip, `robots.txt`, `sitemap.xml` e metadati SEO sono verificati dall'esterno. Filebeat non scarta più eventi e le dashboard `esercizio` ed `evento` sono create e versionate. Restano il percorso completo di partita con entrambe le scelte, il controllo visivo delle dashboard e i collaudi operativi finali |
 
 **Vincolo storico, assolto al primo deploy.** Le unità di rete di `provisioning/` sono
 installate e attive, mentre `stack-deploy.service` resta deliberatamente disabilitata e
@@ -1012,13 +1012,15 @@ dell'`infra-agent` ha prodotto OOM di cgroup; il limite da 1 GiB della sezione 9
 stato poi pubblicato, applicato e osservato per cinque minuti con agente `HEALTHY`, uso
 di circa 512 MiB e nessun nuovo OOM.
 
-Il collaudo del punto 5 non è ancora chiuso: una partita con consenso analitico ha
-scoperto che il server non autenticava le scritture su MongoDB. La correzione è
-verificata localmente ma non ancora pubblicata né installata; fino ad allora non si
-possono validare eventi di gioco e dashboard con dati reali. Restano inoltre i controlli
-distruttivi o operativi del punto 7, il load test, i ripristini, la prima copia, il
-riavvio non presidiato, HSTS e la verifica esterna finale. `stack-deploy.service` resta
-disabilitata e inattiva nel frattempo.
+Il collaudo del punto 5 non è ancora chiuso, ma i due difetti bloccanti trovati sul
+percorso reale sono risolti: il backend scrive nel MongoDB autenticato e il RUM parte
+dopo il consenso. Filebeat non alimenta più il ciclo di log del socket proxy, conserva
+il registry fra i task e raccoglie anche l'access log anonimizzato; le dashboard delle
+due modalità sono create e versionate. Restano il percorso completo di partita con
+entrambe le scelte, il controllo visivo delle dashboard, i controlli operativi del
+punto 7, il load test, i ripristini, la prima copia, il riavvio non presidiato, HSTS e
+la verifica esterna finale. `stack-deploy.service` resta disabilitata e inattiva nel
+frattempo.
 
 1. Repository in `/srv/progetti_innovativi` con la revisione verificata in 7.1,
    generazione dei segreti con `provisioning/bin/generate-secrets.sh`, che produce anche
@@ -1048,15 +1050,16 @@ disabilitata e inattiva nel frattempo.
    il riavvio del punto 11. Primo deploy con `systemctl start stack-deploy.service`:
    `start` vale solo per il primo avvio, per riapplicare si usa `restart`.
 5. **Verifica a stack acceso**, avviata ma non conclusa. Ha già controllato convergenza,
-   TLS, pagine pubbliche, bootstrap Fleet, risorse dell'`infra-agent` e blocco dei
-   dispositivi touch piccoli. Ha inoltre trovato il difetto di autenticazione MongoDB
-   descritto in 9.12; il percorso completo di una partita e i dati analitici vanno
-   ricontrollati dopo il deploy della correzione. Non è una formalità e non va compressa.
+   TLS, pagine pubbliche, bootstrap Fleet, risorse dell'`infra-agent`, sessione
+   persistita, RUM, Filebeat e blocco dei dispositivi touch piccoli. Il percorso
+   completo di una partita con entrambe le scelte e il controllo visivo delle due
+   dashboard restano da eseguire. Non è una formalità e non va compressa.
 6. Verifica che l'indirizzo di provenienza arrivi corretto al backend: le porte sono
    pubblicate in `mode: host` proprio per questo.
 7. Verifiche delle correzioni della sezione 9.9 possibili solo sulla macchina:
-   - **Filebeat (punto 1):** il montaggio punta a `/srv/docker/containers` e i log dei
-     contenitori arrivano in Kibana.
+   - **Filebeat (punto 1):** il montaggio punta a `/srv/docker/containers`, il registry
+     è nel volume `pi_filebeatdata` e i log dei contenitori e di Traefik arrivano in
+     Kibana senza eventi scartati.
      `docker service inspect pi_filebeat --format '{{json .Spec.TaskTemplate.ContainerSpec.Mounts}}'`
    - **WiredTiger (punto 8):** 1610612736 byte, cioè 1,5 GiB (sezione 9.5).
      `docker exec $(docker ps -qf name=pi_db) sh -c 'mongosh --quiet -u root -p "$(cat /run/secrets/mongo_root_password)" --authenticationDatabase admin --eval "db.serverStatus().wiredTiger.cache[\"maximum bytes configured\"]"'`
@@ -1148,26 +1151,25 @@ una nuova procedura da rilanciare:
     server ricostruita;
 15. pipeline verde, deploy manuale delle sole immagini server e frontend, sessione 201
     persistita, RUM verificato in Elasticsearch, home SEO/WebP/gzip online e certificato
-    ACME invariato.
+    ACME invariato;
+16. diagnosi e correzione di Filebeat, registry persistente, access log anonimizzato,
+    eliminazione del ciclo prodotto dal socket proxy, dashboard tecniche e divulgative
+    create e versionate, e preflight/controlli di setup e recupero aggiornati.
 
 Lavoro residuo, nell'ordine utile alla prossima sessione:
 
 1. completare una partita con entrambe le scelte di consenso e verificare checkpoint e
    fatti in `logs-gioco.partita-*`, assenza di identificativi per chi accetta soltanto i
    necessari e ritenzione a 30 giorni;
-2. correggere la classificazione/noise dei dataset Filebeat e gli eventi tecnici che il
-   servizio continua a scartare durante l'indicizzazione;
-3. osservare RUM e sessioni su un campione reale, verificando che restino privi di errori;
-4. costruire, esportare e versionare le dashboard con dati reali: dashboard esercizio
-   per salute, risorse, API/APM e pipeline dei log; dashboard evento con soli dati di
-   gameplay aggregati e non riconducibili ai singoli visitatori;
-5. eseguire load test rappresentativi di alcune centinaia di utenti concorrenti e
+2. osservare RUM e sessioni su un campione reale e aprire entrambe le dashboard in un
+   browser, verificando resa, intervallo temporale, filtri e stato vuoto;
+3. eseguire load test rappresentativi di alcune centinaia di utenti concorrenti e
    tarare soglie, CPU, memoria, code e campionamento osservando rete e temperature;
-6. collaudare heartbeat e allarmi, snapshot, backup, esportazione, ripristino e prelievo
+4. collaudare heartbeat e allarmi, snapshot, backup, esportazione, ripristino e prelievo
    off-host; poi verificare il riavvio non presidiato;
-7. completare il collaudo esterno da entrambi i PC e sui layout mobili/touch; soltanto
+5. completare il collaudo esterno da entrambi i PC e sui layout mobili/touch; soltanto
    dopo, valutare HSTS, abilitare `stack-deploy.service` e preparare il materiale QR;
-8. prima dell'apertura, eliminare soltanto i dati analitici di prova esplicitamente
+6. prima dell'apertura, eliminare soltanto i dati analitici di prova esplicitamente
    individuati, dopo un'autorizzazione separata, senza toccare dati o volumi non inclusi.
 
 ## 8. Decisione: uno o due hostname
@@ -1492,10 +1494,9 @@ Il collaudo ha registrato anche due rilievi indipendenti:
 - il RUM frontend non segnala più `pt.init is undefined`; dopo consenso analitico gli
   eventi del browser sono presenti in `traces-apm.rum-default` con servizio
   `frontend-app`;
-- una query per `data_stream.dataset=deprecation.elasticsearch` restituisce normali log
+- una query per `data_stream.dataset=deprecation.elasticsearch` restituiva normali log
   di MongoDB, Docker e Filebeat. Non esiste evidenza di 96.000 avvisi di deprecazione:
-  la classificazione dei dataset e il rumore di raccolta restano da correggere. In
-  produzione Filebeat continua a segnalare eventi scartati in indicizzazione.
+  il dato era prodotto dalla classificazione troppo permissiva poi corretta in 9.14.
 
 ### 9.13 Home, SEO, compressione e RUM — applicati il 12 settembre
 
@@ -1518,6 +1519,48 @@ collaudo, datate 12:23 UTC e riferite a `/play`. Il file ACME (15.925 byte e SHA
 la fingerprint del certificato sono identici prima e dopo il deploy. Il task Traefik
 non è stato riavviato.
 
+### 9.14 Filebeat e dashboard — applicati il 12 settembre
+
+Il problema non era un riavvio continuo di Filebeat: l'healthcheck apriva un nuovo file
+di log ogni quindici secondi. Il vero guasto era composto da tre parti. Il JSON di ogni
+contenitore veniva espanso alla radice, con collisioni di mapping e dataset errati; la
+richiesta di metadata Docker passava dal socket proxy, il cui log veniva poi riletto da
+Filebeat creando un ciclo; infine il registry degli input non aveva un volume e ogni
+aggiornamento del task ripartiva dall'inizio dei log.
+
+La configurazione ora:
+
+- assegna `container.log` ai log tecnici, decodifica alla radice solo il contratto JSON
+  controllato del backend e scarta i log prodotti da Filebeat stesso;
+- disabilita il logging del socket proxy e rende persistente
+  `/usr/share/filebeat/data` nel volume `pi_filebeatdata`;
+- raccoglie l'access log NDJSON di Traefik come `traefik.access` e rimuove indirizzi ed
+  eventuali header `Authorization` e `Cookie` prima dell'invio;
+- usa `-e` nell'healthcheck e conserva separatamente i documenti rifiutati per la
+  diagnosi;
+- valida semanticamente `filebeat.yml` con l'immagine ancorata prima di ogni deploy e
+  nella pipeline.
+
+Il riavvio controllato del solo `pi_filebeat` ha lasciato a 6 i documenti di gameplay,
+quindi non ha riletto lo storico del backend; nel minuto di osservazione i documenti
+tecnici sono cresciuti soltanto del traffico corrente e non sono comparsi `Failed to
+index`, errori o warning. Il task `pi_proxy` è rimasto invariato e il file ACME conserva
+SHA-256 `640813251be79eaea9dcc014cbe35a8e92f15b8619aea9a8b8b31305b1d84559`.
+
+Nello Space `esercizio`, `Esercizio: servizio e funnel` unisce richieste e 5xx, latenza
+APM, RUM, rotte, dataset tecnici, errori backend e imbuto di partita. Nello Space
+`evento`, `Evento: andamento` usa soltanto aggregati: partite avviate e concluse,
+reset, durata, andamento, classi di dispositivo, motivi, checkpoint e scene finali.
+Gli export sono mirati per ID, versionati con Kibana 8.19.19 e privi della data view,
+che resta posseduta da Terraform. Un controllo automatico sull'export divulgativo
+rifiuta identificativi di partita, indirizzi, user-agent e nomi tecnici.
+
+Il ciclo operativo è stato aggiornato insieme alla correzione: l'export dati comprende
+`filebeat-*`; il bootstrap fallisce se manca una dashboard obbligatoria; il ripristino
+ferma il backend durante le modifiche e, prima di riaprire il servizio, verifica gli
+indici TTL di `sessions` e `game_states`; `stack-verify.sh` controlla mount, scarti,
+access log e privacy della dashboard evento.
+
 ## 10. Rischi specifici di questo percorso
 
 | Rischio | Effetto | Mitigazione | Stato |
@@ -1537,7 +1580,7 @@ non è stato riavviato.
 | Telemetria avviata senza scelta | raccolta analitica non necessaria e informativa incompleta | consenso prima del gioco, RUM e gameplay disabilitati senza accettazione esplicita, ritenzione 30 giorni | **corretto, applicato e verificato**; sezione 9.13 |
 | Backend senza autenticazione MongoDB | `/health` verde ma creazione della sessione a 500 e nessun dato di gioco | URI costruita dal Docker secret, avvio fail-closed e test con Mongo autenticato | **corretto, applicato e verificato in produzione**; sezione 9.12 |
 | RUM frontend non inizializzato | niente telemetria browser anche dopo consenso analitico | correggere l'integrazione APM e provarla con entrambe le scelte | **corretto, applicato e verificato in produzione**; nessun errore browser e documenti RUM presenti, sezione 9.13 |
-| Dataset Filebeat classificato in modo errato e rumoroso | dashboard e conteggi di deprecazione fuorvianti, crescita inutile degli indici | correggere i campi `data_stream.*`, filtrare il rumore e validare su campioni noti | aperto; non c'è evidenza di una tempesta reale di deprecazioni |
+| Dataset Filebeat classificato in modo errato e rumoroso | dashboard e conteggi di deprecazione fuorvianti, crescita inutile degli indici | dataset tecnico esplicito, JSON del solo backend, niente log del socket proxy, registry persistente e validazione su campioni noti | **corretto, applicato e verificato**; sezione 9.14 |
 | Controllo di vitalità che non interroga il backend | sorveglianza verde con applicazione ferma | sezione 9.9, punto 3 | **corretto** (`3e9509fc`), da verificare sulla macchina: sezione 7.2, punto 7 |
 | Blocco della scheda di rete sotto carico | perdita di connettività per secondi, ripetuta | TSO e GSO disattivati, sezione 5.4 e `nic-offload@.service` | aperto |
 | Nessuno snapshot del fornitore | perdita della macchina coperta solo fino all'ultimo prelievo | snapshot LVM locali, prelievo dell'archivio portabile e delle esportazioni dalla postazione; Storage Box facoltativa (sezione 9.6) | accettato: la finestra dipende dalla frequenza dei prelievi |
@@ -1558,8 +1601,8 @@ Le dipendenze reali, in ordine. Ogni passo richiede il precedente.
 6. ~~Prerequisiti dell'host e riavvio di prova~~ — sezione 5
 7. ~~Storage Box e chiave dedicata~~ — facoltative, fuori dal cammino critico (sezioni
    3.3 e 9.6)
-8. ~~Correzioni al repository (9.3, 9.9–9.13)~~ — pubblicate e applicate fino a
-   `ae713473`; sessioni, RUM, risorse, consenso e pagine statiche sono in produzione
+8. ~~Correzioni al repository (9.3, 9.9–9.14)~~ — sessioni, RUM, risorse, consenso,
+   pagine statiche e raccolta tecnica sono in produzione
 9. ~~Record DNS e verifica da rete esterna~~ — sezione 6.1
 10. ~~Primo deploy con HSTS spento~~ — la CA di produzione è stata usata per il difetto
     descritto in 6.2; emissione riuscita e volume `pi_acme` preservato
@@ -1567,16 +1610,16 @@ Le dipendenze reali, in ordine. Ogni passo richiede il precedente.
     certificato riutilizzato e health 200
 12. ~~Passaggio a produzione e CA resa esplicita nell'ambiente~~ — già avvenuto senza
     cancellare lo stato ACME
-13. Pubblicare e applicare la correzione MongoDB della sezione 9.12; ripetere una partita
-    completa e confermare MongoDB, eventi di gameplay ed esclusione degli analytics con
-    i soli necessari
-14. Correggere RUM e classificazione Filebeat; costruire e versionare le due dashboard
-    sui dati reali
+13. ~~Pubblicare e applicare la correzione MongoDB della sezione 9.12~~; ripetere una
+    partita completa e confermare MongoDB, eventi di gameplay ed esclusione degli
+    analytics con i soli necessari
+14. ~~Correggere RUM e classificazione Filebeat; costruire e versionare le due dashboard~~
+    — applicato e verificato; sezioni 9.13 e 9.14
 15. Load test, taratura, prova degli allarmi e dei percorsi di backup/ripristino
 16. Verifica esterna finale della catena, da entrambi i PC e da dispositivi terzi
 17. Attivazione di HSTS
 18. Prova di riavvio non presidiato
-19. Stampa del materiale con il codice QR — **dopo** il punto 16, non prima
+19. Stampa del materiale con il codice QR — **dopo** il punto 18, non prima
 
 Il punto 19 è quello che si tende a spostare fuori sequenza, perché ha tempi di fornitore
 esterni: stampare prima che la catena sia verificata significa rifare la stampa, o

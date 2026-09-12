@@ -255,6 +255,25 @@ fi
 tf init -input=false -reconfigure -backend-config=path=/stato/terraform.tfstate >/dev/null
 tf apply -input=false -auto-approve >/dev/null
 
+# Le dashboard fanno parte del risultato del bootstrap, non sono un passo
+# manuale successivo. Un file mancante o un'importazione che non ha creato
+# l'oggetto deve fermare l'unita' prima che dichiari il setup concluso.
+for requisito in \
+  esercizio:esercizio-salute-risorse \
+  esercizio:esercizio-servizio-funnel \
+  evento:evento-andamento; do
+  spazio=${requisito%%:*}
+  dashboard=${requisito##*:}
+  codice=$(kbn -s -o /dev/null -w '%{http_code}' \
+    -u "$ELASTIC_USER:$ELASTIC_PASSWORD" \
+    "$KIBANA_URL/s/$spazio/api/saved_objects/dashboard/$dashboard")
+  if [ "$codice" != "200" ]; then
+    log "dashboard $spazio/$dashboard assente dopo Terraform (HTTP $codice)"
+    exit 1
+  fi
+done
+log "dashboard obbligatorie presenti nei due Space"
+
 # --------------------------------------------------------------------- 4. token
 log "leggo i token generati"
 read_output() {
