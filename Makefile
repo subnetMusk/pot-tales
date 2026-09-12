@@ -349,6 +349,10 @@ export-drill: ## Prova l'esportazione su basi dati locali e ne verifica il conte
 backup-drill: ## Prova l'archivio portabile e il recapito al servizio di sorveglianza
 	./ci/backup-drill.sh
 
+.PHONY: healthchecks-drill
+healthchecks-drill: ## Invia segnale e rientro controllati a tutti i check esterni
+	./provisioning/bin/healthchecks-drill.sh
+
 .PHONY: restore-drill
 restore-drill: ## Cronometra le tre strade di ripristino su basi dati locali
 	./ci/restore-drill.sh

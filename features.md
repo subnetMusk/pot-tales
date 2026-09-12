@@ -134,6 +134,14 @@ equivale a tutti gli endpoint e non deve comparire in documentazione, shell
 history o log. Un test controllato invia prima `/fail` e poi il rientro al
 medesimo check; non modifica DNS, challenge ACME, certificati o HSTS.
 
+Il ciclo completo, con messaggi `x/8` e rientro di sicurezza anche in caso di
+interruzione, è disponibile sulla macchina:
+
+```bash
+cd /srv/progetti_innovativi
+sudo FORCE=1 make healthchecks-drill
+```
+
 ## Diagnostica dalla macchina
 
 Questi comandi sono in sola lettura e non costruiscono immagini:
