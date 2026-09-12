@@ -13,7 +13,11 @@ const wrapper = document.getElementById("wrapper");
 if (!wrapper) throw new Error("Elemento #wrapper non trovato nel DOM.");
 
 (window as any).apm = apm;
-(window as any).elasticApm = apm;
+// Non assegnare il proxy no-op a `window.elasticApm`: il pacchetto Elastic usa
+// proprio quel nome per riconoscere un agente gia' inizializzato. Farlo prima
+// dell'import dinamico gli faceva invocare `init` sul proxy e produceva
+// "init is undefined". La libreria pubblichera' qui l'agente reale soltanto
+// dopo il consenso analitico.
 discardLegacyConsent();
 
 async function injectAndExecute(path: string): Promise<void> {
@@ -138,7 +142,11 @@ function changePrivacyChoice(): void {
     else if (window.location.pathname.startsWith("/accessibility") || window.location.pathname.startsWith("/accessibilita")) await showAccessibility();
     else if (window.location.pathname.startsWith("/play")) await enterGame();
     else {
-        document.title = "Home | Pot Tales";
-        await injectAndExecute("/static/pages/homePage.html");
+        // La home e' prerenderizzata in index.html durante la build perche' il
+        // contenuto sia disponibile a crawler e browser anche prima del JS.
+        // Il fallback mantiene funzionante un index non trasformato.
+        if (!wrapper.querySelector(".landing-shell")) {
+            await injectAndExecute("/static/pages/homePage.html");
+        }
     }
 })();

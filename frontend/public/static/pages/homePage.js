@@ -1,5 +1,8 @@
 const landingTranslations = {
     it: {
+        "document-title": "Pot Tales | Videogioco di archeologia e scienza",
+        "meta-description": "Pot Tales è un videogioco educativo online che trasforma la ricerca archeometrica sui residui nelle ceramiche antiche in un’avventura interattiva.",
+        "social-description": "Esplora la ricerca archeometrica in un’avventura educativa 2D tra depositi antichi, laboratorio e scoperta scientifica.",
         "nav-home": "Home",
         "nav-project": "Progetto",
         "nav-gallery": "Galleria",
@@ -36,6 +39,9 @@ const landingTranslations = {
         "slide-label": "Schermata {current} di {total}"
     },
     en: {
+        "document-title": "Pot Tales | Archaeology and science educational game",
+        "meta-description": "Pot Tales is an online educational game that turns archaeometric research on residues in ancient pottery into an interactive adventure.",
+        "social-description": "Explore archaeometric research through a 2D educational adventure spanning ancient residues, laboratory work and scientific discovery.",
         "nav-home": "Home",
         "nav-project": "Project",
         "nav-gallery": "Gallery",
@@ -76,6 +82,14 @@ const landingTranslations = {
 function updateLandingLang(lang) {
     const dict = landingTranslations[lang] || landingTranslations.it;
     document.documentElement.lang = lang;
+    document.title = dict['document-title'];
+    document.querySelector('meta[name="description"]')?.setAttribute('content', dict['meta-description']);
+    document.querySelector('meta[property="og:title"]')?.setAttribute('content', dict['document-title']);
+    document.querySelector('meta[property="og:description"]')?.setAttribute('content', dict['social-description']);
+    document.querySelector('meta[name="twitter:title"]')?.setAttribute('content', dict['document-title']);
+    document.querySelector('meta[name="twitter:description"]')?.setAttribute('content', dict['social-description']);
+    document.querySelector('[itemprop="description"]')?.setAttribute('content', dict['meta-description']);
+    document.querySelector('[itemprop="inLanguage"]')?.setAttribute('content', lang);
     Object.keys(dict).forEach(id => {
         const el = document.getElementById(id);
         if (el) {

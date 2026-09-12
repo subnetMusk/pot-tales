@@ -31,9 +31,17 @@ export async function enableApm() {
   if (currentApm !== noopApm) return currentApm
   if (initialization) return initialization
 
-  initialization = import('@elastic/apm-rum').then(({ init }) => {
+  initialization = import('@elastic/apm-rum').then((rumModule) => {
     const configuredActive = import.meta.env.VITE_ELASTIC_APM_RUM_ACTIVE
     if (configuredActive === 'false') return noopApm
+
+    // La libreria espone `init` sia come named export sia come default export.
+    // Accettare entrambe le forme rende il bootstrap stabile anche quando il
+    // bundler normalizza in modo diverso il modulo CommonJS/ESM.
+    const init = rumModule.init || rumModule.default
+    if (typeof init !== 'function') {
+      throw new TypeError('Elastic APM RUM non espone una funzione init')
+    }
 
     currentApm = init({
       serviceName: import.meta.env.VITE_ELASTIC_APM_RUM_SERVICE_NAME || 'frontend-app',
