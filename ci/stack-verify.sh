@@ -217,9 +217,16 @@ assert_contains "health Redis" '"redis":true' "$health_body"
 assert_contains "health server" '"server":true' "$health_body"
 
 curl_request "$tmp_dir/home.body" 200 "$BASE_URL/"
+# I collegamenti editoriali possono puntare all'esterno senza scaricare nulla.
+# Sono dipendenze invece src/srcset/poster, gli URL CSS e i <link> di risorsa.
+# Il canonical assoluto e' intenzionale per la SEO e non provoca una richiesta
+# del browser, quindi viene escluso esplicitamente.
 if grep -Eiq \
-  "(src|href)[[:space:]]*=[[:space:]]*['\"]((https?:)?//)|url\\([[:space:]]*['\"]?(https?:)?//|@import[[:space:]]+['\"](https?:)?//" \
-  "$tmp_dir/home.body"; then
+  "(src|srcset|poster)[[:space:]]*=[[:space:]]*['\"]((https?:)?//)|url\\([[:space:]]*['\"]?(https?:)?//|@import[[:space:]]+['\"](https?:)?//" \
+  "$tmp_dir/home.body" ||
+  { grep -Eio '<(link|base)[^>]*>' "$tmp_dir/home.body" |
+      grep -Eiv "rel[[:space:]]*=[[:space:]]*['\"]canonical['\"]" |
+      grep -Eiq "href[[:space:]]*=[[:space:]]*['\"]((https?:)?//)"; }; then
   fail "la home contiene dipendenze esterne"
 fi
 ok "home priva di riferimenti esterni"
