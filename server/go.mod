@@ -22,8 +22,8 @@ require (
 
 	// Elastic APM Agent for Go
 	go.elastic.co/apm/module/apmhttp/v2 v2.4.8 // indirect
-	go.elastic.co/apm/module/apmmongo/v2 v2.4.8
-	go.elastic.co/apm/v2 v2.4.8
+	go.elastic.co/apm/module/apmmongo/v2 v2.7.12
+	go.elastic.co/apm/v2 v2.7.12
 
 	// MongoDB driver
 	go.mongodb.org/mongo-driver v1.17.7
@@ -48,7 +48,7 @@ require (
 	github.com/xdg-go/stringprep v1.0.4 // indirect
 	github.com/youmark/pkcs8 v0.0.0-20240726163527-a2c0da244d78 // indirect
 	github.com/yuin/gopher-lua v1.1.1 // indirect
-	go.elastic.co/fastjson v1.1.0 // indirect
+	go.elastic.co/fastjson v1.5.1 // indirect
 	golang.org/x/crypto v0.55.0 // indirect
 	golang.org/x/sync v0.22.0 // indirect
 	golang.org/x/sys v0.47.0 // indirect
