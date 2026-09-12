@@ -12,7 +12,10 @@
 # Configurazione in /etc/stack-deploy.env:
 #   STACK_DIR        directory che contiene stack.yml
 #   STACK_NAME       nome dello stack
-#   SECRETS_DIR      directory dei file di secret, riferita da stack.yml
+#   SECRETS_DIR      directory dei secret letta da fleet-bootstrap.sh
+#                    (predefinita secrets/ nel repository). stack.yml riferisce
+#                    i file per percorso relativo e non la legge: va lasciata
+#                    al valore predefinito
 #   APP_HOST         hostname pubblico
 #   ACME_EMAIL       recapito per l'autorita' di certificazione
 #   ACME_CA_SERVER   directory dell'autorita'. Non impostata vale produzione;
@@ -297,10 +300,22 @@ esito_deploy=$?
 #
 # Solo dopo un deploy riuscito: se il deploy e' fallito, i servizi possono essere
 # ancora fermi sulla revisione precedente, che a quel punto non va rimossa.
+#
+# Il demone pero' difende solo i riferimenti della specifica corrente. Un
+# servizio con `failure_action: rollback` che fallisce l'aggiornamento torna
+# alla specifica precedente: se i suoi config o secret fossero gia' stati
+# rimossi, il rollback non potrebbe avviare i task e il servizio resterebbe
+# fermo. Quelli della specifica precedente restano quindi fino al deploy
+# successivo.
 if [ "$esito_deploy" -eq 0 ]; then
+  conservati=$(docker service ls -q --filter "label=com.docker.stack.namespace=$STACK_NAME" 2>/dev/null \
+    | xargs -r docker service inspect --format \
+      '{{with .PreviousSpec}}{{range .TaskTemplate.ContainerSpec.Configs}}{{.ConfigName}} {{end}}{{range .TaskTemplate.ContainerSpec.Secrets}}{{.SecretName}} {{end}}{{end}}' 2>/dev/null \
+    | tr ' ' '\n' | sed '/^$/d' | sort -u)
   for tipo in config secret; do
     docker "$tipo" ls --format '{{.Name}}' 2>/dev/null \
       | grep -E "^${STACK_NAME}_" \
+      | grep -vxF -e "" -f <(printf '%s\n' "$conservati") \
       | while read -r vecchio; do
           docker "$tipo" rm "$vecchio" >/dev/null 2>&1
         done

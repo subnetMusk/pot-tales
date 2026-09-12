@@ -174,7 +174,7 @@ if [ "$SOLO" = "tutto" ] || [ "$SOLO" = "dump" ]; then
   # vengono inoltrati esplicitamente dopo essere stati letti sopra.
   if CONF=/dev/null \
      EXPORT_DEST="$BACKUP_DEST/mongodump" EXPORT_KEEP="$DUMP_KEEP" \
-     MONGO_CONTAINER="${MONGO_CONTAINER:-pi_db}" \
+     MONGO_CONTAINER="${MONGO_CONTAINER:-${STACK_NAME:-pi}_db}" \
      MONGO_DB="${MONGO_DB:-game_db}" \
      MONGO_USER="${MONGO_USER:-root}" \
      MONGO_PASSWORD_FILE="${MONGO_PASSWORD_FILE:-/run/secrets/mongo_root_password}" \
