@@ -324,7 +324,10 @@ journalctl -u stack-deploy.service -n 50 --no-pager
 `restart` e non `start`: l'unita' e' `oneshot` con `RemainAfterExit`, quindi dopo
 il primo avvio resta attiva, e su un'unita' attiva `start` non esegue nulla senza
 segnalarlo. `start` vale solo per il primo avvio. Il riavvio riesegue anche
-`fleet-bootstrap.service`, che dipende da questa unita' ed e' idempotente.
+`fleet-bootstrap.service`, che dipende da questa unita' ed e' idempotente, anche
+quando il deploy riesce solo al tentativo automatico successivo. Non lanciare un
+secondo `restart` prima che il primo abbia finito: fallisce con `update out of
+sequence` e l'unita' riprova dopo 20 secondi.
 
 Il deploy si rifiuta di partire se un'immagine non e' ancorata per digest o se
 un file di secret e' vuoto. Sono i due messaggi piu' probabili: l'errore arriva

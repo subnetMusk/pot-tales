@@ -216,6 +216,14 @@ non risponde. Non serve attendere: gli agenti escono e vengono rischedulati
 finche' il token che li riguarda non compare sul volume condiviso, quindi lo
 stack converge da solo con un solo deploy.
 
+Il deploy accoda il bootstrap anche a ogni esito positivo (`ExecStartPost`).
+Senza, un deploy riuscito al secondo tentativo lascerebbe il bootstrap scartato
+dal primo per dipendenza fallita: stack in servizio, ma utenze, policy e
+dashboard non aggiornate e nessun errore visibile. Due `restart` ravvicinati
+possono fallire con `update out of sequence`, perche' il primo sta ancora
+aggiornando i servizi: l'unita' riprova da sola dopo 20 secondi, ma conviene
+attendere l'esito del primo.
+
 ## Sorveglianza
 
 Due percorsi distinti, perche' i due modi di guastarsi non sono osservabili
