@@ -100,7 +100,8 @@ sudo systemctl restart systemd-journald
 sudo systemctl daemon-reload
 sudo systemctl enable diagnostic-bundle.service
 sudo systemctl enable stack-deploy.service fleet-bootstrap.service
-sudo systemctl enable --now stack-heartbeat.timer alert-notifier.timer backup-nightly.timer
+sudo systemctl enable --now stack-heartbeat.timer alert-notifier.timer \
+     backup-nightly.timer traefik-logrotate.timer
 sudo systemctl restart docker
 ```
 

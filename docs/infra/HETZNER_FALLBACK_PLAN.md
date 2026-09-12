@@ -1604,6 +1604,70 @@ controllo visivo delle dashboard con dati rappresentativi, load test, prove di
 backup/export/ripristino e prelievo off-host, verifica esterna multi-dispositivo e
 riavvio non presidiato. HSTS e avvio automatico dello stack vengono dopo questi punti.
 
+### 9.16 Sorveglianza, backup, dashboard e collaudo operativo — 12 settembre
+
+Il secondo audit chiude i punti che nella sezione precedente erano ancora preparatori.
+`/etc/stack-surveillance.env` esiste a modo `0600`; i check esterni e il canale Telegram
+sono configurati. `stack-heartbeat.timer`, `alert-notifier.timer`,
+`backup-nightly.timer` e `traefik-logrotate.timer` sono tutti abilitati e attivi, e le
+quattro unità hanno terminato l'ultima esecuzione con `Result=success` ed exit status
+zero. Il check `stack-liveness` va tenuto acceso da questo momento: il battito ogni
+cinque minuti è ora parte del servizio in produzione. I ping controllati di guasto e
+rientro sono stati accettati dall'endpoint esterno; la ricezione sul client Telegram
+resta una conferma dell'operatore, non una proprietà verificabile dalla macchina.
+
+La prima esecuzione del backup ha rivelato che `data-export.sh`, richiamato dal backup,
+rileggeva `/etc/stack-data.env` e sostituiva la destinazione notturna con quella degli
+export manuali. La revisione `04d9f5f9` isola quel richiamo con `CONF=/dev/null` e
+inoltra in modo esplicito la configurazione MongoDB; il drill CI impedisce la
+regressione. In produzione l'esecuzione successiva ha creato lo snapshot LVM
+`docker-snap-20260912T144942Z` e l'archivio portabile sotto
+`/srv/backup/mongodump/20260912T144943Z`. Tutti i checksum sono validi. L'archivio è
+stato ripristinato in una base temporanea isolata, sono stati letti un documento in
+`sessions` e uno in `game_states`, poi la base temporanea è stata rimossa senza
+toccare quella in servizio. Il timer notturno è pianificato per le 03:30 Europe/Rome.
+La copia off-host è esclusa da questo collaudo per decisione esplicita.
+
+Le due dashboard sono state aperte con le rispettive utenze a privilegio minimo.
+`Esercizio: servizio e funnel` e `Evento: andamento` completano il bootstrap e
+renderizzano tutti i pannelli. Il limite precedente, dieci richieste al secondo con
+burst trenta, respingeva con 429 i molti bundle caricati in parallelo da Kibana; la
+revisione `695c5e27` porta soltanto il middleware delle dashboard a media cento e burst
+mille. Gli errori residui 403/404 riguardano funzioni opzionali non concesse ai viewer
+(reporting, assistant, intercept e profilo), mentre data view e query dei pannelli
+rispondono. Filebeat non registra errori recenti e ha indicizzato oltre 568 mila
+documenti; sono presenti anche sei documenti RUM nelle ultime 24 ore, quindi la
+telemetria frontend non è soltanto configurata ma arriva a Elasticsearch.
+
+Il load test esterno, senza build o Docker sulla postazione con poco disco, ha inviato
+400 richieste alla home a 20 richieste/s e 800 richieste a `/health` a 40 richieste/s:
+tutte hanno risposto 200 e il p95 è rimasto circa 151 ms in entrambi i casi. Durante
+il test la coda massima è stata 3, l'iowait massimo 9%, la CPU utente massima 14% e
+sono rimasti almeno circa 37 GiB di memoria libera. Il battito è rimasto sano.
+
+La verifica esterna del punto successivo è iniziata: i resolver pubblici concordano
+sull'indirizzo A, non esiste un AAAA involontario e il CAA autorizza Let's Encrypt;
+HTTP/2, header di sicurezza, `robots.txt`, sitemap, canonical, Open Graph, Twitter Card,
+microdati e asset WebP compressi sono serviti correttamente. A 390x844 la home non ha
+overflow orizzontale, la galleria cambia slide e non produce errori console. Questo
+controllo automatico e visivo non sostituisce la prova completa da entrambi i PC e da
+un dispositivo terzo, né dimostra da solo la conformità WCAG completa.
+
+Gli script `data-backup.sh`, `data-export.sh`, `data-restore.sh`,
+`stack-heartbeat.sh`, `alert-notifier.sh` e `stack-deploy.sh` installati in
+`/usr/local/bin` coincidono byte per byte con quelli versionati. La procedura di setup
+ora abilita esplicitamente anche `traefik-logrotate.timer`, che prima veniva copiato ma
+omesso dal comando di abilitazione.
+
+La protezione ACME non è stata allentata: dopo l'unico aggiornamento necessario del
+middleware, `acme.json` conserva SHA-256
+`640813251be79eaea9dcc014cbe35a8e92f15b8619aea9a8b8b31305b1d84559`; non è stata
+richiesta alcuna nuova emissione. Il certificato corrente resta valido fino al 10
+dicembre 2026 e HSTS resta intenzionalmente a zero. I gate ancora aperti prima di
+considerare il setup completamente concluso sono la partita reale completa con le due
+scelte di consenso, la conferma finale da dispositivi terzi, la prova di riavvio non
+presidiato e, solo dopo, la decisione sull'attivazione di HSTS.
+
 ## 10. Rischi specifici di questo percorso
 
 | Rischio | Effetto | Mitigazione | Stato |
@@ -1658,8 +1722,10 @@ Le dipendenze reali, in ordine. Ogni passo richiede il precedente.
     analytics con i soli necessari
 14. ~~Correggere RUM e classificazione Filebeat; costruire e versionare le due dashboard~~
     — applicato e verificato; sezioni 9.13 e 9.14
-15. Load test, taratura, prova degli allarmi e dei percorsi di backup/ripristino
-16. Verifica esterna finale della catena, da entrambi i PC e da dispositivi terzi
+15. ~~Load test, taratura, prova degli allarmi e dei percorsi di backup/ripristino~~
+    — completati in 9.16; copia off-host esclusa per decisione esplicita
+16. Verifica esterna finale della catena — DNS, TLS, SEO e mobile 390x844 verificati;
+    restano entrambi i PC e un dispositivo terzo
 17. Attivazione di HSTS
 18. Prova di riavvio non presidiato
 19. Stampa del materiale con il codice QR — **dopo** il punto 18, non prima
