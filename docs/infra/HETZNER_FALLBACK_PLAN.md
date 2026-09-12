@@ -23,10 +23,10 @@ segnate come fatte; le altre sono descritte e non eseguite.
 | Dominio | `pot-tales.it` registrato alle 11:15 e attivo. Record A verso `195.201.247.58` e CAA per Let's Encrypt impostati il 12 settembre con TTL 5 minuti; nessun AAAA e `www` rimosso. Propagazione verificata sui quattro server autoritativi Aruba |
 | Storage Box | facoltativa e non ordinata: nessun passo ne dipende, sezioni 3.3 e 9.6 |
 | Prerequisiti dell'host | sezioni 5.1–5.8 e riavvio 5.10 completati l'11 settembre: utente `admin`, SSH a chiave, root disabilitato, kernel `6.8.0-139-generic`, fuso, sysctl, rete, firewall, Docker e journal verificati dopo il riavvio. Controllo di coerenza RAID concluso il 12 settembre con `mismatch_cnt=0`. Il 12 settembre le unità provvisorie di rete sono state sostituite con `nic-offload@enp0s31f6` e `docker-user-rules@enp0s31f6`: entrambe attive, TSO/GSO spenti, porta 80 raggiungibile e 8080 bloccata dall'esterno |
-| Repository | clonato come `admin` in `/srv/progetti_innovativi`, ramo `develop`, e aggiornato soltanto con fast-forward manuali. La revisione installata al termine della sessione è `0671fe0b0ac02377aa6f326da30e77168eacce69`. Non esistono timer, webhook o mirror automatici. La correzione dell'autenticazione MongoDB è nel commit che aggiorna questo documento: è verificata localmente ma non ancora installata sulla macchina |
-| Deploy | Swarm attivo con 15 servizi: il job `pi_setup` è completato e tutti i 14 servizi persistenti sono a `1/1`. Fleet è inizializzato; l'`infra-agent` è stabile con il nuovo limite; home, consenso, privacy, accessibilità e correzione CSP sono online. Il certificato di produzione già emesso è stato sempre riutilizzato. `stack-deploy.service` resta disabilitata e inattiva, HSTS resta a zero e non è configurato alcun riavvio automatico |
-| Immagini applicate | server `sha256:926d7f79e4d077a32ebd81a8c5d1e3fe97ab617f7c546ae1bc10ce07d3c899eb`; frontend `sha256:5a77eb0ed58c40e13bf81c07bf77f4e7c297aa1598cb9b32816d04be0d99da17`; export/home `sha256:3964129a038dce22bd35e8a63ca4f5a849cdf8e910048f5dbca654ff1a43af20`. `pi_landing` è stato rimosso intenzionalmente: la home è servita dal frontend e `pi_export` conserva l'immagine statica per le esportazioni |
-| Collaudo applicativo | il percorso “Accetta tutti” ha individuato un blocco reale: `POST /auth/session` restituisce 500 perché il backend in produzione non riceve le credenziali del MongoDB autenticato. MongoDB e gli indici `logs-gioco.partita-*` sono quindi ancora vuoti. La correzione fail-closed e il test di persistenza autenticata sono pronti e verificati localmente (17/17), ma richiedono una nuova immagine server e un deploy manuale nella prossima sessione |
+| Repository | clonato come `admin` in `/srv/progetti_innovativi`, ramo `develop`, e aggiornato soltanto con fast-forward manuali. La revisione installata è `ae713473e6e7b316d37ed37a3e4742677555faed`. Non esistono timer, webhook o mirror automatici |
+| Deploy | Swarm attivo con 15 servizi: il job `pi_setup` è completato e tutti i 14 servizi persistenti sono a `1/1`. Fleet è inizializzato; l'`infra-agent` è stabile; home prerenderizzata, consenso, privacy, accessibilità, SEO e compressione sono online. Il certificato di produzione già emesso è stato riutilizzato: file ACME, seriale e fingerprint sono rimasti identici e il task del proxy non è ripartito. `stack-deploy.service` resta disabilitata e inattiva, HSTS resta a zero e non è configurato alcun riavvio automatico |
+| Immagini applicate | server `sha256:9f0f8cb3b5f776bcafacc5c9ac011052b2f4acda46c593bb3c78b59dba61dc98`; frontend `sha256:104a9a278885647b259d9fbbcece6f8c94fd8d7ad4b0fe0b6635645aed158f84`; export/home invariata a `sha256:3964129a038dce22bd35e8a63ca4f5a849cdf8e910048f5dbca654ff1a43af20`. `pi_landing` è stato rimosso intenzionalmente: la home è servita dal frontend e `pi_export` conserva l'immagine statica per le esportazioni |
+| Collaudo applicativo | `/health` è verde; `POST /auth/session` restituisce 201 e persiste in MongoDB autenticato. Dopo “Accetta tutti” il browser non registra più `pt.init is undefined` né altri errori e i documenti RUM di `frontend-app` arrivano in `traces-apm.rum-default`. Home, WebP, gzip, `robots.txt`, `sitemap.xml` e metadati SEO sono verificati dall'esterno. Resta aperta la classificazione e il rumore di Filebeat, che continua a scartare parte dei log tecnici |
 
 **Vincolo storico, assolto al primo deploy.** Le unità di rete di `provisioning/` sono
 installate e attive, mentre `stack-deploy.service` resta deliberatamente disabilitata e
@@ -1145,18 +1145,19 @@ una nuova procedura da rilanciare:
     credenziale MongoDB mancante nell'entrypoint;
 14. correzione locale fail-closed dell'autenticazione MongoDB, diagnostica strutturata
     degli errori e test runtime di persistenza autenticata: 17/17 riusciti sull'immagine
-    server ricostruita.
+    server ricostruita;
+15. pipeline verde, deploy manuale delle sole immagini server e frontend, sessione 201
+    persistita, RUM verificato in Elasticsearch, home SEO/WebP/gzip online e certificato
+    ACME invariato.
 
 Lavoro residuo, nell'ordine utile alla prossima sessione:
 
-1. leggere l'esito della pipeline avviata dal commit che contiene la correzione MongoDB,
-   acquisire il nuovo digest del server e applicarlo manualmente senza toccare proxy o
-   `pi_acme`;
-2. ripetere una partita con “Accetta tutti” e verificare sessione e stato in MongoDB,
+1. completare una partita con entrambe le scelte di consenso e verificare checkpoint e
    fatti in `logs-gioco.partita-*`, assenza di identificativi per chi accetta soltanto i
    necessari e ritenzione a 30 giorni;
-3. correggere l'errore di inizializzazione del RUM frontend e la classificazione/noise
-   dei dataset Filebeat;
+2. correggere la classificazione/noise dei dataset Filebeat e gli eventi tecnici che il
+   servizio continua a scartare durante l'indicizzazione;
+3. osservare RUM e sessioni su un campione reale, verificando che restino privi di errori;
 4. costruire, esportare e versionare le dashboard con dati reali: dashboard esercizio
    per salute, risorse, API/APM e pipeline dei log; dashboard evento con soli dati di
    gameplay aggregati e non riconducibili ai singoli visitatori;
@@ -1455,10 +1456,11 @@ frontend; scansione dei segreti senza rilievi; `npm audit --omit=dev` senza
 vulnerabilità di produzione. Restano due avvisi solo di sviluppo legati alla versione
 di Vite/esbuild: la correzione automatica richiede il salto maggiore a Vite 8 e non è
 stata inclusa senza un collaudo dedicato. Dall'esterno sono stati verificati home,
-informative, consenso, CSP e blocco dei dispositivi touch piccoli; il percorso di gioco
-si interrompe però alla creazione della sessione per il difetto distinto in 9.12.
+informative, consenso, CSP e blocco dei dispositivi touch piccoli. La creazione della
+sessione è ora verificata anche contro il MongoDB autenticato di produzione; si veda
+la sezione 9.12.
 
-### 9.12 Autenticazione MongoDB del backend — corretta e verificata, non ancora applicata
+### 9.12 Autenticazione MongoDB del backend — corretta, applicata e verificata
 
 Il primo test reale selezionando “Accetta tutti” ha prodotto `POST /auth/session` a 500;
 i tentativi successivi sono diventati 503/401 e nessun documento è comparso nelle
@@ -1481,17 +1483,40 @@ credenziali Redis e lasciava al backend il valore predefinito non autenticato
 
 Dopo la ricostruzione locale dell'immagine server, `ci/runtime-check.sh` passa 17
 controlli su 17. Passano inoltre `lint-shell`, formattazione, vet, build e test Go con
-race detector, e la validazione dello stack/Traefik. La macchina resta sulla precedente
-immagine server `sha256:926d7f79...`: nella prossima sessione occorrono una pipeline
-verde, il nuovo digest e un deploy manuale del solo aggiornamento applicativo.
+race detector, e la validazione dello stack/Traefik. La pipeline `34692595082` è verde
+e l'immagine server `sha256:9f0f8cb3...` è applicata. Il collaudo di produzione ha
+ottenuto HTTP 201 e ha osservato il nuovo documento nella collezione `sessions`.
 
-Il collaudo ha registrato anche due rilievi indipendenti, ancora aperti:
+Il collaudo ha registrato anche due rilievi indipendenti:
 
-- il RUM frontend segnala `pt.init is undefined`; la sua inizializzazione va corretta e
-  verificata senza cambiare la semantica del consenso;
+- il RUM frontend non segnala più `pt.init is undefined`; dopo consenso analitico gli
+  eventi del browser sono presenti in `traces-apm.rum-default` con servizio
+  `frontend-app`;
 - una query per `data_stream.dataset=deprecation.elasticsearch` restituisce normali log
   di MongoDB, Docker e Filebeat. Non esiste evidenza di 96.000 avvisi di deprecazione:
-  va invece corretta la classificazione dei dataset e ridotto il rumore di raccolta.
+  la classificazione dei dataset e il rumore di raccolta restano da correggere. In
+  produzione Filebeat continua a segnalare eventi scartati in indicizzazione.
+
+### 9.13 Home, SEO, compressione e RUM — applicati il 12 settembre
+
+I commit `dc1dfea5` e `ae713473` prerenderizzano il contenuto semantico della home
+nell'HTML iniziale, aggiungono canonical, robots, Open Graph, Twitter Card, microdati,
+`robots.txt` e `sitemap.xml`; estendono inoltre gzip ai contenuti testuali. Le cinque
+immagini principali sono passate da circa 1,43 MiB di PNG a circa 309 KiB di WebP.
+
+Il difetto RUM dipendeva dall'assegnazione preventiva di un proxy no-op a
+`window.elasticApm`: la libreria lo interpretava come agente già inizializzato e
+tentava di invocare un metodo inesistente. Il proxy resta ora interno e l'agente reale
+viene caricato solo dopo il consenso analitico.
+
+La pipeline `34692595082` è interamente verde e ha pubblicato le immagini usate dal
+deploy. Dall'esterno la home risponde HTTP/2 200 con gzip, i WebP hanno tipo e cache
+corretti e gli endpoint SEO sono raggiungibili. Il browser di produzione non mostra
+errori o warning dopo “Accetta tutti”; Elasticsearch contiene sei transazioni RUM del
+collaudo, datate 12:23 UTC e riferite a `/play`. Il file ACME (15.925 byte e SHA-256
+`640813251be79eaea9dcc014cbe35a8e92f15b8619aea9a8b8b31305b1d84559`), il seriale e
+la fingerprint del certificato sono identici prima e dopo il deploy. Il task Traefik
+non è stato riavviato.
 
 ## 10. Rischi specifici di questo percorso
 
@@ -1502,16 +1527,16 @@ Il collaudo ha registrato anche due rilievi indipendenti, ancora aperti:
 | Temperatura dei dischi sotto carico | rallentamento di `nvme0n1` oltre 78 °C | letture per disco in sezione 4.3 e durante il load test | aperto |
 | Layout dei dischi sbagliato | la correzione richiede di ridurre filesystem in uso | layout definito e verificato prima dell'installazione | **eseguito e verificato**: sezioni 4.2 e 4.3 |
 | Revisione sul server priva di `de4e1073` | HSTS di un anno servito come letterale | verifica dei commit in 7.1 prima del primo deploy | **rientrato**: revisione e configurazione effettiva verificate; HSTS resta intenzionalmente a zero |
-| Immagini da una revisione incompleta | fatti di partita assenti o frontend non aggiornato | digest da una revisione con entrambi i gruppi di commit | **rientrato per i gruppi precedenti**: produzione a `0671fe0b`; resta da pubblicare e applicare la correzione MongoDB della sezione 9.12 |
+| Immagini da una revisione incompleta | fatti di partita assenti o frontend non aggiornato | digest da una revisione con entrambi i gruppi di commit | **rientrato**: produzione a `ae713473`, pipeline e digest verificati |
 | Gate di copertura sotto il pavimento | la pipeline di `develop` fallisce e `publish-images` non parte: nessun digest da mettere in `/etc/stack-deploy.env` | test per gli handler di gioco e per la chiusura differita, oppure decisione esplicita sul pavimento | **rientrato**: 89,7% da `0d958099`, sezione 9.9 |
 | Commit che rompono la build senza che nessuno se ne accorga | immagine non costruibile scoperta solo al passaggio su `develop` o al deploy, come il lockfile cancellato da `a464426d` | pipeline anche su `integrazione/infra` (`16fd492a`) | mitigato: resta da leggere l'esito di ogni push |
 | HSTS attivato prima di una catena verificata | blocco non aggirabile per i visitatori | sequenza in 6.2, non negoziabile | **rientrato per la prima emissione**: HSTS era a zero e la catena di produzione è attendibile; resta spento fino alla verifica completa |
 | Limite di frequenza dell'autorità raggiunto in collaudo | nessun certificato valido per giorni | directory di prova prima della prima emissione; poi conservazione dello stato ACME | **non materializzato**: una sola emissione di produzione, riuscita al primo tentativo; `pi_acme` da preservare |
 | Metodi statici di Traefik mescolati | gli argomenti con CA di prova, plugin e middleware vengono ignorati | un solo metodo, tutto via CLI; test su stack renderizzato e immagine reale | **corretto, pushato e applicato il 12 settembre** (`8af699d2`): plugin caricato, CA di produzione effettiva, certificato riutilizzato, health 200 |
 | `infra-agent` con limite da 512 MiB | riavvii ripetuti con exit 137 e buchi nelle metriche | limite 1 GiB, riserva 256 MiB e una CPU nella sezione 9.5 | **corretto e applicato**: servizio stabile e `HEALTHY`, senza nuovi OOM nel periodo di osservazione |
-| Telemetria avviata senza scelta | raccolta analitica non necessaria e informativa incompleta | consenso prima del gioco, RUM e gameplay disabilitati senza accettazione esplicita, ritenzione 30 giorni | **corretto e applicato**; il flusso dati va ricontrollato dopo 9.12 |
-| Backend senza autenticazione MongoDB | `/health` verde ma creazione della sessione a 500 e nessun dato di gioco | URI costruita dal Docker secret, avvio fail-closed e test con Mongo autenticato | **corretto e verificato localmente, non ancora applicato**; sezione 9.12 |
-| RUM frontend non inizializzato | niente telemetria browser anche dopo consenso analitico | correggere l'integrazione APM e provarla con entrambe le scelte | aperto: `pt.init is undefined` nel browser |
+| Telemetria avviata senza scelta | raccolta analitica non necessaria e informativa incompleta | consenso prima del gioco, RUM e gameplay disabilitati senza accettazione esplicita, ritenzione 30 giorni | **corretto, applicato e verificato**; sezione 9.13 |
+| Backend senza autenticazione MongoDB | `/health` verde ma creazione della sessione a 500 e nessun dato di gioco | URI costruita dal Docker secret, avvio fail-closed e test con Mongo autenticato | **corretto, applicato e verificato in produzione**; sezione 9.12 |
+| RUM frontend non inizializzato | niente telemetria browser anche dopo consenso analitico | correggere l'integrazione APM e provarla con entrambe le scelte | **corretto, applicato e verificato in produzione**; nessun errore browser e documenti RUM presenti, sezione 9.13 |
 | Dataset Filebeat classificato in modo errato e rumoroso | dashboard e conteggi di deprecazione fuorvianti, crescita inutile degli indici | correggere i campi `data_stream.*`, filtrare il rumore e validare su campioni noti | aperto; non c'è evidenza di una tempesta reale di deprecazioni |
 | Controllo di vitalità che non interroga il backend | sorveglianza verde con applicazione ferma | sezione 9.9, punto 3 | **corretto** (`3e9509fc`), da verificare sulla macchina: sezione 7.2, punto 7 |
 | Blocco della scheda di rete sotto carico | perdita di connettività per secondi, ripetuta | TSO e GSO disattivati, sezione 5.4 e `nic-offload@.service` | aperto |
@@ -1533,8 +1558,8 @@ Le dipendenze reali, in ordine. Ogni passo richiede il precedente.
 6. ~~Prerequisiti dell'host e riavvio di prova~~ — sezione 5
 7. ~~Storage Box e chiave dedicata~~ — facoltative, fuori dal cammino critico (sezioni
    3.3 e 9.6)
-8. ~~Correzioni al repository (9.3, 9.9, 9.10 e 9.11)~~ — pubblicate e applicate fino a
-   `0671fe0b`; risorse, consenso e pagine statiche sono in produzione
+8. ~~Correzioni al repository (9.3, 9.9–9.13)~~ — pubblicate e applicate fino a
+   `ae713473`; sessioni, RUM, risorse, consenso e pagine statiche sono in produzione
 9. ~~Record DNS e verifica da rete esterna~~ — sezione 6.1
 10. ~~Primo deploy con HSTS spento~~ — la CA di produzione è stata usata per il difetto
     descritto in 6.2; emissione riuscita e volume `pi_acme` preservato
