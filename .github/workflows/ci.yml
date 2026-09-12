@@ -78,6 +78,7 @@ jobs:
       # senza protestare.
       - run: make frontend-typecheck
       - run: make frontend-build
+      - run: make frontend-csp-check
 
   statica:
     name: Analisi statica

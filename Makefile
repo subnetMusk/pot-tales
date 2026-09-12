@@ -220,6 +220,10 @@ frontend-typecheck: ## Verifica i tipi del frontend, che la compilazione non con
 frontend-build: ## Compila il frontend di produzione
 	$(NODE_RUN) sh -c 'cd frontend && npm ci && npm run build'
 
+.PHONY: frontend-csp-check
+frontend-csp-check: ## Verifica che le pagine della SPA non richiedano script inline
+	bash ci/frontend-csp-check.sh
+
 ##@ Sicurezza
 
 # Il controllo bloccante guarda l'albero di lavoro, non la cronologia.

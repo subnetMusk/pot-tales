@@ -25,13 +25,29 @@ async function injectAndExecute(path: string): Promise<void> {
         if (!res.ok) throw new Error(`Errore ${res.status} caricando ${path}`);
 
         wrapper!.innerHTML = await res.text();
-        wrapper!.querySelectorAll("script").forEach(oldScript => {
+        const scripts = Array.from(wrapper!.querySelectorAll("script"));
+        for (const oldScript of scripts) {
+            if (!oldScript.src) {
+                throw new Error(`Script inline non ammesso dalla CSP in ${path}`);
+            }
+
             const newScript = document.createElement("script");
             for (const attr of oldScript.attributes) newScript.setAttribute(attr.name, attr.value);
-            if (oldScript.src) newScript.src = oldScript.src;
-            else newScript.textContent = oldScript.textContent;
-            document.body.appendChild(newScript);
-        });
+            newScript.src = oldScript.src;
+            oldScript.remove();
+
+            await new Promise<void>((resolve, reject) => {
+                newScript.addEventListener("load", () => {
+                    newScript.remove();
+                    resolve();
+                }, { once: true });
+                newScript.addEventListener("error", () => {
+                    newScript.remove();
+                    reject(new Error(`Errore caricando lo script ${newScript.src}`));
+                }, { once: true });
+                document.body.appendChild(newScript);
+            });
+        }
     } catch (err) {
         console.error("Errore in injectAndExecute:", err);
         wrapper!.innerHTML = '<main class="legal-screen"><section class="legal-card"><h1>Qualcosa non ha funzionato</h1><div class="legal-copy"><p>Non siamo riusciti a caricare questa schermata. Riprova tra poco.</p></div></section></main>';
