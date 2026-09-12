@@ -565,6 +565,32 @@ gameplay_stream=$(es_query '/_data_stream/logs-gioco.partita-default') ||
 assert_contains "data stream dei fatti di partita disponibile" \
   '"name":"logs-gioco.partita-default"' "$gameplay_stream"
 
+# I saved object si importano anche quando nominano un campo inesistente: il
+# difetto compare soltanto nel browser come pannello vuoto. Verificare i field
+# caps sul cluster reale chiude quel buco senza simulare dati o modificare gli
+# indici.
+campi_esercizio=$(es_query \
+  '/filebeat-%2A,logs-%2A,metrics-%2A,traces-apm%2A/_field_caps?fields=event.action,error.message,transaction.name,transaction.duration.us,system.cpu.total.pct,system.memory.used.pct,system.filesystem.used.pct,system.filesystem.mount_point,docker.cpu.total.pct,docker.memory.usage.pct,docker.healthcheck.status') ||
+  fail "lettura dei campi della dashboard di esercizio fallita"
+for campo in \
+  event.action error.message transaction.name transaction.duration.us \
+  system.cpu.total.pct system.memory.used.pct system.filesystem.used.pct \
+  system.filesystem.mount_point docker.cpu.total.pct docker.memory.usage.pct \
+  docker.healthcheck.status; do
+  assert_contains "campo di esercizio $campo disponibile" \
+    "\"$campo\"" "$campi_esercizio"
+done
+
+campi_evento=$(es_query \
+  '/logs-gioco.partita-%2A/_field_caps?fields=event.action,partita.checkpoint,partita.dispositivo,partita.durata_ms,partita.motivo,partita.scena_finale') ||
+  fail "lettura dei campi della dashboard evento fallita"
+for campo in \
+  event.action partita.checkpoint partita.dispositivo partita.durata_ms \
+  partita.motivo partita.scena_finale; do
+  assert_contains "campo evento $campo disponibile" \
+    "\"$campo\"" "$campi_evento"
+done
+
 access_count_body=$(es_query \
   '/filebeat-%2A/_count?q=event.dataset%3Atraefik.access') ||
   fail "conteggio degli access log fallito"
