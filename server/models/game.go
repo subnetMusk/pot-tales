@@ -47,10 +47,10 @@ type GameState struct {
 // PositionRecorded dice se il gioco ha mai riportato una posizione.
 //
 // Lo stato nasce con coordinate a zero, che non descrivono un punto della scena
-// ma l'assenza di un punto: la sessione viene creata all'uscita da Stage1, prima
-// che la scena successiva esista e possa dire dove si trova il giocatore. Solo il
-// ping scrive le coordinate, e le scrive insieme a last_ping: finche' questo
-// coincide con l'istante di creazione non c'e' nulla da ripristinare.
+// ma l'assenza di un punto: la sessione viene creata all'ingresso di Stage1, che
+// non invia ancora la posizione. Solo il ping scrive le coordinate, e le scrive
+// insieme a last_ping: finche' questo coincide con l'istante di creazione non
+// c'e' nulla da ripristinare.
 //
 // Uno stato che non ha created_at, perche' precede l'introduzione del campo,
 // risulta avere una posizione: e' il verso giusto in cui sbagliare, perche' quel

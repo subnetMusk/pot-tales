@@ -46,7 +46,7 @@ func TestSessioneUsataSopravviveAllaDurataRidotta(t *testing.T) {
 	// Richiesta autenticata con la chiave ancora in cache: e' il caso di ogni
 	// ping durante il gioco, e il primo traguardo arriva subito dopo la
 	// creazione.
-	if codice, _ := b.postGioco(t, cookie, "/game/checkpoint", `{"checkpoint_id":"stage1_complete"}`); codice != http.StatusOK {
+	if codice, _ := b.postGioco(t, cookie, "/game/checkpoint", `{"checkpoint_id":"game_started"}`); codice != http.StatusOK {
 		t.Fatalf("traguardo appena dopo la creazione: codice = %d, atteso %d", codice, http.StatusOK)
 	}
 

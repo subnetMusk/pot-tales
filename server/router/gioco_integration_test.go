@@ -30,7 +30,7 @@ import (
 
 // scenaIniziale e' la scena in cui nasce ogni partita, assegnata dalla
 // creazione della sessione.
-const scenaIniziale = "Stage2"
+const scenaIniziale = "Stage1"
 
 // postGioco esegue una POST su una rotta di gioco, autenticata se il cookie e'
 // presente, e decodifica la risposta.

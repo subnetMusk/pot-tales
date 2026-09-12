@@ -23,12 +23,14 @@ class MenuBackground extends Phaser.GameObjects.Container {
 
 		/* START-USER-CTR-CODE */
 		// Write your code here.
-		scene.anims.create({
-			key: 'tunnel_spin',
-			frames: scene.anims.generateFrameNumbers('tunnel_1', { start: 0, end: 11 }),
-			frameRate: 9,
-			repeat: -1
-		});
+		if (!scene.anims.exists('tunnel_spin')) {
+			scene.anims.create({
+				key: 'tunnel_spin',
+				frames: scene.anims.generateFrameNumbers('tunnel_1', { start: 0, end: 11 }),
+				frameRate: 9,
+				repeat: -1
+			});
+		}
 		bg.play('tunnel_spin');
 		/* END-USER-CTR-CODE */
 	}

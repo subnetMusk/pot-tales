@@ -2,8 +2,7 @@
 import Player from "@/items/Main/Player";
 import PopupManager from "../items/UI/PopupManager";
 import { applyTranslations, launchSubScene, playSequence, reloadTranslations } from "../utils";
-import {APISession, CreateSessionRequest} from "../network/APISession";
-import {hasAnalyticsConsent} from "../privacy/consent";
+import {APISession} from "../network/APISession";
 
 import OggettoInterattivo from "../items/Main/OggettoInterattivo";
 import { ambientDrift } from "../items/ParticleFx";
@@ -87,26 +86,35 @@ class Stage1 extends Phaser.Scene {
 		this.editorCreate();
 		this.player.setDepth(10);
 		this.apiSession = new APISession();
+		// La massa diventa interagibile solo dopo la sequenza delle luci, quando
+		// activateBlackMass() le assegna anche il relativo handler.
+		this.blackMass.set = false;
 
-		this.anims.create({
-			key: "strange_light_anim",
-			frames: this.anims.generateFrameNumbers("red_light", { start: 0, end: 5 }),
-			frameRate: 8,
-			repeat: -1
-		});
+		if (!this.anims.exists("strange_light_anim")) {
+			this.anims.create({
+				key: "strange_light_anim",
+				frames: this.anims.generateFrameNumbers("red_light", { start: 0, end: 5 }),
+				frameRate: 8,
+				repeat: -1
+			});
+		}
 
-		this.anims.create({
-			key: "strange_light_anim_fade",
-			frames: this.anims.generateFrameNumbers("red_light", { start: 0, end: -1 }),
-			frameRate: 8
-		});
+		if (!this.anims.exists("strange_light_anim_fade")) {
+			this.anims.create({
+				key: "strange_light_anim_fade",
+				frames: this.anims.generateFrameNumbers("red_light", { start: 0, end: -1 }),
+				frameRate: 8
+			});
+		}
 
-		this.anims.create({
-			key: "black_mass_anim",
-			frames: this.anims.generateFrameNumbers("black_mass", { start: 0, end: -1 }),
-			frameRate: 8,
-			repeat: -1
-		});
+		if (!this.anims.exists("black_mass_anim")) {
+			this.anims.create({
+				key: "black_mass_anim",
+				frames: this.anims.generateFrameNumbers("black_mass", { start: 0, end: -1 }),
+				frameRate: 8,
+				repeat: -1
+			});
+		}
 
 		// Play the black mass animation
 		this.blackMass.play("black_mass_anim");
@@ -432,8 +440,7 @@ class Stage1 extends Phaser.Scene {
 			this.time.delayedCall(1000, () => {this.startMinigame();});
 		};
 
-		// Aggiungi la massa nera al vettore degli oggetti interagibili
-		this.oggVector.push(this.blackMass);
+		this.blackMass.set = true;
 		this.player.isMovementAllowed = true;
 	}
 
@@ -490,26 +497,13 @@ class Stage1 extends Phaser.Scene {
 				this.player.interactionAllowed = false; //disabilita l'interazione
 				this.time.delayedCall(4000, this.cameras.main.fadeOut, [], this.cameras.main);
 				this.time.delayedCall(5000, async () => {
-					// Da qui in poi la partita è "salvabile": creiamo la sessione e registriamo
-					// subito il primo traguardo. Best-effort: un fallimento di rete non deve
-					// bloccare il giocatore, semplicemente non potrà riprendere da qui in caso
-					// di reload finché la connessione non torna disponibile.
-					const requestData: CreateSessionRequest = {
-						consentGiven: hasAnalyticsConsent(),
-						device: navigator.userAgent.substring(0, 1024)
-					};
-
 					try {
-						console.log("Tentativo di creare la sessione...");
-						const sessione = await this.apiSession.createSession(requestData);
-						console.log("Sessione creata con successo:", sessione.token);
-
 						await this.apiSession.saveCheckpoint("stage1_complete");
 					} catch (error) {
 						if (error instanceof Error) {
-							console.error("Creazione della sessione o del checkpoint fallita:", error.message);
+							console.error("Salvataggio del checkpoint di Stage 1 fallito:", error.message);
 						} else {
-							console.error("Creazione della sessione o del checkpoint fallita (oggetto non-Error):", error);
+							console.error("Salvataggio del checkpoint di Stage 1 fallito (oggetto non-Error):", error);
 						}
 					}
 

@@ -172,6 +172,11 @@ fatti nel tempo.
 | `partita_azzerata` | reset |
 | `sessione_conclusa` | chiusura differita, espulsione o completamento |
 
+Il click su **Play** crea la sessione prima di entrare in Stage 1 e registra subito il
+checkpoint `game_started`. Questo primo traguardo estende il TTL ridotto delle sessioni
+appena create e separa nelle dashboard l'avvio effettivo dal completamento di Stage 1
+(`stage1_complete`). **Resume** mantiene invece la sessione e lo stato esistenti.
+
 L'ultimo non ha una richiesta in cui nascere: le partite finiscono quando qualcuno si
 alza dalla postazione. Una spazzata periodica rivendica le partite ferme ed emette la
 conclusione con durata e scena finale. La rivendicazione è atomica, quindi le repliche

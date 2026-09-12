@@ -293,8 +293,8 @@ func TestPosizioneRestituisceLoStatoIniziale(t *testing.T) {
 	if err := json.NewDecoder(risposta.Body).Decode(&payload); err != nil {
 		t.Fatalf("risposta non in formato JSON: %v", err)
 	}
-	if payload.SceneID == "" {
-		t.Error("scena assente nella risposta")
+	if payload.SceneID != scenaIniziale {
+		t.Errorf("scena = %q, attesa %q", payload.SceneID, scenaIniziale)
 	}
 	if payload.LastPing == "" {
 		t.Error("istante dell'ultimo ping assente")

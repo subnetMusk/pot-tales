@@ -809,7 +809,7 @@ class Player extends Phaser.GameObjects.Container {
         if (oggVector) for (const ogg of oggVector) {
             const raggio = ogg.interactionRadius ?? 32;
             const distanza = Phaser.Math.Distance.Between(this.x, this.y, ogg.x, ogg.y);
-            if (distanza < raggio && ogg.set) {
+            if (distanza < raggio && ogg.set && typeof ogg.interagisci === "function") {
                 ogg.interagisci();
                 break;
             }

@@ -42,8 +42,8 @@ export type ValidateSessionResponse = z.infer<typeof ValidateSessionResponseSche
 
 // GET POSITION -----
 // x e y mancano finche' il gioco non ha inviato il primo ping: la sessione nasce
-// all'uscita da Stage1, prima che la scena successiva possa dire dove si trova il
-// giocatore. In quel caso si usa lo spawn della scena, non lo zero.
+// all'avvio di Stage1, che non invia ancora la posizione. In quel caso si usa lo
+// spawn della scena, non lo zero.
 const GetPositionResponseSchema = z.object({
     scene_id: z.string(),
     x: z.string().optional(),

@@ -5,7 +5,8 @@ import { setupPixelButton } from "../utils";
 import MenuBackground from "../items/UI/MenuBackground";
 import { soundManager } from "../audio/SoundManager";
 
-import {APISession} from "@/network/APISession";
+import {APISession, CreateSessionRequest} from "@/network/APISession";
+import {hasAnalyticsConsent} from "@/privacy/consent";
 
 // You can write more code here
 
@@ -138,6 +139,7 @@ class Menu extends Phaser.Scene {
 	// Write your code here
 	private apiSession!: APISession;
 	private resumeData?: { sceneId: string; x?: number; y?: number; checkpoints?: string[] };
+	private hasExistingSession = false;
 
 	// L'icona di ogni bottone (play_icon, gallery_icon, ...) non è esposta come campo di
 	// classe da editorCreate() e non ha un .name assegnato, quindi va cercata dentro a
@@ -164,6 +166,10 @@ class Menu extends Phaser.Scene {
 
 	async create() {
 		this.editorCreate();
+		// Le istanze delle scene Phaser vengono riutilizzate: non conservare lo
+		// stato di validazione di una precedente apertura del menu.
+		this.hasExistingSession = false;
+		this.resumeData = undefined;
 
 		// Sostituisce il bordo piatto dei bottoni con un pannello "8-bit" (bordo spesso +
 		// ombra + highlight, stesso linguaggio visivo del box-shadow stack di style.css).
@@ -188,6 +194,7 @@ class Menu extends Phaser.Scene {
             switch (validation.state) {
                 case 'active':
 					console.log("SESSIONE ATTIVA");
+					this.hasExistingSession = true;
 
 					try {
 						const position = await this.apiSession.getPosition();
@@ -283,18 +290,36 @@ class Menu extends Phaser.Scene {
 		this.fullscreen_icon.on('pointerdown', () => {this.fullscreen_icon.setTint(0xbdbdbd); tweenIconScale(this.fullscreen_icon, fullscreenBaseScale, 0.9);});
 
 		this.play_button.on('pointerup', () => {
+			// Evita che due pointerup ravvicinati creino due sessioni distinte.
+			this.play_button.disableInteractive();
 			fadeElements(this.uI, false, 1000, () => {
 				this.cameras.main.zoomTo(1.5, 1000);
 				this.cameras.main.fadeOut(1000, 0, 0, 0);
 				this.cameras.main.once('camerafadeoutcomplete', async () => {
-					// "Play" riparte sempre da zero: se esistevano progressi salvati, li cancelliamo.
-					if (this.resumeData) {
+					// "Play" apre sempre una nuova partita. Se esiste una sessione precedente,
+					// il reset ne registra l'uscita prima che il nuovo cookie la sostituisca.
+					if (this.hasExistingSession) {
 						try {
 							await this.apiSession.resetProgress();
 						} catch (error) {
 							console.error("Reset dei progressi fallito:", error);
 						}
 					}
+
+					const requestData: CreateSessionRequest = {
+						consentGiven: hasAnalyticsConsent(),
+						device: navigator.userAgent.substring(0, 1024)
+					};
+
+					try {
+						await this.apiSession.createSession(requestData);
+						// Il checkpoint rende subito la sessione "usata" (estendendone il TTL)
+						// e misura l'avvio reale senza confonderlo col completamento di Stage 1.
+						await this.apiSession.saveCheckpoint("game_started");
+					} catch (error) {
+						console.error("Avvio della sessione di gioco fallito:", error);
+					}
+
 					soundManager.stopMusic("menu_theme");
 					this.scene.start("Stage1");
 				});
