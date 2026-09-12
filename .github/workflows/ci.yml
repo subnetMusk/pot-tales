@@ -134,6 +134,14 @@ jobs:
       # validazione statica perche' esistono solo all'esecuzione.
       - name: Avvia e interroga
         run: make runtime-check
+      # I drill usano servizi e volumi effimeri sul runner. Restano qui, e non
+      # sulla postazione operativa con poco disco: verificano che il dump
+      # notturno non finisca fra gli export manuali e cronometrano tutte e tre
+      # le strade di recovery senza toccare i dati di produzione.
+      - name: Backup e recovery
+        run: |
+          make backup-drill
+          make restore-drill
       - name: Vulnerabilita' note nelle immagini
         run: make scan-images
 
