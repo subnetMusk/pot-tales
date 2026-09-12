@@ -408,10 +408,12 @@ func TestCheckpointRegistraSostituisceEDeduplica(t *testing.T) {
 		t.Errorf("traguardi nella posizione = %v, attesi %v", posizione.Checkpoints, atteso)
 	}
 
-	// Ogni registrazione produce un fatto con l'identificativo opaco, che la
-	// dashboard aggrega come etichetta.
+	// Ogni cambiamento produce un fatto con l'identificativo opaco, che la
+	// dashboard aggrega come etichetta. Ritrasmettere lo stesso checkpoint non
+	// deve invece gonfiare il numero di eventi.
 	registrati := map[string]bool{}
-	for _, f := range conAzione(fatti, "checkpoint_raggiunto") {
+	eventiCheckpoint := conAzione(fatti, "checkpoint_raggiunto")
+	for _, f := range eventiCheckpoint {
 		if id, ok := f["partita.checkpoint"].(string); ok {
 			registrati[id] = true
 		}
@@ -420,6 +422,56 @@ func TestCheckpointRegistraSostituisceEDeduplica(t *testing.T) {
 		if !registrati[id] {
 			t.Errorf("nessun fatto emesso per il traguardo %s", id)
 		}
+	}
+	if len(eventiCheckpoint) != 4 {
+		t.Errorf("fatti di checkpoint emessi = %d, attesi 4 cambiamenti distinti", len(eventiCheckpoint))
+	}
+}
+
+// Il traguardo finale deve chiudere subito la partita come completata. Se
+// restasse aperta, lo sweeper la chiuderebbe alcuni minuti dopo come inattiva
+// e il pannello di impatto mostrerebbe zero completamenti reali.
+func TestCheckpointFinaleConcludeLaPartitaUnaVoltaSola(t *testing.T) {
+	b := nuovoBanco(t)
+	token, cookie := b.creaSessione(t)
+	b.impostaStato(t, token, bson.M{
+		"data.scene_id":      "Stage3",
+		"data.total_time_ms": int64(42000),
+		"data.checkpoints":   []string{"game_started", "stage2_complete"},
+	})
+
+	fatti := catturaFatti(t, func() {
+		for range 2 {
+			codice, risposta := b.postGioco(t, cookie, "/game/checkpoint", `{"checkpoint_id":"stage3_complete"}`)
+			if codice != http.StatusOK || risposta["status"] != "ok" {
+				t.Fatalf("checkpoint finale: codice = %d, risposta %v", codice, risposta)
+			}
+		}
+	})
+
+	checkpoint := conAzione(fatti, "checkpoint_raggiunto")
+	if len(checkpoint) != 1 {
+		t.Errorf("fatti del checkpoint finale = %d, atteso 1", len(checkpoint))
+	}
+
+	conclusioni := conAzione(fatti, "sessione_conclusa")
+	if len(conclusioni) != 1 {
+		t.Fatalf("conclusioni = %d, attesa 1", len(conclusioni))
+	}
+	conclusione := conclusioni[0]
+	if conclusione["partita.motivo"] != helpers.MotivoCompletata {
+		t.Errorf("motivo = %v, atteso %s", conclusione["partita.motivo"], helpers.MotivoCompletata)
+	}
+	if conclusione["partita.scena_finale"] != "Stage3" {
+		t.Errorf("scena finale = %v, attesa Stage3", conclusione["partita.scena_finale"])
+	}
+	if conclusione["partita.durata_ms"] != float64(42000) {
+		t.Errorf("durata = %v, attesa 42000", conclusione["partita.durata_ms"])
+	}
+
+	stato, esiste := b.statoDiGioco(t, token)
+	if !esiste || stato.Meta.ClosedAt == nil {
+		t.Error("la partita completata non risulta chiusa")
 	}
 }
 

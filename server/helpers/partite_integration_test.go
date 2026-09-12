@@ -67,7 +67,7 @@ func TestAddCheckpointCitaLaChiave(t *testing.T) {
 	inserisciPartita(t, db, "partita", "Stage2", 0)
 
 	for _, id := range []string{"semplice", "a.b|1", "axb|1", "a.b|2"} {
-		if err := gm.AddCheckpoint(ctx, "partita", id); err != nil {
+		if _, err := gm.AddCheckpoint(ctx, "partita", id); err != nil {
 			t.Fatalf("registrazione di %s: %v", id, err)
 		}
 	}

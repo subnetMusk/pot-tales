@@ -71,7 +71,9 @@ func (gm *GameManager) UpdateState(ctx context.Context, sessionID string, sceneI
 // viene rimossa prima di aggiungere la nuova — permette di tracciare uno stato che cambia nel
 // tempo (es. l'orientamento corrente di un turret) senza accumulare uno storico infinito.
 // Senza "|" il comportamento resta un semplice insieme deduplicato (comportamento originale).
-func (gm *GameManager) AddCheckpoint(ctx context.Context, sessionID string, checkpointID string) error {
+// Il booleano restituito dice se lo stato e' cambiato: il chiamante lo usa per
+// non emettere una seconda volta lo stesso fatto in caso di retry.
+func (gm *GameManager) AddCheckpoint(ctx context.Context, sessionID string, checkpointID string) (bool, error) {
 	if sepIndex := strings.Index(checkpointID, "|"); sepIndex >= 0 {
 		keyPrefix := checkpointID[:sepIndex+1]
 		pull := bson.M{
@@ -80,7 +82,7 @@ func (gm *GameManager) AddCheckpoint(ctx context.Context, sessionID string, chec
 			},
 		}
 		if _, err := gm.gameCol.UpdateOne(ctx, bson.M{"_id": sessionID}, pull); err != nil {
-			return err
+			return false, err
 		}
 	}
 
@@ -89,8 +91,11 @@ func (gm *GameManager) AddCheckpoint(ctx context.Context, sessionID string, chec
 			"data.checkpoints": checkpointID,
 		},
 	}
-	_, err := gm.gameCol.UpdateOne(ctx, bson.M{"_id": sessionID}, update)
-	return err
+	risultato, err := gm.gameCol.UpdateOne(ctx, bson.M{"_id": sessionID}, update)
+	if err != nil {
+		return false, err
+	}
+	return risultato.ModifiedCount > 0, nil
 }
 
 // ConcludiPartita chiude una partita per un motivo noto ed emette l'evento.

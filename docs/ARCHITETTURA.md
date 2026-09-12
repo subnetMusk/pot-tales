@@ -177,10 +177,17 @@ checkpoint `game_started`. Questo primo traguardo estende il TTL ridotto delle s
 appena create e separa nelle dashboard l'avvio effettivo dal completamento di Stage 1
 (`stage1_complete`). **Resume** mantiene invece la sessione e lo stato esistenti.
 
-L'ultimo non ha una richiesta in cui nascere: le partite finiscono quando qualcuno si
-alza dalla postazione. Una spazzata periodica rivendica le partite ferme ed emette la
-conclusione con durata e scena finale. La rivendicazione è atomica, quindi le repliche
-del backend non emettono la stessa conclusione due volte.
+Il data stream contiene **fatti**, non una riga per partita: un percorso completo senza
+rotazioni aggiuntive delle torrette produce 16 documenti fra creazione, checkpoint,
+cambi scena e conclusione. I contatori “partite” filtrano gli eventi unici del ciclo di
+vita; il conteggio grezzo dei documenti misura invece il volume degli eventi. Il
+checkpoint finale `stage3_complete` chiude immediatamente la partita con motivo
+`completata`, così la spazzata non la riclassifica come abbandono per inattività.
+
+Per gli abbandoni l'ultimo evento non ha una richiesta in cui nascere: la partita finisce
+quando qualcuno si alza dalla postazione. Una spazzata periodica rivendica le partite
+ferme ed emette la conclusione con durata e scena finale. La rivendicazione è atomica,
+quindi le repliche del backend non emettono la stessa conclusione due volte.
 
 ### Due Space, due platee
 

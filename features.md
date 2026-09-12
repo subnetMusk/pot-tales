@@ -43,6 +43,12 @@ tecnici non aggregati quando un pannello non basta a spiegare un’anomalia.
 - [Andamento dell’evento](https://pot-tales.it/osservabilita/s/evento/app/dashboards#/view/evento-andamento): sessioni e partite osservabili, completamenti, durata, dispositivi, avanzamento e ultimi eventi pseudonimizzati.
 - [Impatto dell’evento](https://pot-tales.it/osservabilita/s/evento/app/dashboards#/view/evento-impatto): sessioni create, partite iniziate e completate, partite con RUM e tempo medio di gioco.
 
+Il numero di documenti del data stream non coincide con il numero di partite:
+ogni documento è un fatto (creazione, checkpoint, cambio scena o conclusione).
+Una partita completa senza rotazioni aggiuntive produce 16 fatti; i riquadri
+“Sessioni create”, “Partite iniziate” e “Partite completate” filtrano invece il
+singolo evento di ciclo di vita corrispondente e crescono di una unità.
+
 Lo Space evento offre anche **Discover** sui soli fatti di gioco, per consultare
 i documenti non aggregati. Non espone log tecnici, indirizzi, cookie o token di sessione.
 I dati di impatto esistono soltanto per le partite per cui il visitatore ha

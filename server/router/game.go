@@ -164,16 +164,34 @@ func (g *gameSvc) handleCheckpoint(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := g.mgr.AddCheckpoint(r.Context(), sessionID, payload.CheckpointID); err != nil {
+	aggiunto, err := g.mgr.AddCheckpoint(r.Context(), sessionID, payload.CheckpointID)
+	if err != nil {
 		helpers.WriteJSON(w, http.StatusInternalServerError, map[string]string{"error": "db error"})
 		return
 	}
 
-	// L'identificativo resta opaco anche qui: il backend non ne interpreta il
-	// significato, e la dashboard lo aggrega come etichetta.
-	helpers.LogGameplay(r.Context(), sessionID, "checkpoint_raggiunto", map[string]any{
-		"partita.checkpoint": payload.CheckpointID,
-	})
+	// Un retry dello stesso checkpoint non e' un nuovo fatto di partita. Mongo
+	// conserva gia' un insieme; applicare la stessa idempotenza anche al log
+	// impedisce che un doppio click o una ritrasmissione gonfino le dashboard.
+	if aggiunto {
+		// L'identificativo resta opaco anche qui: il backend non interpreta i
+		// checkpoint ordinari, e la dashboard li aggrega come etichette.
+		helpers.LogGameplay(r.Context(), sessionID, "checkpoint_raggiunto", map[string]any{
+			"partita.checkpoint": payload.CheckpointID,
+		})
+	}
+
+	// Questo e' l'unico checkpoint che ha semantica di ciclo di vita: chiude la
+	// partita come completata prima che lo sweeper possa classificarla come
+	// abbandonata per inattivita'. ConcludiPartita e' atomica e idempotente, per
+	// cui un retry non produce una seconda conclusione.
+	if payload.CheckpointID == "stage3_complete" {
+		if _, err := g.mgr.ConcludiPartita(r.Context(), sessionID, helpers.MotivoCompletata); err != nil {
+			helpers.LogError(r.Context(), "database", "game_complete_failed", err, nil)
+			helpers.WriteJSON(w, http.StatusInternalServerError, map[string]string{"error": "db error"})
+			return
+		}
+	}
 
 	helpers.WriteJSON(w, http.StatusOK, map[string]string{"status": "ok"})
 }
