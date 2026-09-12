@@ -37,15 +37,16 @@ conta() {
     2>/dev/null | tr -d '\r\n '
 }
 
-# Indici di ritenzione presenti su sessions. L'esistenza della collezione va
+# Indici di ritenzione presenti su entrambe le collezioni. La loro esistenza va
 # verificata prima: dopo uno svuotamento getIndexes() solleva un errore invece
 # di restituire un elenco vuoto, e l'errore sarebbe indistinguibile da zero.
 indici_ttl() {
   docker exec "$MONGO" mongosh --quiet \
     -u root -p "$PASSWORD" --authenticationDatabase admin "$MONGO_DB" \
-    --eval 'print(db.getCollectionNames().includes("sessions")
-              ? db.sessions.getIndexes().filter(i => i.expireAfterSeconds !== undefined).length
-              : 0)' \
+    --eval 'print(["sessions", "game_states"].map(c =>
+              db.getCollectionNames().includes(c)
+                ? db[c].getIndexes().filter(i => i.expireAfterSeconds !== undefined).length
+                : 0).reduce((a, b) => a + b, 0))' \
     2>/dev/null | tr -d '\r\n '
 }
 
@@ -149,8 +150,8 @@ azzerati=$(docker exec "$MONGO" mongosh --quiet \
 # ripristina i dati senza gli indici lascerebbe le sessioni senza scadenza, e
 # la differenza non si vede finche' il disco non si riempie.
 ttl=$(indici_ttl)
-[ "$ttl" = "1" ] || fallisci "dopo il ripristino l'indice di ritenzione non c'e' ($ttl trovati)"
-echo "stato ripristinato: $ripristinati documenti, nessun residuo corrotto, indice di ritenzione presente"
+[ "$ttl" = "2" ] || fallisci "dopo il ripristino mancano indici di ritenzione ($ttl su 2 trovati)"
+echo "stato ripristinato: $ripristinati documenti, nessun residuo corrotto, due indici di ritenzione presenti"
 
 # --- 3. Ricreazione a vuoto -------------------------------------------------
 

@@ -128,6 +128,15 @@ riavvia_backend() {
   done
 }
 
+arresta_backend_sicurezza() {
+  [ -n "$repliche_backend" ] || return 0
+  docker service scale "$BACKEND_SERVICE=0" >/dev/null 2>&1 || {
+    echo "ATTENZIONE: impossibile riportare $BACKEND_SERVICE a zero repliche" >&2
+    return 1
+  }
+  echo "$BACKEND_SERVICE fermato: il database non ha superato la verifica" >&2
+}
+
 verifica_indici_ttl() {
   [ -n "$repliche_backend" ] || return 0
   [ "$repliche_backend" -gt 0 ] || return 0
@@ -263,6 +272,7 @@ esac
 if [ "$MODO" = "ripristino" ] || [ "$MODO" = "ricreazione" ]; then
   if [ "$uscita" -eq 0 ]; then
     if ! riavvia_backend || ! verifica_indici_ttl; then
+      arresta_backend_sicurezza || true
       echo "dati modificati ma ritorno in servizio non completato o non verificato" >&2
       uscita=1
     fi
