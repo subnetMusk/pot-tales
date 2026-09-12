@@ -97,6 +97,7 @@ jobs:
       - run: make lint-stack
       - run: make filebeat-config-check
       - run: make dashboard-export-check
+      - run: make dashboard-users-check
       - run: make lint-terraform
       - run: make terraform-validate
 

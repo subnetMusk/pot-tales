@@ -213,6 +213,10 @@ filebeat-config-check: ## Valida semanticamente il file di configurazione Filebe
 dashboard-export-check: ## Verifica export mirato, filtro data view e NDJSON senza newline finale
 	bash ci/dashboard-export-check.sh
 
+.PHONY: dashboard-users-check
+dashboard-users-check: ## Prova creazione e ripristino delle credenziali dashboard
+	PYTHONDONTWRITEBYTECODE=1 python3 ./ci/dashboard-users-check.py
+
 .PHONY: lint-terraform
 lint-terraform: ## Verifica la formattazione delle definizioni Terraform
 	$(DOCKER) run --rm -v "$(CURDIR)/terraform":/w -w /w $(TERRAFORM_IMAGE) fmt -check -recursive -diff
@@ -354,6 +358,10 @@ restore-drill: ## Cronometra le tre strade di ripristino su basi dati locali
 .PHONY: secrets
 secrets: ## Genera i secret mancanti senza toccare quelli esistenti
 	./provisioning/bin/generate-secrets.sh $(SECRETS_DIR)
+
+.PHONY: dashboard-users
+dashboard-users: ## Crea/verifica le credenziali dashboard e la fonte Terraform
+	sudo ./provisioning/bin/configure-dashboard-users.py $(SECRETS_DIR)
 
 .PHONY: stack-config
 stack-config: ## Risolve e valida lo stack di produzione senza applicarlo

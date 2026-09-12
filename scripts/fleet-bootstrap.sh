@@ -54,7 +54,8 @@
 # contenitore raggiungono i servizi, quelle che restano sull'host no.
 #
 # Variabili riconosciute: STACK_NAME, KIBANA_URL, KIBANA_BASE_PATH,
-# ELASTIC_PASSWORD, TF_DIR, OUTPUT_FILE, TOKEN_SINK, TOKEN_VOLUME, TF_NETWORK.
+# ELASTIC_PASSWORD, TF_DIR, OUTPUT_FILE, TOKEN_SINK, TOKEN_VOLUME, TF_NETWORK,
+# DASHBOARD_USERS_TFVARS.
 # ==============================================================================
 set -euo pipefail
 
@@ -165,6 +166,34 @@ if [ -z "${TF_VAR_filebeat_password:-}" ]; then
   [ -n "$TF_VAR_filebeat_password" ] && export TF_VAR_filebeat_password
 fi
 
+# Gli htpasswd non contengono password recuperabili: da soli consentono a
+# Traefik di verificare una credenziale, ma non permettono a Terraform di creare
+# la stessa utenza in Elasticsearch. Il comando di configurazione scrive quindi
+# una copia root-only in JSON, montata soltanto nel contenitore effimero di
+# Terraform. Le variabili d'ambiente restano supportate per sviluppo e CI, ma
+# devono essere fornite entrambe per non creare una sola platea.
+dashboard_mount=()
+dashboard_var_args=()
+if [ -n "${TF_VAR_utenze_esercizio:-}" ] || [ -n "${TF_VAR_utenze_evento:-}" ]; then
+  if [ -z "${TF_VAR_utenze_esercizio:-}" ] || [ -z "${TF_VAR_utenze_evento:-}" ]; then
+    log "TF_VAR_utenze_esercizio e TF_VAR_utenze_evento vanno impostate insieme"
+    exit 1
+  fi
+else
+  DASHBOARD_USERS_TFVARS=${DASHBOARD_USERS_TFVARS:-$SECRETS_DIR/dashboard_users.tfvars.json}
+  case "$DASHBOARD_USERS_TFVARS" in
+    /*) dashboard_vars_host=$DASHBOARD_USERS_TFVARS ;;
+    *)  dashboard_vars_host=$_ROOT/$DASHBOARD_USERS_TFVARS ;;
+  esac
+  if [ ! -s "$dashboard_vars_host" ]; then
+    log "credenziali Terraform delle dashboard assenti: $dashboard_vars_host"
+    log "eseguire provisioning/bin/configure-dashboard-users.py $SECRETS_DIR"
+    exit 1
+  fi
+  dashboard_mount=(-v "$dashboard_vars_host:/run/dashboard_users.tfvars.json:ro")
+  dashboard_var_args=(-var-file=/run/dashboard_users.tfvars.json)
+fi
+
 # ------------------------------------------------------------------ 1. attesa
 log "attendo Kibana su $KIBANA_URL"
 deadline=$(( $(date +%s) + WAIT_TIMEOUT ))
@@ -220,6 +249,7 @@ tf() {
   MSYS_NO_PATHCONV=1 docker run --rm --network "$TF_NETWORK" \
     -v "$(pwd)/$TF_DIR:/tf" -w /tf \
     -v "$TF_STATE_DIR:/stato" \
+    "${dashboard_mount[@]}" \
     -e "TF_VAR_elastic_password=$ELASTIC_PASSWORD" \
     "${ambiente[@]}" \
     "$TF_IMAGE" "$@"
@@ -253,7 +283,7 @@ fi
 # chiedendo di migrare uno stato che non esiste. Il percorso e' sempre lo stesso,
 # quindi non c'e' nulla da migrare: c'e' una sola collocazione valida.
 tf init -input=false -reconfigure -backend-config=path=/stato/terraform.tfstate >/dev/null
-tf apply -input=false -auto-approve >/dev/null
+tf apply -input=false -auto-approve "${dashboard_var_args[@]}" >/dev/null
 
 # Le dashboard fanno parte del risultato del bootstrap, non sono un passo
 # manuale successivo. Un file mancante o un'importazione che non ha creato

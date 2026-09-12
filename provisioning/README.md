@@ -166,8 +166,13 @@ Tre passaggi, in ordine di dipendenza.
 ```bash
 # 1. Secret. Idempotente: quelli gia' presenti non vengono toccati, perche'
 #    rigenerarli invaliderebbe le credenziali con cui i servizi si sono
-#    registrati. Gli elenchi di utenze delle dashboard si compilano a mano.
+#    registrati. Il comando segnala separatamente le credenziali dashboard.
 sudo ./bin/generate-secrets.sh /srv/progetti_innovativi/secrets
+
+# 1b. Prima installazione: crea gli htpasswd e la fonte root-only di Terraform.
+#     Se gli htpasswd esistono gia', chiede le password e le verifica senza
+#     modificarli: serve a ricostruire la fonte mancante in modo sicuro.
+sudo ./bin/configure-dashboard-users.py /srv/progetti_innovativi/secrets
 
 # 2. Parametri del deploy: hostname, recapito per il certificato, immagini
 #    riferite per digest.
@@ -196,8 +201,12 @@ uno nuovo sopra scarterebbe servizi e secret gia' registrati: li' lo script
 esce con errore e l'unita' riprova. Su una macchina con piu' indirizzi il
 demone non ne sceglie uno da solo, e va indicato `SWARM_ADVERTISE_ADDR`.
 
-Lo script rifiuta di procedere se un'immagine non e' ancorata per digest, e se
-un file di secret e' assente o vuoto. Entrambi i controlli servono a far
+Lo script rifiuta di procedere se un'immagine non e' ancorata per digest, se
+un file di secret e' assente o vuoto, oppure se manca
+`secrets/dashboard_users.tfvars.json`. Quest'ultimo e' la fonte root-only da
+cui Terraform crea in Elasticsearch le stesse utenze presenti negli htpasswd:
+senza, il bordo accetterebbe le credenziali ma Kibana le rifiuterebbe. Questi
+controlli servono a far
 fallire il deploy prima di iniziare, invece di lasciare lo stack applicato a
 meta'.
 

@@ -56,6 +56,13 @@ password:
 | `utenze_evento`     | `secrets/dashboard_users_evento`    |
 | entrambe            | `secrets/dashboard_users`           |
 
+In produzione la copia in chiaro necessaria a Terraform vive in
+`secrets/dashboard_users.tfvars.json`, a modo `0400`, e viene prodotta da
+`provisioning/bin/configure-dashboard-users.py`. Non e' un Docker secret e non
+viene montata nei servizi: entra soltanto nel contenitore Terraform effimero
+durante il bootstrap. Va inclusa nella custodia off-host dei segreti, mai negli
+export destinati alle dashboard.
+
 Il terzo file copre le risorse comuni ai due Space e deve contenere l'unione
 delle due platee.
 

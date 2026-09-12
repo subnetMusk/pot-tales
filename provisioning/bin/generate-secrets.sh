@@ -5,9 +5,9 @@
 # rigenerazione accidentale invaliderebbe le credenziali con cui i servizi si
 # sono registrati, e il danno si manifesterebbe solo al riavvio successivo.
 #
-# Gli elenchi di utenze delle dashboard non sono generati qui: le credenziali
-# vanno scelte e distribuite a persone, quindi si compilano a mano con
-# `htpasswd -B`. Lo script si limita a segnalarne l'assenza.
+# Le utenze delle dashboard non sono generate qui: le credenziali vanno scelte
+# e distribuite a persone. Lo script dedicato segnalato in fondo crea o verifica
+# insieme gli htpasswd e la fonte root-only necessaria a Terraform.
 set -uo pipefail
 
 DEST=${1:-}
@@ -61,23 +61,25 @@ genera pow_secret 48
 genera filebeat_writer_password 32
 
 mancanti=""
-for f in dashboard_users dashboard_users_esercizio dashboard_users_evento; do
+for f in dashboard_users dashboard_users_esercizio dashboard_users_evento \
+         dashboard_users.tfvars.json; do
   [ -s "$DEST/$f" ] || mancanti="$mancanti $f"
 done
 
 if [ -n "$mancanti" ]; then
   cat >&2 <<MSG
 
-Elenchi di utenze da compilare a mano:$mancanti
+Credenziali delle dashboard da configurare:$mancanti
 
 Le credenziali che contengono valgono anche come utenze Kibana: il proxy non
 rimuove l'intestazione di autorizzazione, quindi la stessa credenziale
 autentica a valle e riceve il ruolo del proprio Space.
 
-  htpasswd -cbB $DEST/dashboard_users_esercizio <utente> <password>
-  htpasswd -cbB $DEST/dashboard_users_evento    <utente> <password>
-  cat $DEST/dashboard_users_esercizio $DEST/dashboard_users_evento > $DEST/dashboard_users
-  chmod 0400 $DEST/dashboard_users*
+Usare il comando dedicato: non mostra le password, crea gli htpasswd mancanti
+e scrive la copia root-only usata da Terraform per creare gli stessi utenti
+in Elasticsearch.
+
+  sudo $(dirname "$0")/configure-dashboard-users.py $DEST
 MSG
   exit 1
 fi

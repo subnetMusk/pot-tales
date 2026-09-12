@@ -544,7 +544,7 @@ file.
 
 | Secret | Come si cambia |
 |---|---|
-| `dashboard_users*` | nel file. Le stesse utenze vanno create anche in Kibana (`terraform/elk/README.md`) |
+| `dashboard_users*` | con `sudo provisioning/bin/configure-dashboard-users.py secrets`: aggiorna o verifica gli htpasswd e genera `dashboard_users.tfvars.json`; poi si rieseguono deploy e bootstrap |
 | `redis_password` | nel file: Redis ricostruisce le utenze all'avvio, il backend l'indirizzo, e lo stesso deploy riavvia entrambi |
 | `apm_secret_token`, `filebeat_writer_password` | nel file, poi `sudo systemctl restart fleet-bootstrap.service`, che porta lo stesso valore nella policy Fleet o nell'utenza di Elasticsearch |
 | `kibana_system_password` | nel file: il job `setup` monta lo stesso secret e viene rieseguito a ogni deploy, quindi reimposta la password in Elasticsearch; Kibana, aggiornato dallo stesso deploy, si autentica appena la password e' impostata |

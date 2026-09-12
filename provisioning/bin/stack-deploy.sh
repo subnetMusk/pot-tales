@@ -23,6 +23,9 @@
 #   SERVER_IMAGE     riferimento per digest dell'immagine del backend
 #   FRONTEND_IMAGE   riferimento per digest dell'immagine del gioco
 #   LANDING_IMAGE    riferimento per digest della pagina di ingresso
+#   DASHBOARD_USERS_TFVARS  copia root-only delle credenziali con cui Terraform
+#                    crea le utenze delle due platee (predefinita accanto agli
+#                    altri secret)
 #   EXPORT_DEST      directory degli archivi, servita in sola lettura dal bordo
 #                    (predefinita /srv/export, come in stack-data.env)
 #   ES_DATA_DIR      directory degli indici di Elasticsearch, montata dal volume
@@ -126,6 +129,18 @@ if [ -n "$mancanti" ]; then
   echo "$mancanti" >&2
   exit 1
 fi
+
+# Le tre liste htpasswd permettono al bordo di verificare le credenziali, ma
+# non contengono la password necessaria a creare gli stessi utenti su
+# Elasticsearch. Senza questa fonte il deploy applicativo riuscirebbe e il
+# bootstrap dichiarerebbe gli Space pronti ma nessuna platea potrebbe entrare.
+DASHBOARD_USERS_TFVARS=${DASHBOARD_USERS_TFVARS:-../secrets/dashboard_users.tfvars.json}
+if [ ! -s "$DASHBOARD_USERS_TFVARS" ]; then
+  echo "credenziali Terraform delle dashboard assenti: $DASHBOARD_USERS_TFVARS" >&2
+  echo "eseguire provisioning/bin/configure-dashboard-users.py ../secrets" >&2
+  exit 1
+fi
+export DASHBOARD_USERS_TFVARS
 
 export APP_HOST ACME_EMAIL SERVER_IMAGE FRONTEND_IMAGE LANDING_IMAGE
 export CROWDSEC_DISABLE_ONLINE_API="${CROWDSEC_DISABLE_ONLINE_API:-false}"

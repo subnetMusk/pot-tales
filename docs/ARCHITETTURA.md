@@ -248,6 +248,13 @@ log e montati in un filesystem in memoria sotto `/run/secrets`: non compaiono ma
 nell'ambiente né nella specifica del servizio. Sul disco della macchina restano come file
 con permessi 0400 in una directory 0700.
 
+Le dashboard hanno un vincolo aggiuntivo: Traefik usa hash bcrypt, mentre
+Elasticsearch deve ricevere la password per creare l'utente. La fonte
+`dashboard_users.tfvars.json`, anch'essa `0400`, conserva quindi le due mappe
+solo per il contenitore Terraform effimero. Il bootstrap la richiede
+esplicitamente, cosi' un ripristino incompleto non puo' dichiarare pronte
+dashboard in realta' irraggiungibili.
+
 Cambiare un valore è un'operazione ordinaria, perché il nome del secret segue il contenuto
 come per i config; quali valori vanno prima cambiati nel servizio è descritto in
 [`ESERCIZIO.md`](ESERCIZIO.md#cambiare-un-secret). Cifrare i file, per esempio con SOPS,

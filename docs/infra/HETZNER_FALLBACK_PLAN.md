@@ -1016,7 +1016,11 @@ Il collaudo del punto 5 non è ancora chiuso, ma i due difetti bloccanti trovati
 percorso reale sono risolti: il backend scrive nel MongoDB autenticato e il RUM parte
 dopo il consenso. Filebeat non alimenta più il ciclo di log del socket proxy, conserva
 il registry fra i task e raccoglie anche l'access log anonimizzato; le dashboard delle
-due modalità sono create e versionate. Restano il percorso completo di partita con
+due modalità sono create e versionate. Il bootstrap richiede inoltre la fonte root-only
+`secrets/dashboard_users.tfvars.json`: gli htpasswd non bastano a ricreare le utenze
+Elasticsearch, perché contengono soltanto hash. Il file si crea o si ricostruisce con
+`provisioning/bin/configure-dashboard-users.py`, che verifica le password senza eco.
+Restano il percorso completo di partita con
 entrambe le scelte, il controllo visivo delle dashboard, i controlli operativi del
 punto 7, il load test, i ripristini, la prima copia, il riavvio non presidiato, HSTS e
 la verifica esterna finale. `stack-deploy.service` resta disabilitata e inattiva nel
@@ -1026,7 +1030,9 @@ frattempo.
    generazione dei segreti con `provisioning/bin/generate-secrets.sh`, che produce anche
    `gameplay_id_salt`, `filebeat_writer_password` e `pow_secret` (sezioni 9.9 e 9.10). È idempotente: se i
    segreti fossero stati generati con una revisione precedente, rilanciarlo aggiunge solo
-   i mancanti. Directory degli
+   i mancanti. Configurazione delle due platee con
+   `provisioning/bin/configure-dashboard-users.py secrets`, inclusa la fonte Terraform
+   da custodire insieme agli altri segreti. Directory degli
    indici con il volume montato: `chown 1000:0 /srv/data/elastic` e
    `chmod 2770 /srv/data/elastic` (sezione 9.3), altrimenti `stack-deploy.sh` rifiuta il
    deploy.
