@@ -55,7 +55,7 @@
 #
 # Variabili riconosciute: STACK_NAME, KIBANA_URL, KIBANA_BASE_PATH,
 # ELASTIC_PASSWORD, TF_DIR, OUTPUT_FILE, TOKEN_SINK, TOKEN_VOLUME, TF_NETWORK,
-# DASHBOARD_USERS_TFVARS.
+# DASHBOARD_USERS_TFVARS, GAMEPLAY_MAPPINGS_FILE.
 # ==============================================================================
 set -euo pipefail
 
@@ -64,6 +64,7 @@ cd "$_ROOT"
 
 ELASTIC_USER=${ELASTICSEARCH_USERNAME:-elastic}
 TF_DIR=${TF_DIR:-terraform/elk}
+GAMEPLAY_MAPPINGS_FILE=${GAMEPLAY_MAPPINGS_FILE:-$TF_DIR/gameplay-mappings.json}
 OUTPUT_FILE=${OUTPUT_FILE:-.env.fleet}
 WAIT_TIMEOUT=${WAIT_TIMEOUT:-300}
 
@@ -284,6 +285,75 @@ fi
 # quindi non c'e' nulla da migrare: c'e' una sola collocazione valida.
 tf init -input=false -reconfigure -backend-config=path=/stato/terraform.tfstate >/dev/null
 tf apply -input=false -auto-approve "${dashboard_var_args[@]}" >/dev/null
+
+# Il component template rende lo schema disponibile ai nuovi backing index. Il
+# data stream puo' pero' esistere gia': aggiornare la mappatura e' idempotente e
+# permette alle dashboard di mostrare zero invece di "campo non disponibile"
+# anche prima che siano arrivati checkpoint o conclusioni reali.
+[ -s "$GAMEPLAY_MAPPINGS_FILE" ] || {
+  log "mappatura dei fatti di partita assente: $GAMEPLAY_MAPPINGS_FILE"
+  exit 1
+}
+
+if [ -n "${STACK_NAME:-}" ]; then
+  es_container=$(docker ps \
+    --filter "label=com.docker.swarm.service.name=${STACK_NAME}_es01" \
+    --format '{{.ID}}' | head -n 1)
+else
+  es_container=$(docker ps \
+    --filter "label=com.docker.compose.service=es01" \
+    --format '{{.ID}}' | head -n 1)
+fi
+[ -n "$es_container" ] || {
+  log "contenitore Elasticsearch non trovato per aggiornare la mappatura"
+  exit 1
+}
+
+mapping_result=$(MSYS_NO_PATHCONV=1 docker exec -i "$es_container" bash -c '
+  set -euo pipefail
+  auth_file=$(mktemp /tmp/fleet-bootstrap-netrc.XXXXXX)
+  cleanup_auth() { rm -f -- "$auth_file"; }
+  trap cleanup_auth EXIT
+  umask 077
+  {
+    printf "machine localhost\nlogin elastic\npassword "
+    cat /run/secrets/elastic_password
+    printf "\n"
+  } > "$auth_file"
+
+  stream_status=$(curl --silent --show-error --output /dev/null \
+    --write-out "%{http_code}" --netrc-file "$auth_file" \
+    --cacert /usr/share/elasticsearch/config/certs/ca/ca.crt \
+    https://localhost:9200/_data_stream/logs-gioco.partita-default)
+  case "$stream_status" in
+    200)
+      curl --silent --show-error --fail --netrc-file "$auth_file" \
+        --cacert /usr/share/elasticsearch/config/certs/ca/ca.crt \
+        -X PUT -H "Content-Type: application/json" --data-binary @- \
+        https://localhost:9200/logs-gioco.partita-default/_mapping >/dev/null
+      printf updated
+      ;;
+    404)
+      # Il component template appena applicato copre la prima creazione.
+      printf pending
+      ;;
+    *)
+      printf "stato inatteso del data stream: HTTP %s\n" "$stream_status" >&2
+      exit 1
+      ;;
+  esac
+' < "$GAMEPLAY_MAPPINGS_FILE") || {
+  log "aggiornamento della mappatura dei fatti di partita non riuscito"
+  exit 1
+}
+case "$mapping_result" in
+  updated) log "mappatura dei fatti di partita aggiornata sul data stream" ;;
+  pending) log "data stream dei fatti di partita non ancora creato; schema pronto nel template" ;;
+  *)
+    log "risposta inattesa dall'aggiornamento della mappatura: $mapping_result"
+    exit 1
+    ;;
+esac
 
 # Le dashboard fanno parte del risultato del bootstrap, non sono un passo
 # manuale successivo. Un file mancante o un'importazione che non ha creato

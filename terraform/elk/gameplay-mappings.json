@@ -1,0 +1,35 @@
+{
+  "properties": {
+    "partita": {
+      "properties": {
+        "id": {
+          "type": "keyword"
+        },
+        "checkpoint": {
+          "type": "keyword"
+        },
+        "checkpoint_n": {
+          "type": "integer"
+        },
+        "dispositivo": {
+          "type": "keyword"
+        },
+        "durata_ms": {
+          "type": "long"
+        },
+        "motivo": {
+          "type": "keyword"
+        },
+        "scena": {
+          "type": "keyword"
+        },
+        "scena_finale": {
+          "type": "keyword"
+        },
+        "scena_precedente": {
+          "type": "keyword"
+        }
+      }
+    }
+  }
+}

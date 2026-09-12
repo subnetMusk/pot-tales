@@ -34,6 +34,12 @@ resource "elasticstack_elasticsearch_component_template" "logs_custom" {
       "index.number_of_replicas" = "0"
       "index.lifecycle.name"     = elasticstack_elasticsearch_index_lifecycle.logs.name
     })
+
+    # I pannelli dell'evento devono conoscere i campi anche prima del primo
+    # checkpoint o della prima conclusione. Senza una mappatura esplicita il
+    # data stream dinamico li materializza soltanto alla prima scrittura e
+    # Kibana mostra "campo non disponibile" invece di un contatore a zero.
+    mappings = file("${path.module}/gameplay-mappings.json")
   }
 }
 
