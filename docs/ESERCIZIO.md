@@ -143,6 +143,9 @@ allo stack. Le voci segnate sono state verificate sulla macchina di produzione i
   *verificato*: stack e bootstrap ripartiti da soli, certificato non riemesso,
   pacchetto diagnostico prodotto allo spegnimento
 
+Dopo ogni rilascio, `sudo stack-checkup.sh` ripete in un colpo solo i controlli sulla
+macchina e la verifica end-to-end (vedi `provisioning/README.md`).
+
 ---
 
 ## 5. Sorveglianza esterna
@@ -164,8 +167,9 @@ Da completare prima che la macchina resti non presidiata.
 **Stato al 13 settembre 2026:** passi 1-3 eseguiti con `healthchecks-drill.sh` (8 check
 su 8, segnale e rientro con HTTP 200, notifiche ricevute su Telegram); le notifiche di
 `stack-liveness` risultano attive. La copia notturna dura pochi secondi: l'ora di
-tolleranza di `backup-nightly` basta. Resta da assegnare il canale email almeno a
-`stack-liveness`, `alert-relay` e `tls-pubblico`, per non dipendere dal solo Telegram.
+tolleranza di `backup-nightly` basta. Il canale email è assegnato ai check accanto a
+Telegram. Lo schedule di `backup-nightly` è in `Europe/Rome`: il 13 settembre era rimasto
+in UTC e il check è andato in allarme con la copia riuscita.
 
 ---
 
@@ -217,7 +221,8 @@ Il materiale con il codice QR si stampa **dopo** il passo 4, mai prima.
 ## 7. Vigilia di una giornata di apertura
 
 Trenta minuti, il giorno prima. Serve a non scoprire un problema mentre la sala si
-riempie.
+riempie. `sudo stack-checkup.sh` copre i punti 2, 3 e l'integrità della copia del punto
+6; gli altri restano a mano.
 
 1. Stato dei check: tutti verdi, nessuno in ritardo.
 2. Spazio libero sui volumi. La soglia da guardare è **85%**: Elasticsearch smette di

@@ -47,14 +47,35 @@ type GameState struct {
 // PositionRecorded dice se il gioco ha mai riportato una posizione.
 //
 // Lo stato nasce con coordinate a zero, che non descrivono un punto della scena
-// ma l'assenza di un punto: la sessione viene creata all'ingresso di Stage1, che
-// non invia ancora la posizione. Solo il ping scrive le coordinate, e le scrive
-// insieme a last_ping: finche' questo coincide con l'istante di creazione non
-// c'e' nulla da ripristinare.
+// ma l'assenza di un punto: la sessione viene creata all'ingresso di Stage1,
+// prima del primo ping. Solo il ping scrive le coordinate, e le scrive insieme a
+// last_ping: finche' questo coincide con l'istante di creazione non c'e' nulla
+// da ripristinare.
 //
 // Uno stato che non ha created_at, perche' precede l'introduzione del campo,
 // risulta avere una posizione: e' il verso giusto in cui sbagliare, perche' quel
 // dato una posizione vera ce l'ha.
 func (g GameState) PositionRecorded() bool {
 	return !g.Meta.LastPing.Equal(g.CreatedAt)
+}
+
+// DurataMs e' la durata della partita riportata all'osservabilita': dall'ingresso
+// in Stage1 all'ultimo ping accettato.
+//
+// Non si usa l'accumulatore TotalPlayTimeMs: il validatore accredita tempo solo
+// quando e' gia' diverso da zero, e partendo da zero non lo diventa mai. Il
+// tempo di orologio non dipende dalle soglie di validazione, e l'ultimo ping e'
+// anche l'istante da cui la spazzata misura l'abbandono, quindi il tempo davanti
+// allo schermo dopo l'uscita non viene contato.
+//
+// Uno stato senza created_at precede l'introduzione del campo: l'unica misura
+// disponibile resta l'accumulatore.
+func (g GameState) DurataMs() int64 {
+	if g.CreatedAt.IsZero() {
+		return g.Data.TotalPlayTimeMs
+	}
+	if d := g.Meta.LastPing.Sub(g.CreatedAt); d > 0 {
+		return d.Milliseconds()
+	}
+	return 0
 }

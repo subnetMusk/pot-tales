@@ -40,8 +40,8 @@ tecnici non aggregati quando un pannello non basta a spiegare un’anomalia.
 
 ### Evento
 
-- [Andamento dell’evento](https://pot-tales.it/osservabilita/s/evento/app/dashboards#/view/evento-andamento): partite iniziate (`game_started`), concluse e azzerate, durata media, andamento nel tempo, motivi di conclusione, scene finali, checkpoint raggiunti e classi di dispositivo.
-- [Impatto dell’evento](https://pot-tales.it/osservabilita/s/evento/app/dashboards#/view/evento-impatto): partite totali, sessioni create, partite iniziate e completate, partite con RUM e tempo medio di gioco.
+- [Andamento dell’evento](https://pot-tales.it/osservabilita/s/evento/app/dashboards#/view/evento-andamento): partite iniziate (`game_started`), concluse e azzerate, durata mediana, andamento nel tempo, motivi di conclusione, scene finali, checkpoint raggiunti per partita, percorso dei giocatori per tappa e classi di dispositivo.
+- [Impatto dell’evento](https://pot-tales.it/osservabilita/s/evento/app/dashboards#/view/evento-impatto): partite totali, sessioni create, partite iniziate e completate, partite con RUM, tempo mediano di gioco, tasso di completamento e tempo per finire il gioco.
 
 Il numero di documenti del data stream non coincide con il numero di partite:
 ogni documento è un fatto (creazione, checkpoint, cambio scena o conclusione).
