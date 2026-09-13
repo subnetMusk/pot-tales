@@ -304,7 +304,14 @@ func TestPingImpossibileEspelleEChiudeLaPartita(t *testing.T) {
 	b := nuovoBanco(t)
 	token, cookie := b.creaSessione(t)
 	b.partitaInCorso(t, token, time.Second)
-	b.impostaStato(t, token, bson.M{"data.checkpoints": []string{"a", "b"}})
+	// La durata va dalla creazione all'ultimo ping: un minuto esatto. Il
+	// troncamento al millisecondo e' la precisione con cui Mongo conserva le date.
+	ultimoPing := time.Now().Add(-time.Second).Truncate(time.Millisecond)
+	b.impostaStato(t, token, bson.M{
+		"data.checkpoints": []string{"a", "b"},
+		"created_at":       ultimoPing.Add(-time.Minute),
+		"meta.last_ping":   ultimoPing,
+	})
 
 	var codice int
 	var risposta map[string]any
@@ -335,8 +342,8 @@ func TestPingImpossibileEspelleEChiudeLaPartita(t *testing.T) {
 		t.Errorf("scena finale = %v, attesa %s", c["partita.scena_finale"], scenaIniziale)
 	}
 	// I numeri arrivano dalla decodifica come float64.
-	if c["partita.durata_ms"] != float64(1000) || c["partita.checkpoint_n"] != float64(2) {
-		t.Errorf("durata e traguardi = %v e %v, attesi 1000 e 2", c["partita.durata_ms"], c["partita.checkpoint_n"])
+	if c["partita.durata_ms"] != float64(60000) || c["partita.checkpoint_n"] != float64(2) {
+		t.Errorf("durata e traguardi = %v e %v, attesi 60000 e 2", c["partita.durata_ms"], c["partita.checkpoint_n"])
 	}
 }
 
@@ -434,10 +441,14 @@ func TestCheckpointRegistraSostituisceEDeduplica(t *testing.T) {
 func TestCheckpointFinaleConcludeLaPartitaUnaVoltaSola(t *testing.T) {
 	b := nuovoBanco(t)
 	token, cookie := b.creaSessione(t)
+	// Accumulatore lasciato a zero, come in una partita reale: la durata deve
+	// venire dall'orologio.
+	ultimoPing := time.Now().Truncate(time.Millisecond)
 	b.impostaStato(t, token, bson.M{
-		"data.scene_id":      "Stage3",
-		"data.total_time_ms": int64(42000),
-		"data.checkpoints":   []string{"game_started", "stage2_complete"},
+		"data.scene_id":    "Stage3",
+		"data.checkpoints": []string{"game_started", "stage2_complete"},
+		"created_at":       ultimoPing.Add(-42 * time.Second),
+		"meta.last_ping":   ultimoPing,
 	})
 
 	fatti := catturaFatti(t, func() {
@@ -513,10 +524,12 @@ func TestCheckpointDiAvvioContaLaPartitaUnaVoltaSenzaIdentificativi(t *testing.T
 func TestResetCancellaLoStatoEDichiaraDaDoveSiRiparte(t *testing.T) {
 	b := nuovoBanco(t)
 	token, cookie := b.creaSessione(t)
+	ultimoPing := time.Now().Truncate(time.Millisecond)
 	b.impostaStato(t, token, bson.M{
-		"data.scene_id":      "Stage3",
-		"data.total_time_ms": int64(4200),
-		"data.checkpoints":   []string{"a", "b", "c"},
+		"data.scene_id":    "Stage3",
+		"data.checkpoints": []string{"a", "b", "c"},
+		"created_at":       ultimoPing.Add(-4200 * time.Millisecond),
+		"meta.last_ping":   ultimoPing,
 	})
 
 	var codice int

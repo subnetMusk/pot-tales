@@ -179,6 +179,18 @@ anonimo dell'affluenza. Può farne a meno perché porta soltanto azione e orario
 classe di dispositivo né altri dettagli. È emesso una sola volta per sessione, con la
 stessa idempotenza del checkpoint da cui nasce.
 
+La durata (`partita.durata_ms`, in `sessione_conclusa` e `partita_azzerata`) va dalla
+creazione della sessione all'ultimo ping accettato. Stage 1, 2 e 3 inviano il ping ogni
+7 secondi, quindi lo scarto è di pochi secondi. Durante i minigiochi la scena principale
+è in pausa e non invia ping: una partita abbandonata a metà minigioco risulta più corta
+del tempo effettivo.
+
+L'accumulatore `total_time_ms` non è una fonte affidabile: il validatore dei ping
+accredita tempo solo quando è già diverso da zero, e partendo da zero non lo diventa mai.
+Per lo stesso motivo i controlli su ritardo e velocità non intervengono. Riattivarli
+richiede prima di allineare le soglie al ping reale: con ping ogni 7 secondi e ritardo
+grave oltre i 5, ogni ping verrebbe rifiutato.
+
 Il click su **Play** apre sempre una nuova partita: se il browser ha già una sessione ne
 azzera lo stato (`partita_azzerata`), poi crea la sessione prima di entrare in Stage 1 e
 registra subito il checkpoint `game_started`. Questo primo traguardo estende il TTL

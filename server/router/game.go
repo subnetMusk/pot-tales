@@ -145,7 +145,7 @@ func (g *gameSvc) handlePing(w http.ResponseWriter, r *http.Request) {
 		helpers.LogGameplay(ctx, sessionID, "sessione_conclusa", map[string]any{
 			"partita.motivo":       helpers.MotivoEspulsione,
 			"partita.scena_finale": state.Data.SceneID,
-			"partita.durata_ms":    state.Data.TotalPlayTimeMs,
+			"partita.durata_ms":    state.DurataMs(),
 			"partita.checkpoint_n": len(state.Data.Checkpoints),
 		})
 		respond(state.Data.SceneID, state.Data.X, state.Data.Y, now, "ban")
@@ -226,7 +226,7 @@ func (g *gameSvc) handleReset(w http.ResponseWriter, r *http.Request) {
 	if errStato == nil {
 		helpers.LogGameplay(ctx, sessionID, "partita_azzerata", map[string]any{
 			"partita.scena_finale": precedente.Data.SceneID,
-			"partita.durata_ms":    precedente.Data.TotalPlayTimeMs,
+			"partita.durata_ms":    precedente.DurataMs(),
 			"partita.checkpoint_n": len(precedente.Data.Checkpoints),
 		})
 	}

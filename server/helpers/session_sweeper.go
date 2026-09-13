@@ -114,7 +114,7 @@ func emettiConclusione(ctx context.Context, stato *models.GameState, motivo stri
 	LogGameplay(WithAnalyticsConsent(ctx, stato.Meta.AnalyticsConsent), stato.ID, "sessione_conclusa", map[string]any{
 		"partita.motivo":       motivo,
 		"partita.scena_finale": stato.Data.SceneID,
-		"partita.durata_ms":    stato.Data.TotalPlayTimeMs,
+		"partita.durata_ms":    stato.DurataMs(),
 		"partita.checkpoint_n": len(stato.Data.Checkpoints),
 	})
 }
