@@ -147,11 +147,13 @@ done
 
 unita_stack=(-u stack-deploy.service -u fleet-bootstrap.service -u stack-heartbeat.service
   -u alert-notifier.service -u backup-nightly.service -u traefik-logrotate.service)
-errori=$(journalctl "${unita_stack[@]}" -p err --since -24h --no-pager -q 2>/dev/null | wc -l)
+righe_errore=$(journalctl "${unita_stack[@]}" -p err --since -24h --no-pager -q 2>/dev/null)
+errori=$(grep -c . <<< "$righe_errore")
 if [ "$errori" -eq 0 ]; then
   ok "nessun errore nel journal delle unita' dello stack nelle ultime 24 ore"
 else
-  avviso "$errori righe di errore nelle ultime 24 ore: journalctl ${unita_stack[*]} -p err --since -24h"
+  avviso "$errori righe di errore nelle ultime 24 ore, le ultime:"
+  tail -n 5 <<< "$righe_errore" | cut -c1-200 | while IFS= read -r riga; do info "$riga"; done
 fi
 
 # --- Stack --------------------------------------------------------------------
@@ -182,17 +184,24 @@ else
   done <<< "$servizi"
 fi
 
-# Docker descrive l'eta' in ore fino a due giorni, poi in giorni: cio' che non
-# e' in giorni o oltre e' recente.
-recenti=$(limitato docker stack ps "$STACK_NAME" --no-trunc \
+# Docker conserva nella cronologia anche i task sostituiti da un riavvio della
+# macchina, che risultano falliti per sempre. Si segnala solo cio' che e'
+# fallito nell'ultima ora, che Docker descrive in secondi e minuti; il resto si
+# conta soltanto.
+falliti=$(limitato docker stack ps "$STACK_NAME" --no-trunc \
   --format '{{.Name}}|{{.CurrentState}}|{{.Error}}' 2>/dev/null |
-  awk -F'|' '$2 ~ /^(Failed|Rejected)/ && $2 !~ /(days|weeks|months) ago/ {print $1 ": " $2 " " $3}')
-if [ -z "$recenti" ]; then
-  ok "nessun task fallito negli ultimi due giorni"
+  awk -F'|' '$2 ~ /^(Failed|Rejected)/')
+recenti=$(awk -F'|' '$2 ~ /(second|minute|About an hour) ago/ {print $1 ": " $2 " " $3}' <<< "$falliti")
+n_falliti=$(grep -c . <<< "$falliti")
+n_recenti=$(grep -c . <<< "$recenti")
+if [ "$n_recenti" -eq 0 ]; then
+  ok "nessun task fallito nell'ultima ora"
 else
-  avviso "task falliti negli ultimi due giorni:"
+  avviso "task falliti nell'ultima ora:"
   while IFS= read -r riga; do info "$riga"; done <<< "$recenti"
 fi
+[ "$n_falliti" -eq "$n_recenti" ] ||
+  info "$((n_falliti - n_recenti)) task falliti piu' vecchi nella cronologia di Docker, per esempio le sostituzioni dopo un riavvio"
 
 # L'immagine in esecuzione deve essere quella indicata nel file di deploy: una
 # differenza vuol dire un rilascio non applicato o un rollback rimasto.
