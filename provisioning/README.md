@@ -108,6 +108,26 @@ sudo systemctl restart docker
 `data-export.service` non viene abilitata: non ha timer e non deve partire da
 sola, la avvia l'operatore.
 
+### Controllo completo su richiesta
+
+`stack-checkup.sh` raccoglie in un solo comando le verifiche da fare dopo ogni rilascio
+e alla vigilia di una giornata di apertura:
+- unità systemd e timer;
+- repliche dei servizi e immagini in esecuzione confrontate con `/etc/stack-deploy.env`;
+- `/health`, redirect HTTP, accessi protetti, HSTS, emittente e scadenza del certificato;
+- occupazione dei volumi e degli snapshot, spazio per il prossimo snapshot;
+- esito della copia notturna, con verifica delle somme dell'ultimo dump;
+- contatori SMART confrontati per seriale;
+- la verifica end-to-end `ci/stack-verify.sh`.
+
+È in sola lettura e non ha timer: la sorveglianza continua resta al battito e a
+Healthchecks. L'uscita è 1 se almeno un controllo è in guasto.
+
+```bash
+sudo stack-checkup.sh            # completo, circa un minuto
+sudo stack-checkup.sh --rapido   # senza ci/stack-verify.sh
+```
+
 ## Rete dell'host
 
 Due unita' template, parametrizzate sul nome dell'interfaccia pubblica
