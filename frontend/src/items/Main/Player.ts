@@ -1,6 +1,7 @@
 // You can write more code here
 import { launchSubScene } from "../../utils";
 import { soundManager } from "../../audio/SoundManager";
+import { INVENTORY_REGISTRY_KEY } from "../stageRunState";
 
 /* START OF COMPILED CODE */
 
@@ -213,8 +214,9 @@ class Player extends Phaser.GameObjects.Container {
 	];
 
 	// Chiave nel registry del game (condiviso fra le scene) sotto cui è salvato l'elenco dei
-	// frame di player_items già sbloccati, in ordine.
-	private readonly inventoryRegistryKey = "inventoryItems";
+	// frame di player_items già sbloccati, in ordine. Il Menu la svuota a ogni nuova partita
+	// (vedi clearRunRegistry() in stageRunState.ts).
+	private readonly inventoryRegistryKey = INVENTORY_REGISTRY_KEY;
 
 	boundaries : Phaser.GameObjects.Rectangle[] = [];
 	private slowAreas: Array<{ zone: Phaser.GameObjects.Rectangle | Phaser.GameObjects.Sprite | Phaser.GameObjects.Image; multiplier: number }> = [];

@@ -1,12 +1,16 @@
-// Test dello stato di partita di Stage2/Stage3 e delle regole di Resume e porta
-// (src/items/stageRunState.ts). Girano con il runner di Node: `npm test` o `make frontend-test`.
+// Test dello stato di partita (src/items/stageRunState.ts): reset di Stage2, Stage3 e del
+// minigioco dei grafici, inventario nel registry, regole di Resume e porta. Girano con il
+// runner di Node: `npm test` o `make frontend-test`.
 
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 
 import {
 	DOOR_TRIGGER_RADIUS,
+	INVENTORY_REGISTRY_KEY,
 	allQuizzesSolved,
+	clearRunRegistry,
+	createGraficoLevels,
 	createStage2RunState,
 	createStage3RunState,
 	isWithinDoorTrigger
@@ -38,6 +42,16 @@ const STAGE3_NEW_RUN = {
 	doorOpened: false,
 	finaleStarted: false
 };
+
+// Doppio del registry di Phaser (DataManager): a clearRunRegistry() serve solo remove().
+class RegistryFinto {
+	dati = new Map<string, unknown>();
+
+	remove(key: string) {
+		this.dati.delete(key);
+		return this;
+	}
+}
 
 describe("createStage2RunState", () => {
 	test("una partita nuova parte con laser e Shooter spenti, al livello 1, stage non completato", () => {
@@ -72,6 +86,49 @@ describe("createStage3RunState", () => {
 		const nuova = createStage3RunState();
 		assert.notEqual(nuova, conclusa);
 		assert.deepEqual(nuova, STAGE3_NEW_RUN);
+	});
+});
+
+describe("createGraficoLevels", () => {
+	test("tre livelli in sequenza, con nessun picco già trovato", () => {
+		const levels = createGraficoLevels();
+		assert.deepEqual(levels.map(level => level.imageKey), ["grafico1", "grafico2", "grafico3"]);
+		assert.deepEqual(levels.map(level => level.picchi.length), [3, 3, 2]);
+		assert.ok(levels.every(level => level.picchi.every(picco => picco.found === false)));
+	});
+
+	test("i picchi trovati in una partita non restano trovati nella successiva", () => {
+		// GraficoGame segna found = true sugli oggetti che riceve: se due partite condividessero
+		// gli stessi oggetti, nella seconda nessun picco sarebbe più conteggiabile.
+		const conclusa = createGraficoLevels();
+		for (const level of conclusa) {
+			for (const picco of level.picchi) {
+				picco.found = true;
+			}
+		}
+
+		const nuova = createGraficoLevels();
+		assert.notEqual(nuova[0].picchi[0], conclusa[0].picchi[0]);
+		assert.ok(nuova.every(level => level.picchi.every(picco => picco.found === false)));
+	});
+});
+
+describe("clearRunRegistry", () => {
+	test("svuota l'inventario della partita precedente e lascia il resto del registry", () => {
+		const registry = new RegistryFinto();
+		registry.dati.set(INVENTORY_REGISTRY_KEY, [0, 1, 2, 3]);
+		registry.dati.set("altro", 42);
+
+		clearRunRegistry(registry);
+
+		assert.equal(registry.dati.has(INVENTORY_REGISTRY_KEY), false);
+		assert.equal(registry.dati.get("altro"), 42);
+	});
+
+	test("con il registry già vuoto non fa niente", () => {
+		const registry = new RegistryFinto();
+		clearRunRegistry(registry);
+		assert.equal(registry.dati.size, 0);
 	});
 });
 

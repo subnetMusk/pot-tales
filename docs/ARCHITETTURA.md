@@ -199,6 +199,20 @@ completamento di Stage 1 (`stage1_complete`). **Continue** riprende invece la se
 lo stato esistenti. Una guardia condivisa fra i due pulsanti ignora il doppio click e
 impedisce che Play azzeri una partita appena ripresa.
 
+**Continue** riparte dalla scena dell'ultimo ping. Stage 1 riparte dall'inizio: fino al suo
+completamento non c'è progresso salvato. Stage 2 ripristina sonda, laser, torrette e livello
+dello Shooter; Stage 3 i quiz risolti, e con tutti e tre risolti apre subito la porta, perché
+recap e porta partono solo dalla risposta corretta al terzo quiz.
+
+Le scene Phaser sono istanze riusate: `scene.start()` e `launch()` non le ricostruiscono, e
+gli inizializzatori dei campi di classe girano una volta sola per pagina. Lo stato di
+partita (flag di Stage 2 e Stage 3, picchi del minigioco dei grafici) sta quindi in
+`frontend/src/items/stageRunState.ts`, e le scene lo ricreano a ogni avvio: Stage 2 e
+Stage 3 in `init()`, prima che `create()` lo ricostruisca dai checkpoint, GraficoGame in
+`create()`. L'inventario vive nel registry del gioco, che sopravvive a tutte le scene, e lo
+svuota il menu a ogni apertura. Così si giocano più partite di fila nella stessa scheda
+senza ricaricare la pagina.
+
 Il data stream contiene **fatti**, non una riga per partita. Con il consenso un singolo
 click su **Play** produce esattamente tre fatti iniziali: una `sessione_iniziata`, un
 `checkpoint_raggiunto` con checkpoint `game_started` e una `partita_avviata`; senza,
