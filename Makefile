@@ -234,6 +234,10 @@ terraform-validate: ## Inizializza senza backend e valida le definizioni Terrafo
 frontend-typecheck: ## Verifica i tipi del frontend, che la compilazione non controlla
 	$(NODE_RUN) sh -c 'cd frontend && npm ci && npx tsc --noEmit -p tsconfig.json'
 
+.PHONY: frontend-test
+frontend-test: ## Esegue i test del frontend e ne verifica la copertura
+	$(NODE_RUN) sh -c 'cd frontend && npm ci && npm test'
+
 .PHONY: frontend-build
 frontend-build: ## Compila il frontend di produzione
 	$(NODE_RUN) sh -c 'cd frontend && npm ci && npm run build'

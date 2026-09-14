@@ -74,6 +74,8 @@ jobs:
       # tipo arriva in produzione insieme a un artefatto che si e' costruito
       # senza protestare.
       - run: make frontend-typecheck
+      # Runner di Node, senza dipendenze aggiuntive: i moduli testati non importano Phaser.
+      - run: make frontend-test
       - run: make frontend-build
       - run: make frontend-csp-check
 

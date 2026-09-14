@@ -4,7 +4,8 @@
   "type": "module",
   "scripts": {
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test": "node --test --experimental-test-coverage --test-coverage-include='src/**' --test-coverage-lines=85 --test-coverage-branches=85 --test-coverage-functions=85 'test/**/*.test.ts'"
   },
   "dependencies": {
     "@elastic/apm-rum": "^5.17.0",
