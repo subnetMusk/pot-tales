@@ -7,6 +7,7 @@ import { soundManager } from "../audio/SoundManager";
 
 import {APISession, CreateSessionRequest} from "@/network/APISession";
 import {hasAnalyticsConsent} from "@/privacy/consent";
+import { clearRunRegistry } from "../items/stageRunState";
 
 // You can write more code here
 
@@ -172,6 +173,10 @@ class Menu extends Phaser.Scene {
 		this.hasExistingSession = false;
 		this.resumeData = undefined;
 		this.isStartingGame = false;
+		// Anche l'inventario vive fuori dalla scena, nel registry del gioco: va svuotato prima di
+		// Play o Continue, o la partita successiva nella stessa scheda partirebbe con gli oggetti
+		// di quella precedente, e il resume li duplicherebbe.
+		clearRunRegistry(this.registry);
 
 		// Sostituisce il bordo piatto dei bottoni con un pannello "8-bit" (bordo spesso +
 		// ombra + highlight, stesso linguaggio visivo del box-shadow stack di style.css).

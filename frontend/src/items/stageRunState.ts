@@ -1,11 +1,14 @@
-// Stato "di partita" di Stage2 e Stage3: flag e contatori che devono ripartire da zero a ogni
-// avvio della scena.
+// Stato "di partita" del gioco: flag, contatori e dati che devono ripartire da zero a ogni
+// nuova partita.
 //
-// Phaser riusa la stessa istanza di una scena a ogni scene.start(): gli inizializzatori dei
-// campi di classe girano una volta sola, alla costruzione, non a ogni partita. Chi finiva il
-// gioco e ripartiva da "Gioca" nella stessa scheda ritrovava stageComplete (Stage2) e
-// recapShown/doorOpened/finaleStarted (Stage3) ancora a true, e restava bloccato. Le scene
-// ricreano questo stato in init(), che Phaser chiama a ogni avvio.
+// Phaser riusa la stessa istanza di una scena a ogni scene.start() o launch(): gli
+// inizializzatori dei campi di classe girano una volta sola, alla costruzione, non a ogni
+// partita. Chi finiva il gioco e ripartiva da "Gioca" nella stessa scheda ritrovava lo stato
+// della partita precedente e restava bloccato: stageComplete in Stage2,
+// recapShown/doorOpened/finaleStarted in Stage3, i picchi già trovati nel minigioco dei
+// grafici. Le scene ricreano questo stato a ogni avvio (Stage2 e Stage3 in init(), GraficoGame
+// in create()). L'inventario invece vive nel registry del gioco, che sopravvive a tutte le
+// scene: lo svuota il Menu con clearRunRegistry().
 //
 // Il modulo non importa Phaser, così lo si può testare con il runner di Node (vedi
 // frontend/test/stageRunState.test.ts).
@@ -66,4 +69,53 @@ export const DOOR_TRIGGER_RADIUS = 21;
 
 export function isWithinDoorTrigger(playerX: number, playerY: number, doorX: number, doorY: number): boolean {
 	return Math.hypot(playerX - doorX, playerY - doorY) < DOOR_TRIGGER_RADIUS;
+}
+
+export interface GraficoLevel {
+	imageKey: string;
+	picchi: { x: number; found: boolean }[];
+}
+
+// Livelli del minigioco dei grafici (GraficoGame), in sequenza: stesso numero di picchi e
+// stessa difficoltà per ognuno, cambia solo il grafico (immagine e posizione dei picchi). Le x
+// dei picchi per i livelli 2 e 3 sono placeholder, da tarare sulle immagini reali.
+// GraficoGame segna i picchi trovati direttamente in questi oggetti, quindi ogni partita deve
+// riceverne una copia nuova.
+export function createGraficoLevels(): GraficoLevel[] {
+	return [
+		{
+			imageKey: "grafico1",
+			picchi: [
+				{ x: 564, found: false },
+				{ x: 689, found: false },
+				{ x: 726, found: false }
+			]
+		},
+		{
+			imageKey: "grafico2",
+			picchi: [
+				{ x: 693, found: false },
+				{ x: 729, found: false },
+				{ x: 740, found: false }
+			]
+		},
+		{
+			imageKey: "grafico3",
+			picchi: [
+				{ x: 698, found: false },
+				{ x: 727, found: false }
+			]
+		}
+	];
+}
+
+// Chiave del registry del gioco sotto cui Player salva gli oggetti sbloccati. Il registry
+// sopravvive a scene.start(), così un nuovo Player in Stage2 riparte con gli oggetti di Stage1.
+export const INVENTORY_REGISTRY_KEY = "inventoryItems";
+
+// Svuota lo stato di partita tenuto nel registry del gioco. Il Menu la chiama a ogni apertura,
+// prima di Play o Continue: senza, la partita successiva nella stessa scheda partirebbe con gli
+// oggetti di quella precedente, e il resume li aggiungerebbe una seconda volta.
+export function clearRunRegistry(registry: { remove(key: string): unknown }): void {
+	registry.remove(INVENTORY_REGISTRY_KEY);
 }

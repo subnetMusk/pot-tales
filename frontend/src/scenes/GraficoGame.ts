@@ -3,6 +3,7 @@ import { applyTranslations, playSequence } from "../utils";
 import VideoPlayer from "../items/UI/VideoPlayer";
 import { flashBurst, sparkBurst } from "../items/ParticleFx";
 import { soundManager } from "../audio/SoundManager";
+import { createGraficoLevels } from "../items/stageRunState";
 
 // You can write more code here
 
@@ -43,34 +44,9 @@ class GraficoGame extends Phaser.Scene {
 	private indicator!: Phaser.GameObjects.Rectangle;
 	private completionText!: Phaser.GameObjects.Text;
 
-	// Livelli in sequenza: stesso numero di picchi e stessa difficoltà per ognuno,
-	// solo il grafico (immagine + posizione dei picchi) cambia. Le x dei picchi per i
-	// livelli 2 e 3 sono placeholder, da tarare sulle immagini reali.
-	private levels: { imageKey: string, picchi: { x: number, found: boolean }[] }[] = [
-		{
-			imageKey: "grafico1",
-			picchi: [
-				{ x: 564, found: false },
-				{ x: 689, found: false },
-				{ x: 726, found: false }
-			]
-		},
-		{
-			imageKey: "grafico2",
-			picchi: [
-				{ x: 693, found: false },
-				{ x: 729, found: false },
-				{ x: 740, found: false }
-			]
-		},
-		{
-			imageKey: "grafico3",
-			picchi: [
-				{ x: 698, found: false },
-				{ x: 727, found: false }
-			]
-		}
-	];
+	// Livelli in sequenza con i picchi ancora da trovare: ricreati in create() a ogni avvio della
+	// scena, vedi createGraficoLevels() in stageRunState.ts.
+	private levels = createGraficoLevels();
 
 	private currentLevel: number = 0;
 
@@ -110,6 +86,14 @@ class GraficoGame extends Phaser.Scene {
 	create() {
 
 		this.editorCreate();
+
+		// Phaser riusa questa istanza a ogni avvio: senza questo reset una seconda partita nella
+		// stessa scheda troverebbe i picchi già segnati come trovati e la vittoria già mostrata, e
+		// il minigioco non si potrebbe più completare.
+		this.levels = createGraficoLevels();
+		this.currentLevel = 0;
+		this.lastPeakTime = 0;
+		this.victoryShown = false;
 
 		this.completionText.setText("0 / " + this.levels[this.currentLevel].picchi.length);
 		// Start zoomed out so the scene is invisible
