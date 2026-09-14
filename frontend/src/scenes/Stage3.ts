@@ -467,7 +467,7 @@ class Stage3 extends Phaser.Scene {
 		if (!this.doorOpened || this.finaleStarted) return;
 
 		const distance = Phaser.Math.Distance.Between(this.player.x, this.player.y, this.doorHitbox.x, this.doorHitbox.y);
-		if (distance < 15) {
+		if (distance < 21) {
 			this.finaleStarted = true;
 			void this.playFinaleSequence();
 		}
