@@ -200,7 +200,10 @@ class GraficoGame extends Phaser.Scene {
 			});
 		};
 
-		this.events.on('video-ended', () => {
+		// once, non on: gli eventi della scena sopravvivono allo shutdown, e con on alla partita
+		// successiva nella stessa pagina partirebbe anche il gestore di quella precedente
+		// (sequenza introduttiva e scansione doppie).
+		this.events.once('video-ended', () => {
 			this.time.delayedCall(750, () => {
 				videoPlayer.destroy();
 				this.cameras.main.alpha = 0;
