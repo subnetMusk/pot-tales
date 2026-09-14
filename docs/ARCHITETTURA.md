@@ -213,6 +213,14 @@ Stage 3 in `init()`, prima che `create()` lo ricostruisca dai checkpoint, Grafic
 svuota il menu a ogni apertura. Così si giocano più partite di fila nella stessa scheda
 senza ricaricare la pagina.
 
+Per la stessa ragione gli eventi di una scena (`scene.events`) sopravvivono allo shutdown:
+li svuota solo la distruzione della scena, che nel gioco non avviene. Un oggetto che vi
+registra un listener lo deve togliere quando viene distrutto
+(`frontend/src/items/sceneListeners.ts`, usato dal Player), e un gestore che deve
+scattare una volta per partita va registrato con `once`. Altrimenti, al riavvio della
+scena, il listener di un oggetto già distrutto scatta con `this.scene` non definito e
+l'eccezione blocca anche i listener della partita nuova.
+
 Il data stream contiene **fatti**, non una riga per partita. Con il consenso un singolo
 click su **Play** produce esattamente tre fatti iniziali: una `sessione_iniziata`, un
 `checkpoint_raggiunto` con checkpoint `game_started` e una `partita_avviata`; senza,

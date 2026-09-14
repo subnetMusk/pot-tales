@@ -2,6 +2,7 @@
 import { applyTranslations } from "../../utils";
 import { fadeElements } from "../../utils";
 import { soundManager } from "../../audio/SoundManager";
+import { SKIP_HOLD_MS, skipFillCropHeight } from "../skipHold";
 /* START OF COMPILED CODE */
 
 class VideoPlayer extends Phaser.GameObjects.Container {
@@ -73,10 +74,16 @@ class VideoPlayer extends Phaser.GameObjects.Container {
 		this.uI = uI;
 
 		/* START-USER-CTR-CODE */
-        this.skipFillOverlay = this.scene.add.graphics();
-        this.skipFillOverlay.setDepth(this.skipIcon.depth + 1);
-        this.skipFillOverlay.setMask(new Phaser.Display.Masks.BitmapMask(this.scene, this.skipIcon));
-        this.add(this.skipFillOverlay);
+        // Riempimento della barra spaziatrice mentre la si tiene premuta per saltare il video: una
+        // copia del frame "premuto" tinta di rosso, rivelata dall'alto con setCrop (vedi
+        // skipFillCropHeight()). Prima era un Graphics con una BitmapMask presa da skipIcon, ma la
+        // maschera ignora la trasformazione del container: nello Shooter, dove il player e' spostato
+        // e scalato sul monitor, il riempimento finiva fuori dal tasto e non si vedeva.
+        this.skipFill = this.scene.add.image(this.skipIcon.x, this.skipIcon.y, "spacebar", 1);
+        this.skipFill.setTintFill(0xff0000);
+        this.skipFill.setAlpha(0.5);
+        this.skipFill.setVisible(false);
+        this.add(this.skipFill);
 
         const lang = localStorage.getItem("lang") || "en";
         this.scene.load.json("video_i18n", `assets/i18n/${lang}/VideoPlayer.json`);
@@ -108,7 +115,7 @@ class VideoPlayer extends Phaser.GameObjects.Container {
 
 	// Write your code here.
     private skipHoldStart?: number;
-    private skipFillOverlay: Phaser.GameObjects.Graphics;
+    private skipFill: Phaser.GameObjects.Image;
 
 	private video?: Phaser.GameObjects.Video;
 	private subtitles: Array<{start: number, end: number, text: string}> = [];
@@ -304,20 +311,15 @@ class VideoPlayer extends Phaser.GameObjects.Container {
 
         if (this.skipHoldStart !== undefined) {
             const held = this.scene.time.now - this.skipHoldStart;
-            if (held > 2000) {
+            if (held > SKIP_HOLD_MS) {
                 this.video.setCurrentTime(this.video.getDuration());
             	this.pause();
                 this.skipHoldStart = undefined;
+                this.skipFill.setVisible(false);
                 this.scene.events.emit('video-ended', this.video?.texture.key);
             } else if(this.video.isPlaying()) {
-                this.skipFillOverlay.clear();
-                this.skipFillOverlay.fillStyle(0xff0000, 0.5);
-                this.skipFillOverlay.fillRect(
-                    this.skipIcon.x - this.skipIcon.displayWidth / 2,
-                    this.skipIcon.y - this.skipIcon.displayHeight / 2,
-                    this.skipIcon.displayWidth,
-                    this.skipIcon.displayHeight * (2/5 + 1/3 * held / 2000)
-                );
+                this.skipFill.setVisible(true);
+                this.skipFill.setCrop(0, 0, this.skipFill.frame.width, skipFillCropHeight(held));
             }
         }
     }
@@ -336,7 +338,7 @@ class VideoPlayer extends Phaser.GameObjects.Container {
     private handleSkipHoldEnd = () => {
         this.lastPointerMove = this.scene.time.now;
 
-        this.skipFillOverlay.clear();
+        this.skipFill.setVisible(false);
         this.skipIcon.setTexture("spacebar", 0);
         this.skipHoldStart = undefined;
     }

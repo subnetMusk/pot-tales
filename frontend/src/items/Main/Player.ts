@@ -2,6 +2,7 @@
 import { launchSubScene } from "../../utils";
 import { soundManager } from "../../audio/SoundManager";
 import { INVENTORY_REGISTRY_KEY } from "../stageRunState";
+import { listenUntilDestroyed } from "../sceneListeners";
 
 /* START OF COMPILED CODE */
 
@@ -108,11 +109,15 @@ class Player extends Phaser.GameObjects.Container {
 		// Start with idle front animation
 		this.player.play('idle_front', true);
 
-		this.scene.events.on("update", (time: number) => this.movePlayer(time), this);
+		// Gli eventi della scena sopravvivono allo shutdown: i due listener vanno tolti quando il
+		// Player viene distrutto, altrimenti al riavvio della scena nella stessa pagina (Gioca o
+		// Continua dopo una partita finita) scatterebbero su questo Player con this.scene
+		// undefined, bloccando il gioco. Vedi sceneListeners.ts.
+		listenUntilDestroyed(this.scene.events, "update", (time: number) => this.movePlayer(time), this);
 		// hud is anchored once at screen-center (see its creation above); only its scale needs a
 		// per-frame refresh so it tracks camera.zoom even though zoom isn't known yet when Player
 		// is constructed (each Stage sets it later in its own create()) — same BASE_ZOOM/zoom
-		this.scene.events.on("update", () => this.hud.setScale(Player.HUD_BASE_ZOOM / this.scene.cameras.main.zoom), this);
+		listenUntilDestroyed(this.scene.events, "update", () => this.hud.setScale(Player.HUD_BASE_ZOOM / this.scene.cameras.main.zoom), this);
 
 		this.interactKey = this.scene.input.keyboard?.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
 		this.interactKey?.on("down", () => {
