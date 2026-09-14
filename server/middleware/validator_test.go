@@ -7,6 +7,8 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+
+	"github.com/santhosh-tekuri/jsonschema/v5"
 )
 
 // validatorConRotte costruisce un Validator senza schemi né SessionManager:
@@ -33,6 +35,9 @@ func TestLimiteSulBodyValeAnchePerGliHandler(t *testing.T) {
 
 	body := bytes.Repeat([]byte("a"), int(maxBodyBytes)+1)
 	req := httptest.NewRequest(http.MethodPost, "/log", bytes.NewReader(body))
+	// Lunghezza non dichiarata, come in un corpo chunked: il rifiuto anticipato
+	// non scatta e il limite resta affidato alla lettura.
+	req.ContentLength = -1
 	rec := httptest.NewRecorder()
 
 	v.Handler(next).ServeHTTP(rec, req)
@@ -40,6 +45,73 @@ func TestLimiteSulBodyValeAnchePerGliHandler(t *testing.T) {
 	var tooLarge *http.MaxBytesError
 	if !errors.As(readErr, &tooLarge) {
 		t.Fatalf("attesa lettura fallita oltre il limite, errore ottenuto: %v", readErr)
+	}
+}
+
+// lettoreSpia registra se il body è stato letto.
+type lettoreSpia struct {
+	io.Reader
+	letto bool
+}
+
+func (l *lettoreSpia) Read(p []byte) (int, error) {
+	l.letto = true
+	return l.Reader.Read(p)
+}
+
+// Con una lunghezza dichiarata oltre il limite il rifiuto deve arrivare prima
+// di qualunque lettura: leggere farebbe partire il 100 Continue verso il client.
+func TestContentLengthOltreIlLimiteRespintoSenzaLeggere(t *testing.T) {
+	v := validatorConRotte(RouteConfig{Method: http.MethodPost, Path: "/log"})
+
+	chiamato := false
+	next := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		chiamato = true
+	})
+
+	spia := &lettoreSpia{Reader: bytes.NewReader(bytes.Repeat([]byte("a"), int(maxBodyBytes)+1))}
+	req := httptest.NewRequest(http.MethodPost, "/log", spia)
+	req.ContentLength = maxBodyBytes + 1
+	rec := httptest.NewRecorder()
+
+	v.Handler(next).ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusRequestEntityTooLarge {
+		t.Fatalf("status %d, atteso %d", rec.Code, http.StatusRequestEntityTooLarge)
+	}
+	if spia.letto {
+		t.Fatal("body letto nonostante la lunghezza dichiarata oltre il limite")
+	}
+	if chiamato {
+		t.Fatal("richiesta sovradimensionata arrivata all'handler")
+	}
+}
+
+// Senza lunghezza dichiarata il superamento emerge durante la validazione di
+// schema, e deve restare un 413 distinto dall'errore di schema.
+func TestBodySenzaLunghezzaOltreIlLimiteRisponde413(t *testing.T) {
+	v := validatorConRotte(RouteConfig{Method: http.MethodPost, Path: "/auth/session"})
+	v.routesSchema = map[string]*jsonschema.Schema{
+		http.MethodPost + " /auth/session": jsonschema.MustCompileString("schema.json", `{"type":"object"}`),
+	}
+
+	chiamato := false
+	next := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		chiamato = true
+	})
+
+	body := bytes.Repeat([]byte("a"), int(maxBodyBytes)+1)
+	req := httptest.NewRequest(http.MethodPost, "/auth/session", bytes.NewReader(body))
+	req.ContentLength = -1
+	rec := httptest.NewRecorder()
+
+	v.Handler(next).ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusRequestEntityTooLarge {
+		t.Fatalf("status %d, atteso %d", rec.Code, http.StatusRequestEntityTooLarge)
+	}
+	if chiamato {
+		t.Fatal("richiesta sovradimensionata arrivata all'handler")
 	}
 }
 

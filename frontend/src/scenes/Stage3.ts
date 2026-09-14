@@ -6,6 +6,7 @@ import { playSequence, reloadTranslations } from "../utils";
 import OggettoInterattivo from "../items/Main/OggettoInterattivo";
 import { APISession } from "../network/APISession";
 import { applyInventoryCheckpoints } from "../items/inventoryCheckpoints";
+import { allQuizzesSolved, createStage3RunState, isWithinDoorTrigger } from "../items/stageRunState";
 import { soundManager } from "../audio/SoundManager";
 import type { QuizAnswer } from "../items/UI/QuizManager";
 
@@ -177,11 +178,9 @@ class Stage3 extends Phaser.Scene {
 		]
 	};
 
-	// Evita di rigiocare il recap più di una volta nella stessa sessione di scena.
-	private recapShown: boolean = false;
-
-	private doorOpened: boolean = false;
-	private finaleStarted: boolean = false;
+	// Flag della partita in corso (recap già mostrato, porta aperta, finale avviata): ricreati
+	// in init() a ogni avvio della scena, vedi stageRunState.ts.
+	private run = createStage3RunState();
 
 	private apiSession!: APISession;
 	private resumeData?: { x?: number; y?: number; checkpoints?: string[] };
@@ -191,6 +190,10 @@ class Stage3 extends Phaser.Scene {
 	// giocatore preme "Resume": posizione dell'ultimo ping e traguardi già raggiunti.
 	init(data?: { x?: number; y?: number; checkpoints?: string[] }) {
 		this.resumeData = data;
+		// Phaser riusa questa istanza a ogni scene.start(): senza questo reset una seconda partita
+		// nella stessa scheda ritroverebbe recap, porta e finale di quella precedente.
+		this.run = createStage3RunState();
+		this.quizLights = {};
 	}
 
 	preload() {
@@ -262,11 +265,15 @@ class Stage3 extends Phaser.Scene {
 		// va davanti.
 		this.updateOverlayOcclusion();
 		this.updateItemDepths();
-		this.events.on("update", () => {
+		const onUpdate = () => {
 			this.updateOverlayOcclusion();
 			this.updateItemDepths();
 			this.checkDoorTrigger();
-		});
+		};
+		this.events.on("update", onUpdate);
+		// Gli eventi della scena sopravvivono allo shutdown: senza off() ogni nuova partita
+		// aggiungerebbe un listener in più.
+		this.events.once("shutdown", () => this.events.off("update", onUpdate));
 
 		const room = this.textures.get("stage3").getSourceImage();
 		this.cameras.main.setZoom(10);
@@ -292,6 +299,14 @@ class Stage3 extends Phaser.Scene {
 
 		this.applyResumeCheckpoints();
 		this.setupQuizLights();
+
+		// Recap e apertura della porta partono solo dalla risposta corretta al terzo quiz (vedi
+		// runQuiz()): chi riprende con tutti i quiz già risolti troverebbe la porta chiusa e nessun
+		// modo di aprirla. Si apre subito, senza rigiocare il recap.
+		if (allQuizzesSolved(this.resumeData?.checkpoints, Object.keys(this.quizConfig))) {
+			this.run.recapShown = true;
+			this.openDoor({ silent: true });
+		}
 
 		// I due oggetti "torretta" (ex Stage2) sono assegnati qui invece che in Stage2, per
 		// poter essere eventualmente consumati dai quiz di questa scena (vedi runQuiz()) — ma
@@ -375,8 +390,8 @@ class Stage3 extends Phaser.Scene {
 			void this.apiSession.saveCheckpoint(`stage3_${objKey}_solved`);
 			await playSequence(this.popupManager, this.successLines(i18n, objKey));
 
-			if (!this.recapShown && this.lipidi.set === false && this.cellulosa.set === false && this.carbon.set === false) {
-				this.recapShown = true;
+			if (!this.run.recapShown && this.lipidi.set === false && this.cellulosa.set === false && this.carbon.set === false) {
+				this.run.recapShown = true;
 				await this.playRecapSequence(i18n);
 			}
 		} else {
@@ -453,22 +468,30 @@ class Stage3 extends Phaser.Scene {
 			{ message: i18n.memory_narrator_4, preset: "dark" }
 		]);
 
+		this.openDoor();
+	}
+
+	// Apre la porta: la fa sparire e ne azzera la hitbox, così diventa attraversabile, e arma il
+	// trigger della cinematica finale. silent toglie il click quando la porta si apre al Resume
+	// (stesso schema di Stage2.activateLaser()).
+	private openDoor(options: { silent?: boolean } = {}) {
 		this.door.setAlpha(0);
 		this.doorHitbox.setSize(0, 0);
-		soundManager.playSfx(this, "ui_click");
-		this.doorOpened = true;
+		if (!options.silent) {
+			soundManager.playSfx(this, "ui_click");
+		}
+		this.run.doorOpened = true;
 	}
 
 	// Sorveglia la distanza dal giocatore alla porta ormai aperta: appena il giocatore vi si
 	// avvicina fa partire la cinematica finale, una volta sola (finaleStarted). doorHitbox.x/y
-	// restano un riferimento di posizione valido anche dopo che playRecapSequence() ne ha
+	// restano un riferimento di posizione valido anche dopo che openDoor() ne ha
 	// azzerato le dimensioni per renderla attraversabile.
 	private checkDoorTrigger() {
-		if (!this.doorOpened || this.finaleStarted) return;
+		if (!this.run.doorOpened || this.run.finaleStarted) return;
 
-		const distance = Phaser.Math.Distance.Between(this.player.x, this.player.y, this.doorHitbox.x, this.doorHitbox.y);
-		if (distance < 15) {
-			this.finaleStarted = true;
+		if (isWithinDoorTrigger(this.player.x, this.player.y, this.doorHitbox.x, this.doorHitbox.y)) {
+			this.run.finaleStarted = true;
 			void this.playFinaleSequence();
 		}
 	}

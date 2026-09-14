@@ -8,6 +8,7 @@ import { flashBurst, sparkBurst } from "../items/ParticleFx";
 import PopupManager from "../items/UI/PopupManager";
 import { APISession } from "../network/APISession";
 import { applyInventoryCheckpoints } from "../items/inventoryCheckpoints";
+import { createStage2RunState } from "../items/stageRunState";
 import { soundManager } from "../audio/SoundManager";
 
 type TurretOrientation = "neutral" | "right" | "back" | "left";
@@ -325,13 +326,11 @@ class Stage2 extends Phaser.Scene {
 
 	private turrets: Stage2Turret[] = [];
 	private probe!: OggettoInterattivo;
-	private laserActive = false;
 	private beamGraphics!: Phaser.GameObjects.Graphics;
 	private beamPulseTween?: Phaser.Tweens.Tween;
-	private beamGlowBoost = 0;
-	private currentShooterLevel = 1;
-	private activeShooter = false;
-	private stageComplete = false;
+	// Flag e contatori della partita in corso (laser, Shooter, completamento, bagliore del
+	// raggio): ricreati in init() a ogni avvio della scena, vedi stageRunState.ts.
+	private run = createStage2RunState();
 	private laserSawSound?: Phaser.Sound.BaseSound;
 
 	private apiSession!: APISession;
@@ -342,6 +341,10 @@ class Stage2 extends Phaser.Scene {
 	// giocatore preme "Resume": posizione dell'ultimo ping e traguardi già raggiunti.
 	init(data?: { x?: number; y?: number; checkpoints?: string[] }) {
 		this.resumeData = data;
+		// Phaser riusa questa istanza a ogni scene.start(): senza questo reset una seconda partita
+		// nella stessa scheda ritroverebbe stageComplete a true, e le torrette non risponderebbero più.
+		this.run = createStage2RunState();
+		this.beamPulseTween = undefined;
 	}
 
 	async preload() {
@@ -457,7 +460,7 @@ class Stage2 extends Phaser.Scene {
 		// probe -> turret 0 -> turret 1 usato durante il gioco normale (vedi activateProbe()
 		// e runChallengeForTurret()): senza questo, un turret non ancora risolto dopo un
 		// Resume ripartirebbe sempre dal livello 1 invece di quello raggiunto in precedenza.
-		this.currentShooterLevel = resumedLevel;
+		this.run.currentShooterLevel = resumedLevel;
 
 		this.redrawBeam();
 	}
@@ -555,7 +558,7 @@ class Stage2 extends Phaser.Scene {
 	}
 
 	private handleTurretInteract(turret: Stage2Turret, index: number) {
-		if (this.stageComplete || this.activeShooter) {
+		if (this.run.stageComplete || this.run.activeShooter) {
 			return;
 		}
 
@@ -593,13 +596,13 @@ class Stage2 extends Phaser.Scene {
 	}
 
 	private activateProbe() {
-		if (this.laserActive || this.activeShooter) {
+		if (this.run.laserActive || this.run.activeShooter) {
 			return;
 		}
 
 		// Set immediately (not just once runShooterChallenge starts) so a second interaction
 		// during the approach/vibration beat below can't re-trigger this flow.
-		this.activeShooter = true;
+		this.run.activeShooter = true;
 
 		void this.approachTurret(this.probe).then(() => {
 			this.runShooterChallenge(1, success => {
@@ -608,7 +611,7 @@ class Stage2 extends Phaser.Scene {
 					return;
 				}
 
-				this.currentShooterLevel += 1;
+				this.run.currentShooterLevel += 1;
 				void this.apiSession.saveCheckpoint("stage2_probe_activated");
 				this.probe.set = false;
 				soundManager.playSfx(this, "laser_charge");
@@ -652,7 +655,7 @@ class Stage2 extends Phaser.Scene {
 	// giocando — salta il salto di festeggiamento e non forza il movimento (ci pensa già
 	// playIntroSequence a riabilitarlo al termine del fade-in).
 	private activateLaser(options: { silent?: boolean } = {}) {
-		this.laserActive = true;
+		this.run.laserActive = true;
 
 		this.laserSawSound = soundManager.playSfx(this, "laser_saw", { loop: true });
 
@@ -673,18 +676,18 @@ class Stage2 extends Phaser.Scene {
 	}
 
 	private startShooter(turretIndex: number) {
-		if (this.activeShooter) {
+		if (this.run.activeShooter) {
 			return;
 		}
 
-		this.activeShooter = true;
+		this.run.activeShooter = true;
 
 		const turret = this.turrets[turretIndex];
 		void this.approachTurret(turret ?? this.player).then(() => this.runChallengeForTurret(turretIndex));
 	}
 
 	private runChallengeForTurret(turretIndex: number) {
-		this.runShooterChallenge(this.currentShooterLevel, success => {
+		this.runShooterChallenge(this.run.currentShooterLevel, success => {
 			if (!success) {
 				this.player.isMovementAllowed = true;
 				return;
@@ -731,14 +734,14 @@ class Stage2 extends Phaser.Scene {
 			};
 			void finishDialogue();
 
-			this.currentShooterLevel = Math.min(3, this.currentShooterLevel + 1);
+			this.run.currentShooterLevel = Math.min(3, this.run.currentShooterLevel + 1);
 			this.redrawBeam();
 		});
 	}
 
 	// Launches the Shooter minigame, pausing this scene until it reports success/failure
 	private runShooterChallenge(level: number, onResult: (success: boolean) => void) {
-		this.activeShooter = true;
+		this.run.activeShooter = true;
 		soundManager.stopMusic("stage2_theme");
 
 		launchSubScene(
@@ -748,7 +751,7 @@ class Stage2 extends Phaser.Scene {
 			(result: { level: number; success: boolean }) => {
 				this.scene.resume();
 				soundManager.playMusic(this, "stage2_theme");
-				this.activeShooter = false;
+				this.run.activeShooter = false;
 				onResult(result.success);
 			}
 		);
@@ -777,7 +780,7 @@ class Stage2 extends Phaser.Scene {
 	private redrawBeam() {
 		this.beamGraphics.clear();
 
-		if (!this.laserActive) {
+		if (!this.run.laserActive) {
 			this.stopBeamPulse();
 			return;
 		}
@@ -837,8 +840,8 @@ class Stage2 extends Phaser.Scene {
 
 		// One-shot brighten pass for the finale: brightenBeam() tweens beamGlowBoost 0->1 and
 		// redraws on every step, layering this extra glow on top of the normal beam strokes.
-		if (this.beamGlowBoost > 0) {
-			this.beamGraphics.lineStyle(18, 0xffffff, 0.35 * this.beamGlowBoost);
+		if (this.run.beamGlowBoost > 0) {
+			this.beamGraphics.lineStyle(18, 0xffffff, 0.35 * this.run.beamGlowBoost);
 			this.drawPolyline(points);
 		}
 
@@ -889,11 +892,11 @@ class Stage2 extends Phaser.Scene {
 	}
 
 	private finishStage() {
-		if (this.stageComplete) {
+		if (this.run.stageComplete) {
 			return;
 		}
 
-		this.stageComplete = true;
+		this.run.stageComplete = true;
 		this.player.isMovementAllowed = false;
 
 		this.cameras.main.shake(800, 0.001);
@@ -974,7 +977,7 @@ class Stage2 extends Phaser.Scene {
 	private brightenBeam(duration: number = 500): Promise<void> {
 		return new Promise<void>(resolve => {
 			this.tweens.add({
-				targets: this,
+				targets: this.run,
 				beamGlowBoost: { from: 0, to: 1 },
 				duration,
 				ease: "Sine.easeOut",
@@ -1085,10 +1088,10 @@ class Stage2 extends Phaser.Scene {
 	// branch in redrawBeam() — the crater it just carved is the payoff, so it has no reason to
 	// keep firing afterward.
 	private stopLaser(): void {
-		this.laserActive = false;
+		this.run.laserActive = false;
 		this.laserSawSound?.stop();
 		this.laserSawSound = undefined;
-		this.beamGlowBoost = 0;
+		this.run.beamGlowBoost = 0;
 		this.redrawBeam();
 	}
 

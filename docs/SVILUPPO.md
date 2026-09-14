@@ -103,6 +103,7 @@ make help                 # elenco dei target
 make verify-fast          # Go (formato, vet, build, test), lint shell/Docker/compose/stack, Filebeat, export dashboard
 make verify               # tutto il precedente piu' integrazione e analizzatori
 make frontend-typecheck   # tipi del frontend, che la compilazione non controlla
+make frontend-test        # test del frontend (runner di Node), con soglia di copertura
 make go-test              # sola suite Go, senza servizi esterni
 make go-test-integration  # richiede MongoDB e Redis, avviati dal target
 ```

@@ -140,8 +140,21 @@ var maxBodyBytes = func() int64 {
 // Handler è il middleware principale che intercetta le richieste.
 func (v *Validator) Handler(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// Applicato prima di qualunque lettura. Sostituendo r.Body, il limite
-		// vale anche per gli handler a valle.
+		// Una lunghezza dichiarata oltre il tetto si respinge senza leggere il
+		// corpo. Il rifiuto del MaxBytesReader arriva solo dopo la prima
+		// lettura, che fa inviare il 100 Continue al client che lo attende: il
+		// 413 partirebbe mentre il client sta ancora caricando, e a seconda dei
+		// tempi il client vedrebbe la connessione chiusa invece del rifiuto.
+		if r.ContentLength > maxBodyBytes {
+			helpers.WriteJSON(w, http.StatusRequestEntityTooLarge, map[string]string{
+				"error": "request body too large",
+			})
+			return
+		}
+
+		// Applicato prima di qualunque lettura, per i corpi senza lunghezza
+		// dichiarata (chunked). Sostituendo r.Body, il limite vale anche per gli
+		// handler a valle.
 		if r.Body != nil {
 			r.Body = http.MaxBytesReader(w, r.Body, maxBodyBytes)
 		}
