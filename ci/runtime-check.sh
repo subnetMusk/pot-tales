@@ -141,11 +141,17 @@ verifica "sessione: documento persistito" 1 \
 # Percorso relativo e non /tmp: la conversione dei percorsi della shell Windows
 # e' disattivata perche' Docker la richiede, e un percorso assoluto in stile
 # POSIX non verrebbe risolto dal client HTTP nativo.
+#
+# L'attesa del 100 Continue e' esplicita: il server respinge la lunghezza
+# dichiarata prima di chiedere il corpo, e curl legge il 413 senza caricare
+# nulla. Senza, i tre megabyte partirebbero mentre il server chiude la
+# connessione, e il codice letto dipenderebbe dai tempi. curl la aggiunge gia'
+# da se' oltre una certa dimensione, ma la soglia cambia tra le versioni.
 corpo=./corpo-oltre-soglia.tmp
 { printf '{"x":"'; head -c 3000000 /dev/zero | tr '\0' 'a'; printf '"}'; } > "$corpo"
 verifica "tetto sul corpo: richiesta sovradimensionata respinta" 413 \
   "$(curl -sS -m 15 -o /dev/null -w '%{http_code}' 2>/dev/null -X POST -H 'Content-Type: application/json' \
-      --data-binary "@$corpo" http://127.0.0.1:18080/auth/session)"
+      -H 'Expect: 100-continue' --data-binary "@$corpo" http://127.0.0.1:18080/auth/session)"
 rm -f "$corpo"
 
 verifica "rotta inesistente" 404 \
