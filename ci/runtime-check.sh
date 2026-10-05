@@ -22,8 +22,8 @@ LANDING_IMAGE=${LANDING_IMAGE:-progetti-innovativi/landing:locale}
 MONGO_IMAGE=${MONGO_IMAGE:-mongo:8.2.12@sha256:e0ce8c35124d4a9f9785532d1f268f39e9728ffa1cb38f46fa482436424c4bd3}
 REDIS_IMAGE=${REDIS_IMAGE:-redis:8.10.0-alpine@sha256:978f0e01593e65eed801f2402944efcd936d43b5027e4908a7897baf88ed6241}
 
-RETE=rc-net
-PREFISSO=rc
+RETE=${RC_NETWORK:-rc-net}
+PREFISSO=${RC_PREFIX:-rc}
 MONGO_PASSWORD_TEST=RuntimeMongoPassword123
 SEGRETI_TEST=""
 MOUNT_ROOT=$(pwd)
@@ -95,6 +95,13 @@ docker run -d --rm --name "$PREFISSO-db" --network "$RETE" \
   "$MONGO_IMAGE" >/dev/null
 docker run -d --rm --name "$PREFISSO-redis" --network "$RETE" "$REDIS_IMAGE" >/dev/null
 
+# L'immagine Mongo inizializza l'utente root prima di avviare il processo finale.
+# La porta HTTP del backend puo' aprirsi anche mentre questo passaggio e' in corso.
+attendi "MongoDB autenticato" docker exec "$PREFISSO-db" mongosh --quiet --host "$PREFISSO-db" \
+  --username root --password "$MONGO_PASSWORD_TEST" --authenticationDatabase admin \
+  --eval 'quit(db.adminCommand({ping:1}).ok === 1 ? 0 : 1)' || exit 1
+attendi "Redis" docker exec "$PREFISSO-redis" redis-cli ping || exit 1
+
 # Nessun montaggio: se l'immagine non contiene gli schemi non arriva ad
 # ascoltare, ed e' esattamente la regressione che questo controllo deve cogliere.
 # L'entrypoint e il secret sono invece quelli di produzione: MongoDB richiede
@@ -124,9 +131,16 @@ verifica "schema: corpo assente rifiutato" 400 \
   "$(curl -sS -m 5 -o /dev/null -w '%{http_code}' 2>/dev/null -X POST -H 'Content-Type: application/json' \
       http://127.0.0.1:18080/auth/session)"
 
-verifica "sessione: scrittura su Mongo autenticato" 201 \
-  "$(curl -sS -m 10 -o /dev/null -w '%{http_code}' 2>/dev/null -X POST -H 'Content-Type: application/json' \
-      -d '{"device":"runtime-check","consentGiven":false}' http://127.0.0.1:18080/auth/session)"
+# Il limite del client deve superare WriteTimeout (30 s): su un runner occupato
+# la conferma su journal puo' arrivare dopo il precedente limite di 10 s.
+sessione_status=$(curl -sS -m 35 -o "$SEGRETI_TEST/sessione.json" -w '%{http_code}' \
+  -X POST -H 'Content-Type: application/json' \
+  -d '{"device":"runtime-check","consentGiven":false}' http://127.0.0.1:18080/auth/session)
+verifica "sessione: scrittura su Mongo autenticato" 201 "$sessione_status"
+if [ "$sessione_status" != 201 ]; then
+  cat "$SEGRETI_TEST/sessione.json" >&2
+  docker logs "$PREFISSO-server" 2>&1 | tail -20 >&2
+fi
 
 verifica "sessione: documento persistito" 1 \
   "$(docker exec "$PREFISSO-db" mongosh --quiet --username root --password "$MONGO_PASSWORD_TEST" \
@@ -182,6 +196,7 @@ docker rm -f "$PREFISSO-landing" >/dev/null 2>&1
 echo "== Gioco =="
 # ============================================================================
 
+artefatto=""
 if docker image inspect "$FRONTEND_IMAGE" >/dev/null 2>&1; then
   docker run -d --rm --name "$PREFISSO-frontend" --network "$RETE" -p 18082:80 "$FRONTEND_IMAGE" >/dev/null
   attendi "gioco" curl -fsS -m 3 http://127.0.0.1:18082/nginx-health || exit 1

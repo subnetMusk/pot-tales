@@ -15,13 +15,12 @@ type GameState struct {
 	// Regge l'indice TTL di ritenzione dati, come in SessionDoc.
 	CreatedAt time.Time `bson:"created_at"`
 
-	// Dati di Gameplay (Posizione + Tempo accumulato)
+	// Dati di gameplay: posizione e traguardi.
 	Data struct {
-		SceneID         string   `bson:"scene_id"`
-		X               float64  `bson:"x"`
-		Y               float64  `bson:"y"`
-		TotalPlayTimeMs int64    `bson:"total_time_ms"`         // Accumulatore tempo effettivo
-		Checkpoints     []string `bson:"checkpoints,omitempty"` // ID opachi dei traguardi raggiunti (es. "stage2_turret_0")
+		SceneID     string   `bson:"scene_id"`
+		X           float64  `bson:"x"`
+		Y           float64  `bson:"y"`
+		Checkpoints []string `bson:"checkpoints,omitempty"` // ID opachi dei traguardi raggiunti (es. "stage2_turret_0")
 	} `bson:"data"`
 
 	// Metadati per la Validazione (Authority Server)
@@ -62,17 +61,10 @@ func (g GameState) PositionRecorded() bool {
 // DurataMs e' la durata della partita riportata all'osservabilita': dall'ingresso
 // in Stage1 all'ultimo ping accettato.
 //
-// Non si usa l'accumulatore TotalPlayTimeMs: il validatore accredita tempo solo
-// quando e' gia' diverso da zero, e partendo da zero non lo diventa mai. Il
-// tempo di orologio non dipende dalle soglie di validazione, e l'ultimo ping e'
-// anche l'istante da cui la spazzata misura l'abbandono, quindi il tempo davanti
-// allo schermo dopo l'uscita non viene contato.
-//
-// Uno stato senza created_at precede l'introduzione del campo: l'unica misura
-// disponibile resta l'accumulatore.
+// Gli stati senza created_at non hanno una durata ricostruibile.
 func (g GameState) DurataMs() int64 {
 	if g.CreatedAt.IsZero() {
-		return g.Data.TotalPlayTimeMs
+		return 0
 	}
 	if d := g.Meta.LastPing.Sub(g.CreatedAt); d > 0 {
 		return d.Milliseconds()

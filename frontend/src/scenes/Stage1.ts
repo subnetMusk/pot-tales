@@ -1,3 +1,4 @@
+import { startGameHeartbeat } from '../network/gameHeartbeat';
 // You can write more code here
 import Player from "@/items/Main/Player";
 import PopupManager from "../items/UI/PopupManager";
@@ -72,7 +73,7 @@ class Stage1 extends Phaser.Scene {
 
 	private loadedLang!: string;
 
-	private pingTimer?: Phaser.Time.TimerEvent;
+	private stopPing?: () => void;
 
 	preload() {
 		this.load.pack("stage1-pack", "assets/images/stage1-pack.json");
@@ -155,8 +156,8 @@ class Stage1 extends Phaser.Scene {
 		// fino a cui si misura la durata. La posizione non viene ripristinata al
 		// Continue: la scena e' una sequenza a copione senza traguardi intermedi, e
 		// ripartire da un altro punto non riprenderebbe nulla.
-		this.pingTimer = this.time.addEvent({ delay: 7000, loop: true, callback: () => this.sendPing() });
-		this.events.once("shutdown", () => this.pingTimer?.remove());
+		this.stopPing = startGameHeartbeat(isCurrent => this.sendPing(isCurrent));
+		this.events.once("shutdown", () => this.stopPing?.());
 
 		/* START-SCENE-LOGIC */
 
@@ -525,13 +526,14 @@ class Stage1 extends Phaser.Scene {
 
 	// Invia la posizione corrente; se il server la rifiuta, il giocatore torna
 	// all'ultima posizione accettata, come in Stage2.
-	private async sendPing() {
+	private async sendPing(isCurrent: () => boolean) {
 		try {
 			const result = await this.apiSession.ping("Stage1", this.player.x, this.player.y);
+			if (!isCurrent()) return;
 			if (result.action === "rubberband" || result.action === "kick") {
 				this.player.setPosition(parseFloat(result.x), parseFloat(result.y));
 			} else if (result.action === "ban") {
-				this.pingTimer?.remove();
+				this.stopPing?.();
 				this.scene.start("Menu");
 			}
 		} catch (error) {

@@ -48,17 +48,14 @@ func (gm *GameManager) GetState(ctx context.Context, sessionID string) (*models.
 	return &state, nil
 }
 
-// UpdateState aggiorna scena, coordinate, tempo e last_ping atomicamente.
-func (gm *GameManager) UpdateState(ctx context.Context, sessionID string, sceneID string, x, y float64, addTime int64, now time.Time) error {
+// UpdateState aggiorna scena, coordinate e last_ping atomicamente.
+func (gm *GameManager) UpdateState(ctx context.Context, sessionID string, sceneID string, x, y float64, now time.Time) error {
 	update := bson.M{
 		"$set": bson.M{
 			"data.scene_id":  sceneID,
 			"data.x":         x,
 			"data.y":         y,
 			"meta.last_ping": now,
-		},
-		"$inc": bson.M{
-			"data.total_time_ms": addTime,
 		},
 	}
 	_, err := gm.gameCol.UpdateOne(ctx, bson.M{"_id": sessionID}, update)

@@ -8,12 +8,11 @@
 package router
 
 import (
-	"encoding/json"
-	"fmt"
 	"net/http"
 
 	"github.com/gorilla/mux"
 	"github.com/redis/go-redis/v9"
+	"go.elastic.co/apm/module/apmgorilla/v2"
 	"go.mongodb.org/mongo-driver/mongo"
 
 	"github.com/subnetMusk/progetti_innovativi/server/helpers"
@@ -27,6 +26,8 @@ import (
 // - ttlMin: configurazione TTL passata come stringa.
 func New(m *mongo.Client, rdb *redis.Client, v *middleware.Validator, ttlMin string) *mux.Router {
 	r := mux.NewRouter()
+	// Il matching precede APM; anche il validator vede la transazione.
+	apmgorilla.Instrument(r)
 
 	// Superficie uniforme: qualunque richiesta che non corrisponda a una rotta
 	// dichiarata riceve la stessa risposta, indipendentemente dal motivo.
@@ -50,13 +51,8 @@ func New(m *mongo.Client, rdb *redis.Client, v *middleware.Validator, ttlMin str
 	// Auth Routes (/auth/session, /auth/validate)
 	registerAuth(r.PathPrefix("/auth").Subrouter(), m, rdb, ttlMin)
 
-	// Game Routes (/game/position, /game/timer, /game/ping, /game/checkpoint, /game/reset)
+	// Game Routes (/game/position, /game/ping, /game/checkpoint, /game/reset)
 	registerGame(r.PathPrefix("/game").Subrouter(), m, rdb)
-
-	// 3. Log Ingestion (Frontend -> Backend -> Elastic)
-	// La rotta è in whitelist (POST /log, senza auth nè schema): il middleware
-	// globale la lascia passare, quindi basta un handler semplice.
-	r.HandleFunc("/log", logIngestHandler).Methods(http.MethodPost)
 
 	return r
 }
@@ -65,44 +61,4 @@ func New(m *mongo.Client, rdb *redis.Client, v *middleware.Validator, ttlMin str
 // middleware, cosi' che le due strade producano una risposta indistinguibile.
 func rottaInesistente(w http.ResponseWriter, r *http.Request) {
 	helpers.WriteJSON(w, http.StatusNotFound, map[string]string{"error": "route not found"})
-}
-
-// logIngestHandler riceve eventi dal frontend e li ristampa su stdout come log
-// strutturati; Filebeat li raccoglie e li inoltra a Elasticsearch, taggati come
-// dataset 'frontend.app' per distinguerli dai log del backend.
-func logIngestHandler(w http.ResponseWriter, r *http.Request) {
-	var payload struct {
-		Category string         `json:"category"`
-		Action   string         `json:"action"`
-		Details  map[string]any `json:"details"`
-		Level    string         `json:"level"`
-	}
-
-	if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
-		// Fail-silently (200) per non innescare loop di log d'errore dal frontend.
-		w.WriteHeader(http.StatusOK)
-		return
-	}
-
-	ctx := r.Context()
-
-	if payload.Details == nil {
-		payload.Details = make(map[string]any)
-	}
-	// Dataset tecnico, non quello dei fatti di partita.
-	//
-	// Categoria, azione e dettagli arrivano dal client e non sono verificabili:
-	// instradarli sull'indice che la platea divulgativa legge permetterebbe a
-	// chiunque parli con questo endpoint di scrivere righe nelle dashboard
-	// condivise. I fatti di partita li emette il backend, che li osserva invece
-	// di riceverli, e stanno in helpers.LogGameplay.
-	payload.Details["event.dataset"] = "frontend.app"
-
-	if payload.Level == "error" {
-		helpers.LogError(ctx, payload.Category, payload.Action, fmt.Errorf("frontend_error"), payload.Details)
-	} else {
-		helpers.LogBusiness(ctx, payload.Category, payload.Action, payload.Details)
-	}
-
-	w.WriteHeader(http.StatusOK)
 }

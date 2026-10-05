@@ -17,8 +17,6 @@ import (
 	"github.com/subnetMusk/progetti_innovativi/server/helpers"
 )
 
-const InactivityThreshold = 3 * time.Second
-
 type gameSvc struct {
 	mgr *helpers.GameManager
 }
@@ -29,7 +27,6 @@ func registerGame(r *mux.Router, m *mongo.Client, rdb *redis.Client) {
 
 	// Route GET (Sincronizzazione Client)
 	r.HandleFunc("/position", svc.getPosition).Methods(http.MethodGet)
-	r.HandleFunc("/timer", svc.getTimer).Methods(http.MethodGet)
 
 	// Route POST (Scrittura progressi)
 	r.HandleFunc("/ping", svc.handlePing).Methods(http.MethodPost)
@@ -73,9 +70,8 @@ func (g *gameSvc) getPosition(w http.ResponseWriter, r *http.Request) {
 }
 
 // POST /game/ping
-// Riceve la posizione corrente del client ogni 5-10s, la valida contro lo stato
-// autoritativo salvato (anti-cheat) e risponde con lo stato aggiornato (o quello
-// precedente, se il ping viene rifiutato) più l'azione che il client deve intraprendere.
+// Salva la posizione dichiarata dal client dopo schema, sessione e quota.
+// Non interpreta gli spostamenti del gioco come prove di abuso.
 func (g *gameSvc) handlePing(w http.ResponseWriter, r *http.Request) {
 	sessionID := r.Context().Value(helpers.UserIDKey).(string)
 
@@ -97,59 +93,23 @@ func (g *gameSvc) handlePing(w http.ResponseWriter, r *http.Request) {
 	}
 
 	now := time.Now()
-	action, addTime := helpers.ValidatePing(state, payload.SceneID, payload.X, payload.Y, now)
-
-	respond := func(sceneID string, x, y float64, lastPing time.Time, action string) {
-		helpers.WriteJSON(w, http.StatusOK, map[string]any{
-			"scene_id":  sceneID,
-			"x":         fmt.Sprintf("%f", x),
-			"y":         fmt.Sprintf("%f", y),
-			"last_ping": lastPing.Format(time.RFC3339),
-			"action":    action,
+	if err := g.mgr.UpdateState(ctx, sessionID, payload.SceneID, payload.X, payload.Y, now); err != nil {
+		helpers.WriteJSON(w, http.StatusInternalServerError, map[string]string{"error": "db error"})
+		return
+	}
+	if payload.SceneID != state.Data.SceneID {
+		helpers.LogGameplay(ctx, sessionID, "scena_iniziata", map[string]any{
+			"partita.scena":            payload.SceneID,
+			"partita.scena_precedente": state.Data.SceneID,
 		})
 	}
-
-	switch action {
-	case helpers.ActionAccept:
-		scenaPrecedente := state.Data.SceneID
-		if err := g.mgr.UpdateState(ctx, sessionID, payload.SceneID, payload.X, payload.Y, addTime, now); err != nil {
-			helpers.WriteJSON(w, http.StatusInternalServerError, map[string]string{"error": "db error"})
-			return
-		}
-		// Il ping è l'unico punto in cui la scena cambia, quindi è qui che si
-		// osserva l'avanzamento. Emettere a ogni ping riempirebbe l'indice di
-		// ripetizioni: interessa la transizione, non la permanenza.
-		if payload.SceneID != scenaPrecedente {
-			helpers.LogGameplay(ctx, sessionID, "scena_iniziata", map[string]any{
-				"partita.scena":            payload.SceneID,
-				"partita.scena_precedente": scenaPrecedente,
-			})
-		}
-		respond(payload.SceneID, payload.X, payload.Y, now, "accept")
-	case helpers.ActionRubberband, helpers.ActionKick:
-		// Non persistiamo la posizione sospetta: rispondiamo con l'ultimo stato
-		// autoritativo così il client può correggersi (snap-back).
-		actionName := "rubberband"
-		if action == helpers.ActionKick {
-			actionName = "kick"
-		}
-		respond(state.Data.SceneID, state.Data.X, state.Data.Y, state.Meta.LastPing, actionName)
-	case helpers.ActionBan:
-		if err := g.mgr.DeleteState(ctx, sessionID); err != nil {
-			helpers.WriteJSON(w, http.StatusInternalServerError, map[string]string{"error": "db error"})
-			return
-		}
-		// Lo stato viene cancellato, quindi la spazzata non lo troverà mai:
-		// senza questa emissione la partita resterebbe iniziata e mai conclusa,
-		// e l'imbuto conterebbe come abbandono un'espulsione.
-		helpers.LogGameplay(ctx, sessionID, "sessione_conclusa", map[string]any{
-			"partita.motivo":       helpers.MotivoEspulsione,
-			"partita.scena_finale": state.Data.SceneID,
-			"partita.durata_ms":    state.DurataMs(),
-			"partita.checkpoint_n": len(state.Data.Checkpoints),
-		})
-		respond(state.Data.SceneID, state.Data.X, state.Data.Y, now, "ban")
-	}
+	helpers.WriteJSON(w, http.StatusOK, map[string]any{
+		"scene_id":  payload.SceneID,
+		"x":         fmt.Sprintf("%f", payload.X),
+		"y":         fmt.Sprintf("%f", payload.Y),
+		"last_ping": now.Format(time.RFC3339),
+		"action":    "accept",
+	})
 }
 
 // POST /game/checkpoint
@@ -232,40 +192,4 @@ func (g *gameSvc) handleReset(w http.ResponseWriter, r *http.Request) {
 	}
 
 	helpers.WriteJSON(w, http.StatusOK, map[string]string{"status": "ok"})
-}
-
-// GET /game/timer
-func (g *gameSvc) getTimer(w http.ResponseWriter, r *http.Request) {
-	sessionID := r.Context().Value(helpers.UserIDKey).(string)
-
-	state, err := g.mgr.GetState(r.Context(), sessionID)
-	if err != nil {
-		helpers.WriteJSON(w, http.StatusOK, map[string]any{"total_playtime_seconds": 0, "is_active": false})
-		return
-	}
-
-	now := time.Now()
-	gap := now.Sub(state.Meta.LastPing)
-
-	var currentSessionMs int64 = 0
-	isActive := false
-
-	// Logica Visualizzazione Timer (Proiezione lato client)
-	// Se l'utente è attivo (gap < 3s), aggiungiamo il tempo corrente al totale.
-	if gap < InactivityThreshold {
-		isActive = true
-		// Aggiungiamo il tempo trascorso dall'ultimo ping convalidato
-		currentSessionMs = gap.Milliseconds()
-	} else {
-		// Se l'utente è inattivo, non proiettiamo tempo extra.
-		currentSessionMs = 0
-	}
-
-	totalMs := state.Data.TotalPlayTimeMs + currentSessionMs
-
-	helpers.WriteJSON(w, http.StatusOK, map[string]any{
-		"total_playtime_seconds": float64(totalMs) / 1000.0,
-		"is_active":              isActive,
-		"gap_ms":                 gap.Milliseconds(),
-	})
 }

@@ -18,6 +18,10 @@
 
 .DEFAULT_GOAL := help
 
+.PHONY: surveillance-client-check
+surveillance-client-check: ## Verifica riuso del client persistente di sorveglianza
+	bash ci/es-curl-check.sh
+
 # --- Parametri ----------------------------------------------------------------
 # Sovrascrivibili dalla riga di comando: `make stack-deploy STACK_NAME=prova`.
 
@@ -271,13 +275,15 @@ scan-deps-go: ## Cerca vulnerabilita' note nelle dipendenze del backend
 
 # Tutte le immagini vengono analizzate prima di dichiarare l'esito: fermarsi
 # alla prima con vulnerabilita' nasconderebbe quelle delle altre, che
-# emergerebbero solo una correzione alla volta.
+# emergerebbero solo una correzione alla volta. Il database Trivy e' condiviso
+# fra le scansioni; Trivy ne verifica e aggiorna la scadenza.
 .PHONY: scan-images
 scan-images: ## Cerca vulnerabilita' note nelle immagini costruite localmente
 	@esito=0; \
 	for i in progetti-innovativi/server:locale progetti-innovativi/frontend:locale progetti-innovativi/landing:locale; do \
 		echo "== $$i"; \
-		$(DOCKER) run --rm -v /var/run/docker.sock:/var/run/docker.sock $(TRIVY_IMAGE) \
+		$(DOCKER) run --rm -v /var/run/docker.sock:/var/run/docker.sock \
+			-v pi-trivy-cache:/root/.cache/trivy $(TRIVY_IMAGE) \
 			image --scanners vuln --severity HIGH,CRITICAL --exit-code 1 --quiet "$$i" || esito=1; \
 	done; \
 	exit $$esito

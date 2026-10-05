@@ -10,7 +10,9 @@ FROM nginx:1.30.4-alpine@sha256:dc5069ad14f19660b141b21236140b91656bf89bbc3e2417
 # repository di Alpine prima che l'immagine di base venga ricostruita. Il
 # contenuto dipende quindi anche dai repository al momento della build: e' una
 # deroga deliberata alla regola di fissare tutto, e trivy ne verifica l'esito.
-RUN apk upgrade --no-cache
+# Minimi corretti per CVE-2026-93990 e CVE-2026-103111.
+RUN apk upgrade --no-cache && \
+    apk add --no-cache 'libexpat>=2.8.5-r0' 'pcre2>=10.49-r0'
 
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 COPY index.html /usr/share/nginx/html/index.html

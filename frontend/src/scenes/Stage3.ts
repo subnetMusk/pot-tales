@@ -1,3 +1,4 @@
+import { startGameHeartbeat } from '../network/gameHeartbeat';
 // You can write more code here
 import Player from "@/items/Main/Player";
 import PopupManager from "../items/UI/PopupManager";
@@ -184,7 +185,7 @@ class Stage3 extends Phaser.Scene {
 
 	private apiSession!: APISession;
 	private resumeData?: { x?: number; y?: number; checkpoints?: string[] };
-	private pingTimer?: Phaser.Time.TimerEvent;
+	private stopPing?: () => void;
 
 	// Dati di resume passati da Menu.ts via scene.start("Stage3", {...}) quando il
 	// giocatore preme "Resume": posizione dell'ultimo ping e traguardi già raggiunti.
@@ -322,9 +323,9 @@ class Stage3 extends Phaser.Scene {
 		}
 
 		// Ping periodico (5-10s) con la posizione corrente: mantiene aggiornato lo stato
-		// autoritativo sul server per il Resume, e passa dal validatore anti-cheat.
-		this.pingTimer = this.time.addEvent({ delay: 7000, loop: true, callback: () => this.sendPing() });
-		this.events.once("shutdown", () => this.pingTimer?.remove());
+		// autoritativo sul server per il Resume, anche durante i minigiochi.
+		this.stopPing = startGameHeartbeat(isCurrent => this.sendPing(isCurrent));
+		this.events.once("shutdown", () => this.stopPing?.());
 
 		// Niente hint di movimento/interazione qui: il giocatore li ha già visti in Stage1.
 		// La battuta d'apertura (risveglio dalla caduta + invito a guardare nello zaino) va
@@ -840,13 +841,14 @@ class Stage3 extends Phaser.Scene {
 
 	// Invia la posizione corrente al server; se il server rifiuta il movimento (lag/cheat)
 	// o rileva un ban, allinea il client allo stato autoritativo restituito.
-	private async sendPing() {
+	private async sendPing(isCurrent: () => boolean) {
 		try {
 			const result = await this.apiSession.ping("Stage3", this.player.x, this.player.y);
+			if (!isCurrent()) return;
 			if (result.action === "rubberband" || result.action === "kick") {
 				this.setPlayerPositionInRoom(parseFloat(result.x), parseFloat(result.y));
 			} else if (result.action === "ban") {
-				this.pingTimer?.remove();
+				this.stopPing?.();
 				this.scene.start("Menu");
 			}
 		} catch (error) {

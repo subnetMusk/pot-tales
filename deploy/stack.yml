@@ -533,6 +533,8 @@ services:
       PORT: "3000"
       GO_ENV: production
       ELASTIC_APM_ENVIRONMENT: production
+      # Il campionamento backend è indipendente dal RUM del browser.
+      ELASTIC_APM_TRACE_CONTINUATION_STRATEGY: restart
       ELASTIC_APM_SERVICE_NAME: "${ELASTIC_APM_SERVICE_NAME:-go-backend}"
       # L'intake APM e' servito da `apm-agent`, non dal Fleet Server, e ascolta
       # in TLS con un certificato della CA interna: il valore precedente
@@ -550,7 +552,7 @@ services:
       # Chiusura differita delle partite abbandonate: e' cio' che rende
       # osservabili durata e punto di uscita, che nessuna richiesta puo'
       # riportare perche' chi abbandona non ne invia piu'.
-      SESSION_IDLE_CLOSE_MIN: "${SESSION_IDLE_CLOSE_MIN:-5}"
+      SESSION_IDLE_CLOSE_MIN: "${SESSION_IDLE_CLOSE_MIN:-15}"
       SESSION_SWEEP_SEC: "${SESSION_SWEEP_SEC:-60}"
       # Il proxy e' l'unico peer legittimo: fuori da questi intervalli gli
       # header di inoltro vengono ignorati invece che creduti.
@@ -638,7 +640,8 @@ services:
         mode: 0444
     healthcheck:
       test: ["CMD-SHELL", "mongosh --quiet --eval 'db.adminCommand({ping:1}).ok' | grep -q 1"]
-      interval: 15s
+      # Il backend controlla Mongo anche tramite /health.
+      interval: 60s
       timeout: 10s
       retries: 10
       start_period: 30s
@@ -931,6 +934,36 @@ services:
         failure_action: rollback
         monitor: 60s
         max_failure_ratio: 0
+
+  # Client persistente per i timer host: niente container per ogni richiesta.
+  # Non pubblica porte e non ha il socket Docker né credenziali permanenti.
+  surveillance-client:
+    image: curlimages/curl:8.22.0@sha256:58adaa4e8dca9c988bae2aba4ab3434a0bb2da16bbe3f92dec39ec7785166777
+    entrypoint: ["/bin/sleep"]
+    command: ["2147483647"]
+    user: "0:0"
+    read_only: true
+    cap_drop: [ALL]
+    networks: [elastic]
+    volumes:
+      - certs:/certs:ro
+    healthcheck:
+      test: ["CMD", "curl", "--version"]
+      interval: 60s
+      timeout: 5s
+      retries: 3
+    deploy:
+      replicas: 1
+      placement:
+        constraints: [node.role == manager]
+      resources:
+        limits:
+          cpus: "0.10"
+          memory: 32M
+        reservations:
+          memory: 4M
+      restart_policy:
+        condition: any
 
   filebeat:
     image: docker.elastic.co/beats/filebeat:8.19.19@sha256:537f0577a7ff7dc81cd3db33f9b0aecc9ea7bc9038f7e5217382030a8cee5c9c

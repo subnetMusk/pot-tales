@@ -94,7 +94,6 @@ func TestGameManagerCicloCompleto(t *testing.T) {
 	iniziale := models.GameState{ID: sessione, CreatedAt: adesso}
 	iniziale.Data.X = 10
 	iniziale.Data.Y = 20
-	iniziale.Data.TotalPlayTimeMs = 1000
 	iniziale.Meta.LastPing = adesso
 	if _, err := JournaledCollection(db, GameStatesCollection).InsertOne(ctx, iniziale); err != nil {
 		t.Fatalf("inserimento dello stato iniziale: %v", err)
@@ -109,7 +108,7 @@ func TestGameManagerCicloCompleto(t *testing.T) {
 	}
 
 	dopo := adesso.Add(2 * time.Second)
-	if err := gm.UpdateState(ctx, sessione, "Stage1", 15, 25, 2000, dopo); err != nil {
+	if err := gm.UpdateState(ctx, sessione, "Stage1", 15, 25, dopo); err != nil {
 		t.Fatalf("aggiornamento dello stato: %v", err)
 	}
 
@@ -119,11 +118,6 @@ func TestGameManagerCicloCompleto(t *testing.T) {
 	}
 	if aggiornato.Data.X != 15 || aggiornato.Data.Y != 25 {
 		t.Errorf("posizione aggiornata = (%v, %v), attesa (15, 25)", aggiornato.Data.X, aggiornato.Data.Y)
-	}
-	// Il tempo si accumula, non si sostituisce: se venisse sovrascritto, la
-	// durata totale della partita sarebbe sempre quella dell'ultimo intervallo.
-	if aggiornato.Data.TotalPlayTimeMs != 3000 {
-		t.Errorf("tempo accumulato = %d, atteso 3000", aggiornato.Data.TotalPlayTimeMs)
 	}
 
 	if err := gm.DeleteState(ctx, sessione); err != nil {
@@ -342,7 +336,6 @@ func TestConcludiPartitaRivendicaUnaVoltaSola(t *testing.T) {
 
 	stato := models.GameState{ID: "partita-di-prova", CreatedAt: time.Now()}
 	stato.Data.SceneID = "Stage3"
-	stato.Data.TotalPlayTimeMs = 42000
 	stato.Meta.LastPing = time.Now()
 	if _, err := col.InsertOne(ctx, stato); err != nil {
 		t.Fatalf("inserimento dello stato: %v", err)

@@ -309,38 +309,10 @@ func TestPosizioneRestituisceLoStatoIniziale(t *testing.T) {
 	}
 }
 
-func TestTimerSuSessioneAppenaCreata(t *testing.T) {
-	b := nuovoBanco(t)
-	_, cookie := b.creaSessione(t)
-
-	richiesta, _ := http.NewRequest(http.MethodGet, b.server.URL+"/game/timer", nil)
-	richiesta.AddCookie(cookie)
-
-	risposta, err := http.DefaultClient.Do(richiesta)
-	if err != nil {
-		t.Fatalf("richiesta: %v", err)
-	}
-	defer risposta.Body.Close()
-
-	if risposta.StatusCode != http.StatusOK {
-		t.Fatalf("codice = %d, atteso %d", risposta.StatusCode, http.StatusOK)
-	}
-
-	var payload map[string]any
-	if err := json.NewDecoder(risposta.Body).Decode(&payload); err != nil {
-		t.Fatalf("risposta non in formato JSON: %v", err)
-	}
-	// La sessione e' appena nata, quindi l'ultimo ping e' recente: il timer deve
-	// considerarla attiva.
-	if payload["is_active"] != true {
-		t.Errorf("is_active = %v, atteso true su sessione appena creata", payload["is_active"])
-	}
-}
-
 func TestRotteDiGiocoRichiedonoAutenticazione(t *testing.T) {
 	b := nuovoBanco(t)
 
-	for _, percorso := range []string{"/game/position", "/game/timer"} {
+	for _, percorso := range []string{"/game/position"} {
 		risposta, err := http.Get(b.server.URL + percorso)
 		if err != nil {
 			t.Fatalf("richiesta %s: %v", percorso, err)
@@ -350,40 +322,6 @@ func TestRotteDiGiocoRichiedonoAutenticazione(t *testing.T) {
 			t.Errorf("%s senza cookie: codice = %d, atteso %d",
 				percorso, risposta.StatusCode, http.StatusUnauthorized)
 		}
-	}
-}
-
-// --- Ingestione degli eventi dal frontend -----------------------------------
-
-func TestIngestioneEventiAccettaEventiValidi(t *testing.T) {
-	b := nuovoBanco(t)
-
-	corpo := `{"category":"gameplay","action":"scena_avviata","level":"info","details":{"scene":"vaso"}}`
-	risposta, err := http.Post(b.server.URL+"/log", "application/json", strings.NewReader(corpo))
-	if err != nil {
-		t.Fatalf("richiesta: %v", err)
-	}
-	defer risposta.Body.Close()
-
-	if risposta.StatusCode != http.StatusOK {
-		t.Errorf("codice = %d, atteso %d", risposta.StatusCode, http.StatusOK)
-	}
-}
-
-// Un corpo malformato non deve produrre un errore: la risposta d'errore
-// verrebbe registrata dal frontend, che la rispedirebbe, innescando un ciclo
-// che si alimenta da solo.
-func TestIngestioneEventiNonRispondeConErroreSuCorpoMalformato(t *testing.T) {
-	b := nuovoBanco(t)
-
-	risposta, err := http.Post(b.server.URL+"/log", "application/json", strings.NewReader("{non valido"))
-	if err != nil {
-		t.Fatalf("richiesta: %v", err)
-	}
-	defer risposta.Body.Close()
-
-	if risposta.StatusCode != http.StatusOK {
-		t.Errorf("codice = %d, atteso %d", risposta.StatusCode, http.StatusOK)
 	}
 }
 
@@ -482,76 +420,20 @@ func TestPositionSenzaStatoDiGiocoDichiaraIlGuasto(t *testing.T) {
 	}
 }
 
-// Il timer, a differenza della posizione, degrada invece di fallire: un
-// contatore assente non impedisce di giocare, e un errore qui interromperebbe
-// l'interfaccia per un dato accessorio.
-func TestTimerSenzaStatoDiGiocoDegradaAZero(t *testing.T) {
+func TestRotteRimosseRestanoChiuse(t *testing.T) {
 	b := nuovoBanco(t)
-	token, cookie := b.creaSessione(t)
-
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-	if _, err := b.dbDiProva().Collection(helpers.GameStatesCollection).
-		DeleteOne(ctx, bson.M{"_id": token}); err != nil {
-		t.Fatalf("rimozione dello stato di gioco: %v", err)
-	}
-
-	richiesta, _ := http.NewRequest(http.MethodGet, b.server.URL+"/game/timer", nil)
-	richiesta.AddCookie(cookie)
-	risposta, err := http.DefaultClient.Do(richiesta)
-	if err != nil {
-		t.Fatalf("richiesta: %v", err)
-	}
-	defer risposta.Body.Close()
-
-	if risposta.StatusCode != http.StatusOK {
-		t.Fatalf("codice = %d, atteso %d", risposta.StatusCode, http.StatusOK)
-	}
-
-	var payload map[string]any
-	if err := json.NewDecoder(risposta.Body).Decode(&payload); err != nil {
-		t.Fatalf("risposta non in formato JSON: %v", err)
-	}
-	if attivo, _ := payload["is_active"].(bool); attivo {
-		t.Error("senza stato di gioco la sessione non puo' risultare attiva")
-	}
-}
-
-// Oltre la soglia di inattivita' il tempo corrente non viene proiettato: il
-// totale resta quello registrato. Senza questa distinzione una scheda lasciata
-// aperta accumulerebbe tempo di gioco che nessuno ha giocato.
-func TestTimerNonProiettaTempoSuSessioneInattiva(t *testing.T) {
-	b := nuovoBanco(t)
-	token, cookie := b.creaSessione(t)
-
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-	passato := time.Now().Add(-1 * time.Hour)
-	if _, err := b.dbDiProva().Collection(helpers.GameStatesCollection).UpdateOne(ctx,
-		bson.M{"_id": token},
-		bson.M{"$set": bson.M{"meta.last_ping": passato, "data.total_time_ms": int64(4200)}},
-	); err != nil {
-		t.Fatalf("invecchiamento dello stato di gioco: %v", err)
-	}
-
-	richiesta, _ := http.NewRequest(http.MethodGet, b.server.URL+"/game/timer", nil)
-	richiesta.AddCookie(cookie)
-	risposta, err := http.DefaultClient.Do(richiesta)
-	if err != nil {
-		t.Fatalf("richiesta: %v", err)
-	}
-	defer risposta.Body.Close()
-
-	var payload map[string]any
-	if err := json.NewDecoder(risposta.Body).Decode(&payload); err != nil {
-		t.Fatalf("risposta non in formato JSON: %v", err)
-	}
-	if attivo, _ := payload["is_active"].(bool); attivo {
-		t.Error("dopo un'ora di silenzio la sessione non e' attiva")
-	}
-	// Il totale deve restare quello scritto, in secondi frazionari: nessuna
-	// proiezione aggiuntiva sopra i 4200 ms registrati.
-	if secondi, _ := payload["total_playtime_seconds"].(float64); secondi != 4.2 {
-		t.Errorf("secondi totali = %v, attesi 4.2", secondi)
+	for _, route := range []struct{ method, path, body string }{
+		{http.MethodGet, "/game/timer", ""},
+		{http.MethodPost, "/log", `{"category":"gameplay","action":"fake"}`},
+	} {
+		req, _ := http.NewRequest(route.method, b.server.URL+route.path, strings.NewReader(route.body))
+		res, err := http.DefaultClient.Do(req)
+		if err != nil {
+			t.Fatal(err)
+		}
+		res.Body.Close()
+		if res.StatusCode != http.StatusNotFound {
+			t.Errorf("%s: %d", route.path, res.StatusCode)
+		}
 	}
 }
