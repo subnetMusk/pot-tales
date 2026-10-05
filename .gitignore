@@ -68,3 +68,13 @@ docker/volumes/fleetserverdata/
 
 # Esportazione temporanea usata dalla ricerca di credenziali.
 .scan-tree/
+.runtime-check-secrets.*/
+
+# Piani locali e stato non pubblicabile
+docs/infra/
+terraform/elk/.terraform/
+*.tfstate
+*.tfstate.*
+*.tfvars
+!*.tfvars.example
+swarm-prototype/secrets/
