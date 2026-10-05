@@ -71,7 +71,7 @@ sistema non lo fa, vanno aggiunti agli host:
 | URL | Servizio |
 |---|---|
 | `http://localhost` | frontend, il gioco |
-| `http://localhost/auth`, `/game`, `/health`, `/log` | API del backend |
+| `http://localhost/auth`, `/game`, `/health` | API del backend |
 | `http://localhost/sandbox/` | sandbox Vite, base path `/sandbox/` |
 | `http://kibana.localhost` | Kibana, richiede il monitoring attivo |
 | `http://apm.localhost` | server APM |
@@ -98,10 +98,15 @@ inquinerebbe i dati di esercizio, e distinguerli a posteriori non è sempre poss
 
 ## Verifica
 
+La soglia frontend dell'85% riguarda i moduli caricati dai test, non l'intero
+gioco: listener delle scene, skip dei video, stato di partita e timer dei ping.
+Typecheck, build e verifica CSP coprono categorie di errori diverse.
+
+
 ```bash
 make help                 # elenco dei target
 make verify-fast          # Go (formato, vet, build, test), lint shell/Docker/compose/stack, Filebeat, export dashboard
-make verify               # tutto il precedente piu' integrazione e analizzatori
+make verify               # tutto il precedente più integrazione e analizzatori
 make frontend-typecheck   # tipi del frontend, che la compilazione non controlla
 make frontend-test        # test del frontend (runner di Node), con soglia di copertura
 make go-test              # sola suite Go, senza servizi esterni

@@ -2,8 +2,8 @@
 
 Configura lo stack Elastic GIA' AVVIATO in modo ripetibile, invece che a mano da
 Kibana: in sviluppo quello di `docker-compose.monitoring.yml`, in produzione
-quello Swarm, tramite `scripts/fleet-bootstrap.sh`. L'host non e' provisionato da
-Terraform: e' una macchina dedicata, preparata dagli script in `provisioning/`.
+quello Swarm, tramite `scripts/fleet-bootstrap.sh`. L'host non è provisionato da
+Terraform: è una macchina dedicata, preparata dagli script in `provisioning/`.
 Questo modulo agisce solo sull'API dello stack.
 
 ## Cosa gestisce
@@ -38,20 +38,20 @@ Entrambe le platee possono usare Discover entro il proprio confine di indice:
 quella tecnica per diagnosticare log, metriche e tracce; quella evento per
 consultare i soli fatti di gioco pseudonimizzati dietro gli aggregati.
 
-La separazione e' affidata al **ruolo**, non allo Space: nascondere
-funzionalita' a livello di Space rende l'interfaccia piu' leggibile, ma la
+La separazione è affidata al **ruolo**, non allo Space: nascondere
+funzionalita' a livello di Space rende l'interfaccia più leggibile, ma la
 documentazione Elastic dichiara che il controllo di visibilita' delle
-funzionalita' non e' una misura di sicurezza. I ruoli sono scritti perche'
+funzionalita' non è una misura di sicurezza. I ruoli sono scritti perché
 reggano da soli.
 
 ### Corrispondenza fra utenze Terraform ed elenchi htpasswd
 
-E' il punto in cui i due lati si incontrano, e va tenuto allineato a mano.
+È il punto in cui i due lati si incontrano, e va tenuto allineato a mano.
 
 I router in `deploy/config/dynamic/` verificano la credenziale con basicAuth e
 **non rimuovono** l'intestazione di autorizzazione: la stessa credenziale
 prosegue verso Kibana e vi autentica l'utente. La credenziale del visitatore
-**e'** la sua credenziale Kibana.
+**è** la sua credenziale Kibana.
 
 Ne segue che ogni voce di `utenze_esercizio` e `utenze_evento` deve avere la
 riga corrispondente nel file htpasswd della propria platea, con la stessa
@@ -65,7 +65,7 @@ password:
 
 In produzione la copia in chiaro necessaria a Terraform vive in
 `secrets/dashboard_users.tfvars.json`, a modo `0400`, e viene prodotta da
-`provisioning/bin/configure-dashboard-users.py`. Non e' un Docker secret e non
+`provisioning/bin/configure-dashboard-users.py`. Non è un Docker secret e non
 viene montata nei servizi: entra soltanto nel contenitore Terraform effimero
 durante il bootstrap. Va inclusa nella custodia off-host dei segreti, mai negli
 export destinati alle dashboard.
@@ -75,15 +75,15 @@ delle due platee.
 
 Un nome presente solo nell'htpasswd supera il bordo e viene respinto da Kibana:
 l'utente vede una richiesta di credenziali che non si chiude mai. Un nome
-presente solo in Terraform non supera il bordo. Il disallineamento non e'
-rilevabile da questo modulo, perche' i file htpasswd contengono impronte e non
+presente solo in Terraform non supera il bordo. Il disallineamento non è
+rilevabile da questo modulo, perché i file htpasswd contengono impronte e non
 password.
 
 ### Confine fra le due platee
 
-Con licenza basic la sicurezza a livello di documento e di campo non e'
+Con licenza basic la sicurezza a livello di documento e di campo non è
 disponibile: non esiste modo di concedere un sottoinsieme di documenti dentro un
-indice condiviso. Il confine e' quindi **sull'indice**, e `indici_esercizio` e
+indice condiviso. Il confine è quindi **sull'indice**, e `indici_esercizio` e
 `indici_evento` non devono intersecarsi. Se si sovrappongono, la platea
 divulgativa legge anche i log tecnici e nessun'altra parte della configurazione
 lo impedisce.
@@ -107,7 +107,7 @@ docker compose -f docker-compose.monitoring.yml up -d apm-agent infra-agent
 
 # 4. Solo in sviluppo: aggiorna filebeat.yml con l'utente dedicato
 #    username: filebeat_writer / password: quella scelta in tfvars.
-#    In produzione Filebeat usa gia' filebeat_writer dal proprio secret.
+#    In produzione Filebeat usa già filebeat_writer dal proprio secret.
 docker restart filebeat
 ```
 
@@ -145,16 +145,16 @@ con una credenziale per platea, che si prova solo con entrambe configurate.
   queste indicizza la salute del cluster, quindi una regola su quel tema
   interrogherebbe indici che non esistono, e una regola senza dati non fallisce:
   resta silenziosa per sempre. Servirebbe aggiungere l'integrazione
-  `elasticsearch` alla policy infrastrutturale, che e' una decisione di
-  architettura e non una regola in piu': porta un agente che interroga il
-  cluster con credenziali proprie e consuma parte di un budget di memoria gia'
+  `elasticsearch` alla policy infrastrutturale, che è una decisione di
+  architettura e non una regola in più: porta un agente che interroga il
+  cluster con credenziali proprie e consuma parte di un budget di memoria già
   stretto.
 
-  Non e' pero' un buco: lo stato del cluster e' gia' sorvegliato da
+  Non è pero' un buco: lo stato del cluster è già sorvegliato da
   `stack-heartbeat.sh`, che lo interroga direttamente e recapita sulla classe
-  `observability`. La differenza e' dove vive il controllo, non se esiste — e la
-  collocazione attuale e' quella piu' robusta, perche' un controllo che vive
-  fuori da Elasticsearch continua a funzionare quando e' Elasticsearch a
+  `observability`. La differenza è dove vive il controllo, non se esiste — e la
+  collocazione attuale è quella più robusta, perché un controllo che vive
+  fuori da Elasticsearch continua a funzionare quando è Elasticsearch a
   guastarsi.
 - **La regola di sicurezza copre l'applicazione, non il perimetro.** Aggrega i
   due eventi strutturati che il backend emette sul tema — quota per sessione

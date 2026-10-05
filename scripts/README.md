@@ -8,9 +8,9 @@ del progetto (es. `./scripts/dev-reinstall.sh`). Usano l'unico file `.env` in ro
 | Script | Cosa fa |
 |---|---|
 | `dev-reinstall.sh` | Rebuild "clean-slate": reinstalla dipendenze e ricostruisce i container dev. |
-| `dev-rebuild.sh` | Rebuild piu' leggero dei container dev (senza reinstallare tutto). |
-| `update_frontend.sh` | Reinstalla le dipendenze del frontend e ne rifa' la build. |
-| `update_sandbox.sh` | Aggiorna gli asset/deps del sandbox. |
+| `dev-rebuild.sh` | Rebuild più leggero dei container dev (senza reinstallare tutto). |
+| `update_frontend.sh` | Ricompila il frontend con le dipendenze già installate, corregge i percorsi degli asset e riavvia il servizio Compose. |
+| `update_sandbox.sh` | Ricompila il sandbox e riavvia il servizio Compose. |
 
 ## Monitoring (ELK)
 
@@ -24,7 +24,7 @@ del progetto (es. `./scripts/dev-reinstall.sh`). Usano l'unico file `.env` in ro
 | Script | Cosa fa |
 |---|---|
 | `check-mongodb.sh` | Controllo rapido dello stato di MongoDB. |
-| `fix-mongodb.sh` | Riparazione di un MongoDB corrotto. |
+| `fix-mongodb.sh` | Strumento legacy e distruttivo per il solo sviluppo: può ricreare i dati. Non è la procedura di ripristino di produzione. |
 
 ## Bootstrap del monitoring
 
@@ -34,9 +34,9 @@ del progetto (es. `./scripts/dev-reinstall.sh`). Usano l'unico file `.env` in ro
 
 Gli agenti Elastic si registrano presentando un enrollment token, che esiste
 solo dopo che Kibana ha inizializzato Fleet e sono state create le policy: su
-un'installazione vuota non e' noto in anticipo e non puo' essere scritto a mano
-nella configurazione. Lo script esegue le fasi nell'ordine necessario ed e'
-idempotente, quindi puo' essere eseguito a ogni avvio.
+un'installazione vuota non è noto in anticipo e non può essere scritto a mano
+nella configurazione. Lo script esegue le fasi nell'ordine necessario ed è
+idempotente, quindi può essere eseguito a ogni avvio.
 
 ```bash
 docker compose -f docker-compose.monitoring.yml up -d setup es01 kibana
@@ -52,14 +52,14 @@ registrano e vengono riavviati, mentre il resto dello stack resta funzionante.
 | Script | Cosa fa |
 |---|---|
 | `cleanup.sh` | Pulizia centralizzata: `--dev`, `--production`, `--soft`, `--full` (vedi sotto). |
-| `check-persistent-config.sh` | Verifica presenza/integrita' di config e dati persistenti. |
+| `check-persistent-config.sh` | Verifica presenza/integrità di config e dati persistenti. |
 
 ## Produzione
 
-Il deploy di produzione e' `provisioning/bin/stack-deploy.sh`, eseguito da
-`stack-deploy.service`; in produzione `fleet-bootstrap.sh` e' eseguito da
+Il deploy di produzione è `provisioning/bin/stack-deploy.sh`, eseguito da
+`stack-deploy.service`; in produzione `fleet-bootstrap.sh` è eseguito da
 `fleet-bootstrap.service`. Procedura in
-[provisioning/README.md](../provisioning/README.md). Il banco di prova per
+[provisioning/README.md](../provisioning/README.md). Il banco di prova storico per
 Docker Swarm resta in [swarm-prototype/](../swarm-prototype/).
 
 ## Utility asset (Python)
@@ -71,7 +71,7 @@ Docker Swarm resta in [swarm-prototype/](../swarm-prototype/).
 
 ## Pulizia e reinstallazione
 
-`cleanup.sh` e' il punto unico: sostituisce i vecchi `clean_build.sh` e
+`cleanup.sh` è il punto unico: sostituisce i vecchi `clean_build.sh` e
 `production-cleanup.sh`.
 
 | Modo | Effetto |
@@ -83,19 +83,19 @@ Docker Swarm resta in [swarm-prototype/](../swarm-prototype/).
 
 Prima di procedere copia in `backups/config-<marca-temporale>/` le configurazioni
 critiche: `.env`, configurazione Kibana e Filebeat. Le dashboard non sono fra queste
-perche' non ne hanno bisogno: l'export e' versionato nel repository e reimportato da
+perché non ne hanno bisogno: l'export è versionato nel repository e reimportato da
 Terraform, quindi ricrearle su un'istanza vuota non richiede un backup a parte.
 
 `dev-reinstall.sh` ricostruisce l'ambiente da zero: pulizia con `cleanup.sh --dev`,
 reinstallazione delle dipendenze, ricostruzione delle immagini, avvio e verifica.
 
 Le dashboard si gestiscono dal Makefile — `dashboards-export`, `dashboards-list`,
-`dashboards-import` — e il vincolo di compatibilita' fra versioni di Kibana e' in
+`dashboards-import` — e il vincolo di compatibilità fra versioni di Kibana è in
 [../terraform/elk/dashboards/README.md](../terraform/elk/dashboards/README.md).
 
 ## Note
 
-- Il proxy e' Traefik (config in `docker/traefik/`), il log shipping e' Filebeat,
+- Il proxy è Traefik (config in `docker/traefik/`), il log shipping è Filebeat,
   gli Elastic Agent sono gestiti da Fleet.
 - Le configurazioni (Traefik, Kibana, Filebeat, Redis) sono versionate nel repo;
   lo stato runtime dell'ELK vive nei named volume Docker (`esdata01`, `kibanadata`,

@@ -7,13 +7,13 @@ filesystem, persistenza dei log e raccolta diagnostica.
 
 Log e dati dei container crescono senza un limite naturale. Se condividono il
 filesystem di sistema, il loro riempimento rende la macchina non gestibile:
-non si scrive piu' nulla, incluso quanto servirebbe a capire cosa e' successo.
+non si scrive più nulla, incluso quanto servirebbe a capire cosa è successo.
 
 Elasticsearch aggiunge una soglia propria: al 95% di occupazione del disco
 impone agli indici il blocco in sola lettura, e rimuoverlo richiede un
 intervento manuale.
 
-La separazione limita entrambi gli effetti a un volume che puo' riempirsi
+La separazione limita entrambi gli effetti a un volume che può riempirsi
 senza portare giu' il sistema.
 
 ## Layout
@@ -28,13 +28,13 @@ senza portare giu' il sistema.
 | `backup` | `/srv/backup` | Archivi portabili della copia notturna |
 | `export` | `/srv/export` | Archivi di esportazione, serviti su `/export` |
 
-Il resto del volume group resta non allocato: e' lo spazio degli snapshot.
+Il resto del volume group resta non allocato: è lo spazio degli snapshot.
 
 **Gli indici hanno un volume proprio.** Sono telemetria, deliberatamente non
 protetta, e crescono con il traffico: sul volume dei dati Docker il loro
-riempimento porterebbe giu' MongoDB. Il volume `esdata01` dello stack e' un
+riempimento porterebbe giu' MongoDB. Il volume `esdata01` dello stack è un
 bind su questa directory (`ES_DATA_DIR` in `/etc/stack-deploy.env`), che
-l'immagine di Elasticsearch scrive come uid 1000 e gid 0. La proprieta' va
+l'immagine di Elasticsearch scrive come uid 1000 e gid 0. La proprietà va
 assegnata con il volume montato, prima del primo deploy:
 
 ```bash
@@ -42,17 +42,17 @@ sudo chown 1000:0 /srv/data/elastic
 sudo chmod 2770 /srv/data/elastic
 ```
 
-`stack-deploy.sh` verifica esistenza e proprieta' prima di applicare lo stack e
+`stack-deploy.sh` verifica esistenza e proprietà prima di applicare lo stack e
 si ferma con un messaggio se non corrispondono: senza, Elasticsearch non
 scriverebbe e resterebbe in riavvio ciclico. Il controllo coglie anche un
-volume non montato, perche' la directory sottostante resta di root.
+volume non montato, perché la directory sottostante resta di root.
 
 **MongoDB resta sul volume `docker`.** Lo snapshot LVM copre un volume solo: con
 MongoDB su un volume separato, la copia primaria dei dati non ricostruibili non
 lo comprenderebbe.
 
 **Creazione dei volumi.** Con un layout definito in fase di installazione i
-volumi esistono gia' e `bin/setup-volumes.sh` **non va eseguito**: presuppone il
+volumi esistono già e `bin/setup-volumes.sh` **non va eseguito**: presuppone il
 volume group `ubuntu-vg`, crea volumi con nomi e dimensioni propri e li
 formatta. Serve solo su una macchina consegnata con il volume group quasi vuoto.
 
@@ -130,14 +130,14 @@ sudo stack-checkup.sh --rapido   # senza ci/stack-verify.sh
 
 ## Rete dell'host
 
-Due unita' template, parametrizzate sul nome dell'interfaccia pubblica
-(`ip -br link`). I comandi di installazione sopra copiano unita' e script; le
-istanze si abilitano a mano, perche' il nome dell'interfaccia dipende dalla
+Due unità template, parametrizzate sul nome dell'interfaccia pubblica
+(`ip -br link`). I comandi di installazione sopra copiano unità e script; le
+istanze si abilitano a mano, perché il nome dell'interfaccia dipende dalla
 macchina.
 
-**Nessuna delle due e' ancora stata provata sulla macchina di esercizio.** Sono
-verificate la sintassi delle unita' (`systemd-analyze verify`) e l'applicazione
-delle regole in un contenitore, non l'effetto sulla scheda ne' sul traffico
+**Nessuna delle due è ancora stata provata sulla macchina di esercizio.** Sono
+verificate la sintassi delle unità (`systemd-analyze verify`) e l'applicazione
+delle regole in un contenitore, non l'effetto sulla scheda né sul traffico
 reale: le verifiche indicate sotto fanno parte dell'installazione.
 
 **Segmentazione in hardware.** `nic-offload@.service` disattiva TSO e GSO. Serve
@@ -160,7 +160,7 @@ regole di ufw. `docker-user-rules@.service` riempie la catena `DOCKER-USER`: in
 ingresso dall'interfaccia pubblica raggiungono i contenitori solo le porte 80 e
 443 e le risposte alle connessioni stabilite, per IPv4 e IPv6. Il firewall
 dell'host resta ufw (`docs/ESERCIZIO.md`, sezione 3). La catena esiste solo con
-Docker installato, quindi l'unita' si abilita dopo il demone:
+Docker installato, quindi l'unità si abilita dopo il demone:
 
 ```bash
 sudo systemctl enable --now docker-user-rules@<interfaccia>.service
@@ -178,20 +178,20 @@ sudo docker stop prova-firewall
 
 ## Avvio non presidiato
 
-Il primo giorno di apertura al pubblico non e' presidiato: tutto cio' che
+Il primo giorno di apertura al pubblico non è presidiato: tutto ciò che
 richiede una persona per partire va considerato non funzionante quel giorno. La
 macchina deve quindi portare in servizio lo stack da sola dopo un riavvio.
 
 Tre passaggi, in ordine di dipendenza.
 
 ```bash
-# 1. Secret. Idempotente: quelli gia' presenti non vengono toccati, perche'
+# 1. Secret. Idempotente: quelli già presenti non vengono toccati, perché
 #    rigenerarli invaliderebbe le credenziali con cui i servizi si sono
 #    registrati. Il comando segnala separatamente le credenziali dashboard.
 sudo ./bin/generate-secrets.sh /srv/progetti_innovativi/secrets
 
 # 1b. Prima installazione: crea gli htpasswd e la fonte root-only di Terraform.
-#     Se gli htpasswd esistono gia', chiede le password e le verifica senza
+#     Se gli htpasswd esistono già, chiede le password e le verifica senza
 #     modificarli: serve a ricostruire la fonte mancante in modo sicuro.
 sudo ./bin/configure-dashboard-users.py /srv/progetti_innovativi/secrets
 
@@ -203,55 +203,55 @@ sudo "${EDITOR:-vi}" /etc/stack-deploy.env
 sudo systemctl start stack-deploy.service
 ```
 
-`stack-deploy.service` applica `deploy/stack.yml` a ogni avvio. Il comando e'
-idempotente, quindi rieseguirlo su uno stack gia' in servizio aggiorna soltanto
-cio' che e' cambiato: il file dello stack resta la sola descrizione di cio' che
+`stack-deploy.service` applica `deploy/stack.yml` a ogni avvio. Il comando è
+idempotente, quindi rieseguirlo su uno stack già in servizio aggiorna soltanto
+ciò che è cambiato: il file dello stack resta la sola descrizione di ciò che
 deve girare.
 
 `start` vale per il primo avvio. Per riapplicare lo stack in seguito, dopo una
-modifica a `/etc/stack-deploy.env` o al repository, il comando e'
-`sudo systemctl restart stack-deploy.service`: l'unita' e' `oneshot` con
-`RemainAfterExit`, quindi dopo il primo deploy resta attiva, e su un'unita'
+modifica a `/etc/stack-deploy.env` o al repository, il comando è
+`sudo systemctl restart stack-deploy.service`: l'unità è `oneshot` con
+`RemainAfterExit`, quindi dopo il primo deploy resta attiva, e su un'unità
 attiva `start` non esegue nulla senza segnalarlo. Lo stesso vale per
 `fleet-bootstrap.service`, che il riavvio del deploy riesegue da se'.
 
 Lo swarm non va inizializzato a mano: lo script lo fa da se' se sul nodo non ne
-esiste ancora uno. Non lo fa negli altri stati, perche' `pending` e `locked`
-descrivono uno swarm che esiste ed e' in corso di ripristino, e inizializzarne
-uno nuovo sopra scarterebbe servizi e secret gia' registrati: li' lo script
-esce con errore e l'unita' riprova. Su una macchina con piu' indirizzi il
+esiste ancora uno. Non lo fa negli altri stati, perché `pending` e `locked`
+descrivono uno swarm che esiste ed è in corso di ripristino, e inizializzarne
+uno nuovo sopra scarterebbe servizi e secret già registrati: li' lo script
+esce con errore e l'unità riprova. Su una macchina con più indirizzi il
 demone non ne sceglie uno da solo, e va indicato `SWARM_ADVERTISE_ADDR`.
 
-Lo script rifiuta di procedere se un'immagine non e' ancorata per digest, se
-un file di secret e' assente o vuoto, oppure se manca
-`secrets/dashboard_users.tfvars.json`. Quest'ultimo e' la fonte root-only da
+Lo script rifiuta di procedere se un'immagine non è ancorata per digest, se
+un file di secret è assente o vuoto, oppure se manca
+`secrets/dashboard_users.tfvars.json`. Quest'ultimo è la fonte root-only da
 cui Terraform crea in Elasticsearch le stesse utenze presenti negli htpasswd:
 senza, il bordo accetterebbe le credenziali ma Kibana le rifiuterebbe. Questi
 controlli servono a far
 fallire il deploy prima di iniziare, invece di lasciare lo stack applicato a
-meta'.
+metà.
 
-`fleet-bootstrap.service` segue e registra le policy, riprovando finche' Kibana
+`fleet-bootstrap.service` segue e registra le policy, riprovando finché Kibana
 non risponde. Non serve attendere: gli agenti escono e vengono rischedulati
-finche' il token che li riguarda non compare sul volume condiviso, quindi lo
+finché il token che li riguarda non compare sul volume condiviso, quindi lo
 stack converge da solo con un solo deploy.
 
 Il deploy accoda il bootstrap anche a ogni esito positivo (`ExecStartPost`).
 Senza, un deploy riuscito al secondo tentativo lascerebbe il bootstrap scartato
 dal primo per dipendenza fallita: stack in servizio, ma utenze, policy e
 dashboard non aggiornate e nessun errore visibile. Due `restart` ravvicinati
-possono fallire con `update out of sequence`, perche' il primo sta ancora
-aggiornando i servizi: l'unita' riprova da sola dopo 20 secondi, ma conviene
+possono fallire con `update out of sequence`, perché il primo sta ancora
+aggiornando i servizi: l'unità riprova da sola dopo 20 secondi, ma conviene
 attendere l'esito del primo.
 
 ## Sorveglianza
 
-Due percorsi distinti, perche' i due modi di guastarsi non sono osservabili
+Due percorsi distinti, perché i due modi di guastarsi non sono osservabili
 allo stesso modo.
 
 **Degrado con macchina viva.** Le regole di Kibana depositano gli allarmi su un
 indice: con licenza basic gli unici connettori disponibili sono `.index` e
-`.server-log`, quindi la consegna verso l'esterno non e' compito delle regole.
+`.server-log`, quindi la consegna verso l'esterno non è compito delle regole.
 `alert-notifier.sh` legge l'indice e recapita. Gira sulla macchina osservata, e
 va bene: un allarme di degrado presuppone per definizione una macchina che
 risponde.
@@ -259,18 +259,18 @@ risponde.
 **Macchina irraggiungibile o stack fermo.** `stack-heartbeat.sh` invia un
 battito a un servizio esterno **solo se i controlli locali passano**. Un
 battito inviato incondizionatamente dimostrerebbe che il timer funziona, non
-che il servizio funziona. Il servizio esterno allarma sul silenzio, che e'
-l'unico segnale possibile quando la macchina non e' in grado di parlare.
+che il servizio funziona. Il servizio esterno allarma sul silenzio, che è
+l'unico segnale possibile quando la macchina non è in grado di parlare.
 
 Quando i controlli falliscono con la macchina ancora viva, lo script non si
 limita a tacere: segnala il guasto e allega l'elenco dei controlli falliti, che
-resta leggibile nella cronologia del servizio. E' il primo indizio disponibile
+resta leggibile nella cronologia del servizio. È il primo indizio disponibile
 senza accedere alla macchina.
 
 ### Un check per classe di guasto
 
 Le notifiche del servizio esterno sono legate alla transizione di stato: un
-secondo segnale di guasto, mentre il check e' gia' in guasto, non produce alcuna
+secondo segnale di guasto, mentre il check è già in guasto, non produce alcuna
 notifica. Su una destinazione unica due guasti distinti collassano in un solo
 messaggio, e del secondo non resta traccia utile.
 
@@ -283,7 +283,7 @@ Le classi sono quindi separate, e ciascuna transita per conto suo.
 | `host-resources` | controlli locali | memoria, swap, disco, terminazioni per memoria |
 | `observability` | controlli locali e regole | cluster interrogabile, ingestione viva |
 | `security` | regole Kibana | attivita' anomala oltre soglia |
-| `alert-relay` | battito del notificatore | il recapito degli allarmi e' vivo |
+| `alert-relay` | battito del notificatore | il recapito degli allarmi è vivo |
 | `tls-pubblico` | controllo locale | catena e scadenza del certificato pubblico |
 | `backup-nightly` | copia notturna | il job pianificato termina con successo |
 
@@ -295,25 +295,25 @@ Gli endpoint si costruiscono da una chiave di progetto e dallo slug del check,
 `<base>/<chiave>/<slug>`, quindi la configurazione contiene un segreto solo
 invece di otto URL da tenere allineate.
 
-Il livello di gravita' sceglie l'endpoint. `info` usa il suffisso di
-registrazione, che conserva l'evento senza cambiare stato ne' notificare: e' il
+Il livello di gravità sceglie l'endpoint. `info` usa il suffisso di
+registrazione, che conserva l'evento senza cambiare stato né notificare: è il
 livello dei fatti che vanno tenuti ma non svegliano nessuno, come i tentativi di
 intrusione sotto soglia, che su un indirizzo pubblico sono rumore continuo.
 `warning` e `critical` portano il check in guasto. Un documento di rientro
 riporta il check in stato sano e lo riarma per l'allarme successivo.
 
-I ping sui relay partono **solo sulle transizioni**. Lo storico di un check e'
+I ping sui relay partono **solo sulle transizioni**. Lo storico di un check è
 limitato a cento eventi: un ping a ogni esecuzione lo riempirebbe di rumore
 facendo scorrere via proprio gli allarmi.
 
 L'alternativa era un bot dedicato interrogato direttamente dal notificatore.
 Costava un secondo segreto da custodire e ruotare, e un secondo percorso da
 verificare, in cambio di una distinzione fra i tipi di guasto che la separazione
-in classi gia' fornisce.
+in classi già fornisce.
 
 ### Configurazione
 
-Il file contiene credenziali e non e' versionato. Il repository ne porta solo il
+Il file contiene credenziali e non è versionato. Il repository ne porta solo il
 modello:
 
 ```bash
@@ -322,7 +322,7 @@ sudo install -m 0600 -o root -g root \
 sudo "${EDITOR:-vi}" /etc/stack-surveillance.env
 ```
 
-Un file unico per entrambe le unita': usano lo stesso endpoint e le stesse
+Un file unico per entrambe le unità: usano lo stesso endpoint e le stesse
 credenziali del cluster, e tenerli separati esporrebbe al caso in cui una
 rotazione ne aggiorna uno e dimentica l'altro.
 
@@ -333,20 +333,20 @@ misurerebbe il proxy e non l'applicazione: l'entrypoint in chiaro reindirizza
 qualunque richiesta, i router rispondono solo al nome pubblico e con `sniStrict`
 un handshake per altri nomi viene rifiutato. Il certificato non viene
 verificato, per non fallire con quello dell'autorita' di prova: la sua validita'
-e' il controllo `tls-pubblico`.
+è il controllo `tls-pubblico`.
 
-La cadenza del battito deve restare piu' breve del periodo atteso configurato
+La cadenza del battito deve restare più breve del periodo atteso configurato
 sul servizio esterno. Con `OnUnitActiveSec=5min` il periodo va impostato a
-cinque minuti e la tolleranza a quindici, cosi' che due battiti persi non
+cinque minuti e la tolleranza a quindici, così che due battiti persi non
 producano un allarme mentre un'assenza prolungata lo produce.
 
 Al primo avvio, in assenza del marcatore, il recapito parte dall'istante
-corrente: un indice gia' popolato produrrebbe altrimenti una raffica di
+corrente: un indice già popolato produrrebbe altrimenti una raffica di
 notifiche su eventi conclusi.
 
 ## Dati: esportazione, copia, ripristino
 
-Lo stato per giocatore nasce da eventi pubblici non ripetibili. E' piccolo e di
+Lo stato per giocatore nasce da eventi pubblici non ripetibili. È piccolo e di
 breve durata, ma **non ricostruibile**: non esiste modo di rifarlo se va perso.
 Ne discendono tre meccanismi distinti, che rispondono a domande diverse e non
 si sostituiscono a vicenda.
@@ -367,27 +367,27 @@ Contenuto integrale in due formati, scelti per due esigenze diverse.
 | MongoDB | archivio nativo di `mongodump` | unico formato che riporta in vita lo stato di gioco con i tipi originali |
 
 CSV e Parquet non vengono prodotti: sono derivabili dall'NDJSON a posteriori,
-fuori dalla macchina, e aggiungerli qui sarebbe una dipendenza in piu' nella
+fuori dalla macchina, e aggiungerli qui sarebbe una dipendenza in più nella
 catena che produce l'unica copia esistente.
 
 Lo scorrimento degli indici usa **point-in-time e `search_after`**. Il
 point-in-time congela l'insieme dei segmenti al momento dell'apertura, quindi
 il risultato resta coerente mentre l'indice continua a ricevere documenti, che
-e' la condizione normale quando l'esportazione parte durante un'apertura al
+è la condizione normale quando l'esportazione parte durante un'apertura al
 pubblico.
 
-I flussi di dati sono risolti negli indici che li compongono. E' il caso di
-tutto cio' che raccoglie Elastic Agent: quegli indici si chiamano `.ds-...` e
+I flussi di dati sono risolti negli indici che li compongono. È il caso di
+tutto ciò che raccoglie Elastic Agent: quegli indici si chiamano `.ds-...` e
 sono nascosti, e una risoluzione che non li raggiunga produrrebbe
 un'esportazione vuota senza segnalare alcun errore. I file corrispondenti
 vengono scritti **senza il punto iniziale**, altrimenti un `scp <dir>/*` al
 momento del prelievo li salterebbe in silenzio portandosi via tutto tranne gli
-archivi piu' grandi.
+archivi più grandi.
 
-**L'attivazione non passa dal web.** Un'unita' `oneshot` avviata dall'operatore
+**L'attivazione non passa dal web.** Un'unità `oneshot` avviata dall'operatore
 produce gli archivi. Esporre un percorso HTTP che avvia un processo sulla
-macchina sarebbe la superficie piu' pericolosa dell'intero sistema, e non
-compra nulla che una connessione di amministrazione non dia gia'.
+macchina sarebbe la superficie più pericolosa dell'intero sistema, e non
+compra nulla che una connessione di amministrazione non dia già.
 
 ```bash
 sudo systemctl start data-export.service
@@ -400,11 +400,11 @@ banda di disco con la stessa Elasticsearch che sta ricevendo la telemetria,
 quindi: esecuzione singola protetta da lock, priorita' di CPU e di I/O ridotte,
 scorrimento a lotti con pausa fra l'uno e l'altro.
 
-Su Elasticsearch la leva che conta e' **la cadenza dei lotti**, non la quota di
+Su Elasticsearch la leva che conta è **la cadenza dei lotti**, non la quota di
 CPU del client: il lavoro pesante lo fa il cluster leggendo i segmenti. Le
-priorita' dichiarate nell'unita' governano lo script, non il lavoro, perche' lo
+priorita' dichiarate nell'unità governano lo script, non il lavoro, perché lo
 scorrimento avviene dentro contenitori che appartengono al cgroup del demone
-Docker. Il freno effettivo e' quindi espresso dallo script, con `LOTTO`,
+Docker. Il freno effettivo è quindi espresso dallo script, con `LOTTO`,
 `PAUSA`, `CPU_QUOTA` e la lettura sequenziale di `mongodump`.
 
 **Prelievo dal bordo.** Gli archivi finiscono in `EXPORT_DEST` (`/srv/export`
@@ -414,12 +414,12 @@ metodi diversi da `GET` e `HEAD`, non elenca la directory e non espone alcun
 percorso che avvii la produzione di un archivio. Il percorso di generazione e
 quello di consegna restano separati.
 
-L'accesso e' protetto dall'elenco `secrets/dashboard_users_esercizio`, lo stesso
-della platea tecnica: gli archivi contengono i dati che quella platea gia'
+L'accesso è protetto dall'elenco `secrets/dashboard_users_esercizio`, lo stesso
+della platea tecnica: gli archivi contengono i dati che quella platea già
 consulta nelle dashboard di esercizio.
 
 Non essendoci elenco, il nome dell'archivio va letto dal manifesto
-dell'esportazione: la radice risponde `404` anche a chi si e' autenticato.
+dell'esportazione: la radice risponde `404` anche a chi si è autenticato.
 
 ```bash
 curl -u operatore --output esportazione.ndjson.gz \
@@ -438,42 +438,42 @@ Due meccanismi con ruoli distinti.
 **Snapshot LVM, primario.** Cattura in un istante l'intero volume che ospita i
 dati Docker, quindi MongoDB e gli altri volumi con nome, senza fermare le
 scritture. Gli indici di Elasticsearch stanno su un volume proprio e non sono
-compresi: cio' che di essi deve sopravvivere passa dall'esportazione.
+compresi: ciò che di essi deve sopravvivere passa dall'esportazione.
 Con il journaling attivo e file dati e journal sullo stesso volume,
-uno snapshot a livello di volume cattura dati e journal come unita' singola e
+uno snapshot a livello di volume cattura dati e journal come unità singola e
 al ripristino MongoDB rigioca il journal: **`fsyncLock` non serve** e non viene
-eseguito, perche' bloccherebbe le scritture per tutta la durata della copia,
-che e' esattamente cio' che si vuole evitare durante un'apertura.
+eseguito, perché bloccherebbe le scritture per tutta la durata della copia,
+che è esattamente ciò che si vuole evitare durante un'apertura.
 
 Il motivo per cui lo snapshot precede `mongodump`: su un'istanza standalone
-`mongodump` non ha consistenza point-in-time fra collezioni, perche' `--oplog`
-richiede un replica set. Un dump preso durante le scritture puo' contenere una
+`mongodump` non ha consistenza point-in-time fra collezioni, perché `--oplog`
+richiede un replica set. Un dump preso durante le scritture può contenere una
 sessione senza il relativo stato di gioco.
 
 Lo snapshot richiede **spazio non allocato nel volume group**. Se tutto lo
-spazio e' assegnato ai volumi, lo snapshot non e' creabile e la copia primaria
+spazio è assegnato ai volumi, lo snapshot non è creabile e la copia primaria
 semplicemente non esiste: lo script lo dichiara
 come guasto invece di proseguire in silenzio. Uno snapshot che esaurisce il
 proprio spazio copy-on-write viene invalidato dal kernel, resta elencato e non
-e' piu' ripristinabile, quindi `lvs` va letto e non presunto.
+è più ripristinabile, quindi `lvs` va letto e non presunto.
 
 **`mongodump`, portabile.** Destinato al prelievo manuale a evento concluso: si
 rilegge su un'altra macchina e su un'altra installazione, cosa che uno snapshot
-non consente. E' l'unico dei due che costituisce un off-host reale, e dipende
+non consente. È l'unico dei due che costituisce un off-host reale, e dipende
 dalla presenza di una persona.
 
 Nessuno dei due copre la perdita della macchina. Un server dedicato non ha
-snapshot del fornitore: la copertura e' il prelievo dell'archivio portabile e
+snapshot del fornitore: la copertura è il prelievo dell'archivio portabile e
 delle esportazioni fuori dalla macchina, a fine giornata (`docs/ESERCIZIO.md`,
 sezione 9). Nulla dipende da uno spazio remoto: se in seguito se ne aggiungera'
-uno, la sincronizzazione sara' un passo in piu' dopo l'archivio, non un
+uno, la sincronizzazione sara' un passo in più dopo l'archivio, non un
 prerequisito.
 
 ### Gli otto check da creare sul pannello
 
-Nessun check viene creato da qui: l'accesso al pannello e' dell'operatore. Un
+Nessun check viene creato da qui: l'accesso al pannello è dell'operatore. Un
 ping verso uno slug inesistente riceve 404 e **non crea nulla**, quindi un check
-mancante non e' un check verde, e' un segnale che non arriva da nessuna parte.
+mancante non è un check verde, è un segnale che non arriva da nessuna parte.
 
 | Slug | Schedule | Tolleranza | Chi lo alimenta |
 |---|---|---|---|
@@ -486,10 +486,10 @@ mancante non e' un check verde, e' un segnale che non arriva da nessuna parte.
 | `tls-pubblico` | 365 giorni | 1 ora | controllo della catena e della scadenza TLS |
 | `backup-nightly` | calendario | 1 ora | copia notturna, vedi sotto |
 
-I cinque relay hanno periodo di un anno perche' non devono scendere da soli:
+I cinque relay hanno periodo di un anno perché non devono scendere da soli:
 li porta in guasto solo un segnale esplicito, e li riarma il documento di
 rientro. I due battiti e la copia notturna hanno invece una cadenza attesa, ed
-e' su quella che il servizio esterno allarma per silenzio.
+è su quella che il servizio esterno allarma per silenzio.
 
 ### Check `backup-nightly`
 
@@ -506,36 +506,36 @@ Il timer esegue la copia alle 03:30. Questi sono i valori da impostare.
 Lo schedule del check e quello del timer devono indicare lo stesso orario e lo
 stesso fuso, altrimenti il check allarmerebbe per un ritardo che non esiste:
 verificare con `timedatectl` che l'host sia su `Europe/Rome`. La tolleranza di
-un'ora copre l'attesa dell'archivio su un dataset cresciuto piu' del previsto
+un'ora copre l'attesa dell'archivio su un dataset cresciuto più del previsto
 senza rendere il check inutile.
 
 L'endpoint si costruisce come gli altri, `<base>/<chiave>/backup-nightly`, con
-la stessa `HC_PING_KEY` gia' presente in `/etc/stack-surveillance.env`: un
+la stessa `HC_PING_KEY` già presente in `/etc/stack-surveillance.env`: un
 secondo file la duplicherebbe, e una rotazione che ne aggiorna uno solo
 lascerebbe un percorso muto senza che nulla lo segnali. Lo script manda il
-suffisso di inizio prima di cominciare, cosi' il servizio misura la durata
+suffisso di inizio prima di cominciare, così il servizio misura la durata
 dell'esecuzione e non solo la sua avvenuta conclusione.
 
-Vale qui quanto detto per il battito: **l'URL di ping e' una credenziale**. Chi
-la possiede puo' inviare esiti falsi e tenere spenta la sorveglianza su una
-copia che non viene piu' prodotta.
+Vale qui quanto detto per il battito: **l'URL di ping è una credenziale**. Chi
+la possiede può inviare esiti falsi e tenere spenta la sorveglianza su una
+copia che non viene più prodotta.
 
 ### Ripristino
 
 Quando la base dati si corrompe durante un'apertura, due obiettivi entrano in
 conflitto: rimettere in piedi il servizio e salvare i dati. Le strade sono tre
-e l'ordine non e' negoziabile.
+e l'ordine non è negoziabile.
 
 ```bash
 # 1. Sempre per prima. Opera sul volume e non sul processo, quindi funziona
-#    anche quando mongod non parte piu'.
+#    anche quando mongod non parte più.
 sudo data-restore.sh --metti-in-sicurezza
 
 # 2. Recupera i dati fino al momento della copia.
 sudo data-restore.sh --ripristina /srv/backup/mongodump/<stamp>/mongo/game_db.archive.gz
 
-# 3. Ultima scelta: la piu' rapida per tornare operativi, e distrugge cio' che
-#    non e' stato messo al sicuro al passo 1.
+# 3. Ultima scelta: la più rapida per tornare operativi, e distrugge ciò che
+#    non è stato messo al sicuro al passo 1.
 sudo data-restore.sh --ricrea
 ```
 
@@ -582,15 +582,15 @@ riavvii pianificati, `systemctl reboot`, riavvii avviati da un aggiornamento
 automatico. Interruzione di alimentazione, panic e reset hardware non lasciano
 il tempo di eseguire nulla.
 
-Ne segue che la fonte primaria e' la scrittura continua, non la raccolta finale.
-Il pacchetto diagnostico aggiunge contesto aggregato quando c'e' il tempo di
+Ne segue che la fonte primaria è la scrittura continua, non la raccolta finale.
+Il pacchetto diagnostico aggiunge contesto aggregato quando c'è il tempo di
 produrlo, e non sostituisce il journal.
 
 Allo spegnimento systemd concede 90 secondi alla raccolta. Ogni comando ha un
 tempo massimo (`DIAGNOSTIC_CMD_TIMEOUT`, 10 secondi) dentro un budget
 complessivo (`DIAGNOSTIC_BUDGET`, 70 secondi): un comando bloccato non consuma
-piu' tutto il margine, e `collector.err` annota quali comandi sono scaduti o
-sono stati saltati. Un pacchetto con quel file vuoto e' completo.
+più tutto il margine, e `collector.err` annota quali comandi sono scaduti o
+sono stati saltati. Un pacchetto con quel file vuoto è completo.
 
 ## Verifica
 
@@ -610,6 +610,6 @@ ls -la /tmp/diag-test/
 ## Nota su live-restore
 
 `live-restore` mantiene i container in esecuzione durante un riavvio del demone,
-ma non e' compatibile con i servizi in swarm mode e non e' quindi impostato in
-`daemon.json`. In swarm mode la continuita' e' data dalla rischedulazione dei
+ma non è compatibile con i servizi in swarm mode e non è quindi impostato in
+`daemon.json`. In swarm mode la continuita' è data dalla rischedulazione dei
 task.

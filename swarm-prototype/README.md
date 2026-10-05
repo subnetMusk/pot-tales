@@ -1,11 +1,14 @@
 # Stack Elastic su Docker Swarm
 
+**Storico, non usato dal deploy corrente.** Per un nuovo esercizio usare
+`deploy/stack.yml` e `provisioning/`. Le misure del prototipo restano un riferimento.
+
 Configurazione dello stack Elastic per `docker stack deploy`, con gli script
 usati per misurarne il comportamento di avvio, riavvio e recupero.
 
 `docker stack deploy` non supporta `depends_on`, quindi l'ordine di avvio non
-puo' essere dichiarato: i servizi partono in parallelo e quelli le cui
-dipendenze non sono pronte escono in errore finche' non lo diventano. Questi
+può essere dichiarato: i servizi partono in parallelo e quelli le cui
+dipendenze non sono pronte escono in errore finché non lo diventano. Questi
 script verificano che la convergenza avvenga senza intervento manuale.
 
 ## Contenuto
@@ -31,15 +34,15 @@ script verificano che la convergenza avvenga senza intervento manuale.
 ./gate.sh 5 cold
 ```
 
-Il primo avvio inizializza Swarm sul nodo locale se non gia' attivo. Per
+Il primo avvio inizializza Swarm sul nodo locale se non già attivo. Per
 disattivarlo:
 
 ```bash
 docker swarm leave --force
 ```
 
-La modalita' `warm` conserva i volumi tra i cicli e verifica il riavvio con
-dati gia' presenti.
+La modalità `warm` conserva i volumi tra i cicli e verifica il riavvio con
+dati già presenti.
 
 ## Perimetro
 
@@ -48,7 +51,7 @@ file Compose si regge su `depends_on`.
 
 Non include `fleet-server`, `apm-agent` e `infra-agent`: il loro avvio richiede
 enrollment token generati in Kibana, che questo stack non produce. Il loro
-comportamento sotto Swarm non e' verificato in questo prototipo; lo e' nello
+comportamento sotto Swarm non è verificato in questo prototipo; lo è nello
 stack di produzione (`deploy/stack.yml`).
 
 ## Vincoli dell'orchestratore
@@ -71,7 +74,7 @@ cui `bootstrap.memory_lock` resta applicabile.
   direttamente da `/run/secrets` senza passare dall'ambiente.
 - **Kibana** e **Filebeat** non lo supportano. Per entrambi un entrypoint
   esporta il valore in una variabile d'ambiente, dove resta leggibile in
-  `/proc/<pid>/environ`. L'alternativa che evita il passaggio dall'ambiente e'
+  `/proc/<pid>/environ`. L'alternativa che evita il passaggio dall'ambiente è
   la keystore dei rispettivi componenti.
 
 Le variabili esportate da un entrypoint esistono solo nel processo principale:
@@ -98,7 +101,7 @@ Nessun intervento manuale in alcun ciclo.
 Su questo hardware `es01` non viene mai riavviato: il setup completa la
 generazione dei certificati in circa 18 secondi, mentre il task di `es01` resta
 in stato `Starting` fino a circa 16 secondi e avvia il processo subito dopo. Il
-margine e' di pochi secondi e dipende dalle prestazioni della macchina.
+margine è di pochi secondi e dipende dalle prestazioni della macchina.
 
 ### Avvio con ordine invertito
 
@@ -124,9 +127,9 @@ Tempi: 47, 48, 47, 46, 47 secondi. Un solo task per servizio.
 Verifica l'idempotenza del setup: a volumi popolati il job salta la generazione
 di CA e certificati e passa direttamente all'attesa di Elasticsearch. Se non
 fosse idempotente, ogni riavvio rigenererebbe la CA e i certificati esistenti
-non sarebbero piu' validi.
+non sarebbero più validi.
 
-Questa modalita' non copre il riavvio del demone Docker o della macchina.
+Questa modalità non copre il riavvio del demone Docker o della macchina.
 
 ### Rischedulazione su stato unhealthy
 

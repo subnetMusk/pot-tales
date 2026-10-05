@@ -2,7 +2,7 @@
 
 Export dei saved object di Kibana, uno per Space. Terraform li reimporta:
 `dashboards.tf` costruisce una risorsa per ogni file `.ndjson` trovato qui
-sotto, quindi aggiungere una dashboard e' aggiungere un file, non modificare il
+sotto, quindi aggiungere una dashboard è aggiungere un file, non modificare il
 codice.
 
 ```
@@ -23,8 +23,8 @@ singoli documenti pseudonimizzati dello stesso indice e nessun dato tecnico.
 
 Cio' che finisce in `evento/` viene condiviso: prima di esportare va verificato che i
 pannelli non mostrino indirizzi, identificativi di sessione o nomi di host. Il ruolo
-`osservabilita_evento` limita gli indici leggibili, ma non puo' impedire a un pannello
-di riportare un valore gia' aggregato.
+`osservabilita_evento` limita gli indici leggibili, ma non può impedire a un pannello
+di riportare un valore già aggregato.
 
 ## Perche' non sono generate da Terraform
 
@@ -39,7 +39,7 @@ contenuto.
 ```bash
 # 1. Comporre la dashboard su Kibana, nello Space di destinazione.
 
-# 2. Esportarla. La versione di Kibana e' letta dall'istanza, non passata a mano.
+# 2. Esportarla. La versione di Kibana è letta dall'istanza, non passata a mano.
 KIBANA_PASSWORD=... make dashboards-export SPAZIO=esercizio \
   NOME=servizio-funnel ID=esercizio-servizio-funnel
 
@@ -62,8 +62,8 @@ Elastic dichiara compatibile un export solo verso:
 Il file `.versione` accanto a ogni export registra la versione di provenienza, e
 `dashboards.tf` la confronta con la variabile `kibana_version` prima di
 importare. Un export fuori intervallo, o privo del file di versione, ferma il
-`plan` con il nome del file: fuori intervallo l'importazione puo' riuscire e
-lasciare oggetti che poi non si aprono, il che e' peggio di un errore.
+`plan` con il nome del file: fuori intervallo l'importazione può riuscire e
+lasciare oggetti che poi non si aprono, il che è peggio di un errore.
 
 Dopo un aggiornamento dello stack che superi l'intervallo, gli export vanno
 rifatti dall'istanza aggiornata.
@@ -72,14 +72,14 @@ rifatti dall'istanza aggiornata.
 
 `coreMigrationVersion` e `typeMigrationVersion`, presenti su ogni oggetto:
 Kibana li legge in importazione per decidere quali migrazioni applicare. Un file
-riscritto da uno strumento che li perde viene importato come se fosse gia'
+riscritto da uno strumento che li perde viene importato come se fosse già
 aggiornato.
 
-Per lo stesso motivo l'export non e' riformattato ne' riordinato: `export.sh`
-scrive il corpo della risposta dell'API cosi' com'e' e verifica che entrambi i
+Per lo stesso motivo l'export non è riformattato né riordinato: `export.sh`
+scrive il corpo della risposta dell'API così com'è e verifica che entrambi i
 campi siano presenti su ogni riga prima di salvarlo. Ne segue che l'ordine delle
-righe puo' variare fra due export della stessa dashboard, e la differenza
-apparire piu' ampia di quanto sia: e' il prezzo di non riscrivere il file.
+righe può variare fra due export della stessa dashboard, e la differenza
+apparire più ampia di quanto sia: è il prezzo di non riscrivere il file.
 
 ## Esportazione mirata e data view
 
