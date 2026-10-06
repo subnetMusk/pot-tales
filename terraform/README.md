@@ -1,26 +1,14 @@
 # Infrastruttura come codice
 
-L'host non e' provisionato da qui. Il servizio gira su un server dedicato:
-sistema operativo, rete e accesso sono preparati dagli script di
-[provisioning/](../provisioning/), e non esiste un'API su cui Terraform possa
-agire.
-
-Quello che resta a Terraform e' la configurazione dello stack Elastic, che gira
-su quella macchina ed espone un'API: sta in [elk/](elk/README.md).
+Terraform configura lo stack Elastic tramite API nel modulo [elk/](elk/README.md).
+Sistema operativo, rete e accessi dell'host sono preparati dal
+[provisioning](../provisioning/README.md).
 
 ## Stato
 
-Lo stato e' locale, su disco della macchina, e non c'e' un backend remoto.
-
-La scelta non e' un ripiego provvisorio: un backend remoto risolve il lavoro
-concorrente e il blocco fra piu' operatori, condizioni che qui non esistono.
-C'e' un solo host, un solo operatore e nessun altro punto da cui l'apply possa
-partire. Introdurre un servizio di stato remoto significherebbe aggiungere una
-dipendenza esterna e un secondo insieme di credenziali per un problema che non
-si presenta.
-
-Quello che resta da governare e' la conservazione, perche' lo stato locale non
-ha ridondanza per costruzione.
+Lo stato usa il backend locale. La configurazione prevede un solo host e un
+solo operatore; l'accesso concorrente e la replica dello stato non sono predisposti.
+Conservare una copia protetta dello stato fuori dalla macchina.
 
 ### Dove risiede
 
@@ -30,16 +18,15 @@ Fuori dalla copia di lavoro del repository, in una directory dedicata:
 /var/lib/pi-terraform/elk/terraform.tfstate
 ```
 
-Permessi `0700` sulla directory e `0600` sul file, di proprieta' dell'utente che
-esegue l'apply. Il percorso si passa a `init`, non e' scritto nel codice:
+Permessi `0700` sulla directory e `0600` sul file, di proprietà dell'utente che
+esegue l'apply. Il percorso si passa a `init`, non è scritto nel codice:
 
 ```bash
 terraform -chdir=terraform/elk init -backend-config=path=/var/lib/pi-terraform/elk/terraform.tfstate
 ```
 
-La directory sta fuori dalla copia di lavoro di proposito. Dentro, sarebbe
-soggetta a `git clean`, verrebbe copiata da qualunque archiviazione della
-directory di lavoro e finirebbe in un'immagine del progetto insieme al resto.
+Tenere lo stato fuori dal checkout per escluderlo da `git clean`, dagli archivi
+del repository e dalle immagini del progetto.
 
 ### Dove non deve finire
 
@@ -53,9 +40,8 @@ Ne segue che lo stato non va:
 - versionato: `.gitignore` esclude `*.tfstate*`, e l'esclusione va lasciata
   intatta;
 - incluso in un archivio destinato a uscire dalla macchina, o in una copia di
-  cortesia consegnata a chi non ha gia' quelle credenziali;
-- allegato a una segnalazione di problema, dove tende a finire perche' e' il
-  file che descrive lo stato del sistema.
+  cortesia consegnata a chi non ha già quelle credenziali;
+- allegato a una segnalazione di problema.
 
 Vale lo stesso per i file di piano salvati (`terraform plan -out`): contengono
 gli stessi valori. Sono anch'essi esclusi dal controllo di versione.
@@ -70,15 +56,14 @@ Elasticsearch e Kibana, che continuano a funzionare: lo stato descrive cosa
 Terraform ha creato, non fa girare nulla.
 
 Il danno si manifesta all'apply successivo. Senza stato Terraform considera
-tutto da creare e incontra oggetti gia' presenti: alcune risorse falliscono per
-conflitto, altre vengono sovrascritte. In nessuno dei due casi il risultato e'
+tutto da creare e incontra oggetti già presenti: alcune risorse falliscono per
+conflitto, altre vengono sovrascritte. In nessuno dei due casi il risultato è
 quello dichiarato.
 
 ### Come si ricostruisce
 
-Tutte le risorse del modulo `elk/` hanno un identificativo stabile e noto in
-anticipo (nome del ruolo, nome utente, `space_id`, `policy_id`), scelto anche
-per questo. Lo stato si ricostruisce importandole una per una, senza toccare il
+Le risorse del modulo `elk/` hanno identificativi dichiarati nel codice
+(nome del ruolo, nome utente, `space_id`, `policy_id`). Lo stato si ricostruisce importandole una per una, senza toccare il
 servizio:
 
 ```bash
@@ -96,13 +81,13 @@ terraform import elasticstack_kibana_security_role.evento osservabilita_evento
 #     terraform import 'elasticstack_elasticsearch_security_user.esercizio["nome"]' nome
 ```
 
-Poi `terraform plan` deve risultare vuoto. Se non lo e', la differenza indica
+Poi `terraform plan` deve risultare vuoto. Se non lo è, la differenza indica
 una risorsa creata a mano fuori dal codice: va riportata nel codice, non
 allineata a mano.
 
 Le risorse di importazione dei saved object (`elasticstack_kibana_import_saved_objects`)
 non si importano e non serve farlo: rappresentano un'operazione, non un oggetto
-remoto. Ripetere l'apply le riesegue, e l'importazione e' idempotente perche'
+remoto. Ripetere l'apply le riesegue, e l'importazione è idempotente perché
 avviene con sovrascrittura.
 
 ## Verifica

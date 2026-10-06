@@ -22,7 +22,6 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 
 	// Elastic APM Agent imports
-	"go.elastic.co/apm/module/apmgorilla/v2"
 	"go.elastic.co/apm/module/apmmongo/v2"
 
 	"github.com/subnetMusk/progetti_innovativi/server/helpers" // Importante: importiamo gli helpers
@@ -101,7 +100,7 @@ func main() {
 	// Le partite finiscono per abbandono e non con una chiamata: la chiusura
 	// differita è ciò che rende osservabili la durata e il punto di uscita.
 	helpers.AvviaChiusuraSessioni(fondoCtx, db,
-		time.Duration(helpers.EnvInt("SESSION_IDLE_CLOSE_MIN", 5))*time.Minute,
+		time.Duration(helpers.EnvInt("SESSION_IDLE_CLOSE_MIN", 15))*time.Minute,
 		time.Duration(helpers.EnvInt("SESSION_SWEEP_SEC", 60))*time.Second,
 	)
 
@@ -129,7 +128,7 @@ func main() {
 	// tempo indefinito.
 	srv := &http.Server{
 		Addr:    ":" + port,
-		Handler: apmgorilla.Middleware()(r),
+		Handler: r,
 
 		// Tempo massimo per ricevere gli header, che chiude le connessioni
 		// aperte senza inviare dati (Slowloris).

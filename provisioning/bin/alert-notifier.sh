@@ -79,41 +79,24 @@ ping_self() {
 # lo fa, ed e' una proprieta' del disegno, non una dimenticanza. Interrogarlo su
 # `localhost:9200` non funziona quindi sullo stack in servizio.
 #
-# Con ES_NETWORK valorizzata la richiesta parte da un contenitore collegato alla
-# rete di osservabilita', che e' dichiarata `attachable` proprio perche' un
-# processo esterno allo stack possa raggiungerla. Lasciandola vuota si usa curl
+# Con ES_NETWORK valorizzata si riusa il client persistente nella rete Elastic.
+# Lasciandola vuota si usa curl
 # dell'host, che resta la strada valida in sviluppo con Compose.
 ES_NETWORK=${ES_NETWORK:-}
-ES_CURL_IMAGE=${ES_CURL_IMAGE:-curlimages/curl:8.11.1@sha256:c1fe1679c34d9784c1b0d1e5f62ac0a79fca01fb6377cdd33e90473c6f9f9a69}
-
-es_curl() {
-  if [ -z "$ES_NETWORK" ]; then
-    curl "$@"
-    return
-  fi
-  local montaggi=()
-  # Il CA vive sul filesystem dell'host. Si monta la directory che lo contiene,
-  # non il singolo file, e allo stesso percorso: cosi' l'argomento --cacert
-  # resta identico nei due casi, e una rotazione che sostituisce il file non
-  # lascia il montaggio agganciato all'inode precedente.
-  [ -n "${ES_CA:-}" ] && montaggi=(-v "$(dirname "$ES_CA"):$(dirname "$ES_CA"):ro")
-  # `--user 0`: `setup-certs.sh` lascia il CA a 640 root:root e la sua directory
-  # a 750, mentre l'immagine curl gira come utente non privilegiato e non
-  # potrebbe leggerlo. Il contenitore vive il tempo di una richiesta, sulla
-  # stessa macchina e con lo stesso file che lo script gia' potrebbe aprire da
-  # se': non concede nulla che il chiamante non abbia gia'.
-  docker run --rm --user 0:0 --network "$ES_NETWORK" "${montaggi[@]}"     "$ES_CURL_IMAGE" "$@"
-}
+# Installato accanto agli altri script di provisioning.
+SCRIPT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
+# shellcheck source=provisioning/bin/es-curl.sh
+. "$SCRIPT_DIR/es-curl.sh"
 
 mkdir -p "$(dirname "$STATE_FILE")"
 # Al primo avvio si parte dal momento corrente: senza marcatore, un indice gia'
 # popolato produrrebbe una raffica di notifiche su eventi passati e conclusi.
 DA=$(cat "$STATE_FILE" 2>/dev/null || date -u +%Y-%m-%dT%H:%M:%SZ)
 
-ca_opt=""
-[ -n "$ES_CA" ] && ca_opt="--cacert $ES_CA"
+ca_opt=()
+[ -n "$ES_CA" ] && ca_opt=(--cacert "$ES_CA")
 
-risposta=$(es_curl -fsS --max-time "$TIMEOUT" $ca_opt \
+risposta=$(es_curl -fsS --max-time "$TIMEOUT" "${ca_opt[@]}" \
   -u "${ES_USER:-}:${ES_PASSWORD:-}" \
   -H 'Content-Type: application/json' \
   "$ES_URL/$ALERT_INDEX/_search" \

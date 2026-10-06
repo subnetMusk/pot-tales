@@ -11,7 +11,7 @@
 # meno copertura di quanta se ne aveva a meta'.
 #
 # Eseguito dentro il container Go: si aspetta di trovarsi nel modulo.
-set -u
+set -eu
 
 PAVIMENTO=${COVERAGE_FLOOR:-85}
 OBIETTIVO=${COVERAGE_TARGET:-85}

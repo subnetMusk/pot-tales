@@ -51,7 +51,6 @@ var appRoutes = []RouteConfig{
 
 	// --- Game Feature ---
 	{http.MethodGet, "/game/position", "public/game/position.req.json", true, 1200},
-	{http.MethodGet, "/game/timer", "public/game/timer.req.json", true, 1200},
 	{http.MethodPost, "/game/ping", "public/game/ping.req.json", true, 1200},
 	{http.MethodPost, "/game/checkpoint", "public/game/checkpoint.req.json", true, 1200},
 	{http.MethodPost, "/game/reset", "public/game/reset.req.json", true, 1200},
@@ -61,7 +60,6 @@ var appRoutes = []RouteConfig{
 
 	// --- Logging Feature ---
 	// Endpoint per ricevere log dal frontend. Senza auth stretto per loggare errori di login.
-	{http.MethodPost, "/log", "", false, 0}, // Schema opzionale per ora
 }
 
 // Validator mantiene lo stato necessario per la validazione.

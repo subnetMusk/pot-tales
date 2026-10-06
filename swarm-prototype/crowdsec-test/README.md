@@ -33,10 +33,10 @@ Con `crowdsecurity/traefik` e `crowdsecurity/base-http-scenarios` installate,
 bouncer: 403 per l'indirizzo colpito, 200 per gli altri.
 
 La durata segue `duration_expr` nei profili e cresce con il numero di decisioni
-gia' emesse per lo stesso indirizzo: la quarta e' stata emessa per 60 minuti
+già emesse per lo stesso indirizzo: la quarta è stata emessa per 60 minuti
 invece dei 15 iniziali.
 
-## Due comportamenti da conoscere
+## Indirizzi osservati e whitelist
 
 **Gli indirizzi privati sono in whitelist.** La collection
 `crowdsecurity/whitelists`, installata di serie, scarta il traffico proveniente
@@ -44,8 +44,8 @@ da reti private: in una prova da rete locale tutte le righe risultano
 `whitelisted` e nessuno scenario si attiva. Per esercitare il rilevamento
 serve un indirizzo pubblico.
 
-**L'indirizzo osservato e' quello che Traefik registra come `ClientHost`.**
-Quando Traefik e' il punto di ingresso coincide con il client reale. In questo
+**L'indirizzo osservato è quello che Traefik registra come `ClientHost`.**
+Quando Traefik è il punto di ingresso coincide con il client reale. In questo
 ambiente di prova l'entrypoint dichiara `forwardedHeaders.trustedIPs` per poter
 simulare un client pubblico tramite header; una configurazione del genere non va
 riportata in produzione, dove renderebbe l'indirizzo dichiarabile dal client.
@@ -71,14 +71,14 @@ oppure perdita della sola protezione aggiuntiva.
 
 ## Dipendenza da rete in fase di avvio
 
-Il bouncer e' un plugin Traefik, cioe' sorgente Go interpretato che Traefik
+Il bouncer è un plugin Traefik, cioe' sorgente Go interpretato che Traefik
 scarica da GitHub all'avvio. Il proxy dipende quindi dalla raggiungibilita' di
-GitHub al momento della partenza, salvo che il plugin risulti gia' presente in
+GitHub al momento della partenza, salvo che il plugin risulti già presente in
 `plugins-storage`.
 
 ## Perimetro
 
-La prova del blocco e' stata condotta senza collezioni di rilevamento e riguarda
+La prova del blocco è stata condotta senza collezioni di rilevamento e riguarda
 il percorso fra decisione e applicazione; quella del rilevamento, descritta
 sopra, con `crowdsecurity/traefik` e `crowdsecurity/base-http-scenarios`. Le
 collezioni usate in produzione sono dichiarate in `deploy/stack.yml`.

@@ -1,8 +1,7 @@
 # Configurazioni e volumi Docker
 
-Questa cartella (`docker/`) raccoglie le configurazioni versionate dei servizi e
-i punti di mount dei dati persistenti. I dati runtime NON sono versionati (vedi
-`.gitignore`); qui sta solo la configurazione.
+Configurazioni dei servizi e mount dei dati di sviluppo in `docker/`.
+I dati runtime sono esclusi da Git tramite `.gitignore`.
 
 ## Config versionate
 

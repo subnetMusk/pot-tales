@@ -1,7 +1,8 @@
 # Architettura
 
-Com'è fatto il sistema e perché. Come avviarlo è in [SVILUPPO.md](SVILUPPO.md); come
-gestirlo in esercizio in [ESERCIZIO.md](ESERCIZIO.md).
+Componenti, confini di rete, stato di gioco e flussi dei dati. L'avvio locale
+è in [Sviluppo](SVILUPPO.md); le procedure operative sono in
+[Esercizio](ESERCIZIO.md).
 
 ## Componenti
 
@@ -15,22 +16,38 @@ gestirlo in esercizio in [ESERCIZIO.md](ESERCIZIO.md).
 | Stack Elastic | log, metriche e telemetria applicativa |
 | Sandbox | gemello del frontend per prototipare, escluso dal monitoraggio |
 
-La landing page realizzata insieme al gioco è la home del frontend (`/`). Il gioco
+La home del frontend è su `/`. Il gioco
 inizia su `/play`, dopo la scelta privacy, mentre l'informativa completa è su
-`/privacy`. Il vecchio percorso `/info` non serve più una pagina separata e reindirizza
-alla home per non lasciare inutilizzabili eventuali collegamenti già distribuiti.
+`/privacy`. Il percorso `/info` reindirizza alla home.
+
+### Mappa dei componenti in produzione
+
+Vista delle dipendenze applicative e dell'accesso all'API Docker. Le etichette
+indicano protocollo e rete; il routing Traefik usa file dichiarativi.
+
+```mermaid
+flowchart LR
+  browser[Browser desktop] -->|HTTPS| proxy[Traefik con bouncer CrowdSec]
+  proxy -->|HTTP su edge| nginx[Frontend nginx]
+  proxy -->|HTTP su edge| go[Backend Go]
+  go -->|MongoDB su data| mongo[MongoDB]
+  go -->|Redis su data| redis[Redis]
+  filebeat[Filebeat] -->|API Docker su socket| socket[Socket proxy]
+  infra[infra-agent] -->|API Docker su socket| socket
+  socket -->|Unix socket| daemon[Demone Docker]
+```
 
 ## Reti
 
 | Rete | Chi ci sta |
 |---|---|
-| `edge` / `proxy_net` | ciò che Traefik deve raggiungere |
-| `data` / `internal_net` | base dati e cache, **senza uscita a internet** |
-| `socket` | socket-proxy e i suoi soli consumatori |
-| `elastic` / `kibana_net` | osservabilità e registro dei pacchetti Elastic |
-
-La rete dei dati è dichiarata `internal`: base dati e cache non hanno alcun motivo di
-raggiungere l'esterno, e impedirglielo è più economico che accorgersene dopo.
+| `edge` (produzione) | Traefik, frontend, backend e servizi con un percorso pubblico |
+| `data` (produzione) | backend, MongoDB e Redis; **senza uscita internet** |
+| `socket` (produzione) | socket-proxy, Filebeat e infra-agent |
+| `elastic` (produzione) | osservabilità, backend e client persistente; accesso al registro dei pacchetti |
+| `proxy_net`, `frontend_net` (sviluppo) | backend e servizi tecnici sulla prima, frontend e sandbox sulla seconda; Traefik su entrambe |
+| `internal_net` (sviluppo) | persistenza e osservabilità; **senza uscita internet** |
+| `kibana_net` (sviluppo) | uscita internet di Kibana |
 
 In produzione **Traefik è l'unico servizio che pubblica porte**, e lo fa in `mode: host`
 e non `ingress`. Il routing mesh di Swarm applica SNAT e sostituirebbe l'indirizzo del
@@ -52,11 +69,10 @@ Phaser 3 con TypeScript, compilato da Vite.
 Gli schemi in `comms/frontend/` definiscono i contratti verso il backend, validati con
 Zod lato client.
 
-**Politiche di cache in produzione**, tre e distinte: gli artefatti con un'impronta nel
+**Politiche di cache in produzione**: gli artefatti con un'impronta nel
 nome sono `immutable` per un anno, gli asset di gioco hanno nomi stabili e quindi durata
 di un'ora, il documento di ingresso non va mai in cache perché dichiara quali artefatti
-caricare. Le postazioni ricaricano gli stessi asset molte volte al giorno: è l'intervento
-con più effetto sul carico reale.
+caricare.
 
 ## Backend
 
@@ -66,7 +82,7 @@ Go con Gorilla Mux, driver MongoDB e Redis, agente APM Elastic.
 
 `server/middleware/validator.go` carica gli schemi JSON da `comms/server/public/` e
 valida ogni corpo di richiesta contro lo schema corrispondente. **Una rotta senza schema
-non è raggiungibile**: l'assenza di schema nega, non consente. Gli schemi sono dentro
+non è raggiungibile**. Gli schemi sono dentro
 l'immagine, non montati: il processo termina all'avvio se non li trova.
 
 ### Superficie HTTP
@@ -76,12 +92,10 @@ l'immagine, non montati: il processo termina all'avvio se non li trova.
 | POST | `/auth/session` | no | dedicata | Crea sessione (cookie `session_token`), con prova di lavoro |
 | GET | `/auth/validate` | sì | 600 | Verifica sessione |
 | GET | `/game/position` | sì | 1200 | Posizione, scena corrente e checkpoint raggiunti |
-| GET | `/game/timer` | sì | 1200 | Tempo di gioco accumulato |
-| POST | `/game/ping` | sì | 1200 | Battito di gioco, valida spostamento e accumula tempo |
+| POST | `/game/ping` | sì | 1200 | Ping di gioco, salva posizione e rinnova attività |
 | POST | `/game/checkpoint` | sì | 1200 | Registra un traguardo raggiunto |
 | POST | `/game/reset` | sì | 1200 | Azzera i progressi della sessione |
 | GET | `/health` | no | 0 | Stato di server, Mongo e Redis |
-| POST | `/log` | no | 0 | Ingest eventi dal frontend verso Elastic |
 
 La quota è per sessione e non per indirizzo, sulla finestra di
 `SESSION_QUOTA_WINDOW_MIN` minuti (10 per default): un indirizzo pubblico è condiviso
@@ -89,41 +103,66 @@ da tutti gli utenti dietro lo stesso NAT, quindi un limite per indirizzo
 penalizzerebbe utenti estranei a chi lo supera. Superata la quota la risposta è
 `429` con `Retry-After`.
 
-L'autenticazione usa session token (cookie più cache Redis e Mongo), non JWT:
-`JWT_SECRET` in `.env` è un residuo non usato.
+L'autenticazione usa session token (cookie, cache Redis e Mongo).
 
-### Stato di gioco autoritativo
+### Stato di gioco
 
-Il server tiene lo stato e valida i ping del client contro di esso. Un ping può essere
-accettato, respinto con correzione di posizione, o rifiutato del tutto. La posizione
-sospetta non viene mai persistita: la risposta riporta l'ultimo stato autoritativo.
+Il backend conserva posizione, scena e checkpoint ricevuti dal client dopo
+autenticazione, schema e quota. Il ping arriva ogni 7 secondi mediante un timer
+del browser indipendente dalle scene: prosegue mentre la scena principale è
+in pausa per un minigioco. Alla chiusura della scena il timer si ferma e le
+risposte ancora in volo non modificano la scena successiva.
 
-Le coordinate compaiono solo dopo il primo ping. Lo stato nasce con coordinate a zero,
-che non descrivono un punto della scena ma l'assenza di un punto: servirle come posizione
-salvata riporterebbe il giocatore nell'angolo invece che al suo ingresso.
+Non ci sono controlli di velocità o espulsioni per ritardo: il gioco include
+spostamenti a copione e cambi di stanza. La posizione è un dato di ripresa
+dichiarato dal client, non una prova anti-cheat.
+
+Le coordinate compaiono solo dopo il primo ping. Gli zeri iniziali non sono
+una posizione salvata: prima di quel ping il client usa il punto di ingresso.
 
 ### Scritture confermate
 
-Sessioni e stato di gioco si scrivono con write concern `j:true`. Il default conferma
-quando il documento è in memoria: con il journal la conferma arriva dopo la scrittura su
-disco, e una scrittura confermata sopravvive a un arresto brusco. Il volume è minimo, il
-costo in latenza irrilevante, e la differenza è fra perdere le ultime scritture e non
-perdere nulla di confermato.
+Sessioni e stato di gioco usano write concern `j:true`: MongoDB conferma la
+scrittura dopo il journal su disco. Il journal consente il recupero delle
+scritture confermate dopo un arresto del processo; non protegge dalla perdita
+del disco o della macchina. Le copie dei dati sono descritte nel
+[provisioning](../provisioning/README.md#copia-di-sicurezza).
 
 ### Ritenzione
 
 Un indice TTL su `created_at` cancella i documenti dopo `DATA_RETENTION_DAYS`. È distinta
-dalla validità della sessione, che è dell'ordine dei minuti: confonderle cancellerebbe i
-dati appena la sessione scade.
+dalla validità della sessione, che è dell'ordine dei minuti.
 
 ## Osservabilità
 
-Elasticsearch, Kibana, Fleet, APM e Filebeat. Nodo singolo, **zero repliche per scelta**:
-su un nodo una replica non può essere allocata, resterebbe perennemente non assegnata e
-il cluster giallo in permanenza. Un indicatore sempre acceso non distingue nulla, e
-l'allarme sullo stato del cluster diventerebbe inutile proprio quando serve. Il prezzo è
-esplicito: perdere il nodo significa perdere gli indici, e i dati che devono sopravvivere
-passano dall'esportazione, non dal cluster.
+Elasticsearch, Kibana, Fleet, APM e Filebeat girano su un nodo singolo, senza repliche.
+Una replica resterebbe non allocata e manterrebbe il cluster in stato giallo.
+La perdita del nodo comporta la perdita degli indici: i dati da conservare vanno esportati.
+
+### Flusso dei dati di osservabilità
+
+Kibana interroga Elasticsearch e vi scrive gli allarmi delle regole.
+
+```mermaid
+flowchart TB
+  game[Fatti backend: gioco.partita] --> fb[Filebeat]
+  logs[Log backend e container] --> fb
+  access[Access log Traefik] --> fb
+  fb --> es[Elasticsearch: dataset separati]
+  rum[RUM con consenso] --> apm[APM Server]
+  backend[Tracing backend] --> apm
+  agent[infra-agent: metriche] --> es
+  apm --> es
+  es --> ops[Kibana: Space esercizio]
+  es --> event[Kibana: Space evento]
+  ops -->|Regole: scrittura allarmi| alerts[Elasticsearch: indice allarmi]
+  alerts -->|Lettura e recapito| relay[alert-notifier e client persistente]
+  relay --> hc[Healthchecks esterno]
+```
+
+Lo Space evento legge soltanto `gioco.partita`; quello di esercizio include
+anche i dataset tecnici. I battiti host verso Healthchecks sono indipendenti
+dal percorso delle regole Kibana.
 
 ### Le tre sorgenti
 
@@ -133,12 +172,12 @@ passano dall'esportazione, non dal cluster.
 | APM RUM | caricamenti pagina, tempi di risorsa, errori JavaScript, chiamate HTTP |
 | Log applicativi | tracce, latenza, eventi strutturati del backend |
 
-### I tre dataset, e perché sono separati
+### Dataset
 
 | Dataset | Origine | Chi lo legge |
 |---|---|---|
+| `traefik.access` | access log del bordo, senza IP né credenziali | vista di esercizio |
 | `backend.api` | log del backend | vista di esercizio |
-| `frontend.app` | eventi da `POST /log` | vista di esercizio |
 | `gioco.partita` | fatti di partita emessi dal backend | **anche** la vista divulgativa |
 
 Con licenza basic **la sicurezza a livello di documento non esiste**: non c'è modo di
@@ -146,17 +185,10 @@ concedere un sottoinsieme di documenti dentro un indice condiviso. La separazion
 indici distinti è l'unico meccanismo disponibile per delimitare ciò che viene condiviso,
 e Filebeat instrada su `event.dataset`.
 
-Ne discendono tre scelte:
-
-- **Il token di sessione non compare** nei fatti di partita: è lo stesso valore che il
-  visitatore porta nel cookie. Al suo posto un identificativo derivato con sale, che
-  consente di contare e raggruppare senza consentire di collegare una riga a un browser.
-- **Il dispositivo compare come classe**, non come stringa dichiarata, che sarebbe un
-  vettore di riconoscimento.
-- **La telemetria del frontend resta nel dataset tecnico.** Categoria, azione e dettagli
-  che arrivano da `/log` li dichiara il client e non sono verificabili: instradarli sulla
-  destinazione condivisa permetterebbe a chiunque parli con quell'endpoint di scrivere
-  righe nelle dashboard pubbliche.
+- I fatti di partita usano un identificativo derivato con sale, senza esportare il token
+  del cookie. L'identificativo consente di contare e raggruppare gli eventi della sessione.
+- Il dispositivo compare come classe, senza user agent integrale.
+- Il backend emette i fatti didattici. Il RUM è una sorgente tecnica separata e richiede consenso.
 
 ### Fatti di partita
 
@@ -170,7 +202,7 @@ fatti nel tempo.
 | `scena_iniziata` | ping, solo sulla transizione di scena |
 | `checkpoint_raggiunto` | endpoint dei traguardi |
 | `partita_azzerata` | reset |
-| `sessione_conclusa` | chiusura differita, espulsione o completamento |
+| `sessione_conclusa` | chiusura differita o completamento |
 | `partita_avviata` | primo checkpoint `game_started`, **anche senza consenso** |
 
 Tutti i fatti richiedono il consenso analitico tranne `partita_avviata`, il conteggio
@@ -179,17 +211,11 @@ anonimo dell'affluenza. Può farne a meno perché porta soltanto azione e orario
 classe di dispositivo né altri dettagli. È emesso una sola volta per sessione, con la
 stessa idempotenza del checkpoint da cui nasce.
 
-La durata (`partita.durata_ms`, in `sessione_conclusa` e `partita_azzerata`) va dalla
-creazione della sessione all'ultimo ping accettato. Stage 1, 2 e 3 inviano il ping ogni
-7 secondi, quindi lo scarto è di pochi secondi. Durante i minigiochi la scena principale
-è in pausa e non invia ping: una partita abbandonata a metà minigioco risulta più corta
-del tempo effettivo.
-
-L'accumulatore `total_time_ms` non è una fonte affidabile: il validatore dei ping
-accredita tempo solo quando è già diverso da zero, e partendo da zero non lo diventa mai.
-Per lo stesso motivo i controlli su ritardo e velocità non intervengono. Riattivarli
-richiede prima di allineare le soglie al ping reale: con ping ogni 7 secondi e ritardo
-grave oltre i 5, ogni ping verrebbe rifiutato.
+La durata (`partita.durata_ms`) va dalla creazione all'ultimo ping ricevuto.
+Stage 1, 2 e 3 inviano il ping ogni 7 secondi, anche durante i minigiochi.
+Una scheda in background può subire il throttling del browser: la durata non
+è una misura esatta dell'attenzione del giocatore. La chiusura per inattività
+usa 15 minuti per default, distinti dal TTL della sessione.
 
 Il click su **Play** apre sempre una nuova partita: se il browser ha già una sessione ne
 azzera lo stato (`partita_azzerata`), poi crea la sessione prima di entrare in Stage 1 e
@@ -204,22 +230,8 @@ completamento non c'è progresso salvato. Stage 2 ripristina sonda, laser, torre
 dello Shooter; Stage 3 i quiz risolti, e con tutti e tre risolti apre subito la porta, perché
 recap e porta partono solo dalla risposta corretta al terzo quiz.
 
-Le scene Phaser sono istanze riusate: `scene.start()` e `launch()` non le ricostruiscono, e
-gli inizializzatori dei campi di classe girano una volta sola per pagina. Lo stato di
-partita (flag di Stage 2 e Stage 3, picchi del minigioco dei grafici) sta quindi in
-`frontend/src/items/stageRunState.ts`, e le scene lo ricreano a ogni avvio: Stage 2 e
-Stage 3 in `init()`, prima che `create()` lo ricostruisca dai checkpoint, GraficoGame in
-`create()`. L'inventario vive nel registry del gioco, che sopravvive a tutte le scene, e lo
-svuota il menu a ogni apertura. Così si giocano più partite di fila nella stessa scheda
-senza ricaricare la pagina.
-
-Per la stessa ragione gli eventi di una scena (`scene.events`) sopravvivono allo shutdown:
-li svuota solo la distruzione della scena, che nel gioco non avviene. Un oggetto che vi
-registra un listener lo deve togliere quando viene distrutto
-(`frontend/src/items/sceneListeners.ts`, usato dal Player), e un gestore che deve
-scattare una volta per partita va registrato con `once`. Altrimenti, al riavvio della
-scena, il listener di un oggetto già distrutto scatta con `this.scene` non definito e
-l'eccezione blocca anche i listener della partita nuova.
+Per il riuso delle scene, lo stato e la rimozione dei listener consultare
+[Manutenzione delle scene](SVILUPPO.md#manutenzione-delle-scene).
 
 Il data stream contiene **fatti**, non una riga per partita. Con il consenso un singolo
 click su **Play** produce esattamente tre fatti iniziali: una `sessione_iniziata`, un
@@ -232,61 +244,81 @@ partita; il conteggio grezzo dei documenti misura invece il volume degli eventi.
 checkpoint finale `stage3_complete` chiude immediatamente la partita con motivo
 `completata`, così la spazzata non la riclassifica come abbandono per inattività.
 
-Per gli abbandoni l'ultimo evento non ha una richiesta in cui nascere: la partita finisce
-quando qualcuno si alza dalla postazione. Una spazzata periodica rivendica le partite
-ferme ed emette la conclusione con durata e scena finale. La rivendicazione è atomica,
+Una spazzata periodica rivendica le partite inattive ed emette la conclusione
+con durata e scena finale. La rivendicazione è atomica,
 quindi le repliche del backend non emettono la stessa conclusione due volte.
 
 ### Due Space, due platee
 
 | Space | Indici | Contenuto |
 |---|---|---|
-| Esercizio | tutti | salute del servizio, risorse, contenimento, imbuto |
+| Esercizio | log, metriche, tracce, allarmi e fatti di gioco | salute del servizio, risorse, contenimento, imbuto |
 | Andamento evento | solo `gioco.partita` | affluenza e comportamento, nessuno stato macchina |
 
-Ruoli in sola lettura distinti, definiti come codice via provider Terraform. Le dashboard
-non sono generate da Terraform ma esportate in NDJSON e reimportate: una dashboard si
-disegna sui dati, e dichiararla prima di averli visti significa interrogare campi
-ipotetici. Il codice governa il ciclo di vita dell'export, non il suo contenuto.
+I ruoli in sola lettura sono definiti via Terraform. Le dashboard si modificano in
+Kibana, si esportano in NDJSON e si reimportano tramite Terraform.
 Discover resta entro lo stesso confine: nello Space evento rende consultabili i soli
 fatti pseudonimizzati di `gioco.partita`, senza concedere log tecnici, metriche o tracce.
 
 ### Sorveglianza esterna
 
-Un servizio esterno riceve battiti e allarmi: vive fuori dalla macchina, quindi parla
-anche quando la macchina è morta. Con macchina singola è un requisito, non un lusso: il
-monitoraggio interno muore insieme a ciò che monitora.
+Un servizio esterno riceve battiti e allarmi e segnala l'assenza dei battiti
+quando la macchina è irraggiungibile.
 
 Le notifiche del servizio sono legate alla **transizione di stato**: un secondo segnale
 di guasto mentre la destinazione è già in guasto non produce nulla. Per questo le classi
 sono separate su check distinti, e ciascuna transita per conto proprio.
 
-Due battiti — servizio e relay degli allarmi — cinque relay, che non scendono mai da soli
-ma solo su un segnale esplicito, e il check a calendario della copia notturna.
+Otto check: due battiti (servizio e recapito degli allarmi), cinque relay su
+segnale esplicito e un check a calendario per la copia notturna. Le cadenze
+sono definite nel [provisioning](../provisioning/README.md#gli-otto-check-da-creare-sul-pannello).
 
-## Sicurezza di bordo
+## Sicurezza
 
 Traefik con limite di frequenza, tetto sulle richieste in volo, tetto sul corpo,
 interruttore per staccare un backend in sofferenza, intestazioni di sicurezza e politica
 sui contenuti. CrowdSec come bouncer.
 
-**Le soglie sono tarate per non danneggiare l'uso legittimo, non per contenere l'abuso.**
-Dietro il NAT di una conferenza l'intera sala condivide un indirizzo, e un limite per
-indirizzo tarato sul singolo utente colpisce tutti i presenti. È la stessa ragione per
-cui le decisioni locali di CrowdSec sono disattivate.
+Le soglie per indirizzo tengono conto delle postazioni dietro lo stesso NAT.
+Le decisioni locali di CrowdSec sono disattivate per evitare blocchi dell'intera sala.
 
 Il controllo applicativo dei backend è distinto dall'healthcheck del container: il
 secondo osserva il processo, il primo la risposta. Un servizio vivo che risponde in modo
 non valido resta nel bilanciamento senza il primo.
 
-## Fragilità note
+### Host, accessi e CI
 
-Da conoscere prima di metterci mano.
+Il [provisioning](../provisioning/README.md) prepara firewall, journald, backup
+e unità systemd. Il socket proxy limita le API Docker raggiungibili dai servizi;
+MongoDB e Redis restano sulla rete interna. Le dashboard richiedono credenziali
+distinte e ruoli in sola lettura. I segreti si generano al deploy, secondo la
+[guida](../secrets/README.md), e non sono versionati.
+
+La CI verifica codice, configurazioni, superficie HTTP e persistenza, ricerca
+credenziali con gitleaks e dipendenze vulnerabili con Trivy. Le action e le
+immagini degli strumenti sono fissate a revisioni immutabili.
+
+## Dati e privacy
+
+Il consenso precede RUM e fatti analitici di partita, salvo il conteggio anonimo
+degli avvii, che non porta identificativo né dispositivo. Gli identificativi
+analitici sono derivati con un sale; le classi di dispositivo sostituiscono
+gli user agent nei fatti condivisi. Il backend tronca gli IP secondo la sua
+configurazione; Filebeat rimuove IP, cookie e Authorization dalla copia
+degli access log inviata a Elasticsearch.
+
+La ritenzione predefinita è 30 giorni per i dati applicativi e analitici.
+I log di bordo locali seguono la rotazione dell'host. Backup ed export vanno
+protetti e rimossi secondo la durata di conservazione definita per l'evento.
+Alla chiusura si separano gli aggregati da archiviare dai dati individuali;
+un nuovo esercizio parte da dati vuoti e aggiorna contatti e informativa.
+
+## Fragilità note
 
 **Race sui certificati all'avvio in sviluppo.** In `docker-compose.monitoring.yml` `es01`
 dipende da `setup` con `condition: service_started` e non `service_healthy`, perché
 `setup` attende a sua volta che ES risponda per impostare la password di `kibana_system`:
-usare `service_completed_successfully` produrrebbe un deadlock. Il prezzo è una possibile
+usare `service_completed_successfully` produrrebbe un deadlock. Può verificarsi una
 race in cui `es01` parte prima che i certificati siano scritti. In produzione il problema
 non si pone: su Swarm non esiste `depends_on` e i servizi ripartono finché la dipendenza
 non è pronta.
@@ -306,27 +338,41 @@ parte.
 **Segreti.** In sviluppo `.env` contiene password in chiaro. In produzione i valori sono
 generati sulla macchina da `provisioning/bin/generate-secrets.sh` e non entrano mai nel
 repository. Arrivano ai servizi come Docker secret, trasmessi su mTLS, cifrati nel Raft
-log e montati in un filesystem in memoria sotto `/run/secrets`: non compaiono mai
-nell'ambiente né nella specifica del servizio. Sul disco della macchina restano come file
+log e montati in un filesystem in memoria sotto `/run/secrets`. Gli entrypoint che
+richiedono variabili d'ambiente li leggono nel solo processo applicativo; i valori
+non compaiono nella specifica Swarm del servizio. Sul disco della macchina restano come file
 con permessi 0400 in una directory 0700.
 
 Le dashboard hanno un vincolo aggiuntivo: Traefik usa hash bcrypt, mentre
 Elasticsearch deve ricevere la password per creare l'utente. La fonte
 `dashboard_users.tfvars.json`, anch'essa `0400`, conserva quindi le due mappe
 solo per il contenitore Terraform effimero. Il bootstrap la richiede
-esplicitamente, cosi' un ripristino incompleto non puo' dichiarare pronte
-dashboard in realta' irraggiungibili.
+esplicitamente, così un ripristino incompleto non può dichiarare pronte
+dashboard in realtà irraggiungibili.
 
-Cambiare un valore è un'operazione ordinaria, perché il nome del secret segue il contenuto
-come per i config; quali valori vanno prima cambiati nel servizio è descritto in
+La procedura di rotazione, compresi i valori da aggiornare prima nel servizio, è in
 [`ESERCIZIO.md`](ESERCIZIO.md#cambiare-un-secret). Cifrare i file, per esempio con SOPS,
 servirebbe a condividere il `.env` di sviluppo. In produzione sposterebbe il problema sulla
 chiave che li decifra, che l'avvio non presidiato dovrebbe comunque trovare sulla macchina.
 
+### Consegna dei log e tracing
+
+Filebeat consegna almeno una volta. I fingerprint di `gioco.partita` e
+`traefik.access` fissano `@metadata._id`: la rilettura nello stesso indice non
+crea una nuova riga. Il rollover cambia indice di destinazione, quindi questa
+misura non garantisce deduplicazione fra indici diversi; il registry persistente
+resta necessario.
+
+APM è registrato sul router dopo il matching e prima della validazione: il nome
+della transazione usa il template della rotta. `restart` rende il campionamento
+backend indipendente dal RUM al 20%, conservando il collegamento tra tracce.
+Il client `surveillance-client` nella rete Elastic è riusato dai timer host con
+`docker exec`, senza creare un container per ogni battito.
+
 ## Riferimenti
 
-- [`provisioning/README.md`](../provisioning/README.md) — preparazione dell'host, sorveglianza, dati
-- [`terraform/README.md`](../terraform/README.md) — osservabilità come codice, stato Terraform
-- [`terraform/elk/README.md`](../terraform/elk/README.md) — Space, ruoli, utenze, dashboard
-- [`secrets/README.md`](../secrets/README.md) — secret dello stack
-- `deploy/stack.yml` — definizione dello stack di produzione
+- [`provisioning/README.md`](../provisioning/README.md): preparazione dell'host, sorveglianza, dati
+- [`terraform/README.md`](../terraform/README.md): osservabilità come codice, stato Terraform
+- [`terraform/elk/README.md`](../terraform/elk/README.md): Space, ruoli, utenze, dashboard
+- [`secrets/README.md`](../secrets/README.md): secret dello stack
+- [`deploy/stack.yml`](../deploy/stack.yml): definizione dello stack di produzione

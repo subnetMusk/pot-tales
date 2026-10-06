@@ -1,6 +1,6 @@
 # Guida all'inserimento delle traduzioni nel progetto Phaser
 
-## Struttura consigliata
+## File per scena e lingua
 
 Organizza le traduzioni in cartelle per lingua all'interno della directory `assets/i18n/`, con un file JSON per ogni scena:
 
@@ -67,9 +67,14 @@ create() {
 
 La funzione `applyTranslations` cerca tutti gli oggetti testo per nome e aggiorna il loro contenuto con la traduzione corrispondente.
 
-**Importante: le chiavi sul json devono corrispontere ai nomi assegnati ai testi**
+Le chiavi JSON devono corrispondere ai nomi assegnati ai testi.
 
 ## Cambiare lingua
 
 La lingua viene scelta e salvata (ad esempio tramite una pagina di consenso) in `localStorage` con la chiave `"lang"`.  
-Tutte le scene useranno questa impostazione per caricare le traduzioni corrette.
+Le scene leggono questa impostazione quando caricano le traduzioni.
+
+Se la scena viene ripresa dopo un cambio lingua nelle impostazioni, usare
+`reloadTranslations` in `frontend/src/utils.ts` per invalidare la cache JSON,
+caricare il nuovo file e aggiornare i testi. Il solo cambio di `localStorage`
+non aggiorna le scene già avviate.

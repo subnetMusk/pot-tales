@@ -101,11 +101,10 @@ func (b *banco) impostaStato(t *testing.T, token string, campi bson.M) {
 func (b *banco) partitaInCorso(t *testing.T, token string, fa time.Duration) {
 	t.Helper()
 	b.impostaStato(t, token, bson.M{
-		"data.scene_id":      scenaIniziale,
-		"data.x":             0.0,
-		"data.y":             0.0,
-		"data.total_time_ms": int64(1000),
-		"meta.last_ping":     time.Now().Add(-fa),
+		"data.scene_id":  scenaIniziale,
+		"data.x":         0.0,
+		"data.y":         0.0,
+		"meta.last_ping": time.Now().Add(-fa),
 	})
 }
 
@@ -223,127 +222,6 @@ func TestPingCambioDiScenaAggiornaLoStatoEdEmetteLaTransizione(t *testing.T) {
 	}
 	if n := len(conAzione(fatti, "scena_iniziata")); n != 0 {
 		t.Errorf("un ping sulla stessa scena ha emesso %d transizioni", n)
-	}
-}
-
-// A partita avviata il ping accettato accumula il tempo trascorso dall'ultimo:
-// e' la sola fonte della durata di gioco.
-func TestPingAccettatoAccumulaIlTempo(t *testing.T) {
-	b := nuovoBanco(t)
-	token, cookie := b.creaSessione(t)
-	b.partitaInCorso(t, token, time.Second)
-
-	codice, risposta := b.postGioco(t, cookie, "/game/ping",
-		fmt.Sprintf(`{"scene_id":%q,"x":5,"y":0}`, scenaIniziale))
-	if codice != http.StatusOK {
-		t.Fatalf("codice = %d, atteso %d", codice, http.StatusOK)
-	}
-	if risposta["action"] != "accept" {
-		t.Fatalf("azione = %v, attesa accept", risposta["action"])
-	}
-
-	s, _ := b.statoDiGioco(t, token)
-	if s.Data.X != 5 {
-		t.Errorf("posizione persistita = %v, attesa 5", s.Data.X)
-	}
-	// I 1000 ms gia' registrati piu' il secondo trascorso, con la latenza della
-	// richiesta come unico scarto.
-	if s.Data.TotalPlayTimeMs < 2000 || s.Data.TotalPlayTimeMs > 4000 {
-		t.Errorf("tempo accumulato = %d ms, atteso fra 2000 e 4000", s.Data.TotalPlayTimeMs)
-	}
-}
-
-// Un ping sospetto non viene persistito, e la risposta riporta l'ultimo stato
-// autoritativo perche' il client possa riallinearsi.
-func TestPingSospettoNonPersisteLaPosizione(t *testing.T) {
-	casi := []struct {
-		nome   string
-		fa     time.Duration
-		x      float64
-		azione string
-	}{
-		{"velocita' oltre il consentito", time.Second, 50, "rubberband"},
-		{"silenzio oltre la soglia grave", 10 * time.Second, 1, "rubberband"},
-		{"silenzio oltre la soglia estrema", 20 * time.Second, 1, "kick"},
-	}
-
-	for _, c := range casi {
-		t.Run(c.nome, func(t *testing.T) {
-			b := nuovoBanco(t)
-			token, cookie := b.creaSessione(t)
-			b.partitaInCorso(t, token, c.fa)
-
-			codice, risposta := b.postGioco(t, cookie, "/game/ping",
-				fmt.Sprintf(`{"scene_id":%q,"x":%g,"y":0}`, scenaIniziale, c.x))
-			if codice != http.StatusOK {
-				t.Fatalf("codice = %d, atteso %d", codice, http.StatusOK)
-			}
-			if risposta["action"] != c.azione {
-				t.Fatalf("azione = %v, attesa %s", risposta["action"], c.azione)
-			}
-			if risposta["x"] != "0.000000" {
-				t.Errorf("posizione nella risposta = %v, attesa quella autoritativa 0.000000", risposta["x"])
-			}
-
-			s, esiste := b.statoDiGioco(t, token)
-			if !esiste {
-				t.Fatal("un ping sospetto ha cancellato lo stato di gioco")
-			}
-			if s.Data.X != 0 || s.Data.TotalPlayTimeMs != 1000 {
-				t.Errorf("stato persistito = x %v, tempo %d; atteso invariato a x 0, tempo 1000",
-					s.Data.X, s.Data.TotalPlayTimeMs)
-			}
-		})
-	}
-}
-
-// Uno spostamento impossibile cancella la partita. La spazzata non la trovera'
-// piu', quindi la conclusione va emessa qui: senza, l'imbuto conterebbe come
-// abbandono un'espulsione.
-func TestPingImpossibileEspelleEChiudeLaPartita(t *testing.T) {
-	b := nuovoBanco(t)
-	token, cookie := b.creaSessione(t)
-	b.partitaInCorso(t, token, time.Second)
-	// La durata va dalla creazione all'ultimo ping: un minuto esatto. Il
-	// troncamento al millisecondo e' la precisione con cui Mongo conserva le date.
-	ultimoPing := time.Now().Add(-time.Second).Truncate(time.Millisecond)
-	b.impostaStato(t, token, bson.M{
-		"data.checkpoints": []string{"a", "b"},
-		"created_at":       ultimoPing.Add(-time.Minute),
-		"meta.last_ping":   ultimoPing,
-	})
-
-	var codice int
-	var risposta map[string]any
-	fatti := catturaFatti(t, func() {
-		codice, risposta = b.postGioco(t, cookie, "/game/ping",
-			fmt.Sprintf(`{"scene_id":%q,"x":500,"y":0}`, scenaIniziale))
-	})
-
-	if codice != http.StatusOK {
-		t.Fatalf("codice = %d, atteso %d", codice, http.StatusOK)
-	}
-	if risposta["action"] != "ban" {
-		t.Fatalf("azione = %v, attesa ban", risposta["action"])
-	}
-	if _, esiste := b.statoDiGioco(t, token); esiste {
-		t.Error("lo stato della partita espulsa esiste ancora")
-	}
-
-	conclusioni := conAzione(fatti, "sessione_conclusa")
-	if len(conclusioni) != 1 {
-		t.Fatalf("conclusioni emesse = %d, attesa 1", len(conclusioni))
-	}
-	c := conclusioni[0]
-	if c["partita.motivo"] != helpers.MotivoEspulsione {
-		t.Errorf("motivo = %v, atteso %s", c["partita.motivo"], helpers.MotivoEspulsione)
-	}
-	if c["partita.scena_finale"] != scenaIniziale {
-		t.Errorf("scena finale = %v, attesa %s", c["partita.scena_finale"], scenaIniziale)
-	}
-	// I numeri arrivano dalla decodifica come float64.
-	if c["partita.durata_ms"] != float64(60000) || c["partita.checkpoint_n"] != float64(2) {
-		t.Errorf("durata e traguardi = %v e %v, attesi 60000 e 2", c["partita.durata_ms"], c["partita.checkpoint_n"])
 	}
 }
 
@@ -627,6 +505,28 @@ func TestRotteDiGiocoInScritturaRichiedonoAutenticazione(t *testing.T) {
 		codice, _ := b.postGioco(t, nil, percorso, corpo)
 		if codice != http.StatusUnauthorized {
 			t.Errorf("%s senza cookie: codice = %d, atteso %d", percorso, codice, http.StatusUnauthorized)
+		}
+	}
+}
+
+// Il ping reale arriva ogni sette secondi; una pausa lunga o uno spostamento
+// di copione devono aggiornare il resume senza cancellare la partita.
+func TestPingDopoMinigiocoConservaLaPartita(t *testing.T) {
+	b := nuovoBanco(t)
+	token, cookie := b.creaSessione(t)
+	for _, gap := range []time.Duration{7 * time.Second, 10 * time.Minute} {
+		b.partitaInCorso(t, token, gap)
+		code, response := b.postGioco(t, cookie, "/game/ping",
+			fmt.Sprintf(`{"scene_id":%q,"x":500,"y":200}`, scenaIniziale))
+		if code != http.StatusOK || response["action"] != "accept" {
+			t.Fatalf("ping: %d %v", code, response)
+		}
+		state, exists := b.statoDiGioco(t, token)
+		if !exists || state.Data.X != 500 || state.Data.Y != 200 {
+			t.Fatal("posizione non salvata")
+		}
+		if time.Since(state.Meta.LastPing) > time.Second {
+			t.Fatal("last_ping non aggiornato")
 		}
 	}
 }

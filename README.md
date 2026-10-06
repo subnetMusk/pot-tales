@@ -1,81 +1,85 @@
 <p align="center">
-  <img src="frontend/public/assets/images/ui/title.png" width="250" alt="Pot Tales">
+  <img src="frontend/public/assets/images/ui/title.png" width="250" alt="Logo del gioco Pot Tales">
 </p>
 
-<p align="center">
-  <a href="https://pot-tales.it/">Gioca a Pot Tales</a>
-  ·
-  <a href="features.md">Funzionalità e verifiche esterne</a>
-</p>
+# Pot Tales
 
-<p align="center">
-  <img src="https://healthchecks.io/badge/6e1f0796-8cd7-4beb-a3f5-5bd22fab18fd/zys6OZ9t-2.svg" alt="Stato dei controlli operativi di Pot Tales">
-</p>
+Un'avventura 2D per browser desktop che rende esplorabile la ricerca archeometrica
+sui residui conservati nelle ceramiche antiche. Interfaccia in italiano e inglese.
 
-# Un’avventura tra scienza e gioco
-
-**Pot Tales** è un videogioco educativo online che trasforma la ricerca
-archeometrica sui residui conservati nelle ceramiche antiche in un’avventura
-interattiva 2D. Il giocatore esplora un laboratorio di ricerca archeologica,
-entra nelle “profondità oscure” dei depositi e ne riemerge seguendo gli indizi
-della scoperta scientifica.
-
-Il progetto nasce da un’iniziativa didattica multidisciplinare: studenti di
-archeologia e informatica, insieme a professionisti dell’audiovisivo, hanno
-cercato un linguaggio nuovo per raccontare risultati di ricerca complessi.
+Il progetto è finanziato dall'Università di Padova nell'ambito di **Progetti
+Innovativi 2025**.
 
 ## Il contesto della ricerca
 
-I depositi neri che si trovano all’interno dei contenitori in ceramica si
-comportano come capsule del tempo. Il loro studio può restituire informazioni
-preziose sulle attività quotidiane delle comunità antiche e sugli ambienti in
-cui vivevano.
+I depositi neri all'interno dei contenitori ceramici sono capsule del tempo:
+il loro studio restituisce informazioni sulle attività delle comunità antiche
+e sugli ambienti in cui vivevano. L'indagine combina analisi petrografiche,
+mineralogiche, chimiche e spettroscopiche con microscopia elettronica e datazione.
 
-L’indagine combina analisi petrografiche, mineralogiche, chimiche e
-spettroscopiche con microscopia elettronica e datazione. Pot Tales rende
-esplorabili metodi e risultati senza ridurli a una lezione frontale: si impara
-muovendosi, osservando e risolvendo le sfide del gioco.
+Pot Tales racconta questi metodi attraverso un laboratorio e un percorso nei
+depositi: si impara muovendosi, osservando e risolvendo le sfide del gioco.
 
-## Dal problema alla soluzione
+## L'esperienza di gioco
 
-Comunicare efficacemente la ricerca archeologica non è semplice. Per questo il
-progetto usa una narrazione esplorativa: il giocatore percorre metaforicamente
-i depositi come una caverna buia, trova il proprio cammino e scopre, passo dopo
-passo, ciò che le analisi di laboratorio hanno reso visibile.
+Il percorso attraversa tre tappe: spettroscopia infrarossa (IR), microanalisi
+EDS e microscopia SEM, poi interpretazione dei reperti. Narrazione, minigiochi
+e quiz collegano ciò che si vede alle domande della ricerca.
 
-L’esperienza è accessibile dal browser desktop e non richiede installazione.
-L’interfaccia è disponibile in italiano e inglese; la raccolta analitica
-facoltativa viene attivata soltanto dopo una scelta esplicita del visitatore.
+<p align="center">
+  <img src="docs/img/gioco-1.png" width="480" alt="Stage 2: esplorazione del sottosuolo">
+</p>
+<p align="center">
+  <img src="docs/img/gioco-2.png" width="480" alt="Minigioco SEM: fascio elettronico sul campione">
+</p>
+<p align="center">
+  <img src="docs/img/gioco-4.png" width="480" alt="Minigioco IR: interpretazione dello spettro">
+</p>
+
+Il gioco richiede un computer e non richiede installazione nel browser. La
+telemetria analitica facoltativa si attiva soltanto dopo una scelta esplicita.
+
+## Dove è stato usato e stato attuale
+
+È stato presentato al congresso SIMP (15-16 settembre 2026) e a Science4All
+UniPD (26-27 settembre 2026). Il servizio su pot-tales.it è stato online
+dall'11 al 27 settembre 2026; il servizio è **offline e riattivabile** per nuovi eventi.
 
 ## Il team
 
+Dodici partecipanti, tra archeologia, informatica e audiovisivo:
 F. M. Valente · C. D. Baeza Vega · D. Favale · L. Mocchiutti · I. Malliota ·
 I. Garcia Trivès · T. T. Kahveci · R. Buso · A. Cipriani · F. Marcon ·
-I. Rossi · L. Soligo
+I. Rossi · L. Soligo.
 
-## Dietro le quinte
+## Provarlo in locale
 
-Il gioco usa Phaser 3 e TypeScript/Vite, con un backend Go e stato temporaneo
-su MongoDB e Redis. Lo stack di produzione gira su Docker Swarm dietro Traefik
-e integra osservabilità Elastic, telemetria RUM, controlli esterni, backup ed
-esportazione dei dati.
-
-Per provare il progetto in locale:
+Servono Git, Docker con Compose e `make`. Da un terminale nella directory del progetto:
 
 ```bash
 cp .env.example .env
 make dev-up
 ```
 
-I riferimenti per chi sviluppa o gestisce il servizio sono volutamente
-separati dalla presentazione:
+Aprire `http://localhost`. Su Windows usare Git Bash o WSL con Docker Desktop.
+Per limitare il download iniziale della cronologia degli asset:
 
-- [Funzionalità e verifiche esterne](features.md)
-- [Sviluppo locale](docs/SVILUPPO.md)
-- [Architettura](docs/ARCHITETTURA.md)
-- [Esercizio e recovery](docs/ESERCIZIO.md)
-- [Provisioning della macchina](provisioning/README.md)
-- [Osservabilità come codice](terraform/elk/README.md)
+```bash
+git clone --filter=blob:none https://github.com/subnetMusk/pot-tales.git
+```
 
-`make help` elenca i comandi disponibili e rimane la fonte operativa più
-rapida per orientarsi nel repository.
+## Documentazione tecnica
+
+Il gioco usa Phaser 3, TypeScript e Vite; il backend Go conserva lo stato su
+MongoDB e Redis. Il deploy usa Docker Swarm e Traefik, con osservabilità Elastic,
+sorveglianza esterna, backup e procedure di recupero.
+
+Il [manuale](docs/README.md) collega architettura, sviluppo e gestione del servizio.
+`make help` elenca i comandi disponibili.
+
+## Licenza e crediti
+
+Codice e documentazione tecnica: [MIT](LICENSE).
+Asset del gioco e screenshot: [licenza separata](ASSETS-LICENSE.md),
+tutti i diritti riservati ai rispettivi autori. Le dipendenze e i materiali
+di terzi mantengono le proprie licenze.

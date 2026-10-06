@@ -49,8 +49,7 @@ func TestPositionRecorded(t *testing.T) {
 	}
 }
 
-// La durata non deve dipendere dall'accumulatore, che in una partita reale parte
-// da zero e ci resta: i casi partono tutti da li', come in produzione.
+// La durata usa solo gli istanti del ciclo di vita della partita.
 func TestDurataMs(t *testing.T) {
 	creazione := time.Date(2026, 9, 15, 10, 0, 0, 0, time.UTC)
 
@@ -58,7 +57,6 @@ func TestDurataMs(t *testing.T) {
 		nome     string
 		creato   time.Time
 		ultimo   time.Time
-		accumulo int64
 		attesaMs int64
 	}{
 		{
@@ -67,15 +65,15 @@ func TestDurataMs(t *testing.T) {
 			attesaMs: 0,
 		},
 		{
-			nome:   "accumulatore fermo a zero",
+			nome:   "durata dall'inizio all'ultimo ping",
 			creato: creazione, ultimo: creazione.Add(90 * time.Second),
 			attesaMs: 90000,
 		},
 		{
-			// Uno stato precedente a created_at non ha altro da cui misurare.
+			// Senza created_at la durata non è ricostruibile.
 			nome:   "stato senza istante di creazione",
-			creato: time.Time{}, ultimo: creazione, accumulo: 1234,
-			attesaMs: 1234,
+			creato: time.Time{}, ultimo: creazione,
+			attesaMs: 0,
 		},
 		{
 			nome:   "ultimo ping anteriore alla creazione",
@@ -89,7 +87,6 @@ func TestDurataMs(t *testing.T) {
 			var stato GameState
 			stato.CreatedAt = c.creato
 			stato.Meta.LastPing = c.ultimo
-			stato.Data.TotalPlayTimeMs = c.accumulo
 
 			if got := stato.DurataMs(); got != c.attesaMs {
 				t.Errorf("DurataMs() = %d, atteso %d", got, c.attesaMs)

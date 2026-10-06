@@ -139,7 +139,7 @@ for (let i = 0; i < N; i++) {
   partite.push({
     _id: token,
     created_at: new Date(Date.now() - i * 1000),
-    data: { scene_id: 'scena-' + (i % 5 + 1), x: i % 1920, y: i % 1080, total_time_ms: i * 137 },
+    data: { scene_id: 'scena-' + (i % 5 + 1), x: i % 1920, y: i % 1080 },
     meta: { last_ping: new Date(), warnings: i % 3 }
   });
 }

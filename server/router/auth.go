@@ -195,7 +195,6 @@ func (a *authSvc) create(w http.ResponseWriter, r *http.Request) {
 	gameDoc.Data.SceneID = "Stage1"
 	gameDoc.Data.X = 0.0
 	gameDoc.Data.Y = 0.0
-	gameDoc.Data.TotalPlayTimeMs = 0
 	gameDoc.Meta.LastPing = now
 	gameDoc.Meta.Warnings = 0
 	gameDoc.Meta.AnalyticsConsent = reqPayload.ConsentGiven

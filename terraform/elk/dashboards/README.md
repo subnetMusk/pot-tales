@@ -2,8 +2,7 @@
 
 Export dei saved object di Kibana, uno per Space. Terraform li reimporta:
 `dashboards.tf` costruisce una risorsa per ogni file `.ndjson` trovato qui
-sotto, quindi aggiungere una dashboard e' aggiungere un file, non modificare il
-codice.
+sotto.
 
 ```
 esercizio/<nome>.ndjson           export dello Space di esercizio
@@ -14,42 +13,51 @@ evento/<nome>.ndjson.versione
 
 ## I due Space
 
-**`esercizio/`** — vista tecnica: salute del servizio, risorse della macchina,
+**`esercizio/`**: vista tecnica: salute del servizio, risorse della macchina,
 contenimento e imbuto di partita. Non destinata alla distribuzione.
 
-**`evento/`** — vista divulgativa, destinata alla condivisione. Le dashboard
+**`evento/`**: vista divulgativa, destinata alla condivisione. Le dashboard
 mostrano gli aggregati dei fatti di partita; Discover consente di consultare i
 singoli documenti pseudonimizzati dello stesso indice e nessun dato tecnico.
 
-Cio' che finisce in `evento/` viene condiviso: prima di esportare va verificato che i
+Ciò che finisce in `evento/` viene condiviso: prima di esportare va verificato che i
 pannelli non mostrino indirizzi, identificativi di sessione o nomi di host. Il ruolo
-`osservabilita_evento` limita gli indici leggibili, ma non puo' impedire a un pannello
-di riportare un valore gia' aggregato.
-
-## Perche' non sono generate da Terraform
-
-Una dashboard si disegna sui dati: quali campi esistono davvero, come si
-distribuiscono, quali soglie separano il normale dall'anomalo. Dichiararla in
-codice prima di aver visto i dati significa scriverne una che interroga campi
-ipotetici. Il codice qui governa il ciclo di vita dell'export, non il suo
-contenuto.
+`osservabilita_evento` limita gli indici leggibili, ma non può impedire a un pannello
+di riportare un valore già aggregato.
 
 ## Ciclo
 
+Eseguire i comandi dalla radice del repository. La password va fornita tramite
+ambiente, senza scriverla nella riga di comando. In una shell Bash:
+
 ```bash
-# 1. Comporre la dashboard su Kibana, nello Space di destinazione.
+# 1. Comporre la dashboard in Kibana nello Space di destinazione.
 
-# 2. Esportarla. La versione di Kibana e' letta dall'istanza, non passata a mano.
-KIBANA_PASSWORD=... make dashboards-export SPAZIO=esercizio \
+# 2. Impostare l’endpoint e leggere la password senza eco.
+export KIBANA_URL=http://kibana.localhost    # sviluppo, senza base path
+export KIBANA_USERNAME=elastic
+read -r -s -p 'Password Kibana: ' KIBANA_PASSWORD
+printf '\n'
+export KIBANA_PASSWORD
+make dashboards-export SPAZIO=esercizio \
   NOME=servizio-funnel ID=esercizio-servizio-funnel
+unset KIBANA_PASSWORD
 
-# 3. Versionare i due file prodotti.
-git add terraform/elk/dashboards/esercizio/servizio-funnel.ndjson \
-        terraform/elk/dashboards/esercizio/servizio-funnel.ndjson.versione
-
-# 4. Reimportare, qui o su un'istanza ricostruita.
-make dashboards-import
+# 3. Esaminare il diff; includere entrambi i file quando si prepara il commit.
+git diff -- terraform/elk/dashboards/esercizio/servizio-funnel.ndjson \
+  terraform/elk/dashboards/esercizio/servizio-funnel.ndjson.versione
 ```
+
+In produzione l’export va eseguito da un contesto che raggiunge l’API Kibana;
+`KIBANA_URL` include il base path `/osservabilita`. Non usare `localhost:5601`
+sull’host Swarm, dove la porta non è pubblicata.
+
+Per reimportare, rieseguire il bootstrap di produzione con
+`sudo systemctl restart fleet-bootstrap.service`, oppure l’apply della
+[procedura locale](../../../docs/MONITORING_LOCALE.md). Il target
+`make dashboards-import` è un’alternativa per chi ha già predisposto rete,
+endpoint, credenziali e `TF_STATE_DIR` dello stesso ambiente; i suoi default
+(`host` e stato nel checkout) non sono quelli del bootstrap di produzione.
 
 ## Vincolo di versione
 
@@ -62,8 +70,8 @@ Elastic dichiara compatibile un export solo verso:
 Il file `.versione` accanto a ogni export registra la versione di provenienza, e
 `dashboards.tf` la confronta con la variabile `kibana_version` prima di
 importare. Un export fuori intervallo, o privo del file di versione, ferma il
-`plan` con il nome del file: fuori intervallo l'importazione puo' riuscire e
-lasciare oggetti che poi non si aprono, il che e' peggio di un errore.
+`plan` con il nome del file: fuori intervallo l'importazione può riuscire e
+lasciare oggetti che poi non si aprono.
 
 Dopo un aggiornamento dello stack che superi l'intervallo, gli export vanno
 rifatti dall'istanza aggiornata.
@@ -72,14 +80,13 @@ rifatti dall'istanza aggiornata.
 
 `coreMigrationVersion` e `typeMigrationVersion`, presenti su ogni oggetto:
 Kibana li legge in importazione per decidere quali migrazioni applicare. Un file
-riscritto da uno strumento che li perde viene importato come se fosse gia'
+riscritto da uno strumento che li perde viene importato come se fosse già
 aggiornato.
 
-Per lo stesso motivo l'export non e' riformattato ne' riordinato: `export.sh`
-scrive il corpo della risposta dell'API cosi' com'e' e verifica che entrambi i
-campi siano presenti su ogni riga prima di salvarlo. Ne segue che l'ordine delle
-righe puo' variare fra due export della stessa dashboard, e la differenza
-apparire piu' ampia di quanto sia: e' il prezzo di non riscrivere il file.
+Per lo stesso motivo l'export non è riformattato né riordinato: `export.sh`
+scrive il corpo della risposta dell'API così com'è e verifica che entrambi i
+campi siano presenti su ogni riga prima di salvarlo. L'ordine delle righe può variare fra due export della stessa dashboard e
+produrre un diff più ampio delle modifiche ai pannelli.
 
 ## Esportazione mirata e data view
 

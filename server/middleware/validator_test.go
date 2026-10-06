@@ -26,7 +26,7 @@ func validatorConRotte(rotte ...RouteConfig) *Validator {
 // Il limite deve valere anche per gli handler che leggono il body per conto
 // proprio, non solo per la validazione di schema.
 func TestLimiteSulBodyValeAnchePerGliHandler(t *testing.T) {
-	v := validatorConRotte(RouteConfig{Method: http.MethodPost, Path: "/log"})
+	v := validatorConRotte(RouteConfig{Method: http.MethodPost, Path: "/body-test"})
 
 	var readErr error
 	next := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -34,7 +34,7 @@ func TestLimiteSulBodyValeAnchePerGliHandler(t *testing.T) {
 	})
 
 	body := bytes.Repeat([]byte("a"), int(maxBodyBytes)+1)
-	req := httptest.NewRequest(http.MethodPost, "/log", bytes.NewReader(body))
+	req := httptest.NewRequest(http.MethodPost, "/body-test", bytes.NewReader(body))
 	// Lunghezza non dichiarata, come in un corpo chunked: il rifiuto anticipato
 	// non scatta e il limite resta affidato alla lettura.
 	req.ContentLength = -1
@@ -62,7 +62,7 @@ func (l *lettoreSpia) Read(p []byte) (int, error) {
 // Con una lunghezza dichiarata oltre il limite il rifiuto deve arrivare prima
 // di qualunque lettura: leggere farebbe partire il 100 Continue verso il client.
 func TestContentLengthOltreIlLimiteRespintoSenzaLeggere(t *testing.T) {
-	v := validatorConRotte(RouteConfig{Method: http.MethodPost, Path: "/log"})
+	v := validatorConRotte(RouteConfig{Method: http.MethodPost, Path: "/body-test"})
 
 	chiamato := false
 	next := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -70,7 +70,7 @@ func TestContentLengthOltreIlLimiteRespintoSenzaLeggere(t *testing.T) {
 	})
 
 	spia := &lettoreSpia{Reader: bytes.NewReader(bytes.Repeat([]byte("a"), int(maxBodyBytes)+1))}
-	req := httptest.NewRequest(http.MethodPost, "/log", spia)
+	req := httptest.NewRequest(http.MethodPost, "/body-test", spia)
 	req.ContentLength = maxBodyBytes + 1
 	rec := httptest.NewRecorder()
 
@@ -116,7 +116,7 @@ func TestBodySenzaLunghezzaOltreIlLimiteRisponde413(t *testing.T) {
 }
 
 func TestBodySottoIlLimitePassa(t *testing.T) {
-	v := validatorConRotte(RouteConfig{Method: http.MethodPost, Path: "/log"})
+	v := validatorConRotte(RouteConfig{Method: http.MethodPost, Path: "/body-test"})
 
 	var letti int
 	var readErr error
@@ -126,7 +126,7 @@ func TestBodySottoIlLimitePassa(t *testing.T) {
 	})
 
 	body := bytes.Repeat([]byte("a"), 1024)
-	req := httptest.NewRequest(http.MethodPost, "/log", bytes.NewReader(body))
+	req := httptest.NewRequest(http.MethodPost, "/body-test", bytes.NewReader(body))
 	rec := httptest.NewRecorder()
 
 	v.Handler(next).ServeHTTP(rec, req)
@@ -164,13 +164,13 @@ func TestRottaFuoriWhitelistRisponde404(t *testing.T) {
 
 // Il metodo fa parte della chiave di whitelist.
 func TestMetodoSbagliatoRisponde404(t *testing.T) {
-	v := validatorConRotte(RouteConfig{Method: http.MethodGet, Path: "/game/timer", RequiresAuth: true})
+	v := validatorConRotte(RouteConfig{Method: http.MethodGet, Path: "/game/position", RequiresAuth: true})
 
 	next := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		t.Fatal("handler a valle invocato con metodo non dichiarato")
 	})
 
-	req := httptest.NewRequest(http.MethodPost, "/game/timer", nil)
+	req := httptest.NewRequest(http.MethodPost, "/game/position", nil)
 	rec := httptest.NewRecorder()
 
 	v.Handler(next).ServeHTTP(rec, req)
@@ -181,13 +181,13 @@ func TestMetodoSbagliatoRisponde404(t *testing.T) {
 }
 
 func TestRottaAutenticataSenzaCookieRisponde401(t *testing.T) {
-	v := validatorConRotte(RouteConfig{Method: http.MethodGet, Path: "/game/timer", RequiresAuth: true})
+	v := validatorConRotte(RouteConfig{Method: http.MethodGet, Path: "/game/position", RequiresAuth: true})
 
 	next := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		t.Fatal("handler a valle invocato senza sessione valida")
 	})
 
-	req := httptest.NewRequest(http.MethodGet, "/game/timer", nil)
+	req := httptest.NewRequest(http.MethodGet, "/game/position", nil)
 	rec := httptest.NewRecorder()
 
 	v.Handler(next).ServeHTTP(rec, req)

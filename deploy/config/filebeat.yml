@@ -42,6 +42,15 @@ filebeat.inputs:
           process_array: false
           max_depth: 1
 
+      # L'identità usa il JSON originale, che include il timestamp del fatto.
+      # Una rilettura dello stesso log mantiene lo stesso ID.
+      - fingerprint:
+          when.equals:
+            event.dataset: gioco.partita
+          fields: ["message"]
+          target_field: "@metadata._id"
+          method: sha256
+
   # Access log del bordo. Il file locale completo resta la sorgente di
   # CrowdSec; la copia spedita a Elasticsearch non conserva indirizzi o
   # credenziali HTTP, che non servono alle dashboard.
@@ -66,6 +75,14 @@ filebeat.inputs:
             - "request_Authorization"
             - "request_Cookie"
           ignore_missing: true
+
+      # I campi identificativi non contengono IP né credenziali. StartUTC e
+      # RequestCount distinguono anche richieste altrimenti identiche.
+      - fingerprint:
+          fields: ["StartUTC", "RequestCount", "RequestMethod", "RequestPath", "RouterName", "DownstreamStatus", "Duration"]
+          ignore_missing: true
+          target_field: "@metadata._id"
+          method: sha256
 
 output.elasticsearch:
   hosts: ["https://es01:9200"]

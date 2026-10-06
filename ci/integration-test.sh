@@ -10,8 +10,8 @@ GO_IMAGE=${GO_IMAGE:-golang:1.26.6@sha256:0d1d3a794be25f809dd2cb3160d8c73276c405
 MONGO_IMAGE=${MONGO_IMAGE:-mongo:8.2.12@sha256:e0ce8c35124d4a9f9785532d1f268f39e9728ffa1cb38f46fa482436424c4bd3}
 REDIS_IMAGE=${REDIS_IMAGE:-redis:8.10.0-alpine@sha256:978f0e01593e65eed801f2402944efcd936d43b5027e4908a7897baf88ed6241}
 
-RETE=it-net
-PREFISSO=it
+RETE=${IT_NETWORK:-it-net}
+PREFISSO=${IT_PREFIX:-it}
 
 pulisci() {
   docker rm -f "$PREFISSO-db" "$PREFISSO-redis" >/dev/null 2>&1
@@ -40,8 +40,9 @@ if [ "$pronto" -ne 1 ]; then
 fi
 
 MSYS_NO_PATHCONV=1 docker run --rm --network "$RETE" \
-  -v "$(pwd)":/src -w /src/server \
+  -v "$(pwd)":/src:ro -w /src/server \
   -v pi-go-mod:/go/pkg/mod -v pi-go-build:/root/.cache/go-build \
   -e MONGO_URI="mongodb://$PREFISSO-db:27017" \
   -e REDIS_URL="redis://$PREFISSO-redis:6379" \
+  -e GOMAXPROCS="${GOMAXPROCS:-}" -e GOFLAGS="${GOFLAGS:-}" \
   -e COVERAGE_FLOOR="${COVERAGE_FLOOR:-}" -e COVERAGE_TARGET="${COVERAGE_TARGET:-}"   -e GO_TAGS=integration   "$GO_IMAGE" ${COMANDO:-sh -c "go test -tags=integration -count=1 ./..."}
