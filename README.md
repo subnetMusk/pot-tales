@@ -41,21 +41,12 @@ telemetria analitica facoltativa si attiva soltanto dopo una scelta esplicita.
 UniPD (26–27 settembre 2026). Il servizio su pot-tales.it è stato online
 dall'11 al 27 settembre 2026; oggi è **offline e riattivabile** per nuovi eventi.
 
-La relazione di esercizio sarà disponibile come PDF corretto in una Release
-dedicata, separata dal codice e dalla documentazione di prodotto.
-
 ## Il team
 
 Dodici partecipanti, tra archeologia, informatica e audiovisivo:
 F. M. Valente · C. D. Baeza Vega · D. Favale · L. Mocchiutti · I. Malliota ·
 I. Garcia Trivès · T. T. Kahveci · R. Buso · A. Cipriani · F. Marcon ·
 I. Rossi · L. Soligo.
-
-La cronologia del repository documenta i contributi di R. Buso al frontend,
-di A. Cipriani e I. Rossi alle scene e agli asset, di F. Marcon alla
-configurazione dei servizi e di L. Soligo a backend, infrastruttura e
-documentazione. Gli altri partecipanti hanno contribuito al progetto
-multidisciplinare; non attribuiamo ruoli individuali non verificati.
 
 ## Provarlo in locale
 
@@ -85,6 +76,6 @@ Il [manuale](docs/README.md) collega architettura, sviluppo e gestione del servi
 ## Licenza e crediti
 
 Codice e documentazione tecnica: [MIT](LICENSE).
-Asset del gioco e screenshot: [licenza separata restrittiva](ASSETS-LICENSE.md),
+Asset del gioco e screenshot: [licenza separata](ASSETS-LICENSE.md),
 tutti i diritti riservati ai rispettivi autori. Le dipendenze e i materiali
 di terzi mantengono le proprie licenze.

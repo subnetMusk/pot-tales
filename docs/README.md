@@ -20,7 +20,3 @@ utilizzabili per un nuovo esercizio.
 
 `make help` elenca i comandi. Il [prototipo Swarm](../swarm-prototype/README.md)
 è un riferimento storico; il deploy corrente usa `deploy/stack.yml`.
-
-La relazione sull'esercizio pubblico del settembre 2026 è un artefatto storico
-separato: il PDF corretto sarà allegato a una Release dedicata. Non fa parte
-del manuale e non è ancora pubblicato.
