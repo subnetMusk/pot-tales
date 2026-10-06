@@ -28,18 +28,24 @@ Il percorso attraversa tre tappe: spettroscopia infrarossa (IR), microanalisi
 EDS e microscopia SEM, poi interpretazione dei reperti. Narrazione, minigiochi
 e quiz collegano ciò che si vede alle domande della ricerca.
 
-![Laboratorio e prima tappa](docs/img/gioco-1.png)
-![Esplorazione e analisi](docs/img/gioco-2.png)
-![Interpretazione dei reperti](docs/img/gioco-4.png)
+<p align="center">
+  <img src="docs/img/gioco-1.png" width="480" alt="Stage 2: esplorazione del sottosuolo">
+</p>
+<p align="center">
+  <img src="docs/img/gioco-2.png" width="480" alt="Minigioco SEM: fascio elettronico sul campione">
+</p>
+<p align="center">
+  <img src="docs/img/gioco-4.png" width="480" alt="Minigioco IR: interpretazione dello spettro">
+</p>
 
 Il gioco richiede un computer e non richiede installazione nel browser. La
 telemetria analitica facoltativa si attiva soltanto dopo una scelta esplicita.
 
 ## Dove è stato usato e stato attuale
 
-È stato presentato al congresso SIMP (15–16 settembre 2026) e a Science4All
-UniPD (26–27 settembre 2026). Il servizio su pot-tales.it è stato online
-dall'11 al 27 settembre 2026; oggi è **offline e riattivabile** per nuovi eventi.
+È stato presentato al congresso SIMP (15-16 settembre 2026) e a Science4All
+UniPD (26-27 settembre 2026). Il servizio su pot-tales.it è stato online
+dall'11 al 27 settembre 2026; il servizio è **offline e riattivabile** per nuovi eventi.
 
 ## Il team
 
@@ -61,7 +67,7 @@ Aprire `http://localhost`. Su Windows usare Git Bash o WSL con Docker Desktop.
 Per limitare il download iniziale della cronologia degli asset:
 
 ```bash
-git clone --filter=blob:none https://github.com/subnetMusk/progetti_innovativi.git
+git clone --filter=blob:none https://github.com/subnetMusk/pot-tales.git
 ```
 
 ## Documentazione tecnica
