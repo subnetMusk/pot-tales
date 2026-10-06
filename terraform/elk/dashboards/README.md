@@ -14,19 +14,19 @@ evento/<nome>.ndjson.versione
 
 ## I due Space
 
-**`esercizio/`** — vista tecnica: salute del servizio, risorse della macchina,
+**`esercizio/`**: vista tecnica: salute del servizio, risorse della macchina,
 contenimento e imbuto di partita. Non destinata alla distribuzione.
 
-**`evento/`** — vista divulgativa, destinata alla condivisione. Le dashboard
+**`evento/`**: vista divulgativa, destinata alla condivisione. Le dashboard
 mostrano gli aggregati dei fatti di partita; Discover consente di consultare i
 singoli documenti pseudonimizzati dello stesso indice e nessun dato tecnico.
 
-Cio' che finisce in `evento/` viene condiviso: prima di esportare va verificato che i
+Ciò che finisce in `evento/` viene condiviso: prima di esportare va verificato che i
 pannelli non mostrino indirizzi, identificativi di sessione o nomi di host. Il ruolo
 `osservabilita_evento` limita gli indici leggibili, ma non può impedire a un pannello
 di riportare un valore già aggregato.
 
-## Perche' non sono generate da Terraform
+## Perché non sono generate da Terraform
 
 Una dashboard si disegna sui dati: quali campi esistono davvero, come si
 distribuiscono, quali soglie separano il normale dall'anomalo. Dichiararla in
@@ -36,20 +36,37 @@ contenuto.
 
 ## Ciclo
 
+Eseguire i comandi dalla radice del repository. La password va fornita tramite
+ambiente, senza scriverla nella riga di comando. In una shell Bash:
+
 ```bash
-# 1. Comporre la dashboard su Kibana, nello Space di destinazione.
+# 1. Comporre la dashboard in Kibana nello Space di destinazione.
 
-# 2. Esportarla. La versione di Kibana è letta dall'istanza, non passata a mano.
-KIBANA_PASSWORD=... make dashboards-export SPAZIO=esercizio \
+# 2. Impostare l’endpoint e leggere la password senza eco.
+export KIBANA_URL=http://kibana.localhost    # sviluppo, senza base path
+export KIBANA_USERNAME=elastic
+read -r -s -p 'Password Kibana: ' KIBANA_PASSWORD
+printf '\n'
+export KIBANA_PASSWORD
+make dashboards-export SPAZIO=esercizio \
   NOME=servizio-funnel ID=esercizio-servizio-funnel
+unset KIBANA_PASSWORD
 
-# 3. Versionare i due file prodotti.
-git add terraform/elk/dashboards/esercizio/servizio-funnel.ndjson \
-        terraform/elk/dashboards/esercizio/servizio-funnel.ndjson.versione
-
-# 4. Reimportare, qui o su un'istanza ricostruita.
-make dashboards-import
+# 3. Esaminare il diff; includere entrambi i file quando si prepara il commit.
+git diff -- terraform/elk/dashboards/esercizio/servizio-funnel.ndjson \
+  terraform/elk/dashboards/esercizio/servizio-funnel.ndjson.versione
 ```
+
+In produzione l’export va eseguito da un contesto che raggiunge l’API Kibana;
+`KIBANA_URL` include il base path `/osservabilita`. Non usare `localhost:5601`
+sull’host Swarm, dove la porta non è pubblicata.
+
+Per reimportare, rieseguire il bootstrap di produzione con
+`sudo systemctl restart fleet-bootstrap.service`, oppure l’apply della
+[procedura locale](../../../docs/MONITORING_LOCALE.md). Il target
+`make dashboards-import` è un’alternativa per chi ha già predisposto rete,
+endpoint, credenziali e `TF_STATE_DIR` dello stesso ambiente; i suoi default
+(`host` e stato nel checkout) non sono quelli del bootstrap di produzione.
 
 ## Vincolo di versione
 

@@ -1,7 +1,8 @@
 # Architettura
 
-Com'è fatto il sistema e perché. Come avviarlo è in [SVILUPPO.md](SVILUPPO.md); come
-gestirlo in esercizio in [ESERCIZIO.md](ESERCIZIO.md).
+Componenti, confini di rete, stato di gioco e flussi dei dati. L'avvio locale
+è in [Sviluppo](SVILUPPO.md); le procedure operative sono in
+[Esercizio](ESERCIZIO.md).
 
 ## Componenti
 
@@ -20,14 +21,34 @@ inizia su `/play`, dopo la scelta privacy, mentre l'informativa completa è su
 `/privacy`. Il vecchio percorso `/info` non serve più una pagina separata e reindirizza
 alla home per non lasciare inutilizzabili eventuali collegamenti già distribuiti.
 
+### Mappa dei componenti in produzione
+
+Vista delle dipendenze applicative e dell'accesso all'API Docker. Le etichette
+indicano protocollo e rete; il routing Traefik usa file dichiarativi.
+
+```mermaid
+flowchart LR
+  browser[Browser desktop] -->|HTTPS| proxy[Traefik con bouncer CrowdSec]
+  proxy -->|HTTP su edge| nginx[Frontend nginx]
+  proxy -->|HTTP su edge| go[Backend Go]
+  go -->|MongoDB su data| mongo[MongoDB]
+  go -->|Redis su data| redis[Redis]
+  filebeat[Filebeat] -->|API Docker su socket| socket[Socket proxy]
+  infra[infra-agent] -->|API Docker su socket| socket
+  socket -->|Unix socket| daemon[Demone Docker]
+```
+
 ## Reti
 
 | Rete | Chi ci sta |
 |---|---|
-| `edge` / `proxy_net` | ciò che Traefik deve raggiungere |
-| `data` / `internal_net` | base dati e cache, **senza uscita a internet** |
-| `socket` | socket-proxy e i suoi soli consumatori |
-| `elastic` / `kibana_net` | osservabilità e registro dei pacchetti Elastic |
+| `edge` (produzione) | Traefik, frontend, backend e servizi con un percorso pubblico |
+| `data` (produzione) | backend, MongoDB e Redis; **senza uscita internet** |
+| `socket` (produzione) | socket-proxy, Filebeat e infra-agent |
+| `elastic` (produzione) | osservabilità, backend e client persistente; accesso al registro dei pacchetti |
+| `proxy_net`, `frontend_net` (sviluppo) | backend e servizi tecnici sulla prima, frontend e sandbox sulla seconda; Traefik su entrambe |
+| `internal_net` (sviluppo) | persistenza e osservabilità; **senza uscita internet** |
+| `kibana_net` (sviluppo) | uscita internet di Kibana |
 
 La rete dei dati è dichiarata `internal`: base dati e cache non hanno alcun motivo di
 raggiungere l'esterno, e impedirglielo è più economico che accorgersene dopo.
@@ -56,7 +77,7 @@ Zod lato client.
 nome sono `immutable` per un anno, gli asset di gioco hanno nomi stabili e quindi durata
 di un'ora, il documento di ingresso non va mai in cache perché dichiara quali artefatti
 caricare. Le postazioni ricaricano gli stessi asset molte volte al giorno: è l'intervento
-con più effetto sul carico reale.
+da verificare nelle misure del carico di una nuova apertura.
 
 ## Backend
 
@@ -107,11 +128,11 @@ una posizione salvata: prima di quel ping il client usa il punto di ingresso.
 
 ### Scritture confermate
 
-Sessioni e stato di gioco si scrivono con write concern `j:true`. Il default conferma
-quando il documento è in memoria: con il journal la conferma arriva dopo la scrittura su
-disco, e una scrittura confermata sopravvive a un arresto brusco. Il volume è minimo, il
-costo in latenza irrilevante, e la differenza è fra perdere le ultime scritture e non
-perdere nulla di confermato.
+Sessioni e stato di gioco usano write concern `j:true`: MongoDB conferma la
+scrittura dopo il journal su disco. Il journal consente il recupero delle
+scritture confermate dopo un arresto del processo; non protegge dalla perdita
+del disco o della macchina. Le copie dei dati sono descritte nel
+[provisioning](../provisioning/README.md#copia-di-sicurezza).
 
 ### Ritenzione
 
@@ -127,6 +148,33 @@ il cluster giallo in permanenza. Un indicatore sempre acceso non distingue nulla
 l'allarme sullo stato del cluster diventerebbe inutile proprio quando serve. Il prezzo è
 esplicito: perdere il nodo significa perdere gli indici, e i dati che devono sopravvivere
 passano dall'esportazione, non dal cluster.
+
+### Flusso dei dati di osservabilità
+
+Vista della consegna dei dati e degli allarmi, dall’alto verso il basso.
+Le frecce mostrano il flusso dei
+record; Kibana interroga Elasticsearch e vi scrive gli allarmi delle regole.
+
+```mermaid
+flowchart TB
+  game[Fatti backend: gioco.partita] --> fb[Filebeat]
+  logs[Log backend e container] --> fb
+  access[Access log Traefik] --> fb
+  fb --> es[Elasticsearch: dataset separati]
+  rum[RUM con consenso] --> apm[APM Server]
+  backend[Tracing backend] --> apm
+  agent[infra-agent: metriche] --> es
+  apm --> es
+  es --> ops[Kibana: Space esercizio]
+  es --> event[Kibana: Space evento]
+  ops -->|Regole: scrittura allarmi| alerts[Elasticsearch: indice allarmi]
+  alerts -->|Lettura e recapito| relay[alert-notifier e client persistente]
+  relay --> hc[Healthchecks esterno]
+```
+
+Lo Space evento legge soltanto `gioco.partita`; quello di esercizio include
+anche i dataset tecnici. I battiti host verso Healthchecks sono indipendenti
+dal percorso delle regole Kibana.
 
 ### Le tre sorgenti
 
@@ -200,22 +248,8 @@ completamento non c'è progresso salvato. Stage 2 ripristina sonda, laser, torre
 dello Shooter; Stage 3 i quiz risolti, e con tutti e tre risolti apre subito la porta, perché
 recap e porta partono solo dalla risposta corretta al terzo quiz.
 
-Le scene Phaser sono istanze riusate: `scene.start()` e `launch()` non le ricostruiscono, e
-gli inizializzatori dei campi di classe girano una volta sola per pagina. Lo stato di
-partita (flag di Stage 2 e Stage 3, picchi del minigioco dei grafici) sta quindi in
-`frontend/src/items/stageRunState.ts`, e le scene lo ricreano a ogni avvio: Stage 2 e
-Stage 3 in `init()`, prima che `create()` lo ricostruisca dai checkpoint, GraficoGame in
-`create()`. L'inventario vive nel registry del gioco, che sopravvive a tutte le scene, e lo
-svuota il menu a ogni apertura. Così si giocano più partite di fila nella stessa scheda
-senza ricaricare la pagina.
-
-Per la stessa ragione gli eventi di una scena (`scene.events`) sopravvivono allo shutdown:
-li svuota solo la distruzione della scena, che nel gioco non avviene. Un oggetto che vi
-registra un listener lo deve togliere quando viene distrutto
-(`frontend/src/items/sceneListeners.ts`, usato dal Player), e un gestore che deve
-scattare una volta per partita va registrato con `once`. Altrimenti, al riavvio della
-scena, il listener di un oggetto già distrutto scatta con `this.scene` non definito e
-l'eccezione blocca anche i listener della partita nuova.
+Per il riuso delle scene, lo stato e la rimozione dei listener consultare
+[Manutenzione delle scene](SVILUPPO.md#manutenzione-delle-scene).
 
 Il data stream contiene **fatti**, non una riga per partita. Con il consenso un singolo
 click su **Play** produce esattamente tre fatti iniziali: una `sessione_iniziata`, un
@@ -237,7 +271,7 @@ quindi le repliche del backend non emettono la stessa conclusione due volte.
 
 | Space | Indici | Contenuto |
 |---|---|---|
-| Esercizio | tutti | salute del servizio, risorse, contenimento, imbuto |
+| Esercizio | log, metriche, tracce, allarmi e fatti di gioco | salute del servizio, risorse, contenimento, imbuto |
 | Andamento evento | solo `gioco.partita` | affluenza e comportamento, nessuno stato macchina |
 
 Ruoli in sola lettura distinti, definiti come codice via provider Terraform. Le dashboard
@@ -257,8 +291,9 @@ Le notifiche del servizio sono legate alla **transizione di stato**: un secondo 
 di guasto mentre la destinazione è già in guasto non produce nulla. Per questo le classi
 sono separate su check distinti, e ciascuna transita per conto proprio.
 
-Due battiti — servizio e relay degli allarmi — cinque relay, che non scendono mai da soli
-ma solo su un segnale esplicito, e il check a calendario della copia notturna.
+Otto check: due battiti (servizio e recapito degli allarmi), cinque relay su
+segnale esplicito e un check a calendario per la copia notturna. Le cadenze
+sono definite nel [provisioning](../provisioning/README.md#gli-otto-check-da-creare-sul-pannello).
 
 ## Sicurezza
 
@@ -303,8 +338,6 @@ Alla chiusura si separano gli aggregati da archiviare dai dati individuali;
 un nuovo esercizio parte da dati vuoti e aggiorna contatti e informativa.
 
 ## Fragilità note
-
-Da conoscere prima di metterci mano.
 
 **Race sui certificati all'avvio in sviluppo.** In `docker-compose.monitoring.yml` `es01`
 dipende da `setup` con `condition: service_started` e non `service_healthy`, perché
@@ -363,41 +396,8 @@ Il client `surveillance-client` nella rete Elastic è riusato dai timer host con
 
 ## Riferimenti
 
-- [`provisioning/README.md`](../provisioning/README.md) — preparazione dell'host, sorveglianza, dati
-- [`terraform/README.md`](../terraform/README.md) — osservabilità come codice, stato Terraform
-- [`terraform/elk/README.md`](../terraform/elk/README.md) — Space, ruoli, utenze, dashboard
-- [`secrets/README.md`](../secrets/README.md) — secret dello stack
-- `deploy/stack.yml` — definizione dello stack di produzione
-
-## Mappa dei componenti
-
-```mermaid
-flowchart LR
-  browser[Browser desktop] -->|HTTPS| proxy[Traefik e CrowdSec]
-  proxy -->|edge| nginx[Frontend nginx]
-  proxy -->|edge| go[Backend Go]
-  go -->|data interna| mongo[MongoDB]
-  go -->|data interna| redis[Redis]
-  proxy -->|socket| socket[Socket proxy]
-  filebeat[Filebeat] -->|socket| socket
-  go -->|elastic| apm[APM Server]
-  apm --> es[Elasticsearch]
-```
-
-## Flusso dell'osservabilità
-
-```mermaid
-flowchart LR
-  game[Fatti backend: gioco.partita] --> fb[Filebeat]
-  logs[Log backend e container] --> fb
-  access[Access log Traefik] --> fb
-  fb --> es[Elasticsearch: dataset separati]
-  rum[RUM con consenso] --> apm[APM Server]
-  agent[Elastic Agent: metriche] --> es
-  apm --> es
-  es --> ops[Kibana: Space esercizio]
-  es --> event[Kibana: Space evento, solo gioco.partita]
-  ops --> alerts[Indice degli allarmi]
-  alerts --> relay[Timer host e client persistente]
-  relay --> hc[Healthchecks esterno]
-```
+- [`provisioning/README.md`](../provisioning/README.md): preparazione dell'host, sorveglianza, dati
+- [`terraform/README.md`](../terraform/README.md): osservabilità come codice, stato Terraform
+- [`terraform/elk/README.md`](../terraform/elk/README.md): Space, ruoli, utenze, dashboard
+- [`secrets/README.md`](../secrets/README.md): secret dello stack
+- [`deploy/stack.yml`](../deploy/stack.yml): definizione dello stack di produzione

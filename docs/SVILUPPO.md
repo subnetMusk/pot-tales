@@ -5,7 +5,7 @@ legge file di secret separati, vedi [ESERCIZIO.md](ESERCIZIO.md).
 
 ## Prerequisiti
 
-- Docker 20.10+ e Docker Compose v2
+- Docker Engine con Docker Compose 2.24.0+ (il monitoring usa `env_file.required`)
 - Node 24+ e Go 1.26+ solo se si compila fuori dai container
 - Almeno 4 GB di RAM liberi se si avvia anche lo stack Elastic
 
@@ -17,7 +17,7 @@ generato dai target stessi e non scritto a parte.
 ```bash
 cp .env.example .env      # compilare i valori, vedi sotto
 make dev-up               # applicazione, crea le reti condivise
-make monitoring-up        # facoltativo: stack Elastic
+make monitoring-up        # facoltativo: avvia Elastic, non completa il bootstrap Fleet
 ```
 
 L'ordine conta: il monitoring si attacca alle reti create dall'applicazione. Avviarlo
@@ -31,7 +31,10 @@ make dev-down             # ferma l'applicazione, i volumi restano intatti
 
 Lo stack Elastic è deliberatamente separato dall'applicazione: senza, l'avvio è di
 qualche decina di secondi invece di qualche minuto, e l'applicazione funziona lo stesso
-con APM disattivato. Conviene tenerlo spento finché non serve.
+con APM disattivato. Conviene tenerlo spento finché non serve. Per registrare gli agenti e importare
+le dashboard seguire il [bootstrap locale](MONITORING_LOCALE.md).
+La versione minima di Compose deriva da
+[`env_file.required`](https://docs.docker.com/reference/compose-file/services/#required).
 
 ## Variabili d'ambiente
 
@@ -52,9 +55,10 @@ generica: girano da inizio progetto, sono note a chiunque abbia visto il reposit
 la rotazione avviene di fatto alla generazione dei secret, che produce valori nuovi e
 distinti.
 
-I token di enrollment Fleet in `.env.example` sono segnaposto **identici fra loro**. I
-token reali sono per-policy: si generano dal modulo [terraform/elk](../terraform/elk/README.md)
-con `terraform output`, oppure da Kibana sotto Fleet.
+I token di enrollment Fleet sono per-policy. Compose legge i valori generati
+nei file `.env.fleet.server`, `.env.fleet.apm` e `.env.fleet.infra`; i
+segnaposto `FLEET_ENROLLMENT_TOKEN_*` del `.env.example` non li sostituiscono.
+La [procedura locale](MONITORING_LOCALE.md) descrive creazione e rinnovo.
 
 ## Routing locale
 
@@ -86,9 +90,33 @@ la protegge.
 ## Compilazione fuori dai container
 
 ```bash
-cd frontend && npm ci && npm run build
-cd server && go build ./...
+(cd frontend && npm ci && npm run build)
+(cd server && go build ./...)
 ```
+
+## Manutenzione delle scene
+
+Le scene Phaser sono istanze riusate: `scene.start()` e `launch()` non le ricostruiscono, e
+gli inizializzatori dei campi di classe girano una volta sola per pagina. Lo stato di
+partita (flag di Stage 2 e Stage 3, picchi del minigioco dei grafici) sta quindi in
+`frontend/src/items/stageRunState.ts`, e le scene lo ricreano a ogni avvio: Stage 2 e
+Stage 3 in `init()`, prima che `create()` lo ricostruisca dai checkpoint, GraficoGame in
+`create()`. L'inventario vive nel registry del gioco, che sopravvive a tutte le scene, e lo
+svuota il menu a ogni apertura. Così si giocano più partite di fila nella stessa scheda
+senza ricaricare la pagina.
+
+Per la stessa ragione gli eventi di una scena (`scene.events`) sopravvivono allo shutdown:
+li svuota solo la distruzione della scena, che nel gioco non avviene. Un oggetto che vi
+registra un listener lo deve togliere quando viene distrutto
+(`frontend/src/items/sceneListeners.ts`, usato dal Player), e un gestore che deve
+scattare una volta per partita va registrato con `once`. Altrimenti, al riavvio della
+scena, il listener di un oggetto già distrutto scatta con `this.scene` non definito e
+l'eccezione blocca anche i listener della partita nuova.
+
+## Traduzioni
+
+La [guida alle traduzioni Phaser](../frontend/public/assets/i18n/guide.md) descrive
+file JSON, nomi degli oggetti testo e cambio lingua.
 
 ## Sandbox
 

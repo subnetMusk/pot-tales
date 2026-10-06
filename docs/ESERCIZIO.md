@@ -2,23 +2,21 @@
 
 **Stato:** servizio offline, riattivabile. Le procedure descrivono il prodotto corrente.
 
-Come si gestisce il servizio in produzione. Due modi di leggere, secondo il momento:
+Procedure per l'operatore del servizio in produzione:
 
-- **[Momenti pianificati](#momenti-pianificati)** — accettazione della macchina,
+- **[Momenti pianificati](#momenti-pianificati)**; accettazione della macchina,
   installazione, primo deploy, passaggio in produzione, apertura al pubblico,
-  dismissione. Si legge prima, quando il guasto lo si sta prevenendo.
-- **[Intervento per sintomo](#intervento-per-sintomo)** — a guasto avvenuto. Organizzato
-  per ciò che si osserva, non per componente: chi interviene vede un guasto, non sa
-  ancora quale pezzo lo ha causato.
-
-Scritto per essere usato da chi non lo ha scritto. Dove un passo può essere sbagliato in
-modo non reversibile, il motivo è accanto: senza, la tentazione di saltarlo è forte
-proprio quando si ha fretta.
+  dismissione. Controlli da eseguire prima di ogni apertura.
+- **[Intervento per sintomo](#intervento-per-sintomo)**; diagnosi e recupero a partire dal sintomo osservato.
+- **[Verifiche esterne](#verifiche-esterne-e-superficie-pubblica)**: percorsi pubblici,
+  dashboard, esportazione e prova delle notifiche.
 
 I comandi si eseguono dalla radice del repository sulla macchina, salvo dove indicato.
-`STACK_NAME` vale `pi` se non diversamente configurato in `/etc/stack-deploy.env`.
+I comandi che usano il nome dello stack leggono `/etc/stack-deploy.env` in una
+shell dedicata e applicano il valore predefinito `pi`: non richiedono variabili
+lasciate da un comando precedente.
 
-**Regola che vale ovunque.** Un comando che finisce in `grep`, `head` o `tail` nasconde
+**Esito dei comandi.** Un comando che finisce in `grep`, `head` o `tail` nasconde
 il codice di uscita del comando vero. Se serve sapere se è andato a buon fine, va
 catturato prima della pipe.
 
@@ -27,21 +25,20 @@ catturato prima della pipe.
 
 ## Rimessa in esercizio
 
-Queste procedure valgono per un nuovo evento. Il servizio pubblico del settembre
-2026 è concluso; oggi il servizio è offline.
+Queste procedure valgono per un nuovo evento, con dati e credenziali nuovi.
 
 1. Preparare una macchina Ubuntu LTS con Docker Swarm e filesystem separati,
    seguendo il [provisioning](../provisioning/README.md). Come indicazione iniziale:
    4 vCPU, 16 GB di RAM e circa 150 GB SSD per lo stack completo; dimensionare
-   il solo livello applicativo separatamente (2 vCPU e 4–8 GB sono un punto di partenza).
+   il solo livello applicativo separatamente (2 vCPU e 4-8 GB sono un punto di partenza).
 2. Configurare `APP_HOST`, DNS, contatto ACME e TLS. Il dominio pot-tales.it
    richiede un nuovo record A prima di tornare raggiungibile.
 3. Generare segreti nuovi con `generate-secrets.sh`, configurare utenti delle
    dashboard e completare il bootstrap Fleet. Non ripristinare dati del vecchio evento.
 4. Ricostruire e scansionare le immagini, registrare i digest in
    `/etc/stack-deploy.env`. Il job GHCR resta abilitato sui push autorizzati;
-   Dependabot resta sospeso. Il rename GitHub cambia il percorso delle nuove
-   immagini: usare i digest prodotti dalla pipeline per quella revisione.
+   Dependabot resta sospeso. Dopo una rinomina del repository, usare il percorso e i digest prodotti
+   dalla pipeline per la revisione da distribuire.
 5. Installare tutti gli script di `provisioning/bin/`, incluso `es-curl.sh`.
    Configurare `STACK_NAME`, `ES_CURL_SERVICE` e gli otto check Healthchecks
    in `/etc/stack-surveillance.env`. Il client persistente dello stack deve
@@ -57,12 +54,11 @@ Queste procedure valgono per un nuovo evento. Il servizio pubblico del settembre
 La verifica locale degli artefatti non sostituisce questa prova dello stack
 completo, delle credenziali reali, del dominio e dei recapiti.
 
-# Momenti pianificati
+## Momenti pianificati
 
-## 1. Accettazione della macchina
+### 1. Accettazione della macchina
 
-Prima di installare qualunque cosa. È l'unico momento in cui rifiutare la macchina non
-costa nulla.
+Verificare hardware e accessi prima di installare il sistema.
 
 1. **Stato dei dischi.**
    ```
@@ -70,8 +66,8 @@ costa nulla.
    smartctl -a /dev/nvme1n1
    ```
    Guardare `Percentage Used`, `Data Units Written` e `Media and Data Integrity Errors`.
-   Un'unità molto usurata non è guasta e non verrà sostituita, ma è quella che cederà
-   per prima durante l'esercizio.
+   Registrare usura ed errori per seriale e concordare con il fornitore la
+   sostituzione di unità non adatte al carico previsto.
 2. **Annotare** indirizzo IPv4, eventuale prefisso IPv6, e credenziali di gestione.
 3. **Verificare l'uscita verso internet** dai registry che servono: Docker Hub, registry
    Elastic, GHCR, autorità di certificazione. Un filtro in uscita si manifesta come pull
@@ -81,13 +77,13 @@ Uscita: hardware accettato, indirizzi noti, nessun record DNS ancora creato.
 
 ---
 
-## 2. Installazione del sistema
+### 2. Installazione del sistema
 
 **È la fase irreversibile.** Il layout dei dischi si decide qui: correggerlo dopo
 significa ridurre un filesystem in uso.
 
 1. Sistema di ripristino, chiave SSH autorizzata, accesso.
-2. Installazione con il layout previsto (`provisioning/README.md`, "Layout"): volume di
+2. Installazione con il layout previsto ([Layout del provisioning](../provisioning/README.md#layout)): volume di
    sistema al minimo, volumi distinti per dati Docker, indici di Elasticsearch,
    diagnostica, copie ed esportazioni, **spazio abbondante non allocato nel volume
    group**.
@@ -113,7 +109,7 @@ findmnt
 
 ---
 
-## 3. Prerequisiti dell'host
+### 3. Prerequisiti dell'host
 
 1. Utente amministrativo nominale, SSH a sola chiave, login root disabilitato,
    autenticazione con password disabilitata.
@@ -142,14 +138,14 @@ findmnt
 
 ---
 
-## 4. Primo deploy
+### 4. Primo deploy
 
 Da eseguire con l'autorità di certificazione di prova e HSTS spento. Le ragioni sono al
 punto 6.
 
 1. Prelievo del repository, generazione dei segreti.
 2. Directory degli indici `/srv/data/elastic` a `1000:0`, modo `2770`, con il volume
-   montato (`provisioning/README.md`, "Layout"). Il deploy si ferma se non lo è.
+   montato ([Layout del provisioning](../provisioning/README.md#layout)). Il deploy si ferma se non lo è.
 3. `/etc/stack-deploy.env` compilato: hostname, recapito per l'autorità, digest delle
    immagini. **Le immagini vanno riferite per digest**, non per tag: lo stesso comando
    eseguito a distanza di tempo porterebbe in servizio contenuto diverso senza che nulla
@@ -159,31 +155,24 @@ punto 6.
    del certificato va acceso quando c'è un certificato vero da controllare.
 6. Deploy.
 
-### Verifica a stack acceso
+#### Verifica a stack acceso
 
-È la categoria di controllo che in questo progetto ha trovato più difetti. Non va
-compressa perché le fasi precedenti sono andate lisce, e va rifatta dopo ogni modifica
-allo stack. Le voci segnate sono state verificate sulla macchina di produzione il
-12 settembre 2026.
+Ripetere i controlli dopo ogni modifica allo stack e registrarne l'esito:
 
-- Tutti i servizi in esecuzione, nessuno in riavvio ciclico — *verificato*
-- Le dashboard rispondono sul percorso dedicato, dietro autenticazione — *verificato*
-- **L'indirizzo di provenienza arriva corretto al backend.** Le porte sono pubblicate in
-  `mode: host` proprio per questo: se arrivasse quello della rete interna, quote e
-  rilevamento vedrebbero tutto il traffico come un unico host
-- **I fatti di partita atterrano sull'indice separato** e non nella destinazione
-  predefinita di Filebeat. Se sbagliano indice, la vista divulgativa resta vuota e
-  l'unico modo di darle dei dati sarebbe darle anche i log di sistema — *verificato*
-- Un riavvio della macchina: lo stack deve tornare su da solo, senza interventi —
-  *verificato*: stack e bootstrap ripartiti da soli, certificato non riemesso,
-  pacchetto diagnostico prodotto allo spegnimento
+- Tutti i servizi raggiungono il numero di repliche previsto, senza riavvii ciclici.
+- Le dashboard rispondono dietro autenticazione; ciascuna credenziale resta entro
+  lo Space e gli indici assegnati.
+- Il backend riceve l'indirizzo del client, con porte pubblicate in `mode: host`.
+- I fatti di partita arrivano su `logs-gioco.partita-*`, separati dai log tecnici.
+- Dopo un riavvio lo stack e il bootstrap ripartono; lo stato ACME è conservato
+  e la raccolta diagnostica dello spegnimento è disponibile.
 
 Dopo ogni rilascio, `sudo stack-checkup.sh` ripete in un colpo solo i controlli sulla
-macchina e la verifica end-to-end (vedi `provisioning/README.md`).
+macchina e la verifica end-to-end (vedi [provisioning](../provisioning/README.md)).
 
 ---
 
-## 5. Sorveglianza esterna
+### 5. Sorveglianza esterna
 
 Da completare prima che la macchina resti non presidiata.
 
@@ -199,47 +188,37 @@ Da completare prima che la macchina resti non presidiata.
 4. Dimensionare il grace period di `backup-nightly` sulla durata reale della copia, non
    sul jitter del timer.
 
-**Stato al 13 settembre 2026:** passi 1-3 eseguiti con `healthchecks-drill.sh` (8 check
-su 8, segnale e rientro con HTTP 200, notifiche ricevute su Telegram); le notifiche di
-`stack-liveness` risultano attive. La copia notturna dura pochi secondi: l'ora di
-tolleranza di `backup-nightly` basta. Il canale email è assegnato ai check accanto a
-Telegram. Lo schedule di `backup-nightly` è in `Europe/Rome`: il 13 settembre era rimasto
-in UTC e il check è andato in allarme con la copia riuscita.
+Eseguire il [drill delle notifiche](#controlli-esterni-e-notifiche) e verificare
+segnale e rientro su ciascun check. Configurare almeno due canali di recapito
+indipendenti. Allineare calendario, fuso orario e tolleranza di `backup-nightly`
+alla [configurazione del provisioning](../provisioning/README.md#check-backup-nightly).
 
 ---
 
-## 6. Passaggio in produzione
+### 6. Passaggio in produzione
 
-Il rischio da evitare non è l'avviso di certificato, che è transitorio. È la
-**combinazione fra HSTS e un certificato rotto**, che il visitatore non può aggirare e
-che dura quanto la durata dichiarata.
+Con HSTS attivo un certificato non valido impedisce l’accesso al sito senza
+possibilità di aggirare l’errore nel browser, per la durata dichiarata.
 
 Nell'ordine, senza saltare passaggi:
 
 | # | Passo | HSTS | Autorità |
 |---|---|---|---|
 | 1 | Catena completa funzionante | spento | prova |
-| 2 | Cancellare il file di stato ACME dal volume | spento | — |
+| 2 | Cancellare il file di stato ACME dal volume | spento |; |
 | 3 | Passare alla produzione e riemettere | spento | produzione |
 | 4 | Verifica esterna della catena, da rete diversa e da telefono | spento | produzione |
 | 5 | Solo a verifica superata: `HSTS_MAX_AGE=86400` | acceso | produzione |
 | 6 | Accendere `TLS_HOST` nella sorveglianza | acceso | produzione |
 
-**Stato al 13 settembre 2026:** passi 1-4 completati. Certificato dell'autorità di
-produzione emesso e servito; la verifica esterna è superata da rete mobile e con SSL
-Labs (voto A, catena senza problemi, solo TLS 1.2 e 1.3).
+Il passo 5 richiede una decisione sulla durata dell'evento e sulla gestione del
+dominio dopo la chiusura. Il modello mantiene HSTS spento; abilitarlo soltanto
+dopo la verifica del certificato e registrare il valore scelto. Eseguire il
+passo 6 anche se HSTS resta spento.
 
-**Passo 5 non eseguito, per scelta.** L'esercizio dura due fine settimana di due giorni e
-la macchina viene dismessa a fine settembre: il guadagno di HSTS su una finestra così
-breve non giustifica il rischio di rendere il sito irraggiungibile per un errore
-all'ultimo momento. Il redirect da HTTP a HTTPS e il cookie di sessione `Secure` coprono
-già il caso principale. `HSTS_MAX_AGE` resta `0`.
-
-Il passo 6 si esegue comunque: il controllo del certificato non dipende da HSTS.
-
-**Il passo 2 non è facoltativo.** Il volume ACME sopravvive alla ridistribuzione: senza
-cancellarlo, il certificato di prova resta in cache e continua a essere servito mentre
-tutto sembra a posto.
+Il volume ACME sopravvive alla ridistribuzione: rimuovere lo stato di prova
+prima della nuova emissione, per evitare di continuare a servire il certificato
+di staging.
 
 **`stsPreload` resta `false` e il dominio non va mai sottoposto alla lista di
 precaricamento.** È l'unica variante del problema che sopravvive alla dismissione della
@@ -253,25 +232,28 @@ Il materiale con il codice QR si stampa **dopo** il passo 4, mai prima.
 
 ---
 
-## 7. Vigilia di una giornata di apertura
+### 7. Vigilia di una giornata di apertura
 
 - Predisporre e segnalare postazioni desktop accanto al QR: il gioco richiede un computer.
 - Usare un QR con provenienza, per esempio `?src=<evento>`.
 - Provare avvii contemporanei sul NAT della sala: i limiti sono tarati per una
   platea condivisa (burst 100), non per singolo utente.
-- Misurare il caricamento sulla rete della sede: come riferimento iniziale,
-  circa 32 MB per giocatore nei primi due minuti; ricontrollare dopo ogni build.
+- Misurare sulla rete della sede i byte trasferiti per giocatore nei primi
+  due minuti e il tempo
+  prima che il gioco diventi utilizzabile; ripetere dopo ogni build.
 - Conservare solo gli asset necessari nella build e valutare audio compresso con gli autori.
 
 
-Trenta minuti, il giorno prima. Serve a non scoprire un problema mentre la sala si
-riempie. `sudo stack-checkup.sh` copre i punti 2, 3 e l'integrità della copia del punto
-6; gli altri restano a mano.
+Eseguire i controlli il giorno prima di ogni apertura. `sudo stack-checkup.sh`
+copre i punti 2, 3 e l’integrità della copia del punto 6; gli altri restano manuali.
 
 1. Stato dei check: tutti verdi, nessuno in ritardo.
-2. Spazio libero sui volumi. La soglia da guardare è **85%**: Elasticsearch smette di
-   allocare shard, e al 95% impone agli indici il blocco in sola lettura, che si rimuove
-   solo a mano.
+2. Spazio libero sui volumi. Le soglie predefinite di Elasticsearch sono **85%** per limitare
+   nuove allocazioni, **90%** per tentare la riallocazione e **95%** per bloccare
+   le scritture degli indici coinvolti. Il blocco viene rimosso automaticamente
+   quando l’occupazione scende sotto la soglia alta (90%). Su un nodo singolo
+   non esiste un altro nodo verso cui spostare gli shard. Vedi le
+   [soglie di allocazione di Elasticsearch 8.19](https://www.elastic.co/guide/en/elasticsearch/reference/8.19/modules-cluster.html#disk-based-shard-allocation).
 3. **Contatori SMART dei dischi, per seriale.** Il nome del dispositivo non è stabile:
    fra il sistema di ripristino e quello installato `nvme0n1` e `nvme1n1` risultano
    invertiti, e possono cambiare fra un kernel e l'altro. Si legge il seriale di ogni
@@ -279,15 +261,13 @@ riempie. `sudo stack-checkup.sh` copre i punti 2, 3 e l'integrità della copia d
    ```bash
    for d in /dev/nvme?n1; do printf '%s %s\n' "$d" "$(sudo smartctl -i "$d" | awk -F': *' '/Serial Number/ {print $2}')"; sudo smartctl -A "$d" | grep -E 'Media and Data|Error Information|^Temperature:'; done
    ```
-   | Seriale | Disco | `Media and Data Integrity Errors` | Soglia di avviso della temperatura |
-   |---|---|---|---|
-   | `Y67S105STUHV` | Toshiba THNSN5512GPU7 | 0 | 78 °C |
-   | `S3W8NB0K413381` | Samsung PM981 | 3 | 81 °C |
+   Registrare per ciascun seriale i contatori all'accettazione e impostare
+   `SMART_RIFERIMENTI` in `/etc/stack-data.env` per il confronto automatico.
+   Confrontarli prima di ogni apertura. Un aumento di `Media and Data Integrity
+   Errors` richiede indagine sul disco; verificare le soglie di temperatura del
+   produttore. `Error Information Log Entries` può includere comandi non
+   supportati e va interpretato insieme al log degli errori.
 
-   Un contatore più alto del riferimento significa errori di integrità nuovi: si chiede
-   la sostituzione del disco indicando il seriale. `Error Information Log Entries` non è
-   un criterio: sul Samsung cresce con i comandi che il disco non supporta, compresi
-   quelli di `smartctl`.
 4. Il gioco si completa da una postazione, dall'inizio alla fine.
 5. Il sito risponde da rete cellulare, non solo dalla rete locale: è il percorso reale di
    chi arriva dal QR.
@@ -297,7 +277,7 @@ riempie. `sudo stack-checkup.sh` copre i punti 2, 3 e l'integrità della copia d
 
 ---
 
-## 8. Durante l'apertura
+### 8. Durante l'apertura
 
 L'obiettivo dichiarato è **zero interventi manuali**. Ciò che segue è osservazione, non
 manutenzione.
@@ -306,19 +286,21 @@ manutenzione.
   montano, e lo fa nel momento peggiore.
 - Un allarme si affronta con [l'intervento per sintomo](#intervento-per-sintomo).
 - **Se MongoDB si corrompe: copiare prima lo stato da parte, e solo dopo tentare il
-  recupero.** Ricreare il database a vuoto è la strada più rapida per tornare operativi
-  ed è l'ultima da scegliere, perché distrugge l'unica copia rimasta di un evento non
-  ripetibile.
-- Nessuno script di manutenzione deve contenere `--volumes`. `docker stack rm` non tocca
+  recupero.** La ricreazione a vuoto perde i dati
+  dell’evento ed è l’ultima scelta: seguire [Recupero dei dati](#recupero-dei-dati).
+- Non usare gli script di pulizia dello sviluppo durante l’esercizio: i
+  [modi di cleanup](../scripts/README.md#pulizia-e-reinstallazione) possono
+  eliminare dati e risorse di altri progetti. Evitare `--volumes` nelle operazioni
+  ordinarie di produzione. `docker stack rm` non tocca
   i volumi nominati; `docker compose down -v` li distrugge. È la differenza fra un
   riavvio e una perdita di dati, e la si sbaglia sotto pressione.
 
 ---
 
-## 9. Chiusura di una giornata
+### 9. Chiusura di una giornata
 
-1. Esportazione dei dati e **prelievo fuori dalla macchina**. È l'unico off-host reale
-   che non dipende da infrastruttura, e copre esattamente le finestre che contano.
+1. Esportare i dati e **prelevarli fuori dalla macchina**: è la copia fuori host
+   prevista per ogni giornata di apertura.
 2. Verificare che l'archivio prelevato si apra e contenga quanto atteso. Una copia mai
    riletta non è una copia.
 3. Annotare quanto è durata l'esportazione: serve a dimensionare il grace period e a
@@ -326,7 +308,7 @@ manutenzione.
 
 ---
 
-## 10. Dismissione
+### 10. Dismissione
 
 1. Esportazione finale, prelievo, **verifica di leggibilità prima di distruggere
    qualunque cosa**.
@@ -341,18 +323,15 @@ manutenzione.
 
 ---
 
----
+## Intervento per sintomo
 
-# Intervento per sintomo
+### Primi trenta secondi
 
-## Primi trenta secondi
-
-Prima di qualsiasi ipotesi, questi tre controlli in quest'ordine.
+Eseguire questi tre controlli nell’ordine indicato.
 
 ```bash
-sudo bash -c '. /etc/stack-deploy.env; docker stack services "$STACK_NAME"; docker stack ps "$STACK_NAME" --no-trunc --filter desired-state=running'
-h=$(sudo sed -n 's/^APP_HOST=//p' /etc/stack-deploy.env)
-curl -sk -o /dev/null -w '%{http_code}\n' --resolve "$h:443:127.0.0.1" "https://$h/health"
+sudo bash -c '. /etc/stack-deploy.env; : "${STACK_NAME:=pi}"; docker stack services "$STACK_NAME"; docker stack ps "$STACK_NAME" --no-trunc --filter desired-state=running'
+sudo bash -c '. /etc/stack-deploy.env; curl -sk -o /dev/null -w "%{http_code}\n" --resolve "$APP_HOST:443:127.0.0.1" "https://$APP_HOST/health"'
 journalctl -u stack-deploy.service -u fleet-bootstrap.service -n 50 --no-pager
 ```
 
@@ -362,26 +341,26 @@ l'entrypoint in chiaro reindirizza ogni richiesta. `-k` perché qui interessa ch
 backend risponda, non il certificato, che ha un controllo proprio.
 
 Lo stato dei servizi distingue subito le due situazioni che richiedono risposte
-opposte: **repliche a zero** significa che l'orchestratore non riesce a piazzare
-o avviare un task, e la causa è nella sua motivazione di rifiuto; **repliche a
+opposte: **repliche disponibili a zero con almeno una replica richiesta** indica un
+task non avviato o non schedulato: leggere la motivazione in `docker service ps`; **repliche a
 uno ma servizio che non risponde** significa che il processo gira e il problema
 è dentro, quindi si guardano i log.
 
 Se serve una raccolta completa da portare via prima di toccare altro:
 
 ```bash
-sudo bash -c '. /etc/stack-deploy.env; export STACK_NAME; /usr/local/bin/diagnostic-bundle.sh'    # scrive in /srv/diagnostics
+sudo bash -c '. /etc/stack-deploy.env; : "${STACK_NAME:=pi}"; export STACK_NAME; /usr/local/bin/diagnostic-bundle.sh'    # scrive in /srv/diagnostics
 ```
 
 ---
 
-## Il sito non risponde
+### Il sito non risponde
 
 **1. Lo stack è su?**
 
 ```bash
 docker stack ls
-sudo bash -c '. /etc/stack-deploy.env; docker stack services "$STACK_NAME"; docker stack ps "$STACK_NAME" --no-trunc --filter desired-state=running'
+sudo bash -c '. /etc/stack-deploy.env; : "${STACK_NAME:=pi}"; docker stack services "$STACK_NAME"; docker stack ps "$STACK_NAME" --no-trunc --filter desired-state=running'
 ```
 
 Se lo stack non c'è, riapplicalo. È idempotente e non tocca i volumi:
@@ -399,24 +378,24 @@ quando il deploy riesce solo al tentativo automatico successivo. Non lanciare un
 secondo `restart` prima che il primo abbia finito: fallisce con `update out of
 sequence` e l'unità riprova dopo 20 secondi.
 
-Il deploy si rifiuta di partire se un'immagine non è ancorata per digest o se
-un file di secret è vuoto. Sono i due messaggi più probabili: l'errore arriva
-**prima** di applicare metà stack, quindi lo stato non è mai a metà.
+Il deploy rifiuta immagini senza digest e secret assenti o vuoti prima
+dell’applicazione dello stack. Dopo l’avvio, verificare comunque la convergenza
+dei servizi: un errore successivo può lasciare un aggiornamento incompleto.
 
 **2. Il proxy è su ma il resto no?**
 
 ```bash
-docker service ps ${STACK_NAME}_proxy --no-trunc
-docker service logs ${STACK_NAME}_proxy --tail 100
+sudo bash -c '. /etc/stack-deploy.env; : "${STACK_NAME:=pi}"; docker service ps "${STACK_NAME}_proxy" --no-trunc'
+sudo bash -c '. /etc/stack-deploy.env; : "${STACK_NAME:=pi}"; docker service logs "${STACK_NAME}_proxy" --tail 100'
 ```
 
-Con `proxy` a `1/1` e i backend a zero, il sito risponde ma con errori del
-proxy: il guasto è a valle, non al bordo.
+Con `proxy` a `1/1` e nessuna replica backend disponibile, il proxy può
+rispondere con errori del servizio a valle.
 
 **3. Un servizio resta a `0/1`.**
 
 ```bash
-docker service ps ${STACK_NAME}_<servizio> --no-trunc --format '{{.CurrentState}} | {{.Error}}'
+sudo bash -c '. /etc/stack-deploy.env; : "${STACK_NAME:=pi}"; docker service ps "${STACK_NAME}_$1" --no-trunc' _ '<servizio>'
 ```
 
 La colonna dell'errore dice la causa senza bisogno di leggere i log. I rifiuti
@@ -427,12 +406,12 @@ di memoria insufficiente per il processo.
 riprogrammazione del solo servizio interessato.
 
 ```bash
-docker service update --force ${STACK_NAME}_<servizio>
+sudo bash -c '. /etc/stack-deploy.env; : "${STACK_NAME:=pi}"; docker service update --force "${STACK_NAME}_$1"' _ '<servizio>'
 ```
 
 ---
 
-## Le dashboard sono vuote o irraggiungibili
+### Le dashboard sono vuote o irraggiungibili
 
 **Credenziale rifiutata di continuo (richiesta che non si chiude).** È il
 sintomo del disallineamento fra il bordo e Kibana: il bordo accetta la
@@ -440,7 +419,7 @@ credenziale e la lascia passare, Kibana non la conosce e la respinge. Le utenze
 devono esistere su entrambi i lati con la **stessa password**.
 
 ```bash
-cut -d: -f1 secrets/dashboard_users_esercizio secrets/dashboard_users_evento
+sudo cut -d: -f1 secrets/dashboard_users_esercizio secrets/dashboard_users_evento
 sudo systemctl restart fleet-bootstrap.service   # ricrea le utenze via Terraform
 ```
 
@@ -452,7 +431,7 @@ interrogabile, l'ingestione è viva, la data view corrisponde a indici che
 esistono davvero.
 
 ```bash
-sudo bash -c '. /etc/stack-deploy.env; export APP_HOST STACK_NAME; ./ci/stack-verify.sh'
+sudo bash -c '. /etc/stack-deploy.env; : "${STACK_NAME:=pi}"; export APP_HOST STACK_NAME; ./ci/stack-verify.sh'
 ```
 
 **Gli agenti non risultano registrati.** Il bootstrap è idempotente e si può
@@ -470,7 +449,7 @@ condiviso: lo stack converge da solo, non serve un avvio in due fasi.
 
 ---
 
-## Il disco si riempie
+### Il disco si riempie
 
 Il battito segnala l'occupazione oltre l'**85%** su ciascun punto di mount
 sorvegliato, con la classe `host-resources`.
@@ -496,19 +475,23 @@ La ritenzione degli indici è governata dalla configurazione dello stack e si
 applica da sola: non cancellare indici a mano durante l'esercizio, perché il
 recupero è modesto e la perdita è definitiva.
 
-**Il volume degli indici si estende a caldo.** Il volume group tiene non
-allocati circa 165 GB, di cui gli snapshot ne usano al più 48: con
-`/srv/data/elastic` oltre l'85% la risposta è estenderlo, non ridurre la
-ritenzione.
+**Estensione del volume degli indici.** Verificare il volume logico che ospita
+`/srv/data/elastic` e lo spazio libero nel relativo volume group. Riservare
+prima lo spazio per gli snapshot previsti da `SNAP_SIZE` e `SNAP_KEEP` in
+`/etc/stack-data.env`. Dimensionare l'incremento sul carico osservato.
 
 ```bash
-sudo lvextend -r -L +40G vg0/elastic   # -r estende anche il filesystem
+findmnt -no SOURCE,FSTYPE /srv/data/elastic
+sudo vgs -o vg_name,vg_free
+sudo lvs -o vg_name,lv_name,lv_size,data_percent
+# Dopo aver verificato percorso, spazio e supporto del filesystem:
+sudo lvextend -r -L '+<incremento>' '/dev/<volume-group>/<volume-elastic>'
 df -h /srv/data/elastic
 ```
 
 ---
 
-## Pressione di memoria
+### Pressione di memoria
 
 Il battito segnala memoria disponibile sotto il **15%**, swap in uso oltre il
 **50%**, e ogni terminazione per esaurimento di memoria avvenuta dall'ultimo
@@ -530,13 +513,13 @@ richiede di verificare che il totale resti dentro la memoria della macchina.
 
 ---
 
-## Nessun allarme da troppo tempo
+### Nessun allarme da troppo tempo
 
-Sospetta il percorso di notifica prima di concludere che va tutto bene.
+Verificare il percorso di notifica anche in assenza di guasti segnalati.
 
 Due battiti allarmano sul silenzio: quello del servizio, a cinque minuti, e quello
 del recapito allarmi, a dieci. I relay hanno periodo di un anno e non scendono mai
-da soli, solo su un segnale esplicito — quindi un relay morto e uno che non ha nulla
+da soli, solo su un segnale esplicito. Quindi un relay morto e uno che non ha nulla
 da segnalare sono indistinguibili, ed è il motivo per cui il recapito ha un battito
 proprio.
 
@@ -550,74 +533,81 @@ Il battito parte **solo se i controlli locali passano**. Un timer attivo e un
 battito assente non sono in contraddizione: significa che un controllo locale
 sta fallendo, e lo script allega l'elenco di quali.
 
-Le otto destinazioni sono separate perché le notifiche dipendono dalla
-transizione di stato: su una destinazione unica, un secondo guasto che arriva
-mentre il primo è ancora aperto non produrrebbe alcuna notifica.
-
-| Check | Tipo | Che cosa rappresenta |
-|---|---|---|
-| `stack-liveness` | battito, 5 min | il servizio risponde e sa servire |
-| `alert-relay` | battito, 10 min | il recapito degli allarmi è vivo |
-| `app-degradation` | relay | tasso di errori, latenza |
-| `host-resources` | relay | memoria, swap, disco, terminazioni |
-| `observability` | relay | cluster interrogabile, ingestione viva |
-| `security` | relay | attivita' anomala oltre soglia |
-| `tls-pubblico` | relay | certificato del nome pubblico verificabile |
-| `backup-nightly` | calendario | copia notturna eseguita |
+Per gli slug, le cadenze e le tolleranze consultare la tabella
+[degli otto check](../provisioning/README.md#gli-otto-check-da-creare-sul-pannello).
+Per provare segnale e rientro usare il [drill delle notifiche](#controlli-esterni-e-notifiche).
 
 ---
 
-## Recupero dei dati
+### Recupero dei dati
 
-**Leggere questa sezione prima di eseguirla.** Le tre strade sono state
-cronometrate su basi dati reali, e il risultato è controintuitivo.
+**Il ripristino sostituisce le collezioni presenti nell’archivio; la ricreazione
+elimina l’intero database.** Verificare
+`STACK_NAME`, `MONGO_VOLUME` e `MONGO_DB` in `/etc/stack-data.env` prima di procedere.
+Lo script richiede conferma per entrambe le operazioni distruttive.
 
-| Strada | Tempo misurato | Che cosa fa |
-|---|---|---|
-| Messa in sicurezza | 2.709 ms | copia lo stato corrente da parte, così com'è |
-| Ripristino da copia | 1.135 ms | rilegge un archivio `mongodump` |
-| Ricreazione a vuoto | 1.342 ms | riparte da zero, più il riavvio del backend |
-
-**La messa in sicurezza è la più lenta delle tre.** Sotto pressione l'istinto
-dice il contrario — mettere da parte sembra rapido, ripristinare sembra lento —
-e non lo è: la copia attraversa i file sul filesystem, mentre il ripristino
-legge un archivio compresso e denso. Il passo 1 non è gratuito e va messo in
-conto nel tempo totale.
-
-Resta comunque **sempre il primo passo**: una ricreazione affrettata distrugge
-l'unica copia rimasta.
+#### 1. Mettere in sicurezza lo stato corrente
 
 ```bash
 sudo data-restore.sh --metti-in-sicurezza
-sudo data-restore.sh --ripristina /srv/backup/mongodump/<stamp>/mongo/game_db.archive.gz
+```
+
+Eseguire questo passo prima di ogni tentativo di recupero, anche se `mongod`
+non parte. Conservare l'archivio e il percorso restituito. La copia legge il
+volume senza fermare le scritture: è materiale da conservare per la diagnosi,
+non una garanzia di backup consistente con MongoDB ancora attivo. Se fallisce,
+fermarsi e preservare il volume prima di un'operazione distruttiva.
+
+#### 2. Scegliere una sola operazione
+
+**A. Ripristinare una copia leggibile**, verificando prima somme, data e perdita
+di dati accettabile rispetto all'ultima copia:
+
+```bash
+sudo data-restore.sh --ripristina '/srv/backup/mongodump/<marca-temporale>/mongo/game_db.archive.gz'
+```
+
+Lo script ferma le repliche del backend, esegue `mongorestore --drop`, ripristina
+le repliche precedenti e verifica gli indici TTL di `sessions` e `game_states`.
+Se il ripristino fallisce, lascia il backend fermo per evitare nuove scritture.
+
+**B. Ricreare a vuoto**, solo se il recupero da copia non è praticabile e la
+perdita dei dati è stata accettata:
+
+```bash
 sudo data-restore.sh --ricrea
 ```
 
-Le cifre assolute crescono in modo diverso: la messa in sicurezza cresce con
-l'occupazione su disco, il ripristino con il numero di documenti.
+Su Swarm, con repliche backend precedenti maggiori di zero, lo script elimina
+il database e ripristina quelle repliche, poi verifica gli indici TTL ricreati
+dal backend. **Non eseguire B dopo un ripristino riuscito:**
+cancellerebbe i dati appena recuperati. Fuori da Swarm il riavvio e la verifica TTL sono manuali; dopo la ricreazione
+lo script stampa un avviso. Con backend già a zero repliche non verifica i TTL:
+riattivare il servizio e controllare gli indici prima di riaprire.
 
-**Prelievo degli archivi.** Il percorso di consegna è `/export`, protetto
-dall'elenco della platea tecnica e senza elenco della directory: il nome
-dell'archivio si legge dal manifesto dell'esportazione.
+#### 3. Verificare e fermarsi
 
-```bash
-curl -u <utente> --output esportazione.ndjson.gz \
-  https://<hostname>/export/<marca-temporale>/elastic/<nome>.ndjson.gz
-```
+Controllare l'esito del comando, `/health`, le repliche del backend e una
+partita di prova. Se il comando o la verifica falliscono, leggere i log e
+conservare la copia di sicurezza: non passare automaticamente alla ricreazione.
+Misurare i tempi su una macchina di prova prima dell'evento con
+`make restore-drill`; dipendono da dimensione dei dati e ambiente.
+
+Gli export si producono e si prelevano con la [procedura dedicata](#esportazione-dei-dati).
 
 ---
 
-## Cambiare un secret
+### Cambiare un secret
 
 I file in `secrets/` si modificano sulla macchina, poi si riapplica lo stack con
 `sudo systemctl restart stack-deploy.service`. Il nome di ogni secret porta
 l'impronta del contenuto: un file cambiato diventa un secret nuovo, e vengono
-aggiornati solo i servizi che lo montano. Non tutti i valori pero' vivono solo nel
+aggiornati solo i servizi che lo montano. Non tutti i valori però vivono solo nel
 file.
 
 | Secret | Come si cambia |
 |---|---|
-| `dashboard_users*` | con `sudo provisioning/bin/configure-dashboard-users.py secrets`: aggiorna o verifica gli htpasswd e genera `dashboard_users.tfvars.json`; poi si rieseguono deploy e bootstrap |
+| `dashboard_users*` | con `sudo provisioning/bin/configure-dashboard-users.py secrets`: crea gli htpasswd mancanti o verifica le password di quelli esistenti e genera `dashboard_users.tfvars.json`. Per ruotare una password, sostituire prima la voce bcrypt con `sudo htpasswd -B <file-della-platea> <utente>` (password richiesta senza eco), poi usare lo strumento per riallineare la fonte e l’elenco comune; rieseguire deploy e bootstrap |
 | `redis_password` | nel file: Redis ricostruisce le utenze all'avvio, il backend l'indirizzo, e lo stesso deploy riavvia entrambi |
 | `apm_secret_token`, `filebeat_writer_password` | nel file, poi `sudo systemctl restart fleet-bootstrap.service`, che porta lo stesso valore nella policy Fleet o nell'utenza di Elasticsearch |
 | `kibana_system_password` | nel file: il job `setup` monta lo stesso secret e viene rieseguito a ogni deploy, quindi reimposta la password in Elasticsearch; Kibana, aggiornato dallo stesso deploy, si autentica appena la password è impostata |
@@ -629,7 +619,7 @@ file.
 
 ---
 
-## Da non fare
+### Da non fare
 
 - **Non rimuovere lo stack** per riparare un singolo servizio. `docker service
   update --force` riprogramma quello che serve senza fermare il resto.
@@ -645,25 +635,11 @@ file.
 
 ---
 
----
-
-## Riferimenti
-
-| Dove | Che cosa contiene |
-|---|---|
-| [ARCHITETTURA.md](ARCHITETTURA.md) | com'è fatto il sistema e perché |
-| [SVILUPPO.md](SVILUPPO.md) | avvio in locale |
-| `make help` | elenco completo dei comandi, generato dai target |
-| `provisioning/README.md` | installazione, unità systemd, sorveglianza, dati |
-| `terraform/README.md` | stato di Terraform: dove risiede, come si ricostruisce |
-| `terraform/elk/README.md` | Space, ruoli, utenze, dashboard versionate |
-| `/srv/diagnostics` | raccolte diagnostiche, prodotte anche allo spegnimento |
-
-# Verifiche esterne e superficie pubblica
+## Verifiche esterne e superficie pubblica
 
 Gli indirizzi seguenti si usano dopo aver configurato `APP_HOST` e riattivato il servizio.
 
-## Superficie pubblica
+### Superficie pubblica
 
 | Funzione | Indirizzo | Esito atteso |
 |---|---|---|
@@ -677,18 +653,18 @@ Gli indirizzi seguenti si usano dopo aver configurato `APP_HOST` e riattivato il
 Verifica rapida, esclusivamente in lettura:
 
 ```bash
-curl --fail --silent --show-error https://<APP_HOST>/health
-curl --fail --head https://<APP_HOST>/robots.txt
-curl --fail --head https://<APP_HOST>/sitemap.xml
+curl --fail --silent --show-error 'https://<APP_HOST>/health'
+curl --fail --head 'https://<APP_HOST>/robots.txt'
+curl --fail --head 'https://<APP_HOST>/sitemap.xml'
 ```
 
-## Dashboard
+### Dashboard
 
 Le dashboard sono in sola lettura e separate per pubblico. L’autenticazione è
 HTTP Basic; la stessa credenziale viene poi verificata da Kibana e può accedere
 soltanto allo Space assegnato.
 
-### Esercizio
+#### Esercizio
 
 - [Servizio e funnel](https://<APP_HOST>/osservabilita/s/esercizio/app/dashboards#/view/esercizio-servizio-funnel): richieste e codici HTTP, latenza APM, telemetria RUM, log ed errori applicativi, funnel di gioco.
 - [Salute e risorse](https://<APP_HOST>/osservabilita/s/esercizio/app/dashboards#/view/esercizio-salute-risorse): allarmi, CPU e memoria di host e container, filesystem ed esiti degli healthcheck Docker.
@@ -697,7 +673,7 @@ soltanto allo Space assegnato.
 La platea di esercizio dispone anche di **Discover** per consultare i documenti
 tecnici non aggregati quando un pannello non basta a spiegare un’anomalia.
 
-### Evento
+#### Evento
 
 - [Andamento dell’evento](https://<APP_HOST>/osservabilita/s/evento/app/dashboards#/view/evento-andamento): partite iniziate (`game_started`), concluse e azzerate, durata mediana, andamento nel tempo, motivi di conclusione, scene finali, checkpoint raggiunti per partita, percorso dei giocatori per tappa e classi di dispositivo.
 - [Impatto dell’evento](https://<APP_HOST>/osservabilita/s/evento/app/dashboards#/view/evento-impatto): partite totali, sessioni create, partite iniziate e completate, partite con RUM, tempo mediano di gioco, tasso di completamento e tempo per finire il gioco.
@@ -720,36 +696,14 @@ esistono soltanto per le partite per cui il visitatore ha scelto la telemetria
 facoltativa; questo limite è intenzionale e va considerato quando si interpretano i
 totali.
 
-### Credenziali
+#### Credenziali
 
-Le password non sono nel repository. Sulla macchina di produzione:
+Le credenziali della platea tecnica proteggono anche il prelievo degli export.
+Per creazione, allineamento e custodia dei file consultare il
+[modulo Elastic](../terraform/elk/README.md#corrispondenza-fra-utenze-terraform-ed-elenchi-htpasswd).
+Per la rotazione seguire [Cambiare un secret](#cambiare-un-secret).
 
-- gli utenti ammessi sono elencati, come hash bcrypt, in
-  `secrets/dashboard_users_esercizio` e `secrets/dashboard_users_evento`;
-- la sorgente root-only usata da Terraform è
-  `secrets/dashboard_users.tfvars.json`;
-- le credenziali della dashboard di esercizio proteggono anche il prelievo
-  degli export.
-
-I soli nomi utente si possono elencare senza mostrare password:
-
-```bash
-sudo cut -d: -f1 \
-  /srv/progetti_innovativi/secrets/dashboard_users_esercizio \
-  /srv/progetti_innovativi/secrets/dashboard_users_evento
-```
-
-Per creare, verificare o ruotare una credenziale si usa lo strumento previsto,
-non si modificano a mano i file generati:
-
-```bash
-cd /srv/progetti_innovativi
-sudo provisioning/bin/configure-dashboard-users.py secrets
-sudo systemctl restart stack-deploy.service
-sudo systemctl restart fleet-bootstrap.service
-```
-
-## Esportazione dei dati
+### Esportazione dei dati
 
 La produzione di un export **non è esposta via HTTP**: poterla avviare dal web
 offrirebbe una leva per saturare disco e I/O. Un operatore la avvia dalla
@@ -757,7 +711,7 @@ macchina:
 
 ```bash
 sudo systemctl start data-export.service
-sudo journalctl -u data-export.service -f
+sudo journalctl -u data-export.service -n 80 --no-pager
 ```
 
 Ogni esecuzione crea `/srv/export/<marca-temporale>/` con:
@@ -772,7 +726,7 @@ può avviare nuove esportazioni. Il nome esatto del file si legge dal manifesto.
 Il prelievo usa la stessa credenziale della dashboard di esercizio:
 
 ```bash
-curl --fail --user <utente-esercizio> \
+curl --fail --user '<utente-esercizio>' \
   --output dati.ndjson.gz \
   'https://<APP_HOST>/export/<marca-temporale>/elastic/<nome>.ndjson.gz'
 ```
@@ -784,20 +738,12 @@ La radice `/export` risponde intenzionalmente `404`, anche dopo
 l’autenticazione: l’assenza di directory listing evita di esporre struttura e
 cadenza degli archivi.
 
-## Controlli esterni e notifiche
+### Controlli esterni e notifiche
 
-I controlli sono separati per classe di guasto:
-
-| Check | Cosa verifica | Comportamento |
-|---|---|---|
-| `stack-liveness` | applicazione e dipendenze | battito ogni 5 minuti; il silenzio allarma |
-| `app-degradation` | errori e latenza | relay su transizione |
-| `host-resources` | memoria, swap, disco e OOM | relay su transizione |
-| `observability` | cluster Elastic e ingestione | relay su transizione |
-| `security` | attività anomala | relay su transizione |
-| `alert-relay` | processo che inoltra gli allarmi | battito periodico |
-| `tls-pubblico` | catena e scadenza del certificato servito | relay su transizione |
-| `backup-nightly` | esito della copia notturna | job schedulato alle 03:30 |
+Slug, schedule e tolleranze sono definiti nel
+[provisioning](../provisioning/README.md#gli-otto-check-da-creare-sul-pannello).
+I battiti allarmano sul silenzio; i relay segnalano la transizione di guasto e
+il rientro. La copia notturna segue il calendario dell'host.
 
 I recapiti sono in `/etc/stack-surveillance.env`, root-only. La chiave di ping
 equivale a tutti gli endpoint e non deve comparire in documentazione, shell
@@ -812,13 +758,13 @@ cd /srv/progetti_innovativi
 sudo FORCE=1 ./provisioning/bin/healthchecks-drill.sh
 ```
 
-## Diagnostica dalla macchina
+### Diagnostica dalla macchina
 
 Questi comandi sono in sola lettura e non costruiscono immagini:
 
 ```bash
 cd /srv/progetti_innovativi
-sudo bash -c '. /etc/stack-deploy.env; docker stack services "$STACK_NAME"; docker stack ps "$STACK_NAME" --no-trunc --filter desired-state=running'
+sudo bash -c '. /etc/stack-deploy.env; : "${STACK_NAME:=pi}"; docker stack services "$STACK_NAME"; docker stack ps "$STACK_NAME" --no-trunc --filter desired-state=running'
 sudo systemctl status stack-heartbeat.timer alert-notifier.timer \
   backup-nightly.timer traefik-logrotate.timer
 sudo journalctl -u stack-heartbeat.service -u alert-notifier.service --since today
@@ -830,9 +776,21 @@ La verifica end-to-end completa, sulla macchina di produzione che non richiede
 
 ```bash
 cd /srv/progetti_innovativi
-sudo bash -c '. /etc/stack-deploy.env; export APP_HOST STACK_NAME; ./ci/stack-verify.sh'
+sudo bash -c '. /etc/stack-deploy.env; : "${STACK_NAME:=pi}"; export APP_HOST STACK_NAME; ./ci/stack-verify.sh'
 ```
 
 Eseguita come root, legge la prima utenza tecnica dalla fonte root-only senza
 stampare la password. Altrove richiede `DASHBOARD_USER` e `DASHBOARD_PASSWORD`
 nell’ambiente; non vanno mai passate come argomenti o scritte nella cronologia.
+
+## Riferimenti
+
+| Dove | Che cosa contiene |
+|---|---|
+| [ARCHITETTURA.md](ARCHITETTURA.md) | com'è fatto il sistema e perché |
+| [SVILUPPO.md](SVILUPPO.md) | avvio in locale |
+| `make help` | elenco completo dei comandi, generato dai target |
+| [provisioning/README.md](../provisioning/README.md) | installazione, unità systemd, sorveglianza, dati |
+| [terraform/README.md](../terraform/README.md) | stato di Terraform: dove risiede, come si ricostruisce |
+| [terraform/elk/README.md](../terraform/elk/README.md) | Space, ruoli, utenze, dashboard versionate |
+| `/srv/diagnostics` | raccolte diagnostiche, prodotte anche allo spegnimento |

@@ -48,9 +48,9 @@ apm_secret_token  = "VALORE_DI_APM_SECRET_TOKEN_NEL_TUO_ENV"
 # ---------------------------------------------------------------------------
 # Indici visibili a ciascuna platea
 # ---------------------------------------------------------------------------
-# I due elenchi non devono intersecarsi: con licenza basic la sicurezza a
-# livello di documento non e' disponibile, quindi il confine fra le platee e'
-# solo quello sull'indice.
+# La platea tecnica comprende anche i fatti di gioco tramite logs-*. La platea
+# evento deve leggere soltanto logs-gioco.partita-*, escludendo dataset tecnici,
+# metriche e tracce: con licenza basic il confine è sull’indice.
 # indici_esercizio = ["filebeat-*", "logs-*", "metrics-*", "traces-apm*"]
 # indici_evento    = ["logs-gioco.partita-*"]
 

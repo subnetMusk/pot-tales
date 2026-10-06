@@ -26,11 +26,11 @@ variable "indici_evento" {
     `gioco.partita`, che il backend dichiara su ogni evento di gioco e che
     l'ingestione instrada su un indice separato da quello tecnico.
 
-    Il pattern non deve intersecare quelli tecnici. Con licenza basic la
-    sicurezza a livello di documento non e' disponibile, quindi non esiste modo
-    di concedere un sottoinsieme di documenti dentro un indice condiviso: se i
-    due elenchi si sovrappongono, la platea divulgativa legge anche i log
-    tecnici, e nessun'altra parte della configurazione lo impedisce.
+    Il pattern deve includere soltanto i fatti di gioco, escludendo log
+    tecnici, metriche e tracce. La platea tecnica comprende anche i fatti
+    di gioco: questa sovrapposizione e' intenzionale. Con licenza basic la
+    sicurezza a livello di documento non e' disponibile, quindi il confine
+    della platea divulgativa resta quello degli indici leggibili.
 
     Finche' l'ingestione non instrada gli eventi del gioco su questa
     destinazione, il pattern non corrisponde ad alcun indice e le dashboard

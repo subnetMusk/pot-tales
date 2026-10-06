@@ -6,7 +6,8 @@ utilizzabili per un nuovo esercizio.
 
 1. [Architettura](ARCHITETTURA.md): componenti, stato di gioco, sicurezza,
    osservabilità e trattamento dei dati.
-2. [Sviluppo](SVILUPPO.md): prerequisiti, avvio locale, configurazione e verifiche.
+2. [Sviluppo](SVILUPPO.md): prerequisiti, avvio locale, configurazione e verifiche;
+   [monitoring locale](MONITORING_LOCALE.md): bootstrap manuale di Fleet e dashboard.
 3. [Provisioning](../provisioning/README.md): preparazione della macchina,
    filesystem, installazione degli script e unità systemd.
 4. [Esercizio](ESERCIZIO.md): rimessa in esercizio, momenti pianificati,

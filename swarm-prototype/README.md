@@ -24,7 +24,7 @@ script verificano che la convergenza avvenga senza intervento manuale.
 | `autoheal-test.sh` | Verifica la rischedulazione di un task che diventa unhealthy |
 | `rollback-test.sh` | Verifica il rollback automatico di un aggiornamento fallito |
 | `fault-drill.sh` | Inietta un guasto casuale per esercitazioni di diagnosi |
-| `crowdsec-test/` | Verifica separata del bouncer CrowdSec con Traefik |
+| [crowdsec-test](crowdsec-test/README.md) | Verifica separata del bouncer CrowdSec con Traefik |
 
 `secrets/` e `runs/` sono generati e non versionati.
 
@@ -153,7 +153,7 @@ della specifica senza il ritorno in servizio non costituisce un recupero.
 ./fault-drill.sh --reset    # ripristina
 ```
 
-I quattro guasti si manifestano in modo diverso — servizio assente, container
+I quattro guasti si manifestano in modo diverso (servizio assente, container
 terminato e ricreato, riavvio ripetuto da configurazione, processo terminato
-dal cgroup — e lasciano tracce distinte in `docker service ps` e
+dal cgroup) e lasciano tracce distinte in `docker service ps` e
 `docker service logs`.

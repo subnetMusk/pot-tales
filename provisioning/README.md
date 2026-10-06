@@ -3,18 +3,32 @@
 Configurazione del sistema operativo su cui gira lo stack: separazione dei
 filesystem, persistenza dei log e raccolta diagnostica.
 
-## Perche' filesystem separati
+I comandi di questa guida partono dalla directory `provisioning/` del repository,
+salvo dove indicato. Il percorso operativo predefinito è `/srv/progetti_innovativi`.
+
+```bash
+cd /srv/progetti_innovativi/provisioning
+```
+
+Servono Ubuntu LTS, accesso amministrativo, Docker Engine con supporto Swarm,
+Bash, Python 3, `apache2-utils` (per `htpasswd`), LVM2, `smartmontools`,
+`ethtool`, `iptables`, `logrotate`, `curl` e `openssl`. Verificare mount e
+accesso ai registry prima dell’installazione. La sequenza di accettazione è nel
+[runbook](../docs/ESERCIZIO.md#momenti-pianificati).
+
+## Perché filesystem separati
 
 Log e dati dei container crescono senza un limite naturale. Se condividono il
 filesystem di sistema, il loro riempimento rende la macchina non gestibile:
 non si scrive più nulla, incluso quanto servirebbe a capire cosa è successo.
 
 Elasticsearch aggiunge una soglia propria: al 95% di occupazione del disco
-impone agli indici il blocco in sola lettura, e rimuoverlo richiede un
-intervento manuale.
+blocca le scritture degli indici coinvolti. Il blocco viene rimosso
+automaticamente quando l'occupazione scende sotto la soglia alta (90% per
+default). Vedi le [soglie di Elasticsearch 8.19](https://www.elastic.co/guide/en/elasticsearch/reference/8.19/modules-cluster.html#disk-based-shard-allocation).
 
 La separazione limita entrambi gli effetti a un volume che può riempirsi
-senza portare giu' il sistema.
+senza portare giù il sistema.
 
 ## Layout
 
@@ -32,7 +46,7 @@ Il resto del volume group resta non allocato: è lo spazio degli snapshot.
 
 **Gli indici hanno un volume proprio.** Sono telemetria, deliberatamente non
 protetta, e crescono con il traffico: sul volume dei dati Docker il loro
-riempimento porterebbe giu' MongoDB. Il volume `esdata01` dello stack è un
+riempimento porterebbe giù MongoDB. Il volume `esdata01` dello stack è un
 bind su questa directory (`ES_DATA_DIR` in `/etc/stack-deploy.env`), che
 l'immagine di Elasticsearch scrive come uid 1000 e gid 0. La proprietà va
 assegnata con il volume montato, prima del primo deploy:
@@ -100,10 +114,26 @@ sudo systemctl restart systemd-journald
 sudo systemctl daemon-reload
 sudo systemctl enable --now diagnostic-bundle.service
 sudo systemctl enable stack-deploy.service fleet-bootstrap.service
-sudo systemctl enable --now stack-heartbeat.timer alert-notifier.timer \
+sudo systemctl enable stack-heartbeat.timer alert-notifier.timer \
      backup-nightly.timer traefik-logrotate.timer
 sudo systemctl restart docker
 ```
+
+I timer vengono abilitati al boot ma non avviati in questo passo. Prima del
+primo riavvio installare e compilare i tre file di ambiente della tabella:
+
+```bash
+for nome in stack-deploy stack-surveillance stack-data; do
+  # Prima installazione: non sovrascrivere una configurazione esistente.
+  sudo test -e "/etc/$nome.env" || sudo install -m 0600 -o root -g root \
+    "systemd/$nome.env.example" "/etc/$nome.env"
+  sudo "${EDITOR:-vi}" "/etc/$nome.env"
+done
+```
+
+Allineare nome dello stack, percorsi, volumi e credenziali; `EXPORT_DEST` deve
+coincidere nei file dati e deploy. Configurare i check esterni e avviare i timer
+solo dopo il deploy e la verifica del client persistente, come indicato sotto.
 
 `data-export.service` non viene abilitata: non ha timer e non deve partire da
 sola, la avvia l'operatore.
@@ -112,6 +142,7 @@ sola, la avvia l'operatore.
 
 `stack-checkup.sh` raccoglie in un solo comando le verifiche da fare dopo ogni rilascio
 e alla vigilia di una giornata di apertura:
+
 - unità systemd e timer;
 - repliche dei servizi e immagini in esecuzione confrontate con `/etc/stack-deploy.env`;
 - `/health`, redirect HTTP, accessi protetti, HSTS, emittente e scadenza del certificato;
@@ -119,6 +150,10 @@ e alla vigilia di una giornata di apertura:
 - esito della copia notturna, con verifica delle somme dell'ultimo dump;
 - contatori SMART confrontati per seriale;
 - la verifica end-to-end `ci/stack-verify.sh`.
+
+Impostare `SMART_RIFERIMENTI` in `/etc/stack-data.env` con i seriali e i
+contatori rilevati all’accettazione (`"SERIALE_A=0 SERIALE_B=0"`, sostituendo
+i valori): i default dello script non si applicano a una macchina nuova.
 
 È in sola lettura e non ha timer: la sorveglianza continua resta al battito e a
 Healthchecks. L'uscita è 1 se almeno un controllo è in guasto.
@@ -135,10 +170,9 @@ Due unità template, parametrizzate sul nome dell'interfaccia pubblica
 istanze si abilitano a mano, perché il nome dell'interfaccia dipende dalla
 macchina.
 
-**Nessuna delle due è ancora stata provata sulla macchina di esercizio.** Sono
-verificate la sintassi delle unità (`systemd-analyze verify`) e l'applicazione
-delle regole in un contenitore, non l'effetto sulla scheda né sul traffico
-reale: le verifiche indicate sotto fanno parte dell'installazione.
+Verificare entrambe le unità sull'hardware e dalla rete esterna durante
+l'installazione. La verifica della sintassi e delle regole in un contenitore
+non prova l'effetto sulla scheda o sul traffico reale.
 
 **Segmentazione in hardware.** `nic-offload@.service` disattiva TSO e GSO. Serve
 sulle schede Intel con driver `e1000e`, come la I219-LM, soggette sotto carico a
@@ -146,9 +180,9 @@ blocchi della coda di trasmissione (`Detected Hardware Unit Hang`); su altre
 schede non va abilitata.
 
 ```bash
-ethtool -i <interfaccia> | grep '^driver'      # atteso: e1000e
-sudo systemctl enable --now nic-offload@<interfaccia>.service
-ethtool -k <interfaccia> | grep -E '^(tcp-segmentation-offload|generic-segmentation-offload):'
+ethtool -i '<interfaccia>' | grep '^driver'      # atteso: e1000e
+sudo systemctl enable --now 'nic-offload@<interfaccia>.service'
+ethtool -k '<interfaccia>' | grep -E '^(tcp-segmentation-offload|generic-segmentation-offload):'
 ```
 
 Atteso: entrambe le voci a `off`, anche dopo un riavvio. Durante il load test
@@ -159,11 +193,11 @@ pubblicate viene tradotto e inoltrato, e non attraversa `INPUT`, dove vivono le
 regole di ufw. `docker-user-rules@.service` riempie la catena `DOCKER-USER`: in
 ingresso dall'interfaccia pubblica raggiungono i contenitori solo le porte 80 e
 443 e le risposte alle connessioni stabilite, per IPv4 e IPv6. Il firewall
-dell'host resta ufw (`docs/ESERCIZIO.md`, sezione 3). La catena esiste solo con
+dell'host resta ufw ([Prerequisiti dell’host](../docs/ESERCIZIO.md#3-prerequisiti-dellhost)). La catena esiste solo con
 Docker installato, quindi l'unità si abilita dopo il demone:
 
 ```bash
-sudo systemctl enable --now docker-user-rules@<interfaccia>.service
+sudo systemctl enable --now 'docker-user-rules@<interfaccia>.service'
 sudo iptables -S DOCKER-USER
 sudo ip6tables -S DOCKER-USER
 ```
@@ -172,15 +206,14 @@ Verifica con una porta di prova, interrogata da un'altra rete:
 
 ```bash
 sudo docker run --rm -d --name prova-firewall -p 8080:80 nginx:alpine
-curl -m 5 http://<indirizzo-pubblico>:8080/     # dall'esterno: deve andare in timeout
+curl -m 5 'http://<indirizzo-pubblico>:8080/'     # dall'esterno: deve andare in timeout
 sudo docker stop prova-firewall
 ```
 
 ## Avvio non presidiato
 
-Il primo giorno di apertura al pubblico non è presidiato: tutto ciò che
-richiede una persona per partire va considerato non funzionante quel giorno. La
-macchina deve quindi portare in servizio lo stack da sola dopo un riavvio.
+La macchina deve portare in servizio lo stack senza intervento dopo un riavvio,
+anche durante le finestre non presidiate.
 
 Tre passaggi, in ordine di dipendenza.
 
@@ -213,12 +246,12 @@ modifica a `/etc/stack-deploy.env` o al repository, il comando è
 `sudo systemctl restart stack-deploy.service`: l'unità è `oneshot` con
 `RemainAfterExit`, quindi dopo il primo deploy resta attiva, e su un'unità
 attiva `start` non esegue nulla senza segnalarlo. Lo stesso vale per
-`fleet-bootstrap.service`, che il riavvio del deploy riesegue da se'.
+`fleet-bootstrap.service`, che il riavvio del deploy riesegue da sé.
 
-Lo swarm non va inizializzato a mano: lo script lo fa da se' se sul nodo non ne
+Lo swarm non va inizializzato a mano: lo script lo fa da sé se sul nodo non ne
 esiste ancora uno. Non lo fa negli altri stati, perché `pending` e `locked`
 descrivono uno swarm che esiste ed è in corso di ripristino, e inizializzarne
-uno nuovo sopra scarterebbe servizi e secret già registrati: li' lo script
+uno nuovo sopra scarterebbe servizi e secret già registrati: lì lo script
 esce con errore e l'unità riprova. Su una macchina con più indirizzi il
 demone non ne sceglie uno da solo, e va indicato `SWARM_ADVERTISE_ADDR`.
 
@@ -246,70 +279,11 @@ attendere l'esito del primo.
 
 ## Sorveglianza
 
-Due percorsi distinti, perché i due modi di guastarsi non sono osservabili
-allo stesso modo.
-
-**Degrado con macchina viva.** Le regole di Kibana depositano gli allarmi su un
-indice: con licenza basic gli unici connettori disponibili sono `.index` e
-`.server-log`, quindi la consegna verso l'esterno non è compito delle regole.
-`alert-notifier.sh` legge l'indice e recapita. Gira sulla macchina osservata, e
-va bene: un allarme di degrado presuppone per definizione una macchina che
-risponde.
-
-**Macchina irraggiungibile o stack fermo.** `stack-heartbeat.sh` invia un
-battito a un servizio esterno **solo se i controlli locali passano**. Un
-battito inviato incondizionatamente dimostrerebbe che il timer funziona, non
-che il servizio funziona. Il servizio esterno allarma sul silenzio, che è
-l'unico segnale possibile quando la macchina non è in grado di parlare.
-
-Quando i controlli falliscono con la macchina ancora viva, lo script non si
-limita a tacere: segnala il guasto e allega l'elenco dei controlli falliti, che
-resta leggibile nella cronologia del servizio. È il primo indizio disponibile
-senza accedere alla macchina.
-
-### Un check per classe di guasto
-
-Le notifiche del servizio esterno sono legate alla transizione di stato: un
-secondo segnale di guasto, mentre il check è già in guasto, non produce alcuna
-notifica. Su una destinazione unica due guasti distinti collassano in un solo
-messaggio, e del secondo non resta traccia utile.
-
-Le classi sono quindi separate, e ciascuna transita per conto suo.
-
-| Check | Sorgente | Che cosa rappresenta |
-|---|---|---|
-| `stack-liveness` | battito | il servizio risponde e sa servire |
-| `app-degradation` | regole Kibana | tasso di errori, latenza |
-| `host-resources` | controlli locali | memoria, swap, disco, terminazioni per memoria |
-| `observability` | controlli locali e regole | cluster interrogabile, ingestione viva |
-| `security` | regole Kibana | attivita' anomala oltre soglia |
-| `alert-relay` | battito del notificatore | il recapito degli allarmi è vivo |
-| `tls-pubblico` | controllo locale | catena e scadenza del certificato pubblico |
-| `backup-nightly` | copia notturna | il job pianificato termina con successo |
-
-I cinque relay hanno periodo di un anno: non scendono mai da soli, solo su un
-segnale esplicito. `stack-liveness` e `alert-relay` sono dead man's switch;
-`backup-nightly` segue il proprio calendario.
-
-Gli endpoint si costruiscono da una chiave di progetto e dallo slug del check,
-`<base>/<chiave>/<slug>`, quindi la configurazione contiene un segreto solo
-invece di otto URL da tenere allineate.
-
-Il livello di gravità sceglie l'endpoint. `info` usa il suffisso di
-registrazione, che conserva l'evento senza cambiare stato né notificare: è il
-livello dei fatti che vanno tenuti ma non svegliano nessuno, come i tentativi di
-intrusione sotto soglia, che su un indirizzo pubblico sono rumore continuo.
-`warning` e `critical` portano il check in guasto. Un documento di rientro
-riporta il check in stato sano e lo riarma per l'allarme successivo.
-
-I ping sui relay partono **solo sulle transizioni**. Lo storico di un check è
-limitato a cento eventi: un ping a ogni esecuzione lo riempirebbe di rumore
-facendo scorrere via proprio gli allarmi.
-
-L'alternativa era un bot dedicato interrogato direttamente dal notificatore.
-Costava un secondo segreto da custodire e ruotare, e un secondo percorso da
-verificare, in cambio di una distinzione fra i tipi di guasto che la separazione
-in classi già fornisce.
+Le regole Kibana scrivono su un indice letto da `alert-notifier.sh`.
+`stack-heartbeat.sh` verifica applicazione, risorse e dipendenze prima di
+inviare il battito al servizio esterno. Il controllo esterno rileva anche
+l'assenza della macchina; la [vista di architettura](../docs/ARCHITETTURA.md#sorveglianza-esterna)
+spiega la separazione fra battiti e relay.
 
 ### Configurazione
 
@@ -317,8 +291,6 @@ Il file contiene credenziali e non è versionato. Il repository ne porta solo il
 modello:
 
 ```bash
-sudo install -m 0600 -o root -g root \
-     systemd/stack-surveillance.env.example /etc/stack-surveillance.env
 sudo "${EDITOR:-vi}" /etc/stack-surveillance.env
 ```
 
@@ -332,7 +304,7 @@ interroga `/health` attraverso il proxy come un visitatore, con
 misurerebbe il proxy e non l'applicazione: l'entrypoint in chiaro reindirizza
 qualunque richiesta, i router rispondono solo al nome pubblico e con `sniStrict`
 un handshake per altri nomi viene rifiutato. Il certificato non viene
-verificato, per non fallire con quello dell'autorita' di prova: la sua validita'
+verificato, per non fallire con quello dell'autorità di prova: la sua validità
 è il controllo `tls-pubblico`.
 
 La cadenza del battito deve restare più breve del periodo atteso configurato
@@ -343,6 +315,73 @@ producano un allarme mentre un'assenza prolungata lo produce.
 Al primo avvio, in assenza del marcatore, il recapito parte dall'istante
 corrente: un indice già popolato produrrebbe altrimenti una raffica di
 notifiche su eventi conclusi.
+
+### Gli otto check da creare sul pannello
+
+Nessun check viene creato da qui: l'accesso al pannello è dell'operatore. Un
+ping verso uno slug inesistente riceve 404 e **non crea nulla**, quindi un check
+mancante non è un check verde, è un segnale che non arriva da nessuna parte.
+
+| Slug | Schedule | Tolleranza | Chi lo alimenta |
+|---|---|---|---|
+| `stack-liveness` | 5 minuti | 15 minuti | battito, a ogni esecuzione riuscita |
+| `host-resources` | 365 giorni | 1 ora | battito e regola sull'occupazione del disco |
+| `observability` | 365 giorni | 1 ora | battito e regola sull'assenza di ingestione |
+| `app-degradation` | 365 giorni | 1 ora | regole su tasso di errori e latenza |
+| `security` | 365 giorni | 1 ora | regola sull'attività anomala dell'applicazione |
+| `alert-relay` | 10 minuti | 20 minuti | battito del notificatore |
+| `tls-pubblico` | 365 giorni | 1 ora | controllo della catena e della scadenza TLS |
+| `backup-nightly` | calendario | 1 ora | copia notturna, vedi sotto |
+
+I cinque relay hanno periodo di un anno perché non devono scendere da soli:
+li porta in guasto solo un segnale esplicito, e li riarma il documento di
+rientro. I due battiti e la copia notturna hanno invece una cadenza attesa, ed
+è su quella che il servizio esterno allarma per silenzio.
+
+### Check `backup-nightly`
+
+Il timer esegue la copia alle 03:30. Questi sono i valori da impostare.
+
+| Campo | Valore |
+|---|---|
+| Slug | `backup-nightly` |
+| Tipo di schedule | calendario (cron) |
+| Espressione | `30 3 * * *` |
+| Fuso orario | `Europe/Rome` |
+| Tolleranza | 1 ora |
+
+Lo schedule del check e quello del timer devono indicare lo stesso orario e lo
+stesso fuso, altrimenti il check allarmerebbe per un ritardo che non esiste:
+verificare con `timedatectl` che l'host sia su `Europe/Rome`. La tolleranza di
+un'ora copre l'attesa dell'archivio su un dataset cresciuto più del previsto
+senza rendere il check inutile.
+
+L'endpoint si costruisce come gli altri, `<base>/<chiave>/backup-nightly`, con
+la stessa `HC_PING_KEY` già presente in `/etc/stack-surveillance.env`: un
+secondo file la duplicherebbe, e una rotazione che ne aggiorna uno solo
+lascerebbe un percorso muto senza che nulla lo segnali. Lo script manda il
+suffisso di inizio prima di cominciare, così il servizio misura la durata
+dell'esecuzione e non solo la sua avvenuta conclusione.
+
+Vale qui quanto detto per il battito: **l'URL di ping è una credenziale**. Chi
+la possiede può inviare esiti falsi e tenere spenta la sorveglianza su una
+copia che non viene più prodotta.
+
+### Attivazione e verifica dei timer
+
+Dopo il deploy, verificare che `${STACK_NAME}_surveillance-client` abbia una
+replica attiva sul manager e che gli otto check ricevano i ping di prova.
+Il client persistente viene usato dagli script tramite `docker exec`.
+
+```bash
+sudo bash -c '. /etc/stack-deploy.env; : "${STACK_NAME:=pi}"; docker service ps "${STACK_NAME}_surveillance-client" --no-trunc'
+sudo systemctl start stack-heartbeat.timer alert-notifier.timer \
+     backup-nightly.timer traefik-logrotate.timer
+sudo systemctl list-timers 'stack-heartbeat*' 'alert-notifier*' 'backup-nightly*' 'traefik-logrotate*'
+```
+
+Provare segnale e rientro con il [drill delle notifiche](../docs/ESERCIZIO.md#controlli-esterni-e-notifiche).
+Verificare anche il riavvio della macchina prima di lasciarla non presidiata.
 
 ## Dati: esportazione, copia, ripristino
 
@@ -361,7 +400,7 @@ si sostituiscono a vicenda.
 
 Contenuto integrale in due formati, scelti per due esigenze diverse.
 
-| Sorgente | Formato | Perche' |
+| Sorgente | Formato | Perché |
 |---|---|---|
 | Elasticsearch | NDJSON compresso, uno per indice | conserva i campi annidati senza perdite, si rilegge da uno strumento di analisi o reindicizzando altrove |
 | MongoDB | archivio nativo di `mongodump` | unico formato che riporta in vita lo stato di gioco con i tipi originali |
@@ -384,47 +423,24 @@ vengono scritti **senza il punto iniziale**, altrimenti un `scp <dir>/*` al
 momento del prelievo li salterebbe in silenzio portandosi via tutto tranne gli
 archivi più grandi.
 
-**L'attivazione non passa dal web.** Un'unità `oneshot` avviata dall'operatore
-produce gli archivi. Esporre un percorso HTTP che avvia un processo sulla
-macchina sarebbe la superficie più pericolosa dell'intero sistema, e non
-compra nulla che una connessione di amministrazione non dia già.
-
-```bash
-sudo systemctl start data-export.service
-journalctl -u data-export.service -f
-```
+La procedura per avviare l'esportazione e prelevare gli archivi è nel
+[runbook](../docs/ESERCIZIO.md#esportazione-dei-dati).
 
 **Il freno.** L'esportazione resta possibile in qualsiasi momento, incluse le
 finestre di apertura al pubblico. Scorrere l'intero dataset compete per cache e
 banda di disco con la stessa Elasticsearch che sta ricevendo la telemetria,
-quindi: esecuzione singola protetta da lock, priorita' di CPU e di I/O ridotte,
+quindi: esecuzione singola protetta da lock, priorità di CPU e di I/O ridotte,
 scorrimento a lotti con pausa fra l'uno e l'altro.
 
 Su Elasticsearch la leva che conta è **la cadenza dei lotti**, non la quota di
 CPU del client: il lavoro pesante lo fa il cluster leggendo i segmenti. Le
-priorita' dichiarate nell'unità governano lo script, non il lavoro, perché lo
+priorità dichiarate nell'unità governano lo script, non il lavoro, perché lo
 scorrimento avviene dentro contenitori che appartengono al cgroup del demone
 Docker. Il freno effettivo è quindi espresso dallo script, con `LOTTO`,
 `PAUSA`, `CPU_QUOTA` e la lettura sequenziale di `mongodump`.
 
-**Prelievo dal bordo.** Gli archivi finiscono in `EXPORT_DEST` (`/srv/export`
-per impostazione predefinita) e sono serviti su `/export` dal servizio `export`
-dello stack: un nginx che monta quella directory **in sola lettura**, rifiuta i
-metodi diversi da `GET` e `HEAD`, non elenca la directory e non espone alcun
-percorso che avvii la produzione di un archivio. Il percorso di generazione e
-quello di consegna restano separati.
-
-L'accesso è protetto dall'elenco `secrets/dashboard_users_esercizio`, lo stesso
-della platea tecnica: gli archivi contengono i dati che quella platea già
-consulta nelle dashboard di esercizio.
-
-Non essendoci elenco, il nome dell'archivio va letto dal manifesto
-dell'esportazione: la radice risponde `404` anche a chi si è autenticato.
-
-```bash
-curl -u operatore --output esportazione.ndjson.gz \
-  https://<hostname>/export/<marca-temporale>/elastic/<nome>.ndjson.gz
-```
+Il servizio web consente soltanto il prelievo autenticato; la produzione degli
+archivi resta un'operazione dell'host.
 
 `EXPORT_DEST` deve valere lo stesso in `/etc/stack-data.env`, che governa la
 scrittura, e in `/etc/stack-deploy.env`, che governa il montaggio. Se divergono,
@@ -464,88 +480,22 @@ dalla presenza di una persona.
 
 Nessuno dei due copre la perdita della macchina. Un server dedicato non ha
 snapshot del fornitore: la copertura è il prelievo dell'archivio portabile e
-delle esportazioni fuori dalla macchina, a fine giornata (`docs/ESERCIZIO.md`,
-sezione 9). Nulla dipende da uno spazio remoto: se in seguito se ne aggiungera'
-uno, la sincronizzazione sara' un passo in più dopo l'archivio, non un
+delle esportazioni fuori dalla macchina, a fine giornata ([Chiusura di una giornata](../docs/ESERCIZIO.md#9-chiusura-di-una-giornata)). Nulla dipende da uno spazio remoto: se in seguito se ne aggiungerà
+uno, la sincronizzazione sarà un passo in più dopo l'archivio, non un
 prerequisito.
-
-### Gli otto check da creare sul pannello
-
-Nessun check viene creato da qui: l'accesso al pannello è dell'operatore. Un
-ping verso uno slug inesistente riceve 404 e **non crea nulla**, quindi un check
-mancante non è un check verde, è un segnale che non arriva da nessuna parte.
-
-| Slug | Schedule | Tolleranza | Chi lo alimenta |
-|---|---|---|---|
-| `stack-liveness` | 5 minuti | 15 minuti | battito, a ogni esecuzione riuscita |
-| `host-resources` | 365 giorni | 1 ora | battito e regola sull'occupazione del disco |
-| `observability` | 365 giorni | 1 ora | battito e regola sull'assenza di ingestione |
-| `app-degradation` | 365 giorni | 1 ora | regole su tasso di errori e latenza |
-| `security` | 365 giorni | 1 ora | regola sull'attivita' anomala dell'applicazione |
-| `alert-relay` | 10 minuti | 20 minuti | battito del notificatore |
-| `tls-pubblico` | 365 giorni | 1 ora | controllo della catena e della scadenza TLS |
-| `backup-nightly` | calendario | 1 ora | copia notturna, vedi sotto |
-
-I cinque relay hanno periodo di un anno perché non devono scendere da soli:
-li porta in guasto solo un segnale esplicito, e li riarma il documento di
-rientro. I due battiti e la copia notturna hanno invece una cadenza attesa, ed
-è su quella che il servizio esterno allarma per silenzio.
-
-### Check `backup-nightly`
-
-Il timer esegue la copia alle 03:30. Questi sono i valori da impostare.
-
-| Campo | Valore |
-|---|---|
-| Slug | `backup-nightly` |
-| Tipo di schedule | calendario (cron) |
-| Espressione | `30 3 * * *` |
-| Fuso orario | `Europe/Rome` |
-| Tolleranza | 1 ora |
-
-Lo schedule del check e quello del timer devono indicare lo stesso orario e lo
-stesso fuso, altrimenti il check allarmerebbe per un ritardo che non esiste:
-verificare con `timedatectl` che l'host sia su `Europe/Rome`. La tolleranza di
-un'ora copre l'attesa dell'archivio su un dataset cresciuto più del previsto
-senza rendere il check inutile.
-
-L'endpoint si costruisce come gli altri, `<base>/<chiave>/backup-nightly`, con
-la stessa `HC_PING_KEY` già presente in `/etc/stack-surveillance.env`: un
-secondo file la duplicherebbe, e una rotazione che ne aggiorna uno solo
-lascerebbe un percorso muto senza che nulla lo segnali. Lo script manda il
-suffisso di inizio prima di cominciare, così il servizio misura la durata
-dell'esecuzione e non solo la sua avvenuta conclusione.
-
-Vale qui quanto detto per il battito: **l'URL di ping è una credenziale**. Chi
-la possiede può inviare esiti falsi e tenere spenta la sorveglianza su una
-copia che non viene più prodotta.
 
 ### Ripristino
 
-Quando la base dati si corrompe durante un'apertura, due obiettivi entrano in
-conflitto: rimettere in piedi il servizio e salvare i dati. Le strade sono tre
-e l'ordine non è negoziabile.
+La sequenza operativa è in [Recupero dei dati](../docs/ESERCIZIO.md#recupero-dei-dati):
+prima conservare lo stato corrente, poi scegliere fra ripristino da archivio
+e ricreazione a vuoto. Queste due operazioni sono alternative.
 
-```bash
-# 1. Sempre per prima. Opera sul volume e non sul processo, quindi funziona
-#    anche quando mongod non parte più.
-sudo data-restore.sh --metti-in-sicurezza
-
-# 2. Recupera i dati fino al momento della copia.
-sudo data-restore.sh --ripristina /srv/backup/mongodump/<stamp>/mongo/game_db.archive.gz
-
-# 3. Ultima scelta: la più rapida per tornare operativi, e distrugge ciò che
-#    non è stato messo al sicuro al passo 1.
-sudo data-restore.sh --ricrea
-```
-
-Lo svuotamento porta via anche gli indici, che il backend crea all'avvio: dopo
-una ricreazione il servizio applicativo va riavviato, altrimenti i documenti
-nuovi nascerebbero senza indice di ritenzione e nulla lo segnalerebbe.
-
-I tre tempi vanno misurati **prima** di doverli confrontare sotto pressione.
-`make restore-drill` li misura su basi dati locali seminate con documenti nella
-forma che il backend scrive davvero.
+Su Swarm `data-restore.sh` ferma e ripristina le repliche del backend; con
+repliche attive verifica gli indici TTL. Fuori da Swarm questi controlli sono
+a carico dell’operatore, come indicato nel runbook.
+Un ripristino fallito lascia il backend fermo; leggere l'esito prima di
+proseguire. Preparare `/etc/stack-data.env` con stack, volume, database e
+destinazioni corretti prima di ogni drill o recupero.
 
 ### Verifica
 
@@ -554,28 +504,29 @@ l'occasione su una rete dedicata. Un'esportazione mai riletta e un ripristino
 mai eseguito sono ipotesi, non procedure.
 
 ```bash
-make export-drill    # esporta e rilegge quanto esportato
-make backup-drill    # archivio portabile e forma degli endpoint di recapito
-make restore-drill   # cronometra le tre strade
+make -C .. export-drill    # esporta e rilegge quanto esportato
+make -C .. backup-drill    # archivio portabile e forma degli endpoint di recapito
+make -C .. restore-drill   # cronometra le tre strade
 ```
 
 Le prove non si fermano alla presenza dei file: contano i documenti per indice,
-verificano che gli identificatori siano distinti — uno scorrimento sbagliato
-produrrebbe ripetizioni che il solo conteggio non distingue — e rileggono
+verificano che gli identificatori siano distinti (uno scorrimento sbagliato
+produrrebbe ripetizioni che il solo conteggio non distingue) e rileggono
 l'archivio di MongoDB reinserendolo in una base dati separata, indice di
 ritenzione compreso.
 
 Restano fuori dalla prova automatica due cose, per ragioni di ambiente e non di
 disegno: lo **snapshot LVM**, che richiede un volume group con spazio non
-allocato, e il **certificato dell'autorita' privata** del cluster. Della prima
+allocato, e il **certificato dell'autorità privata** del cluster. Della prima
 la prova copre il comportamento in assenza di LVM, che deve essere un guasto
 dichiarato e non un successo silenzioso.
 
 ## Cosa copre e cosa no
 
-Il journal persistente registra gli eventi mentre accadono, quindi sopravvive a
-qualunque tipo di arresto: al riavvio contiene le terminazioni per esaurimento
-di memoria e i panic del kernel.
+Il journal persistente consente di rileggere dopo un riavvio gli eventi già
+scritti su disco, incluse le terminazioni per memoria. Un arresto improvviso
+può perdere gli ultimi messaggi; un panic del kernel non garantisce che il
+relativo messaggio sia stato scritto nel journal.
 
 La raccolta diagnostica allo spegnimento copre soltanto gli arresti ordinati:
 riavvii pianificati, `systemctl reboot`, riavvii avviati da un aggiornamento
@@ -611,5 +562,5 @@ ls -la /tmp/diag-test/
 
 `live-restore` mantiene i container in esecuzione durante un riavvio del demone,
 ma non è compatibile con i servizi in swarm mode e non è quindi impostato in
-`daemon.json`. In swarm mode la continuita' è data dalla rischedulazione dei
+`daemon.json`. In swarm mode la continuità è data dalla rischedulazione dei
 task.
