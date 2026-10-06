@@ -8,9 +8,7 @@ Un'avventura 2D per browser desktop che rende esplorabile la ricerca archeometri
 sui residui conservati nelle ceramiche antiche. Interfaccia in italiano e inglese.
 
 Il progetto è finanziato dall'Università di Padova nell'ambito di **Progetti
-Innovativi 2025**. Il nome originario del repository, `progetti_innovativi`,
-deriva da questo bando. Il titolo testuale è Pot Tales; l'artwork originale
-del logo conserva la scritta «Pot Tale».
+Innovativi 2025**.
 
 ## Il contesto della ricerca
 

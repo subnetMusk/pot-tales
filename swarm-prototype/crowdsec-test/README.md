@@ -36,7 +36,7 @@ La durata segue `duration_expr` nei profili e cresce con il numero di decisioni
 già emesse per lo stesso indirizzo: la quarta è stata emessa per 60 minuti
 invece dei 15 iniziali.
 
-## Due comportamenti da conoscere
+## Indirizzi osservati e whitelist
 
 **Gli indirizzi privati sono in whitelist.** La collection
 `crowdsecurity/whitelists`, installata di serie, scarta il traffico proveniente

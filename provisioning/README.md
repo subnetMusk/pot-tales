@@ -16,11 +16,10 @@ Bash, Python 3, `apache2-utils` (per `htpasswd`), LVM2, `smartmontools`,
 accesso ai registry prima dell’installazione. La sequenza di accettazione è nel
 [runbook](../docs/ESERCIZIO.md#momenti-pianificati).
 
-## Perché filesystem separati
+## Separazione dei filesystem
 
 Log e dati dei container crescono senza un limite naturale. Se condividono il
-filesystem di sistema, il loro riempimento rende la macchina non gestibile:
-non si scrive più nulla, incluso quanto servirebbe a capire cosa è successo.
+filesystem di sistema, possono esaurire lo spazio per log e operazioni dell'host.
 
 Elasticsearch aggiunge una soglia propria: al 95% di occupazione del disco
 blocca le scritture degli indici coinvolti. Il blocco viene rimosso
@@ -44,9 +43,8 @@ senza portare giù il sistema.
 
 Il resto del volume group resta non allocato: è lo spazio degli snapshot.
 
-**Gli indici hanno un volume proprio.** Sono telemetria, deliberatamente non
-protetta, e crescono con il traffico: sul volume dei dati Docker il loro
-riempimento porterebbe giù MongoDB. Il volume `esdata01` dello stack è un
+Gli indici Elasticsearch stanno su un volume separato per impedire che la loro
+crescita esaurisca lo spazio di MongoDB. Si conservano tramite export. Il volume `esdata01` dello stack è un
 bind su questa directory (`ES_DATA_DIR` in `/etc/stack-deploy.env`), che
 l'immagine di Elasticsearch scrive come uid 1000 e gid 0. La proprietà va
 assegnata con il volume montato, prima del primo deploy:
@@ -238,8 +236,7 @@ sudo systemctl start stack-deploy.service
 
 `stack-deploy.service` applica `deploy/stack.yml` a ogni avvio. Il comando è
 idempotente, quindi rieseguirlo su uno stack già in servizio aggiorna soltanto
-ciò che è cambiato: il file dello stack resta la sola descrizione di ciò che
-deve girare.
+ciò che è cambiato.
 
 `start` vale per il primo avvio. Per riapplicare lo stack in seguito, dopo una
 modifica a `/etc/stack-deploy.env` o al repository, il comando è
@@ -259,15 +256,11 @@ Lo script rifiuta di procedere se un'immagine non è ancorata per digest, se
 un file di secret è assente o vuoto, oppure se manca
 `secrets/dashboard_users.tfvars.json`. Quest'ultimo è la fonte root-only da
 cui Terraform crea in Elasticsearch le stesse utenze presenti negli htpasswd:
-senza, il bordo accetterebbe le credenziali ma Kibana le rifiuterebbe. Questi
-controlli servono a far
-fallire il deploy prima di iniziare, invece di lasciare lo stack applicato a
-metà.
+senza, il bordo accetterebbe le credenziali ma Kibana le rifiuterebbe.
 
 `fleet-bootstrap.service` segue e registra le policy, riprovando finché Kibana
-non risponde. Non serve attendere: gli agenti escono e vengono rischedulati
-finché il token che li riguarda non compare sul volume condiviso, quindi lo
-stack converge da solo con un solo deploy.
+non risponde. Gli agenti vengono rischedulati finché il token della loro policy
+non compare sul volume condiviso.
 
 Il deploy accoda il bootstrap anche a ogni esito positivo (`ExecStartPost`).
 Senza, un deploy riuscito al secondo tentativo lascerebbe il bootstrap scartato
@@ -294,9 +287,7 @@ modello:
 sudo "${EDITOR:-vi}" /etc/stack-surveillance.env
 ```
 
-Un file unico per entrambe le unità: usano lo stesso endpoint e le stesse
-credenziali del cluster, e tenerli separati esporrebbe al caso in cui una
-rotazione ne aggiorna uno e dimentica l'altro.
+Le due unità leggono endpoint e credenziali del cluster dallo stesso file.
 
 Il battito legge anche `/etc/stack-deploy.env`, e solo per il nome pubblico:
 interroga `/health` attraverso il proxy come un visitatore, con
@@ -318,9 +309,8 @@ notifiche su eventi conclusi.
 
 ### Gli otto check da creare sul pannello
 
-Nessun check viene creato da qui: l'accesso al pannello è dell'operatore. Un
-ping verso uno slug inesistente riceve 404 e **non crea nulla**, quindi un check
-mancante non è un check verde, è un segnale che non arriva da nessuna parte.
+Creare gli otto check sul pannello prima di avviare i timer. Un ping verso
+uno slug inesistente riceve 404 e non crea il check.
 
 | Slug | Schedule | Tolleranza | Chi lo alimenta |
 |---|---|---|---|
@@ -356,12 +346,9 @@ verificare con `timedatectl` che l'host sia su `Europe/Rome`. La tolleranza di
 un'ora copre l'attesa dell'archivio su un dataset cresciuto più del previsto
 senza rendere il check inutile.
 
-L'endpoint si costruisce come gli altri, `<base>/<chiave>/backup-nightly`, con
-la stessa `HC_PING_KEY` già presente in `/etc/stack-surveillance.env`: un
-secondo file la duplicherebbe, e una rotazione che ne aggiorna uno solo
-lascerebbe un percorso muto senza che nulla lo segnali. Lo script manda il
-suffisso di inizio prima di cominciare, così il servizio misura la durata
-dell'esecuzione e non solo la sua avvenuta conclusione.
+L'endpoint è `<base>/<chiave>/backup-nightly`, con `HC_PING_KEY` letta da
+`/etc/stack-surveillance.env`. Lo script invia il segnale di inizio per
+misurare la durata dell'esecuzione.
 
 Vale qui quanto detto per il battito: **l'URL di ping è una credenziale**. Chi
 la possiede può inviare esiti falsi e tenere spenta la sorveglianza su una
@@ -385,10 +372,8 @@ Verificare anche il riavvio della macchina prima di lasciarla non presidiata.
 
 ## Dati: esportazione, copia, ripristino
 
-Lo stato per giocatore nasce da eventi pubblici non ripetibili. È piccolo e di
-breve durata, ma **non ricostruibile**: non esiste modo di rifarlo se va perso.
-Ne discendono tre meccanismi distinti, che rispondono a domande diverse e non
-si sostituiscono a vicenda.
+Esportazione, copia di sicurezza e ripristino conservano i dati dell'evento
+e permettono di recuperare il servizio.
 
 | Meccanismo | Risponde a | Comando |
 |---|---|---|
@@ -398,16 +383,14 @@ si sostituiscono a vicenda.
 
 ### Esportazione
 
-Contenuto integrale in due formati, scelti per due esigenze diverse.
+Formati degli archivi:
 
 | Sorgente | Formato | Perché |
 |---|---|---|
 | Elasticsearch | NDJSON compresso, uno per indice | conserva i campi annidati senza perdite, si rilegge da uno strumento di analisi o reindicizzando altrove |
 | MongoDB | archivio nativo di `mongodump` | unico formato che riporta in vita lo stato di gioco con i tipi originali |
 
-CSV e Parquet non vengono prodotti: sono derivabili dall'NDJSON a posteriori,
-fuori dalla macchina, e aggiungerli qui sarebbe una dipendenza in più nella
-catena che produce l'unica copia esistente.
+CSV e Parquet si possono derivare dall'NDJSON fuori dalla macchina.
 
 Lo scorrimento degli indici usa **point-in-time e `search_after`**. Il
 point-in-time congela l'insieme dei segmenti al momento dell'apertura, quindi
@@ -426,7 +409,7 @@ archivi più grandi.
 La procedura per avviare l'esportazione e prelevare gli archivi è nel
 [runbook](../docs/ESERCIZIO.md#esportazione-dei-dati).
 
-**Il freno.** L'esportazione resta possibile in qualsiasi momento, incluse le
+L'esportazione è disponibile anche durante le
 finestre di apertura al pubblico. Scorrere l'intero dataset compete per cache e
 banda di disco con la stessa Elasticsearch che sta ricevendo la telemetria,
 quindi: esecuzione singola protetta da lock, priorità di CPU e di I/O ridotte,
@@ -458,31 +441,27 @@ compresi: ciò che di essi deve sopravvivere passa dall'esportazione.
 Con il journaling attivo e file dati e journal sullo stesso volume,
 uno snapshot a livello di volume cattura dati e journal come unità singola e
 al ripristino MongoDB rigioca il journal: **`fsyncLock` non serve** e non viene
-eseguito, perché bloccherebbe le scritture per tutta la durata della copia,
-che è esattamente ciò che si vuole evitare durante un'apertura.
+eseguito, perché bloccherebbe le scritture per tutta la durata della copia.
 
-Il motivo per cui lo snapshot precede `mongodump`: su un'istanza standalone
+Su un'istanza standalone
 `mongodump` non ha consistenza point-in-time fra collezioni, perché `--oplog`
 richiede un replica set. Un dump preso durante le scritture può contenere una
 sessione senza il relativo stato di gioco.
 
 Lo snapshot richiede **spazio non allocato nel volume group**. Se tutto lo
-spazio è assegnato ai volumi, lo snapshot non è creabile e la copia primaria
-semplicemente non esiste: lo script lo dichiara
-come guasto invece di proseguire in silenzio. Uno snapshot che esaurisce il
-proprio spazio copy-on-write viene invalidato dal kernel, resta elencato e non
-è più ripristinabile, quindi `lvs` va letto e non presunto.
+spazio è assegnato ai volumi, lo script segnala un guasto e non crea lo snapshot.
+Uno snapshot che esaurisce il proprio spazio copy-on-write viene invalidato
+dal kernel, resta elencato e non
+è più ripristinabile. Verificare l'occupazione con `lvs`.
 
 **`mongodump`, portabile.** Destinato al prelievo manuale a evento concluso: si
 rilegge su un'altra macchina e su un'altra installazione, cosa che uno snapshot
 non consente. È l'unico dei due che costituisce un off-host reale, e dipende
 dalla presenza di una persona.
 
-Nessuno dei due copre la perdita della macchina. Un server dedicato non ha
-snapshot del fornitore: la copertura è il prelievo dell'archivio portabile e
-delle esportazioni fuori dalla macchina, a fine giornata ([Chiusura di una giornata](../docs/ESERCIZIO.md#9-chiusura-di-una-giornata)). Nulla dipende da uno spazio remoto: se in seguito se ne aggiungerà
-uno, la sincronizzazione sarà un passo in più dopo l'archivio, non un
-prerequisito.
+Le copie locali non coprono la perdita della macchina. Prelevare gli archivi
+portabili e gli export a fine giornata, come descritto in
+[Chiusura di una giornata](../docs/ESERCIZIO.md#9-chiusura-di-una-giornata).
 
 ### Ripristino
 
@@ -499,9 +478,8 @@ destinazioni corretti prima di ogni drill o recupero.
 
 ### Verifica
 
-I tre percorsi si provano su MongoDB ed Elasticsearch veri, avviati per
-l'occasione su una rete dedicata. Un'esportazione mai riletta e un ripristino
-mai eseguito sono ipotesi, non procedure.
+I drill avviano MongoDB ed Elasticsearch su una rete dedicata per verificare
+esportazione, backup e ripristino.
 
 ```bash
 make -C .. export-drill    # esporta e rilegge quanto esportato
@@ -509,17 +487,15 @@ make -C .. backup-drill    # archivio portabile e forma degli endpoint di recapi
 make -C .. restore-drill   # cronometra le tre strade
 ```
 
-Le prove non si fermano alla presenza dei file: contano i documenti per indice,
+Le prove contano i documenti per indice,
 verificano che gli identificatori siano distinti (uno scorrimento sbagliato
 produrrebbe ripetizioni che il solo conteggio non distingue) e rileggono
 l'archivio di MongoDB reinserendolo in una base dati separata, indice di
 ritenzione compreso.
 
-Restano fuori dalla prova automatica due cose, per ragioni di ambiente e non di
-disegno: lo **snapshot LVM**, che richiede un volume group con spazio non
-allocato, e il **certificato dell'autorità privata** del cluster. Della prima
-la prova copre il comportamento in assenza di LVM, che deve essere un guasto
-dichiarato e non un successo silenzioso.
+La prova automatica non copre lo **snapshot LVM**, che richiede un volume group
+con spazio non allocato, né il **certificato dell'autorità privata** del cluster.
+Per LVM verifica soltanto che l'assenza del supporto sia segnalata come guasto.
 
 ## Cosa copre e cosa no
 
@@ -533,9 +509,8 @@ riavvii pianificati, `systemctl reboot`, riavvii avviati da un aggiornamento
 automatico. Interruzione di alimentazione, panic e reset hardware non lasciano
 il tempo di eseguire nulla.
 
-Ne segue che la fonte primaria è la scrittura continua, non la raccolta finale.
-Il pacchetto diagnostico aggiunge contesto aggregato quando c'è il tempo di
-produrlo, e non sostituisce il journal.
+Il journal è la fonte continua dei log. Il pacchetto diagnostico aggiunge
+lo stato raccolto durante uno spegnimento ordinato.
 
 Allo spegnimento systemd concede 90 secondi alla raccolta. Ogni comando ha un
 tempo massimo (`DIAGNOSTIC_CMD_TIMEOUT`, 10 secondi) dentro un budget

@@ -1,6 +1,6 @@
 # Secrets
 
-Due meccanismi distinti, per due ambienti che non condividono nulla.
+Credenziali di sviluppo in `.env` e credenziali di produzione in file separati.
 
 ## Sviluppo: `.env`
 
@@ -35,10 +35,8 @@ vuoto.
 make secrets SECRETS_DIR=/srv/progetti_innovativi/secrets
 ```
 
-Lo script è idempotente per costruzione: un file già presente non viene
-toccato. Una rigenerazione accidentale invaliderebbe le credenziali con cui i
-servizi si sono registrati, e il danno si manifesterebbe solo al riavvio
-successivo.
+Lo script conserva i file esistenti. Per ruotare un secret seguire
+[la procedura di esercizio](../docs/ESERCIZIO.md#cambiare-un-secret).
 
 | File | Contenuto |
 |---|---|

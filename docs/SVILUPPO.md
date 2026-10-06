@@ -1,7 +1,7 @@
 # Sviluppo
 
-Come avviare il progetto in locale. La produzione non usa nulla di ciò che segue:
-legge file di secret separati, vedi [ESERCIZIO.md](ESERCIZIO.md).
+Avvio e configurazione locale del progetto. Per la produzione seguire
+[Esercizio](ESERCIZIO.md).
 
 ## Prerequisiti
 
@@ -9,8 +9,7 @@ legge file di secret separati, vedi [ESERCIZIO.md](ESERCIZIO.md).
 - Node 24+ e Go 1.26+ solo se si compila fuori dai container
 - Almeno 4 GB di RAM liberi se si avvia anche lo stack Elastic
 
-Il Makefile è il punto di ingresso: `make help` stampa l'elenco dei target,
-generato dai target stessi e non scritto a parte.
+`make help` elenca i target disponibili.
 
 ## Avvio
 
@@ -29,17 +28,14 @@ make monitoring-down      # ferma il monitoring, l'applicazione resta su
 make dev-down             # ferma l'applicazione, i volumi restano intatti
 ```
 
-Lo stack Elastic è deliberatamente separato dall'applicazione: senza, l'avvio è di
-qualche decina di secondi invece di qualche minuto, e l'applicazione funziona lo stesso
-con APM disattivato. Conviene tenerlo spento finché non serve. Per registrare gli agenti e importare
-le dashboard seguire il [bootstrap locale](MONITORING_LOCALE.md).
+Lo stack Elastic è facoltativo; senza monitoring disattivare APM. Per registrare
+gli agenti e importare le dashboard seguire il [bootstrap locale](MONITORING_LOCALE.md).
 La versione minima di Compose deriva da
 [`env_file.required`](https://docs.docker.com/reference/compose-file/services/#required).
 
 ## Variabili d'ambiente
 
-**La fonte è `.env.example`**, che è versionato, commentato e allineato al codice. Qui
-stanno solo i vincoli che il file non può esprimere da solo.
+Le variabili e i valori predefiniti sono in `.env.example`.
 
 `.env` non è versionato. Docker Compose lo usa sia per sostituire le `${VAR}` nei file
 compose sia come `env_file` iniettato nei container.
@@ -50,10 +46,8 @@ compose sia come `env_file` iniettato nei container.
 | `STACK_VERSION` resta sulla linea 8.x | i digest delle quattro immagini Elastic vanno riallineati a ogni cambio |
 | `ELASTIC_APM_RUM_ACTIVE=true` solo con il monitoring attivo | altrimenti il browser tenta di consegnare telemetria a un endpoint che non risponde |
 
-Le credenziali di sviluppo non vanno portate in produzione. Non è una raccomandazione
-generica: girano da inizio progetto, sono note a chiunque abbia visto il repository, e
-la rotazione avviene di fatto alla generazione dei secret, che produce valori nuovi e
-distinti.
+Le credenziali di sviluppo sono versionate e non vanno usate in produzione.
+Il provisioning genera secret separati per la produzione.
 
 I token di enrollment Fleet sono per-policy. Compose legge i valori generati
 nei file `.env.fleet.server`, `.env.fleet.apm` e `.env.fleet.infra`; i
@@ -121,8 +115,8 @@ file JSON, nomi degli oggetti testo e cambio lingua.
 ## Sandbox
 
 `sandbox/` è un gemello del frontend per prototipare scene e provare comportamenti con
-dati controllati. È **escluso dal monitoraggio** di proposito: la telemetria di prova
-inquinerebbe i dati di esercizio, e distinguerli a posteriori non è sempre possibile.
+dati controllati. È escluso dal monitoraggio per separare la telemetria di prova
+dai dati di esercizio.
 
 ## Verifica
 
@@ -141,6 +135,4 @@ make go-test              # sola suite Go, senza servizi esterni
 make go-test-integration  # richiede MongoDB e Redis, avviati dal target
 ```
 
-I test che richiedono servizi esterni stanno dietro il tag di compilazione
-`integration`. Senza quella separazione ogni esecuzione della suite dipenderebbe da due
-servizi, e un guasto d'ambiente sarebbe indistinguibile da una regressione.
+I test che richiedono MongoDB e Redis usano il tag di compilazione `integration`.

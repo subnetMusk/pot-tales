@@ -38,7 +38,7 @@ credenziali dai file di secret, usa la rete `${STACK_NAME}_elastic` e mantiene
 lo stato Terraform in `/var/lib/pi-terraform/elk`. Il bootstrap è ripetibile
 e verifica la presenza delle dashboard dopo l’apply.
 
-**Il percorso automatico attuale richiede l'ambiente Swarm:** la fase di
+**Il bootstrap automatico richiede Swarm:** la fase di
 aggiornamento delle mappature legge `/run/secrets/elastic_password` dentro
 Elasticsearch. Compose non monta questo secret e non pubblica Kibana su
 `localhost:5601`. Per lo sviluppo usare la
@@ -101,11 +101,3 @@ reinstallazione delle dipendenze, ricostruzione delle immagini, avvio e verifica
 
 Per export, elenco e import delle dashboard, con i relativi prerequisiti,
 consultare il [ciclo delle dashboard](../terraform/elk/dashboards/README.md#ciclo).
-
-## Note
-
-- Il proxy è Traefik (config in `docker/traefik/`), il log shipping è Filebeat,
-  gli Elastic Agent sono gestiti da Fleet.
-- Le configurazioni (Traefik, Kibana, Filebeat, Redis) sono versionate nel repo;
-  lo stato runtime dell'ELK vive nei named volume Docker (`esdata01`, `kibanadata`,
-  `certs`, `fleetserverdata`).

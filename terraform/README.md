@@ -1,26 +1,14 @@
 # Infrastruttura come codice
 
-L'host non è provisionato da qui. Il servizio gira su un server dedicato:
-sistema operativo, rete e accesso sono preparati dagli script di
-[provisioning/](../provisioning/), e non esiste un'API su cui Terraform possa
-agire.
-
-Quello che resta a Terraform è la configurazione dello stack Elastic, che gira
-su quella macchina ed espone un'API: sta in [elk/](elk/README.md).
+Terraform configura lo stack Elastic tramite API nel modulo [elk/](elk/README.md).
+Sistema operativo, rete e accessi dell'host sono preparati dal
+[provisioning](../provisioning/README.md).
 
 ## Stato
 
-Lo stato è locale, su disco della macchina, e non c'è un backend remoto.
-
-La scelta non è un ripiego provvisorio: un backend remoto risolve il lavoro
-concorrente e il blocco fra più operatori, condizioni che qui non esistono.
-C'è un solo host, un solo operatore e nessun altro punto da cui l'apply possa
-partire. Introdurre un servizio di stato remoto significherebbe aggiungere una
-dipendenza esterna e un secondo insieme di credenziali per un problema che non
-si presenta.
-
-Quello che resta da governare è la conservazione, perché lo stato locale non
-ha ridondanza per costruzione.
+Lo stato usa il backend locale. La configurazione prevede un solo host e un
+solo operatore; l'accesso concorrente e la replica dello stato non sono predisposti.
+Conservare una copia protetta dello stato fuori dalla macchina.
 
 ### Dove risiede
 
@@ -37,9 +25,8 @@ esegue l'apply. Il percorso si passa a `init`, non è scritto nel codice:
 terraform -chdir=terraform/elk init -backend-config=path=/var/lib/pi-terraform/elk/terraform.tfstate
 ```
 
-La directory sta fuori dalla copia di lavoro di proposito. Dentro, sarebbe
-soggetta a `git clean`, verrebbe copiata da qualunque archiviazione della
-directory di lavoro e finirebbe in un'immagine del progetto insieme al resto.
+Tenere lo stato fuori dal checkout per escluderlo da `git clean`, dagli archivi
+del repository e dalle immagini del progetto.
 
 ### Dove non deve finire
 
@@ -54,8 +41,7 @@ Ne segue che lo stato non va:
   intatta;
 - incluso in un archivio destinato a uscire dalla macchina, o in una copia di
   cortesia consegnata a chi non ha già quelle credenziali;
-- allegato a una segnalazione di problema, dove tende a finire perché è il
-  file che descrive lo stato del sistema.
+- allegato a una segnalazione di problema.
 
 Vale lo stesso per i file di piano salvati (`terraform plan -out`): contengono
 gli stessi valori. Sono anch'essi esclusi dal controllo di versione.
@@ -76,9 +62,8 @@ quello dichiarato.
 
 ### Come si ricostruisce
 
-Tutte le risorse del modulo `elk/` hanno un identificativo stabile e noto in
-anticipo (nome del ruolo, nome utente, `space_id`, `policy_id`), scelto anche
-per questo. Lo stato si ricostruisce importandole una per una, senza toccare il
+Le risorse del modulo `elk/` hanno identificativi dichiarati nel codice
+(nome del ruolo, nome utente, `space_id`, `policy_id`). Lo stato si ricostruisce importandole una per una, senza toccare il
 servizio:
 
 ```bash

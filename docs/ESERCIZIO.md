@@ -89,16 +89,12 @@ significa ridurre un filesystem in uso.
    group**.
 3. Nessuna partizione di swap.
 
-**Perché lo spazio non allocato non è prudenza generica.** Lo snapshot LVM è il
-meccanismo di copia primario e richiede extent liberi nel volume group. Allocare tutto
-significa restare senza il meccanismo su cui è costruita la continuità dei dati, e
-accorgersene quando serve usarlo.
+Riservare extent liberi nel volume group per gli snapshot LVM, usati dalla
+copia di sicurezza primaria.
 
-**Perché gli indici hanno un volume proprio.** I dati di sessione sono irrecuperabili,
-gli indici sono telemetria deliberatamente non protetta. Se condividono un filesystem,
-il riempimento del secondo porta giù il primo. MongoDB resta invece sul volume dei dati
-Docker: lo snapshot LVM copre un volume solo, e con MongoDB altrove la copia primaria
-dei dati non ricostruibili non lo comprenderebbe.
+Tenere gli indici Elasticsearch su un volume separato per impedire che la loro
+crescita esaurisca lo spazio di MongoDB. MongoDB resta sul volume Docker
+compreso nello snapshot LVM; gli indici si conservano tramite export.
 
 Verifica prima di proseguire:
 ```
@@ -126,14 +122,12 @@ findmnt
 3. Firewall host-level, default deny in ingresso, aperte 22, 80 e 443.
 
    **Docker scavalca ufw.** I pacchetti diretti alle porte pubblicate non attraversano
-   `INPUT`, dove vivono le regole ufw: un `default deny` che sembra funzionare non
-   protegge nulla di ciò che Docker pubblica. Le regole vanno in `DOCKER-USER`.
+   `INPUT`, dove vivono le regole ufw. Filtrare le porte pubblicate con `DOCKER-USER`.
 4. Docker Engine con `daemon.json` da `provisioning/docker/`, che dichiara `data-root`
    sul volume dedicato. **Il montaggio deve esistere prima della prima partenza del
    demone**, o le immagini finiscono sul filesystem di sistema.
 5. Aggiornamenti di sicurezza automatici, **senza riavvio automatico**.
-6. Orologio sincronizzato: log con orario sbagliato sono inutilizzabili proprio nella
-   diagnosi a posteriori.
+6. Orologio sincronizzato per correlare log e metriche.
 7. Journal persistente con i tetti in `provisioning/systemd/journald.conf.d/`.
 
 ---
@@ -167,7 +161,7 @@ Ripetere i controlli dopo ogni modifica allo stack e registrarne l'esito:
 - Dopo un riavvio lo stack e il bootstrap ripartono; lo stato ACME è conservato
   e la raccolta diagnostica dello spegnimento è disponibile.
 
-Dopo ogni rilascio, `sudo stack-checkup.sh` ripete in un colpo solo i controlli sulla
+Dopo ogni rilascio, `sudo stack-checkup.sh` esegue i controlli sulla
 macchina e la verifica end-to-end (vedi [provisioning](../provisioning/README.md)).
 
 ---
@@ -177,11 +171,10 @@ macchina e la verifica end-to-end (vedi [provisioning](../provisioning/README.md
 Da completare prima che la macchina resti non presidiata.
 
 1. Verificare che gli otto check esistano con gli slug attesi, e mandare **un ping
-   manuale a ciascuno**: valida in un colpo solo gli slug, la chiave di ping e l'uscita
+   manuale a ciascuno** per verificare gli slug, la chiave di ping e l'uscita
    di rete verso il servizio.
-2. **Riattivare le notifiche su `stack-liveness`**, disattivate finché lo stack non era
-   in servizio. È l'unico dead man's switch sul servizio: silenziato, si perde la
-   copertura del caso "macchina che non risponde", che è esattamente ciò per cui esiste.
+2. **Attivare le notifiche su `stack-liveness`** per ricevere un allarme
+   quando il servizio non invia più battiti.
 3. Provare il percorso di notifica fino al telefono. Con un solo canale, se il bot viene
    revocato o la chat cancellata i check cambiano stato e nessuno lo viene a sapere.
    Da rifare dopo ogni modifica alle integrazioni.
@@ -255,9 +248,8 @@ copre i punti 2, 3 e l’integrità della copia del punto 6; gli altri restano m
    non esiste un altro nodo verso cui spostare gli shard. Vedi le
    [soglie di allocazione di Elasticsearch 8.19](https://www.elastic.co/guide/en/elasticsearch/reference/8.19/modules-cluster.html#disk-based-shard-allocation).
 3. **Contatori SMART dei dischi, per seriale.** Il nome del dispositivo non è stabile:
-   fra il sistema di ripristino e quello installato `nvme0n1` e `nvme1n1` risultano
-   invertiti, e possono cambiare fra un kernel e l'altro. Si legge il seriale di ogni
-   disco e il contatore si confronta con quello del proprio seriale.
+   `nvme0n1` e `nvme1n1` possono cambiare fra avvii o kernel. Confrontare
+   i contatori associati allo stesso seriale.
    ```bash
    for d in /dev/nvme?n1; do printf '%s %s\n' "$d" "$(sudo smartctl -i "$d" | awk -F': *' '/Serial Number/ {print $2}')"; sudo smartctl -A "$d" | grep -E 'Media and Data|Error Information|^Temperature:'; done
    ```
@@ -272,18 +264,14 @@ copre i punti 2, 3 e l’integrità della copia del punto 6; gli altri restano m
 5. Il sito risponde da rete cellulare, non solo dalla rete locale: è il percorso reale di
    chi arriva dal QR.
 6. Copia dei dati presa e **verificata leggibile**, non solo prodotta.
-7. Nessuna modifica alla configurazione da qui in avanti. Se una serve davvero, va fatta
-   ora e non domani.
+7. Completare le modifiche alla configurazione e ripetere i controlli prima dell'apertura.
 
 ---
 
 ### 8. Durante l'apertura
 
-L'obiettivo dichiarato è **zero interventi manuali**. Ciò che segue è osservazione, non
-manutenzione.
-
 - Non ridistribuire lo stack. Un aggiornamento di configurazione riavvia i servizi che la
-  montano, e lo fa nel momento peggiore.
+  montano.
 - Un allarme si affronta con [l'intervento per sintomo](#intervento-per-sintomo).
 - **Se MongoDB si corrompe: copiare prima lo stato da parte, e solo dopo tentare il
   recupero.** La ricreazione a vuoto perde i dati
@@ -292,8 +280,7 @@ manutenzione.
   [modi di cleanup](../scripts/README.md#pulizia-e-reinstallazione) possono
   eliminare dati e risorse di altri progetti. Evitare `--volumes` nelle operazioni
   ordinarie di produzione. `docker stack rm` non tocca
-  i volumi nominati; `docker compose down -v` li distrugge. È la differenza fra un
-  riavvio e una perdita di dati, e la si sbaglia sotto pressione.
+  i volumi nominati; `docker compose down -v` li distrugge.
 
 ---
 
@@ -301,10 +288,8 @@ manutenzione.
 
 1. Esportare i dati e **prelevarli fuori dalla macchina**: è la copia fuori host
    prevista per ogni giornata di apertura.
-2. Verificare che l'archivio prelevato si apra e contenga quanto atteso. Una copia mai
-   riletta non è una copia.
-3. Annotare quanto è durata l'esportazione: serve a dimensionare il grace period e a
-   sapere quanto tempo richiede quando servirà davvero.
+2. Verificare che l'archivio prelevato si apra e contenga quanto atteso.
+3. Registrare la durata dell'esportazione per pianificare le chiusure successive.
 
 ---
 
@@ -314,12 +299,12 @@ manutenzione.
    qualunque cosa**.
 2. Confronto fra ciò che è stato prelevato e ciò che serve per le conclusioni: quante
    partite, quanto lunghe, dove si sono fermate, quanti sono arrivati dal QR senza
-   giocare. Se manca qualcosa, questo è l'ultimo momento in cui esiste ancora.
+   giocare. Completare la raccolta prima di cancellare i dati.
 3. Distruzione dei dati sulla macchina e dismissione.
 4. Revoca delle credenziali che restano valide altrove: chiave di ping della
    sorveglianza, credenziali del registrar, accessi al fornitore.
-5. Decidere consapevolmente cosa fare del dominio: compare su materiale stampato, e
-   lasciarlo scadere senza deciderlo è comunque una decisione.
+5. Stabilire se mantenere il dominio, rinnovarlo o impostare un redirect
+   per i collegamenti presenti sul materiale stampato.
 
 ---
 
@@ -340,11 +325,11 @@ stessa: con `sniStrict` attivo un handshake per `localhost` viene rifiutato, e
 l'entrypoint in chiaro reindirizza ogni richiesta. `-k` perché qui interessa che il
 backend risponda, non il certificato, che ha un controllo proprio.
 
-Lo stato dei servizi distingue subito le due situazioni che richiedono risposte
-opposte: **repliche disponibili a zero con almeno una replica richiesta** indica un
-task non avviato o non schedulato: leggere la motivazione in `docker service ps`; **repliche a
-uno ma servizio che non risponde** significa che il processo gira e il problema
-è dentro, quindi si guardano i log.
+Lo stato dei servizi orienta la diagnosi:
+
+- **Repliche disponibili a zero con almeno una replica richiesta**: task non
+  avviato o non schedulato; leggere la motivazione in `docker service ps`.
+- **Repliche a uno ma servizio che non risponde**: controllare i log del processo.
 
 Se serve una raccolta completa da portare via prima di toccare altro:
 
@@ -428,7 +413,7 @@ Gli elenchi htpasswd contengono impronte e non password: il disallineamento non
 
 **Dashboard raggiungibili ma senza dati.** Nell'ordine: il cluster è
 interrogabile, l'ingestione è viva, la data view corrisponde a indici che
-esistono davvero.
+esistono.
 
 ```bash
 sudo bash -c '. /etc/stack-deploy.env; : "${STACK_NAME:=pi}"; export APP_HOST STACK_NAME; ./ci/stack-verify.sh'
@@ -445,7 +430,7 @@ journalctl -u fleet-bootstrap.service -n 80 --no-pager
 ```
 
 Gli agenti escono e vengono rischedulati finché il token non compare sul volume
-condiviso: lo stack converge da solo, non serve un avvio in due fasi.
+condiviso.
 
 ---
 
@@ -505,11 +490,11 @@ grep oom_kill /proc/vmstat
 
 Le terminazioni sono contate come **variazione** e non come valore assoluto:
 vengono segnalate anche se al momento del controllo la memoria è già tornata
-disponibile, perché il fatto è avvenuto comunque.
+disponibile.
 
-Ogni servizio ha un tetto dichiarato. Un servizio terminato ripetutamente per
-memoria ha un tetto troppo basso per il proprio carico, non un guasto: alzarlo
-richiede di verificare che il totale resti dentro la memoria della macchina.
+Per un servizio terminato ripetutamente per memoria, verificare consumo e limite
+configurato. Prima di alzare il limite, controllare che il totale resti entro
+la memoria disponibile sulla macchina.
 
 ---
 
@@ -529,9 +514,8 @@ journalctl -u stack-heartbeat.service -n 30 --no-pager
 journalctl -u alert-notifier.service -n 30 --no-pager
 ```
 
-Il battito parte **solo se i controlli locali passano**. Un timer attivo e un
-battito assente non sono in contraddizione: significa che un controllo locale
-sta fallendo, e lo script allega l'elenco di quali.
+Il battito parte solo se i controlli locali passano. Se il timer è attivo ma
+il battito manca, leggere nei log l'elenco dei controlli falliti.
 
 Per gli slug, le cadenze e le tolleranze consultare la tabella
 [degli otto check](../provisioning/README.md#gli-otto-check-da-creare-sul-pannello).
@@ -624,12 +608,11 @@ file.
 - **Non rimuovere lo stack** per riparare un singolo servizio. `docker service
   update --force` riprogramma quello che serve senza fermare il resto.
 - **Non cancellare i volumi** insieme allo stack. `sudo docker stack rm pi` li
-  lascia intatti di proposito; rimuoverli è irreversibile e i dati di una finestra di
+  lascia intatti; rimuoverli è irreversibile e i dati di una finestra di
   esercizio non sono ricostruibili.
 - **Non ricreare a vuoto** prima di aver messo in sicurezza lo stato corrotto.
-- **Non abbassare i limiti di memoria** per far entrare un servizio in più:
-  sposta il guasto invece di risolverlo, e lo sposta su un componente diverso da
-  quello che stavi guardando.
+- **Non abbassare i limiti di memoria** senza misurare il consumo dei servizi
+  e verificare il margine disponibile per ciascuno.
 - **Non allegare lo stato di Terraform** a una segnalazione: contiene in chiaro
   tutti i valori dichiarati sensibili, password delle utenze comprese.
 
@@ -693,8 +676,7 @@ i documenti non aggregati. Non espone log tecnici, indirizzi, cookie o token di 
 Solo “Partite totali” conta tutte le partite avviate, anche senza consenso: è un
 conteggio anonimo, senza identificativo di partita né dispositivo. Tutti gli altri dati
 esistono soltanto per le partite per cui il visitatore ha scelto la telemetria
-facoltativa; questo limite è intenzionale e va considerato quando si interpretano i
-totali.
+facoltativa. Considerare il consenso quando si confrontano i totali.
 
 #### Credenziali
 
@@ -705,9 +687,7 @@ Per la rotazione seguire [Cambiare un secret](#cambiare-un-secret).
 
 ### Esportazione dei dati
 
-La produzione di un export **non è esposta via HTTP**: poterla avviare dal web
-offrirebbe una leva per saturare disco e I/O. Un operatore la avvia dalla
-macchina:
+L'operatore avvia l'export dalla macchina:
 
 ```bash
 sudo systemctl start data-export.service
@@ -734,7 +714,7 @@ curl --fail --user '<utente-esercizio>' \
 Con il solo nome utente `curl` chiede la password senza mostrarla e senza
 lasciarla nella cronologia della shell; funziona allo stesso modo in bash e zsh.
 
-La radice `/export` risponde intenzionalmente `404`, anche dopo
+La radice `/export` risponde `404`, anche dopo
 l’autenticazione: l’assenza di directory listing evita di esporre struttura e
 cadenza degli archivi.
 

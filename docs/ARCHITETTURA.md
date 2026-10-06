@@ -16,10 +16,9 @@ Componenti, confini di rete, stato di gioco e flussi dei dati. L'avvio locale
 | Stack Elastic | log, metriche e telemetria applicativa |
 | Sandbox | gemello del frontend per prototipare, escluso dal monitoraggio |
 
-La landing page realizzata insieme al gioco è la home del frontend (`/`). Il gioco
+La home del frontend è su `/`. Il gioco
 inizia su `/play`, dopo la scelta privacy, mentre l'informativa completa è su
-`/privacy`. Il vecchio percorso `/info` non serve più una pagina separata e reindirizza
-alla home per non lasciare inutilizzabili eventuali collegamenti già distribuiti.
+`/privacy`. Il percorso `/info` reindirizza alla home.
 
 ### Mappa dei componenti in produzione
 
@@ -50,9 +49,6 @@ flowchart LR
 | `internal_net` (sviluppo) | persistenza e osservabilità; **senza uscita internet** |
 | `kibana_net` (sviluppo) | uscita internet di Kibana |
 
-La rete dei dati è dichiarata `internal`: base dati e cache non hanno alcun motivo di
-raggiungere l'esterno, e impedirglielo è più economico che accorgersene dopo.
-
 In produzione **Traefik è l'unico servizio che pubblica porte**, e lo fa in `mode: host`
 e non `ingress`. Il routing mesh di Swarm applica SNAT e sostituirebbe l'indirizzo del
 client con quello della rete interna: quote per indirizzo e rilevamento vedrebbero tutto
@@ -73,11 +69,10 @@ Phaser 3 con TypeScript, compilato da Vite.
 Gli schemi in `comms/frontend/` definiscono i contratti verso il backend, validati con
 Zod lato client.
 
-**Politiche di cache in produzione**, tre e distinte: gli artefatti con un'impronta nel
+**Politiche di cache in produzione**: gli artefatti con un'impronta nel
 nome sono `immutable` per un anno, gli asset di gioco hanno nomi stabili e quindi durata
 di un'ora, il documento di ingresso non va mai in cache perché dichiara quali artefatti
-caricare. Le postazioni ricaricano gli stessi asset molte volte al giorno: è l'intervento
-da verificare nelle misure del carico di una nuova apertura.
+caricare.
 
 ## Backend
 
@@ -87,7 +82,7 @@ Go con Gorilla Mux, driver MongoDB e Redis, agente APM Elastic.
 
 `server/middleware/validator.go` carica gli schemi JSON da `comms/server/public/` e
 valida ogni corpo di richiesta contro lo schema corrispondente. **Una rotta senza schema
-non è raggiungibile**: l'assenza di schema nega, non consente. Gli schemi sono dentro
+non è raggiungibile**. Gli schemi sono dentro
 l'immagine, non montati: il processo termina all'avvio se non li trova.
 
 ### Superficie HTTP
@@ -120,8 +115,7 @@ risposte ancora in volo non modificano la scena successiva.
 
 Non ci sono controlli di velocità o espulsioni per ritardo: il gioco include
 spostamenti a copione e cambi di stanza. La posizione è un dato di ripresa
-dichiarato dal client, non una prova anti-cheat. L'endpoint non usato
-`/game/timer` e l'accumulatore di tempo sono stati rimossi.
+dichiarato dal client, non una prova anti-cheat.
 
 Le coordinate compaiono solo dopo il primo ping. Gli zeri iniziali non sono
 una posizione salvata: prima di quel ping il client usa il punto di ingresso.
@@ -137,23 +131,17 @@ del disco o della macchina. Le copie dei dati sono descritte nel
 ### Ritenzione
 
 Un indice TTL su `created_at` cancella i documenti dopo `DATA_RETENTION_DAYS`. È distinta
-dalla validità della sessione, che è dell'ordine dei minuti: confonderle cancellerebbe i
-dati appena la sessione scade.
+dalla validità della sessione, che è dell'ordine dei minuti.
 
 ## Osservabilità
 
-Elasticsearch, Kibana, Fleet, APM e Filebeat. Nodo singolo, **zero repliche per scelta**:
-su un nodo una replica non può essere allocata, resterebbe perennemente non assegnata e
-il cluster giallo in permanenza. Un indicatore sempre acceso non distingue nulla, e
-l'allarme sullo stato del cluster diventerebbe inutile proprio quando serve. Il prezzo è
-esplicito: perdere il nodo significa perdere gli indici, e i dati che devono sopravvivere
-passano dall'esportazione, non dal cluster.
+Elasticsearch, Kibana, Fleet, APM e Filebeat girano su un nodo singolo, senza repliche.
+Una replica resterebbe non allocata e manterrebbe il cluster in stato giallo.
+La perdita del nodo comporta la perdita degli indici: i dati da conservare vanno esportati.
 
 ### Flusso dei dati di osservabilità
 
-Vista della consegna dei dati e degli allarmi, dall’alto verso il basso.
-Le frecce mostrano il flusso dei
-record; Kibana interroga Elasticsearch e vi scrive gli allarmi delle regole.
+Kibana interroga Elasticsearch e vi scrive gli allarmi delle regole.
 
 ```mermaid
 flowchart TB
@@ -184,7 +172,7 @@ dal percorso delle regole Kibana.
 | APM RUM | caricamenti pagina, tempi di risorsa, errori JavaScript, chiamate HTTP |
 | Log applicativi | tracce, latenza, eventi strutturati del backend |
 
-### I dataset, e perché sono separati
+### Dataset
 
 | Dataset | Origine | Chi lo legge |
 |---|---|---|
@@ -197,16 +185,10 @@ concedere un sottoinsieme di documenti dentro un indice condiviso. La separazion
 indici distinti è l'unico meccanismo disponibile per delimitare ciò che viene condiviso,
 e Filebeat instrada su `event.dataset`.
 
-Ne discendono tre scelte:
-
-- **Il token di sessione non compare** nei fatti di partita: è lo stesso valore che il
-  visitatore porta nel cookie. Al suo posto un identificativo derivato con sale, che
-  consente di contare e raggruppare senza consentire di collegare una riga a un browser.
-- **Il dispositivo compare come classe**, non come stringa dichiarata, che sarebbe un
-  vettore di riconoscimento.
-- **I fatti didattici li emette il backend.** Il logger del client e il suo
-  endpoint pubblico non sono usati e sono stati rimossi. Il RUM resta una
-  sorgente tecnica separata e richiede consenso.
+- I fatti di partita usano un identificativo derivato con sale, senza esportare il token
+  del cookie. L'identificativo consente di contare e raggruppare gli eventi della sessione.
+- Il dispositivo compare come classe, senza user agent integrale.
+- Il backend emette i fatti didattici. Il RUM è una sorgente tecnica separata e richiede consenso.
 
 ### Fatti di partita
 
@@ -262,9 +244,8 @@ partita; il conteggio grezzo dei documenti misura invece il volume degli eventi.
 checkpoint finale `stage3_complete` chiude immediatamente la partita con motivo
 `completata`, così la spazzata non la riclassifica come abbandono per inattività.
 
-Per gli abbandoni l'ultimo evento non ha una richiesta in cui nascere: la partita finisce
-quando qualcuno si alza dalla postazione. Una spazzata periodica rivendica le partite
-ferme ed emette la conclusione con durata e scena finale. La rivendicazione è atomica,
+Una spazzata periodica rivendica le partite inattive ed emette la conclusione
+con durata e scena finale. La rivendicazione è atomica,
 quindi le repliche del backend non emettono la stessa conclusione due volte.
 
 ### Due Space, due platee
@@ -274,18 +255,15 @@ quindi le repliche del backend non emettono la stessa conclusione due volte.
 | Esercizio | log, metriche, tracce, allarmi e fatti di gioco | salute del servizio, risorse, contenimento, imbuto |
 | Andamento evento | solo `gioco.partita` | affluenza e comportamento, nessuno stato macchina |
 
-Ruoli in sola lettura distinti, definiti come codice via provider Terraform. Le dashboard
-non sono generate da Terraform ma esportate in NDJSON e reimportate: una dashboard si
-disegna sui dati, e dichiararla prima di averli visti significa interrogare campi
-ipotetici. Il codice governa il ciclo di vita dell'export, non il suo contenuto.
+I ruoli in sola lettura sono definiti via Terraform. Le dashboard si modificano in
+Kibana, si esportano in NDJSON e si reimportano tramite Terraform.
 Discover resta entro lo stesso confine: nello Space evento rende consultabili i soli
 fatti pseudonimizzati di `gioco.partita`, senza concedere log tecnici, metriche o tracce.
 
 ### Sorveglianza esterna
 
-Un servizio esterno riceve battiti e allarmi: vive fuori dalla macchina, quindi parla
-anche quando la macchina è morta. Con macchina singola è un requisito, non un lusso: il
-monitoraggio interno muore insieme a ciò che monitora.
+Un servizio esterno riceve battiti e allarmi e segnala l'assenza dei battiti
+quando la macchina è irraggiungibile.
 
 Le notifiche del servizio sono legate alla **transizione di stato**: un secondo segnale
 di guasto mentre la destinazione è già in guasto non produce nulla. Per questo le classi
@@ -301,10 +279,8 @@ Traefik con limite di frequenza, tetto sulle richieste in volo, tetto sul corpo,
 interruttore per staccare un backend in sofferenza, intestazioni di sicurezza e politica
 sui contenuti. CrowdSec come bouncer.
 
-**Le soglie sono tarate per non danneggiare l'uso legittimo, non per contenere l'abuso.**
-Dietro il NAT di una conferenza l'intera sala condivide un indirizzo, e un limite per
-indirizzo tarato sul singolo utente colpisce tutti i presenti. È la stessa ragione per
-cui le decisioni locali di CrowdSec sono disattivate.
+Le soglie per indirizzo tengono conto delle postazioni dietro lo stesso NAT.
+Le decisioni locali di CrowdSec sono disattivate per evitare blocchi dell'intera sala.
 
 Il controllo applicativo dei backend è distinto dall'healthcheck del container: il
 secondo osserva il processo, il primo la risposta. Un servizio vivo che risponde in modo
@@ -342,7 +318,7 @@ un nuovo esercizio parte da dati vuoti e aggiorna contatti e informativa.
 **Race sui certificati all'avvio in sviluppo.** In `docker-compose.monitoring.yml` `es01`
 dipende da `setup` con `condition: service_started` e non `service_healthy`, perché
 `setup` attende a sua volta che ES risponda per impostare la password di `kibana_system`:
-usare `service_completed_successfully` produrrebbe un deadlock. Il prezzo è una possibile
+usare `service_completed_successfully` produrrebbe un deadlock. Può verificarsi una
 race in cui `es01` parte prima che i certificati siano scritti. In produzione il problema
 non si pone: su Swarm non esiste `depends_on` e i servizi ripartono finché la dipendenza
 non è pronta.
@@ -374,8 +350,7 @@ solo per il contenitore Terraform effimero. Il bootstrap la richiede
 esplicitamente, così un ripristino incompleto non può dichiarare pronte
 dashboard in realtà irraggiungibili.
 
-Cambiare un valore è un'operazione ordinaria, perché il nome del secret segue il contenuto
-come per i config; quali valori vanno prima cambiati nel servizio è descritto in
+La procedura di rotazione, compresi i valori da aggiornare prima nel servizio, è in
 [`ESERCIZIO.md`](ESERCIZIO.md#cambiare-un-secret). Cifrare i file, per esempio con SOPS,
 servirebbe a condividere il `.env` di sviluppo. In produzione sposterebbe il problema sulla
 chiave che li decifra, che l'avvio non presidiato dovrebbe comunque trovare sulla macchina.

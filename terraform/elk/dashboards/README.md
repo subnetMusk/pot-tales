@@ -2,8 +2,7 @@
 
 Export dei saved object di Kibana, uno per Space. Terraform li reimporta:
 `dashboards.tf` costruisce una risorsa per ogni file `.ndjson` trovato qui
-sotto, quindi aggiungere una dashboard è aggiungere un file, non modificare il
-codice.
+sotto.
 
 ```
 esercizio/<nome>.ndjson           export dello Space di esercizio
@@ -25,14 +24,6 @@ Ciò che finisce in `evento/` viene condiviso: prima di esportare va verificato 
 pannelli non mostrino indirizzi, identificativi di sessione o nomi di host. Il ruolo
 `osservabilita_evento` limita gli indici leggibili, ma non può impedire a un pannello
 di riportare un valore già aggregato.
-
-## Perché non sono generate da Terraform
-
-Una dashboard si disegna sui dati: quali campi esistono davvero, come si
-distribuiscono, quali soglie separano il normale dall'anomalo. Dichiararla in
-codice prima di aver visto i dati significa scriverne una che interroga campi
-ipotetici. Il codice qui governa il ciclo di vita dell'export, non il suo
-contenuto.
 
 ## Ciclo
 
@@ -80,7 +71,7 @@ Il file `.versione` accanto a ogni export registra la versione di provenienza, e
 `dashboards.tf` la confronta con la variabile `kibana_version` prima di
 importare. Un export fuori intervallo, o privo del file di versione, ferma il
 `plan` con il nome del file: fuori intervallo l'importazione può riuscire e
-lasciare oggetti che poi non si aprono, il che è peggio di un errore.
+lasciare oggetti che poi non si aprono.
 
 Dopo un aggiornamento dello stack che superi l'intervallo, gli export vanno
 rifatti dall'istanza aggiornata.
@@ -94,9 +85,8 @@ aggiornato.
 
 Per lo stesso motivo l'export non è riformattato né riordinato: `export.sh`
 scrive il corpo della risposta dell'API così com'è e verifica che entrambi i
-campi siano presenti su ogni riga prima di salvarlo. Ne segue che l'ordine delle
-righe può variare fra due export della stessa dashboard, e la differenza
-apparire più ampia di quanto sia: è il prezzo di non riscrivere il file.
+campi siano presenti su ogni riga prima di salvarlo. L'ordine delle righe può variare fra due export della stessa dashboard e
+produrre un diff più ampio delle modifiche ai pannelli.
 
 ## Esportazione mirata e data view
 

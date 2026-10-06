@@ -1,6 +1,6 @@
 # Guida all'inserimento delle traduzioni nel progetto Phaser
 
-## Struttura consigliata
+## File per scena e lingua
 
 Organizza le traduzioni in cartelle per lingua all'interno della directory `assets/i18n/`, con un file JSON per ogni scena:
 
