@@ -216,11 +216,14 @@ jobs:
       # Il digest e' l'identificatore immutabile dell'immagine pubblicata, ed e'
       # il valore da riportare in /etc/stack-deploy.env sulla macchina.
       - name: Riporta il digest nel summary
+        env:
+          IMAGE_NAME: ghcr.io/${{ github.repository }}/${{ matrix.name }}
+          IMAGE_DIGEST: ${{ steps.build.outputs.digest }}
         run: |
           {
             echo "### ${{ matrix.name }}"
             echo ""
             echo '```'
-            echo "ghcr.io/${{ github.repository }}/${{ matrix.name }}@${{ steps.build.outputs.digest }}"
+            printf '%s@%s\n' "${IMAGE_NAME,,}" "$IMAGE_DIGEST"
             echo '```'
           } >> "$GITHUB_STEP_SUMMARY"
